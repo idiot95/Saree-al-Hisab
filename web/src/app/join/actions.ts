@@ -15,18 +15,20 @@ export async function joinWithNewAccount(_prev: AuthResult, fd: FormData): Promi
   const name = String(fd.get('name') ?? '').trim();
   const password = String(fd.get('password') ?? '');
 
-  if (name.length < 2) return { error: 'What should the household call you?' };
+  if (name.length < 2) return { error: 'A name. Any name. Even a nickname.' };
   const weak = passwordProblem(password);
   if (weak) return { error: weak };
-  if (String(fd.get('confirm') ?? '') !== password) return { error: 'The two passwords are not the same.' };
+  if (String(fd.get('confirm') ?? '') !== password) {
+    return { error: 'Those two passwords are not speaking to each other.' };
+  }
 
   const made = await createFromInvite(token, name, await hashPassword(password));
-  if (!made) return { error: 'That invitation is no longer good. Ask for a new link.' };
+  if (!made) return { error: 'That invitation has gone off. Ask for a fresh link.' };
 
   try {
     await signIn('credentials', { email: made.email, password, redirectTo: '/' });
   } catch (e) {
-    if (e instanceof AuthError) return { error: 'Your account was made. Sign in with it.' };
+    if (e instanceof AuthError) return { error: 'Account made. Sign-in got shy — try it yourself.' };
     throw e;
   }
   return null;

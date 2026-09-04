@@ -181,6 +181,20 @@ ok(await admits(invited) === 0, 'a revoked invite admits nobody, link or no link
 await sql`update invite set status = 'open', expires_at = now() - interval '1 day' where id = ${live.id}`;
 ok(await admits(invited) === 0, 'an expired invite admits nobody');
 
+console.log('\nBOOKS — one person, several sets, no leaking between them');
+const [second] = await sql`insert into household ${sql({ name: 'Invariant test' })} returning id`;
+await allows('the same person can be in two households at once',
+  () => sql`insert into member ${sql({ household_id: second.id, user_id: user.id, role: 'adult' })}`);
+await refuses('the same person twice in ONE household is refused',
+  () => sql`insert into member ${sql({ household_id: second.id, user_id: user.id, role: 'owner' })}`);
+await refuses('pointing at books that do not exist is refused',
+  () => sql`update app_user set active_household_id = ${user.id} where id = ${user.id}`);
+await sql`update app_user set active_household_id = ${second.id} where id = ${user.id}`;
+await sql`delete from household where id = ${second.id}`;
+const [after] = await sql`select active_household_id from app_user where id = ${user.id}`;
+ok(after.active_household_id === null,
+  'deleting a household clears it from anyone still looking at it, rather than dangling');
+
 console.log('\nACCOUNTS — a password is worth nothing without an address');
 await refuses('a password on a row with no email is refused',
   () => sql`insert into app_user ${sql({ phone: '+910000000003', name: 'X', password_hash: 'scrypt$17$8$1$a$b' })}`);

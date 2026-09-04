@@ -57,6 +57,13 @@
       "when": 1788521206306,
       "tag": "0007_issuer_is_a_note_not_a_dependency",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1788522606470,
+      "tag": "0008_which_books_are_on_screen",
+      "breakpoints": true
     }
   ]
 }

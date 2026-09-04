@@ -62,6 +62,11 @@ export const appUser = pgTable('app_user', {
   failedAttempts: integer('failed_attempts').notNull().default(0),
   lockedUntil: timestamp('locked_until', { withTimezone: true }),
   lastSeenAt: timestamp('last_seen_at', { withTimezone: true }),
+  /* A person can keep their own books AND be in somebody else's — their
+     parents', a sibling's. This is which set they are looking at right now.
+     It is a preference, not a permission: membership is what grants access,
+     and this only says which of those memberships is on screen. */
+  activeHouseholdId: uuid('active_household_id').references(() => household.id, { onDelete: 'set null' }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [
   // One of the two must identify them. Without this a nameless row with

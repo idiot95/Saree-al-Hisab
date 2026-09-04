@@ -36,11 +36,11 @@ export default function PasswordCard() {
         <form action={act} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {/* The current password is required so that a borrowed unlocked
               phone cannot become a permanent takeover. */}
-          <Field label="Your current password" name="current" type="password"
+          <Field label="The one you have now" name="current" type="password"
             autoComplete="current-password" required autoFocus />
-          <Field label="New password" name="next" type="password" autoComplete="new-password"
-            required hint="At least 10 characters. Three ordinary words beat one clever one." />
-          <Field label="New password again" name="confirm" type="password"
+          <Field label="The new one" name="next" type="password" autoComplete="new-password"
+            required hint="Ten characters minimum. Three boring words beat one clever one, every time." />
+          <Field label="The new one again, to be sure" name="confirm" type="password"
             autoComplete="new-password" required />
 
           {state && !state.ok && <ErrorNote>{state.error}</ErrorNote>}
@@ -62,12 +62,12 @@ export default function PasswordCard() {
             <button type="button" onClick={() => setOpen(false)} style={{
               minHeight: 48, padding: '0 16px', borderRadius: 12, fontSize: 14.5, fontWeight: 600,
               background: 'var(--c-sunk)', color: 'var(--c-meta)',
-            }}>Cancel</button>
+            }}>Forget it</button>
             <button type="submit" disabled={pending} style={{
               flex: 1, minHeight: 48, borderRadius: 12, fontSize: 15, fontWeight: 600,
               background: 'var(--c-seagrass)', color: 'var(--c-on-fill)',
               opacity: pending ? 0.65 : 1,
-            }}>{pending ? 'Saving…' : 'Change it'}</button>
+            }}>{pending ? 'Saving…' : 'Swap them over'}</button>
           </div>
         </form>
       )}

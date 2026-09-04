@@ -1,0 +1,2 @@
+ALTER TABLE "app_user" ADD COLUMN "active_household_id" uuid;--> statement-breakpoint
+ALTER TABLE "app_user" ADD CONSTRAINT "app_user_active_household_id_household_id_fk" FOREIGN KEY ("active_household_id") REFERENCES "public"."household"("id") ON DELETE set null ON UPDATE no action;

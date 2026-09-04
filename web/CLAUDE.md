@@ -80,7 +80,7 @@ A repayment is `kind = 'claim_receipt'` — money in, but explicitly not income.
 ## Running it
 
     npm run migrate            # in filename order; --reset drops and rebuilds
-    npm run test:invariants    # 47 assertions against real Postgres
+    npm run test:invariants    # 51 assertions against real Postgres
     npm run test:lib           # money, password hashing and link tokens
     npm run tokens             # regenerate tokens.css from the canvas palette
 
@@ -92,7 +92,7 @@ because they are idempotent, so a changed view ships without a new file.
 ## Proven, not assumed
 
 `npm run test:invariants` tries to BREAK each rule and expects Postgres to
-refuse. 47 assertions currently pass, covering: a move can never look like
+refuse. 51 assertions currently pass, covering: a move can never look like
 spending, `spend_txn` is the only definition of spending, refunds net off in
 the month they land, a card purchase files itself into the right cycle, a
 payment method is a rail and not a balance, lending never touches the budget,
@@ -100,9 +100,10 @@ duplicates are detected but never prevented, budgets are one row per
 category per month keyed on the first, an invitation is single-use and its
 plaintext is nowhere in the database, a password cannot exist without an
 address to use it with, and an account that has recorded entries cannot be
-deleted at all — the ledger holds it in place.
+deleted at all — the ledger holds it in place — and one person can keep
+several sets of books without either set knowing about the other.
 
-    npm run seed               # the Mogul Household, INR only
+    npm run seed you@example.com   # fills YOUR books with the designs' data
 
 ## Where the slice reaches
 
@@ -163,13 +164,28 @@ who can change your role and remove you, and pretending otherwise would only
 have added a mail provider to the bill. Changing your own password needs the
 old one.
 
-Joining is never automatic. `/setup` is open exactly once — the first person
-through the door owns the books, and only if the household has actually been
-set up (an empty shell left by a migration is not somewhere to land). After
-that the screen closes forever and everyone needs an invite, or they land on
-`/no-household`, which shows them the address to have invited.
+### Anyone can open books; nobody can open somebody else's
 
-`/signin`, `/setup`, `/join` and `/reset` are excluded from the proxy matcher —
+`/signup` is open to all comers, and that is safe precisely because signing up
+gets you **your own empty household and nothing else**. There is no door here
+into anyone's existing books — that still takes an invitation from them. New
+households get a thin starter kit from `src/db/starter.ts`: cash, one way to
+pay, eight categories. Thin on purpose — nobody wants to arrive and find eight
+of somebody else's bank accounts — but not empty, because an entry needs a way
+to pay and a way to pay needs an account behind it.
+
+**A person can keep several sets of books**: their own, a sibling's, the shop.
+`app_user.active_household_id` says which set is on screen. It is a preference,
+not a permission — `membershipOf` joins through `member`, so a stale or forged
+value returns a household you are genuinely in or nothing at all, and
+`switchHousehold` refuses outright. Proven: POST a household id you have no
+business with and you stay exactly where you were.
+
+Removed from your only household? `/no-household` offers the way out that
+matters — start your own — rather than leaving you stranded waiting to be
+re-invited.
+
+`/signin`, `/signup`, `/join` and `/reset` are excluded from the proxy matcher —
 all four have to open for someone not signed in yet.
 
 **Timestamps are written with `now()`, never a JS `Date`.** Expiry is compared
@@ -181,6 +197,17 @@ which turns into a serialisation error at the worst possible moment. It did.
 `useActionState`. Not a formality: an action wrapped in a client closure loses
 its no-JS fallback, and the form then does nothing until the bundle has
 hydrated — a real window of vanishing taps on a slow phone.
+
+## The voice
+
+Labels, hints and empty states are **dry and a bit fatalistic** — "Own up to
+something", "Show them the door", "invited and dawdling", "Ideal for the
+relative with opinions". Money apps are grim enough.
+
+The one place the joke stops: **anything that warns about consequence stays
+unmistakable.** "Whoever opens this link becomes them" is bolded and literal,
+because a reader who is amused but unclear about who can now see their salary
+has been badly served. Wit in the label, plain fact in the warning.
 
 ## Open
 

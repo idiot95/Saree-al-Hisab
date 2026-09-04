@@ -12,17 +12,19 @@ export async function setNewPassword(_prev: AuthResult, fd: FormData): Promise<A
   const password = String(fd.get('password') ?? '');
   const weak = passwordProblem(password);
   if (weak) return { error: weak };
-  if (String(fd.get('confirm') ?? '') !== password) return { error: 'The two passwords are not the same.' };
+  if (String(fd.get('confirm') ?? '') !== password) {
+    return { error: 'Those two passwords are not speaking to each other.' };
+  }
 
   // Spends the link and sets the password together, and kills every other live
   // reset for that person — so a second link left lying around is dead too.
   const done = await usePasswordReset(token, await hashPassword(password));
-  if (!done) return { error: 'That link has been used already, or it has expired.' };
+  if (!done) return { error: 'That link is spent or expired. Ask for another.' };
 
   try {
     await signIn('credentials', { email: done.email, password, redirectTo: '/' });
   } catch (e) {
-    if (e instanceof AuthError) return { error: 'Your password is changed. Sign in with it.' };
+    if (e instanceof AuthError) return { error: 'Password changed. Sign-in got shy — try it yourself.' };
     throw e;
   }
   return null;

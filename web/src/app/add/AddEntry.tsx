@@ -15,9 +15,9 @@ import { saveEntry, checkDuplicate } from './actions';
 type Kind = 'expense' | 'income' | 'transfer';
 
 const KINDS: { id: Kind; label: string }[] = [
-  { id: 'expense', label: 'Expense' },
-  { id: 'income', label: 'Income' },
-  { id: 'transfer', label: 'Transfer' },
+  { id: 'expense', label: 'Went out' },
+  { id: 'income', label: 'Came in' },
+  { id: 'transfer', label: 'Moved' },
 ];
 
 export type Category = { id: string; name: string; tint: string };
@@ -91,7 +91,7 @@ export default function AddEntry({
           <button aria-label="Close" style={iconBtn}>
             <Glyph d="M6 6l12 12M18 6L6 18" />
           </button>
-          <h1 className="t" style={{ margin: 0, fontSize: 19 }}>New entry</h1>
+          <h1 className="t" style={{ margin: 0, fontSize: 19 }}>Own up</h1>
           <span style={{ width: 44, height: 44 }} />
         </div>
 
@@ -133,7 +133,7 @@ export default function AddEntry({
 
       <div className="el" style={{ margin: '-18px 18px 12px', background: 'var(--c-card)', borderRadius: 18, padding: '2px 16px' }}>
         <Row
-          label={kind === 'transfer' ? 'From' : 'Paid using'}
+          label={kind === 'transfer' ? 'Out of' : 'Paid with'}
           value={method?.name ?? '—'}
           hint={method && method.funds !== method.name ? `leaves ${method.funds}` : undefined}
           onClick={() => setMethodId(methods[(methods.findIndex((m) => m.id === methodId) + 1) % methods.length].id)}
@@ -141,7 +141,7 @@ export default function AddEntry({
         {kind === 'transfer' ? (
           <Row
             label="Into"
-            value={accounts.find((a) => a.id === counterId)?.name ?? 'Choose an account'}
+            value={accounts.find((a) => a.id === counterId)?.name ?? 'Somewhere. Pick one'}
             muted={!counterId}
             onClick={() => {
               const pick = accounts.filter((a) => a.id !== undefined);
@@ -186,9 +186,9 @@ export default function AddEntry({
         }}>
           <Glyph d="M12 7.5v5.5 M12 16.6v.1 M20.5 12a8.5 8.5 0 1 1-17 0 8.5 8.5 0 0 1 17 0" size={17} w={1.9} />
           <span style={{ flex: 1, fontSize: 13, lineHeight: 1.45 }}>
-            <b>{dupe.who}</b> recorded {format(dupe.amountMinor)}
-            {dupe.merchant ? ` at ${dupe.merchant}` : ''} on {friendly(dupe.on)}, from {dupe.account}.
-            Is this the same thing?
+            <b>{dupe.who}</b> already put down {format(dupe.amountMinor)}
+            {dupe.merchant ? ` at ${dupe.merchant}` : ''} on {friendly(dupe.on)}, out of {dupe.account}.
+            Same thing, or did you both actually pay?
           </span>
         </div>
       )}
@@ -212,7 +212,7 @@ export default function AddEntry({
           background: 'var(--c-card)', border: '1px solid var(--c-border)',
         }}
       >
-        <span style={{ flex: 1, fontSize: 14.5, fontWeight: 600 }}>Shared with the household</span>
+        <span style={{ flex: 1, fontSize: 14.5, fontWeight: 600 }}>Everyone chipped in</span>
         <span style={{
           width: 50, height: 30, borderRadius: 999, flex: 'none', padding: 3, display: 'flex',
           justifyContent: shared ? 'flex-end' : 'flex-start',
@@ -248,7 +248,7 @@ export default function AddEntry({
             }}
           >
             <Glyph d="M5 12.5 10 17.5 19 7" size={24} w={2.2} />
-            {pending ? 'Saving…' : 'Save'}
+            {pending ? 'Filing it…' : 'Done'}
           </button>
         </div>
       </div>

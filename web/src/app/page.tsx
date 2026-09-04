@@ -38,8 +38,8 @@ export default async function Home() {
       </div>
 
       <h1 className="t" style={{ margin: 0, fontSize: 30 }}>Quiet Ledger</h1>
-      <p style={{ margin: 0, color: 'var(--c-meta)' }}>
-        Signed in, household claimed, ledger ready.
+      <p style={{ margin: 0, color: 'var(--c-meta)', lineHeight: 1.5 }}>
+        Books open, columns ruled, nothing in them yet. That last part is on you.
       </p>
       <Link href="/add" style={{
         minHeight: 58, borderRadius: 16, display: 'flex', alignItems: 'center',
@@ -47,7 +47,7 @@ export default async function Home() {
         textDecoration: 'none',
         background: 'radial-gradient(120% 100% at 25% 0%, rgba(255,255,255,.18) 0%, rgba(255,255,255,0) 60%),'
           + 'linear-gradient(145deg,#2C5063 0%,#1C3541 100%)',
-      }}>Add an entry</Link>
+      }}>Own up to something</Link>
       <Link href="/household" style={{
         minHeight: 52, borderRadius: 14, display: 'flex', alignItems: 'center', gap: 10,
         padding: '0 16px', textDecoration: 'none', background: 'var(--c-card)',
@@ -58,7 +58,7 @@ export default async function Home() {
           <circle cx="9" cy="8.5" r="3.2" /><path d="M3 19.5a6 6 0 0 1 12 0" />
           <path d="M16 5.6a3.2 3.2 0 0 1 0 5.8" /><path d="M17 14.2a6 6 0 0 1 4 5.3" />
         </svg>
-        Who is in this household
+        Who else is in here
       </Link>
     </main>
   );

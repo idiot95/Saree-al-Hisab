@@ -1,6 +1,7 @@
 import 'server-only';
 import { sql } from './client';
 import { hashLinkToken } from '@/lib/link-token';
+import { starterKitFor } from './starter';
 
 export type Role = 'owner' | 'adult' | 'viewer';
 export type Membership = { household_id: string; role: Role };
@@ -11,10 +12,41 @@ export type Membership = { household_id: string; role: Role };
    next tap — not at the next sign-in. The token therefore says only WHO the
    person is, and this module answers WHAT they may do. */
 
+/* A person can keep their own books and be in somebody else's. Which set is on
+   screen is a preference on app_user; membership is still what grants access,
+   so a stale or forged preference gets you nothing — the join below only ever
+   returns a household you are genuinely a member of. */
 export async function membershipOf(userId: string): Promise<Membership | null> {
   const [m] = await sql`
-    select household_id, role from member where user_id = ${userId} limit 1`;
+    select m.household_id, m.role
+    from member m
+    join app_user u on u.id = m.user_id
+    where m.user_id = ${userId}
+    order by (m.household_id = u.active_household_id) desc, m.joined_at
+    limit 1`;
   return (m as Membership | undefined) ?? null;
+}
+
+export async function householdsOf(userId: string) {
+  return sql`
+    select h.id, h.name, m.role,
+           (h.id = u.active_household_id) as active,
+           (select count(*)::int from member x where x.household_id = h.id) as people
+    from member m
+    join household h on h.id = m.household_id
+    join app_user u on u.id = m.user_id
+    where m.user_id = ${userId}
+    order by m.joined_at
+  ` as Promise<{ id: string; name: string; role: Role; active: boolean; people: number }[]>;
+}
+
+/** Switching is only ever allowed to books you are already in. */
+export async function switchHousehold(userId: string, householdId: string) {
+  const [m] = await sql`
+    select 1 from member where user_id = ${userId} and household_id = ${householdId}`;
+  if (!m) return false;
+  await sql`update app_user set active_household_id = ${householdId} where id = ${userId}`;
+  return true;
 }
 
 /* ── signing in ─────────────────────────────────────────────────────────── */
@@ -74,17 +106,17 @@ export const isLocked = (u: { locked_until: Date | null }) =>
 
 /* ── getting an account in the first place ──────────────────────────────── */
 
-/** A household nobody is a member of, that has actually been set up. An empty
- *  shell left behind by a migration is not somewhere to put the first person:
- *  they would land in an app with no accounts and no way back out. */
-export async function unclaimedHousehold(): Promise<{ id: string; name: string } | null> {
-  const [h] = await sql`
-    select h.id, h.name from household h
-    left join member m on m.household_id = h.id
-    where m.household_id is null
-      and exists (select 1 from account a where a.household_id = h.id)
-    order by h.created_at limit 1`;
-  return (h as { id: string; name: string } | undefined) ?? null;
+/** Books of your own, opened with enough in them to record something today. */
+export async function createHousehold(userId: string, name: string) {
+  return sql.begin(async (tx) => {
+    const [h] = await tx`
+      insert into household (name) values (${name.trim()}) returning id`;
+    await tx`insert into member (household_id, user_id, role)
+             values (${h.id}, ${userId}, 'owner')`;
+    await tx`update app_user set active_household_id = ${h.id} where id = ${userId}`;
+    await starterKitFor(tx, h.id);
+    return { householdId: h.id as string };
+  });
 }
 
 export async function emailIsTaken(email: string) {
@@ -92,23 +124,23 @@ export async function emailIsTaken(email: string) {
   return !!u;
 }
 
-/** The first person through the door owns the books. After that there is
- *  nothing left to claim and this returns null, so the screen disappears. */
-export async function createOwner(email: string, name: string, passwordHash: string) {
+/** An account and the books that come with it, in one go — or neither.
+ *  Anybody may do this. Signing up gets you your OWN household and nobody
+ *  else's; joining someone's books still takes an invitation from them. */
+export async function signUp(
+  email: string, name: string, passwordHash: string, householdName: string,
+) {
   return sql.begin(async (tx) => {
-    const [h] = await tx`
-      select h.id from household h
-      left join member m on m.household_id = h.id
-      where m.household_id is null
-        and exists (select 1 from account a where a.household_id = h.id)
-      order by h.created_at limit 1
-      for update of h skip locked`;
-    if (!h) return null;
     const [u] = await tx`
       insert into app_user (email, name, password_hash, password_set_at)
       values (${email.trim().toLowerCase()}, ${name.trim()}, ${passwordHash}, now())
       returning id`;
-    await tx`insert into member ${tx({ household_id: h.id, user_id: u.id, role: 'owner' })}`;
+    const [h] = await tx`
+      insert into household (name) values (${householdName.trim()}) returning id`;
+    await tx`insert into member (household_id, user_id, role)
+             values (${h.id}, ${u.id}, 'owner')`;
+    await tx`update app_user set active_household_id = ${h.id} where id = ${u.id}`;
+    await starterKitFor(tx, h.id);
     return { userId: u.id as string, householdId: h.id as string };
   });
 }
@@ -124,8 +156,9 @@ export async function createFromInvite(token: string, name: string, passwordHash
       for update`;
     if (!inv) return null;
     const [u] = await tx`
-      insert into app_user (email, name, password_hash, password_set_at)
-      values (${String(inv.email).toLowerCase()}, ${name.trim()}, ${passwordHash}, now())
+      insert into app_user (email, name, password_hash, password_set_at, active_household_id)
+      values (${String(inv.email).toLowerCase()}, ${name.trim()}, ${passwordHash}, now(),
+              ${inv.household_id})
       returning id`;
     await tx`insert into member ${tx({
       household_id: inv.household_id, user_id: u.id, role: inv.role,
@@ -148,6 +181,9 @@ export async function acceptInviteAs(token: string, userId: string, email: strin
     await tx`insert into member ${tx({
       household_id: inv.household_id, user_id: userId, role: inv.role,
     })} on conflict do nothing`;
+    // Land them in the books they were just invited to, not whichever set they
+    // happened to be looking at.
+    await tx`update app_user set active_household_id = ${inv.household_id} where id = ${userId}`;
     await tx`update invite set status = 'accepted', accepted_at = now() where id = ${inv.id}`;
     return { household_id: inv.household_id as string, role: inv.role as Role };
   });

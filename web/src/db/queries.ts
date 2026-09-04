@@ -121,7 +121,7 @@ export async function householdName(householdId: string) {
  *  no working links. */
 export async function inviteByToken(token: string) {
   const [row] = await sql`
-    select i.id, i.email, i.role, i.status, i.expires_at,
+    select i.id, i.email, i.role, i.status, i.expires_at, i.household_id,
            i.expires_at <= now() as expired,
            h.name as household, u.name as invited_by,
            exists (select 1 from app_user a where a.email = lower(i.email)) as has_account
@@ -130,7 +130,7 @@ export async function inviteByToken(token: string) {
     left join app_user u on u.id = i.invited_by
     where i.token_hash = ${hashLinkToken(token)}`;
   return (row ?? null) as null | {
-    id: string; email: string; role: 'adult' | 'viewer';
+    id: string; email: string; role: 'adult' | 'viewer'; household_id: string;
     status: 'open' | 'accepted' | 'revoked' | 'expired';
     expires_at: Date; expired: boolean; household: string;
     invited_by: string | null; has_account: boolean };

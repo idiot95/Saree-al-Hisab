@@ -67,9 +67,9 @@ const MIN = 10, MAX = 128;
 /** A message to show the person, or null when the password is fine. */
 export function passwordProblem(password: string, email?: string | null): string | null {
   const pw = password.normalize('NFKC');
-  if (pw.length < MIN) return `Use at least ${MIN} characters. Three ordinary words beat one clever one.`;
-  if (pw.length > MAX) return `That is longer than ${MAX} characters.`;
-  if (pw.trim().length < MIN) return 'That is mostly spaces.';
+  if (pw.length < MIN) return `${MIN} characters, minimum. Three boring words beat one clever one.`;
+  if (pw.length > MAX) return `Over ${MAX} characters. Admirable, but no.`;
+  if (pw.trim().length < MIN) return 'That is mostly spaces, and spaces are free.';
 
   const flat = pw.toLowerCase().replace(/[^a-z0-9]/g, '');
   // Nobody types `password`. They type password123, or 1password — the digits
@@ -77,18 +77,18 @@ export function passwordProblem(password: string, email?: string | null): string
   // at what is really underneath.
   const core = flat.replace(/^\d+/, '').replace(/\d+$/, '');
   if (COMMON.has(flat) || COMMON.has(core)) {
-    return 'That is one of the first passwords anyone tries.';
+    return 'That is on the first page of every word list ever written.';
   }
-  if (/^(.)\1+$/.test(flat)) return 'That is the same character over and over.';
+  if (/^(.)\1+$/.test(flat)) return 'One character, held down. We can see what happened there.';
   if ('0123456789012345678901234567890'.includes(flat) && flat.length > 3) {
-    return 'That is just counting.';
+    return 'That is counting. Counting is not a password.';
   }
   if ('abcdefghijklmnopqrstuvwxyz'.includes(flat) && flat.length > 3) {
-    return 'That is just the alphabet.';
+    return 'That is the alphabet. Everyone has one.';
   }
   const local = email?.split('@')[0]?.toLowerCase().replace(/[^a-z0-9]/g, '');
   if (local && local.length >= 3 && flat.includes(local)) {
-    return 'Do not build it out of your own address — that is the first guess.';
+    return 'Built out of your own email address, which is the very first guess anyone makes.';
   }
   return null;
 }

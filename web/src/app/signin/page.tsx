@@ -1,6 +1,5 @@
 import { redirect } from 'next/navigation';
 import { actorOrNull } from '@/db/queries';
-import { unclaimedHousehold } from '@/db/membership';
 import { AuthShell, quietBtn } from '../auth-ui';
 import SignInForm from './SignInForm';
 
@@ -10,13 +9,11 @@ export const dynamic = 'force-dynamic';
 export default async function SignIn() {
   const actor = await actorOrNull();
   if (actor?.household_id) redirect('/');
-  // Only offered while there is genuinely nobody in the books yet.
-  const unclaimed = await unclaimedHousehold();
 
   return (
     <AuthShell
       title={<>Every rupee,<br />where you left it.</>}
-      blurb="One set of books for your household. Budget a month, and everything reports against it."
+      blurb="Which is rarely where you thought."
     >
       <div style={{
         marginTop: 'auto', padding: '28px 20px 26px',
@@ -24,26 +21,23 @@ export default async function SignIn() {
       }}>
         <SignInForm />
 
-        {unclaimed ? (
-          <>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '4px 0' }}>
-              <span style={{ flex: 1, height: 1, background: 'var(--c-border)' }} />
-              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--c-meta)' }}>
-                FIRST TIME HERE
-              </span>
-              <span style={{ flex: 1, height: 1, background: 'var(--c-border)' }} />
-            </div>
-            <a href="/setup" style={quietBtn}>Set up {unclaimed.name}</a>
-          </>
-        ) : (
-          <p style={{
-            margin: '6px 4px 0', fontSize: 12.5, lineHeight: 1.5, textAlign: 'center',
-            color: 'var(--c-meta)',
-          }}>
-            No account? A household has to invite you — there is no way to sign yourself up
-            into somebody&rsquo;s books. Forgotten your password? Ask the owner for a reset link.
-          </p>
-        )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '2px 0' }}>
+          <span style={{ flex: 1, height: 1, background: 'var(--c-border)' }} />
+          <span style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--c-meta)', letterSpacing: '.04em' }}>
+            NEW HERE
+          </span>
+          <span style={{ flex: 1, height: 1, background: 'var(--c-border)' }} />
+        </div>
+        <a href="/signup" style={quietBtn}>Start your own books</a>
+
+        <p style={{
+          margin: '6px 4px 0', fontSize: 12.5, lineHeight: 1.5, textAlign: 'center',
+          color: 'var(--c-meta)',
+        }}>
+          Waiting on an invitation to somebody else&rsquo;s books? Signing up here will not
+          sneak you in — nudge them instead. Forgotten the password? Whoever owns those books
+          can hand you a fresh link, and will enjoy it.
+        </p>
       </div>
     </AuthShell>
   );

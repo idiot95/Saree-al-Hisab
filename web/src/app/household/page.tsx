@@ -1,19 +1,21 @@
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { actorOrNull, membersOf, openInvitesOf, householdName } from '@/db/queries';
+import { householdsOf } from '@/db/membership';
 import InviteForm from './InviteForm';
 import MemberRow from './MemberRow';
 import RevokeButton from './RevokeButton';
 import PasswordCard from './PasswordCard';
+import BooksSwitcher from './BooksSwitcher';
 
 export const metadata = { title: 'Household · Quiet Ledger' };
 export const dynamic = 'force-dynamic';
 
 const LABEL = { owner: 'Owner', adult: 'Contributing member', viewer: 'Viewer' } as const;
 const WHAT = {
-  owner: 'Everything a contributing member can do, plus inviting people, changing what they can do, and removing them.',
-  adult: 'Adds, edits and deletes entries, and sets budgets. Cannot change who is in the household.',
-  viewer: 'Reads every entry, budget and chart. Cannot change a single figure.',
+  owner: 'Everything below, plus deciding who else gets in and who quietly gets out. Comes with the receipts.',
+  adult: 'Adds, edits and deletes entries, and sets budgets. Cannot change the guest list.',
+  viewer: 'Reads every entry, budget and chart. Cannot move a single figure. Ideal for the relative with opinions.',
 } as const;
 
 export default async function Household() {
@@ -21,10 +23,11 @@ export default async function Household() {
   if (!actor) redirect('/signin');
   if (!actor.household_id) redirect('/no-household');
 
-  const [name, members, invites] = await Promise.all([
+  const [name, members, invites, books] = await Promise.all([
     householdName(actor.household_id),
     membersOf(actor.household_id),
     openInvitesOf(actor.household_id),
+    householdsOf(actor.user_id),
   ]);
   const canManage = actor.role === 'owner';
   const h = await headers();
@@ -52,8 +55,8 @@ export default async function Household() {
         </a>
         <h1 className="t" style={{ margin: 0, fontSize: 27, letterSpacing: '-.018em' }}>{name}</h1>
         <p style={{ margin: 0, fontSize: 13.5, color: 'rgba(255,255,255,.84)' }}>
-          {members.length} {members.length === 1 ? 'person' : 'people'}
-          {live.length > 0 && ` · ${live.length} invited, not joined yet`}
+          {members.length === 1 ? 'Just you so far' : `${members.length} people`}
+          {live.length > 0 && ` · ${live.length} invited and dawdling`}
         </p>
       </header>
 
@@ -68,12 +71,13 @@ export default async function Household() {
           <path d="M8 10V7.5a4 4 0 0 1 8 0V10" />
         </svg>
         <span>
-          A household keeps <b>one set of books</b>. Everyone in it sees every entry and every
-          budget — that is what makes the shared totals add up.
+          One household, <b>one set of books</b>. Everybody in here sees every entry and every
+          budget, including the ones you would rather they did not. That is the deal that makes
+          the totals mean anything.
         </span>
       </p>
 
-      <Head>People</Head>
+      <Head>Who is in here</Head>
       <Card pad="0 16px">
         {members.map((m, i) => (
           <MemberRow
@@ -89,9 +93,12 @@ export default async function Household() {
 
       {canManage && <InviteForm origin={origin} />}
 
+      <Head>Books you keep</Head>
+      <BooksSwitcher books={books} canRename={canManage} />
+
       {invites.length > 0 && (
         <>
-          <Head>Invited</Head>
+          <Head>Invited, still dawdling</Head>
           <Card pad="0 16px">
             {invites.map((iv, i) => (
               <div key={iv.id} style={{
@@ -117,7 +124,7 @@ export default async function Household() {
                   <span style={{
                     fontSize: 12.5, color: iv.expired ? 'var(--c-danger)' : 'var(--c-meta)',
                   }}>
-                    {LABEL[iv.role]} · {iv.expired ? 'expired' : `expires ${when(iv.expires_at)}`}
+                    {LABEL[iv.role]} · {iv.expired ? 'expired, ignored' : `good until ${when(iv.expires_at)}`}
                   </span>
                 </span>
                 {canManage && <RevokeButton id={iv.id} />}
@@ -127,10 +134,10 @@ export default async function Household() {
         </>
       )}
 
-      <Head>Your account</Head>
+      <Head>You, specifically</Head>
       <PasswordCard />
 
-      <Head>What each role can do</Head>
+      <Head>Who is allowed to do what</Head>
       <Card pad="4px 16px">
         {(['owner', 'adult', 'viewer'] as const).map((r, i) => (
           <div key={r} style={{
@@ -148,7 +155,7 @@ export default async function Household() {
           margin: '0 20px', fontSize: 12.5, lineHeight: 1.5, color: 'var(--c-meta)',
           textAlign: 'center',
         }}>
-          Only an owner can invite or remove people.
+          Only an owner hands out keys. Take it up with them.
         </p>
       )}
     </main>
