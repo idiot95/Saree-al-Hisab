@@ -1,21 +1,34 @@
 import 'server-only';
 import { sql } from './client';
+import { auth } from '@/auth';
 
-/* Until sign-in exists there is exactly one household and one member, resolved
-   here rather than passed from the client — a server action is reachable by
-   direct POST, so the client must never be the one saying which household it
-   is writing to. When auth lands this becomes a session lookup and nothing
-   above it changes. */
+/* Who is asking, from the session — never from the client. A Server Action is
+   reachable by direct POST, so the household a write lands in is decided here
+   and nowhere else. */
 export async function currentActor() {
-  const [row] = await sql`
-    select h.id as household_id, h.name as household_name,
-           u.id as user_id, u.name as user_name
-    from household h
-    join member m on m.household_id = h.id
-    join app_user u on u.id = m.user_id
-    order by h.created_at limit 1`;
-  if (!row) throw new Error('No household. Run `npm run seed`.');
-  return row as { household_id: string; household_name: string; user_id: string; user_name: string };
+  const session = await auth();
+  if (!session?.user?.id) throw new Error('Not signed in.');
+  if (!session.householdId) throw new Error('No household yet.');
+  return {
+    household_id: session.householdId,
+    user_id: session.user.id,
+    role: session.role,
+    user_name: session.user.name ?? '',
+  };
+}
+
+/** For pages that need to tell the three states apart: signed out, signed in
+ *  without a household, and signed in with one. */
+export async function actorOrNull() {
+  const session = await auth();
+  if (!session?.user?.id) return null;
+  return {
+    household_id: session.householdId,
+    user_id: session.user.id,
+    role: session.role,
+    user_name: session.user.name ?? '',
+    image: session.user.image ?? null,
+  };
 }
 
 export async function categoriesFor(householdId: string) {

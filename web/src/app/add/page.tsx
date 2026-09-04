@@ -1,11 +1,15 @@
+import { redirect } from 'next/navigation';
 import AddEntry from './AddEntry';
-import { currentActor, categoriesFor, methodsFor, accountsFor } from '@/db/queries';
+import { actorOrNull, categoriesFor, methodsFor, accountsFor } from '@/db/queries';
 
 export const metadata = { title: 'New entry · Quiet Ledger' };
 export const dynamic = 'force-dynamic';
 
 export default async function Page() {
-  const { household_id } = await currentActor();
+  const actor = await actorOrNull();
+  if (!actor) redirect('/signin');
+  if (!actor.household_id) redirect('/no-household');
+  const household_id = actor.household_id;
   const [categories, methods, accounts] = await Promise.all([
     categoriesFor(household_id),
     methodsFor(household_id),

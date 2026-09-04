@@ -17,7 +17,8 @@ $$ LANGUAGE sql IMMUTABLE;
 -- The purchases are expenses and were counted on the day they happened.
 -- The payment is a card_payment, which invariant 1 keeps out of spending —
 -- so a cycle can be settled without anything being counted twice.
-CREATE OR REPLACE VIEW card_cycle_total AS
+DROP VIEW IF EXISTS card_cycle_total CASCADE;
+CREATE VIEW card_cycle_total AS
 SELECT c.id AS cycle_id, c.account_id, c.period_start, c.period_end,
        c.statement_on, c.due_on, c.status,
        COALESCE(SUM(t.amount) FILTER (WHERE t.kind = 'expense'), 0)
@@ -35,7 +36,8 @@ GROUP BY c.id, c.account_id, c.period_start, c.period_end,
 -- Where the money actually sits. A payment method is a rail, not a balance:
 -- spending "by GPay" leaves the bank account GPay draws from, so a method
 -- never holds money and never appears as one.
-CREATE OR REPLACE VIEW method_flow AS
+DROP VIEW IF EXISTS method_flow CASCADE;
+CREATE VIEW method_flow AS
 SELECT m.id AS method_id, m.household_id, m.name, m.kind,
        m.funding_account_id, a.name AS funding_account,
        COALESCE(SUM(t.amount), 0) AS spent,
@@ -49,9 +51,8 @@ LEFT JOIN txn t
 GROUP BY m.id, m.household_id, m.name, m.kind, m.funding_account_id, a.name;
 
 -- A method must fund from an account that can actually pay: never a person,
--- and a card rail must draw on the credit account it belongs to.
-ALTER TABLE payment_method ADD CONSTRAINT method_funds_a_real_account
-  CHECK (true);
+-- and a card rail must draw on the credit account it belongs to. This needs a
+-- trigger rather than a CHECK, because the rule depends on another table.
 CREATE OR REPLACE FUNCTION method_funding_is_valid() RETURNS trigger AS $$
 DECLARE k account_kind;
 BEGIN

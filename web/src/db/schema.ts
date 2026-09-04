@@ -40,13 +40,22 @@ export const household = pgTable('household', {
   check('month_start_valid', sql`${t.monthStartsOn} between 1 and 28`),
 ]);
 
+/* Identity comes from Google, so email is the key and phone is optional —
+   it stays because a household still wants a number to remind someone on. */
 export const appUser = pgTable('app_user', {
   id: uuid('id').primaryKey().defaultRandom(),
-  phone: text('phone').notNull().unique(),
+  email: text('email').unique(),
+  phone: text('phone').unique(),
   name: text('name').notNull(),
+  image: text('image'),
   recoveryEmail: text('recovery_email'),
+  lastSeenAt: timestamp('last_seen_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-});
+}, (t) => [
+  // One of the two must identify them. Without this a nameless row with
+  // neither could be created and never matched to anyone again.
+  check('has_an_identity', sql`${t.email} IS NOT NULL OR ${t.phone} IS NOT NULL`),
+]);
 
 export const member = pgTable('member', {
   householdId: uuid('household_id').notNull().references(() => household.id, { onDelete: 'cascade' }),

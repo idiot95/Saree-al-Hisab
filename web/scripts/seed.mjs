@@ -15,14 +15,13 @@ const url = /^DATABASE_URL="?([^"\n]+)/m.exec(readFileSync(join(root, '.env.loca
 const sql = postgres(url, { ssl: 'require', max: 1, onnotice: () => {} });
 
 const HOUSEHOLD = 'Mogul Household';
-const PHONE = '+919820441000';
 
 await sql`delete from household where name = ${HOUSEHOLD}`;
-await sql`delete from app_user where phone = ${PHONE}`;
 
+/* The household is created UNCLAIMED — with no members. The first person to
+   sign in with Google becomes its owner. Seeding a member here instead would
+   hand the books to a phone-only row that nobody can actually sign in as. */
 const [hh] = await sql`insert into household ${sql({ name: HOUSEHOLD })} returning id`;
-const [me] = await sql`insert into app_user ${sql({ phone: PHONE, name: 'Abdeali M' })} returning id`;
-await sql`insert into member ${sql({ household_id: hh.id, user_id: me.id, role: 'owner' })}`;
 
 const accounts = {};
 for (const a of [
@@ -84,5 +83,6 @@ const [{ total: bud }] = await sql`select coalesce(sum(amount),0)::bigint as tot
 console.log(`\n  ${HOUSEHOLD}`);
 console.log(`  ${acc} accounts · ${cat} categories · ${met} ways to pay`);
 console.log(`  September budget ₹${(Number(bud) / 100).toLocaleString('en-IN')}`);
-console.log(`  household ${hh.id}\n`);
+console.log(`  household ${hh.id} — unclaimed`);
+console.log(`  the first Google sign-in becomes its owner\n`);
 await sql.end();

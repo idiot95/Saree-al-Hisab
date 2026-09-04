@@ -17,11 +17,13 @@ WHERE t.deleted_at IS NULL
 
 -- Accounts the user actually holds. People are accounts underneath, but they
 -- must never appear in balances, pickers or the "feeds the budget" totals.
-CREATE OR REPLACE VIEW real_account AS
+DROP VIEW IF EXISTS real_account CASCADE;
+CREATE VIEW real_account AS
 SELECT * FROM account WHERE kind <> 'person';
 
 -- One running balance per person. This is the khata.
-CREATE OR REPLACE VIEW counterparty_balance AS
+DROP VIEW IF EXISTS counterparty_balance CASCADE;
+CREATE VIEW counterparty_balance AS
 SELECT c.id AS counterparty_id, c.household_id, c.name, c.relationship,
        COALESCE(SUM(
          CASE WHEN t.counter_account_id = c.account_id THEN  t.amount
