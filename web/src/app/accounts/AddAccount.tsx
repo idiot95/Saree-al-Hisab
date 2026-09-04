@@ -5,10 +5,10 @@ import { Field, ErrorNote } from '../auth-ui';
 import { addAccount } from './actions';
 
 const KINDS = [
-  { id: 'spending', label: 'Bank account', what: 'Salary lands, bills leave. The workhorse.' },
-  { id: 'cash', label: 'Cash', what: 'What is actually in your wallet, allegedly.' },
-  { id: 'savings', label: 'Savings or deposit', what: 'Sits outside the budget. Spending it is a decision, not a Tuesday.' },
-  { id: 'credit', label: 'Credit card', what: 'Money you have not spent yet, in a manner of speaking.' },
+  { id: 'spending', label: 'Bank account', what: 'Salary in, bills out.' },
+  { id: 'cash', label: 'Cash', what: 'Notes in your wallet.' },
+  { id: 'savings', label: 'Savings or deposit', what: 'Kept outside the monthly budget.' },
+  { id: 'credit', label: 'Credit card', what: 'Tracks what you owe and when the bill is due.' },
 ] as const;
 
 export default function AddAccount({ startOpen = false }: { startOpen?: boolean }) {
@@ -24,7 +24,7 @@ export default function AddAccount({ startOpen = false }: { startOpen?: boolean 
         background: 'var(--c-card)', border: '1px dashed var(--c-dash)',
         color: 'var(--c-ink)', fontSize: 15, fontWeight: 600,
       }}>
-        <Plus /> Add somewhere money sits
+        <Plus /> Add an account
         {state?.ok && state.message && (
           <span style={{ marginLeft: 'auto', fontSize: 12.5, color: 'var(--c-ok)' }}>added</span>
         )}
@@ -39,7 +39,7 @@ export default function AddAccount({ startOpen = false }: { startOpen?: boolean 
     }}>
       <fieldset style={{ border: 0, padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
         <legend style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--c-meta)', padding: 0 }}>
-          What sort of thing is it
+          Type
         </legend>
         {KINDS.map((k) => (
           <label key={k.id} style={{
@@ -59,21 +59,19 @@ export default function AddAccount({ startOpen = false }: { startOpen?: boolean 
         ))}
       </fieldset>
 
-      <Field label="What you call it" name="name" required maxLength={60}
+      <Field label="Name" name="name" required maxLength={60}
         placeholder={kind === 'credit' ? 'HDFC Regalia' : kind === 'cash' ? 'Wallet' : 'HDFC Savings'} />
 
       {kind !== 'cash' && (
-        <Field label="Last four digits, if you like" name="last4" inputMode="numeric"
-          maxLength={4} placeholder="8802"
-          hint="Only so you can tell two of them apart at a glance." />
+        <Field label="Last four digits (optional)" name="last4" inputMode="numeric"
+          maxLength={4} placeholder="8802" />
       )}
 
       {kind === 'credit' ? (
         <>
-          <Field label="Owed on it right now" name="opening" inputMode="decimal" placeholder="0"
-            hint="Leave it at zero if the bill is clear. Enter it as a positive number — we know which way it points." />
-          <Field label="Credit limit" name="limit" inputMode="decimal" placeholder="200000"
-            hint="Optional, and mostly so the app can tell you how close you are sailing." />
+          <Field label="Currently owed" name="opening" inputMode="decimal" placeholder="0"
+            hint="Leave at 0 if the bill is cleared." />
+          <Field label="Credit limit (optional)" name="limit" inputMode="decimal" placeholder="200000" />
           <div style={{ display: 'flex', gap: 10 }}>
             <span style={{ flex: 1 }}>
               <Field label="Statement day" name="statement_day" inputMode="numeric"
@@ -88,14 +86,12 @@ export default function AddAccount({ startOpen = false }: { startOpen?: boolean 
             margin: 0, padding: '11px 13px', borderRadius: 12, background: 'var(--c-teal-l)',
             color: 'var(--c-ink)', fontSize: 12.5, lineHeight: 1.5,
           }}>
-            This is the bit that does the work. Every purchase on this card files itself into the
-            right billing cycle on its own, so when the statement lands you are not squinting at
-            dates. Days 1&ndash;28 only, because February exists.
+            Purchases on this card are filed into the right billing cycle automatically.
+            Use a day between 1 and 28 &mdash; every month has one.
           </p>
         </>
       ) : (
-        <Field label="What is in it today" name="opening" inputMode="decimal" placeholder="0"
-          hint="The starting line. Everything you record from here moves it." />
+        <Field label="Current balance" name="opening" inputMode="decimal" placeholder="0" />
       )}
 
       {state && !state.ok && <ErrorNote>{state.error}</ErrorNote>}
@@ -104,11 +100,11 @@ export default function AddAccount({ startOpen = false }: { startOpen?: boolean 
         <button type="button" onClick={() => setOpen(false)} style={{
           minHeight: 50, padding: '0 16px', borderRadius: 13, fontSize: 14.5, fontWeight: 600,
           background: 'var(--c-sunk)', color: 'var(--c-meta)',
-        }}>Never mind</button>
+        }}>Cancel</button>
         <button type="submit" disabled={pending} style={{
           flex: 1, minHeight: 50, borderRadius: 13, fontSize: 15.5, fontWeight: 600,
           background: 'var(--c-seagrass)', color: 'var(--c-on-fill)', opacity: pending ? 0.65 : 1,
-        }}>{pending ? 'Opening it…' : 'Add it'}</button>
+        }}>{pending ? 'Saving…' : 'Add account'}</button>
       </div>
     </form>
   );

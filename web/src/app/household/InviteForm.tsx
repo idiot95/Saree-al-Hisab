@@ -17,7 +17,7 @@ export default function InviteForm({ origin }: { origin: string }) {
     <>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '4px 20px 12px' }}>
         <h2 style={{ margin: 0, fontSize: 16.5, fontWeight: 600, letterSpacing: '-.012em' }}>
-          Hand someone a key
+          Invite someone
         </h2>
         <span style={{ flex: 1, height: 1, background: 'var(--c-border)' }} />
       </div>
@@ -28,7 +28,7 @@ export default function InviteForm({ origin }: { origin: string }) {
         <form action={act} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--c-meta)' }}>
-              Where to send it
+              Email address
             </span>
             <input
               name="email" type="email" inputMode="email" autoComplete="off"
@@ -44,17 +44,17 @@ export default function InviteForm({ origin }: { origin: string }) {
 
           <fieldset style={{ border: 0, padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
             <legend style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--c-meta)', padding: 0 }}>
-              How much rope to give them
+              What they can do
             </legend>
             <Choice
               name="role" value="adult" defaultChecked
               title="Contributing member"
-              what="Adds, edits, budgets. Everything except deciding who else gets in."
+              what="Adds and edits entries, and sets budgets."
             />
             <Choice
               name="role" value="viewer"
               title="Viewer"
-              what="Looks. Does not touch. Peace of mind, in role form."
+              what="Reads everything. Cannot change anything."
             />
           </fieldset>
 
@@ -65,7 +65,7 @@ export default function InviteForm({ origin }: { origin: string }) {
               'radial-gradient(120% 100% at 25% 0%, rgba(255,255,255,.18) 0%, rgba(255,255,255,0) 60%),'
               + 'linear-gradient(145deg,#2C5063 0%,#1C3541 100%)',
           }}>
-            {pending ? 'Cutting the key…' : 'Make the invitation'}
+            {pending ? 'Creating…' : 'Create invitation'}
           </button>
 
           {state && !state.ok && (
@@ -124,16 +124,14 @@ function InviteLink({ url, email }: { url: string; email: string }) {
           strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
           <path d="M4.5 12.5l5 5 10-11" />
         </svg>
-        Right, here it is
+        Invitation ready
       </span>
       <p style={{ margin: 0, fontSize: 13, lineHeight: 1.5, color: 'var(--c-ink)' }}>
-        Send this to {email || 'them'} in a private message, not the family group. <b>Whoever
-        opens this link becomes them</b> — it is a key, not a greeting card. Works once, dead
-        in seven days.
+        Send this to {email || 'them'} privately. <b>Anyone who opens this link can take that
+        place in the household.</b> It works once and expires in seven days.
       </p>
       <p style={{ margin: 0, fontSize: 12, lineHeight: 1.5, color: 'var(--c-meta)' }}>
-        Shown once and never again, so do not close this in a hurry. Lose it and you revoke
-        the invitation and cut another.
+        Shown only once. If you lose it, withdraw the invitation and create a new one.
       </p>
       <code style={{
         display: 'block', padding: '10px 12px', borderRadius: 10, background: 'var(--c-card)',
@@ -152,7 +150,7 @@ function InviteLink({ url, email }: { url: string; email: string }) {
           fontSize: 14.5, fontWeight: 600,
         }}
       >
-        {copied === 'done' ? 'Copied. Go on then' : copied === 'failed' ? 'Clipboard said no — select it yourself' : 'Copy the link'}
+        {copied === 'done' ? 'Copied' : copied === 'failed' ? 'Select the link above to copy' : 'Copy link'}
       </button>
     </div>
   );

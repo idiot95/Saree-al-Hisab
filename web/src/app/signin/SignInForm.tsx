@@ -20,7 +20,7 @@ export default function SignInForm() {
       {state?.error && <ErrorNote>{state.error}</ErrorNote>}
       <button type="submit" disabled={pending} className="el2"
         style={{ ...primaryBtn, opacity: pending ? 0.65 : 1, marginTop: 3 }}>
-        {pending ? 'Rummaging…' : 'Let me in'}
+        {pending ? 'Signing in…' : 'Sign in'}
       </button>
     </form>
   );

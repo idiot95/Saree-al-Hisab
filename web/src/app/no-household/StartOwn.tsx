@@ -11,7 +11,7 @@ export default function StartOwn() {
   if (!open) {
     return (
       <button type="button" onClick={() => setOpen(true)} style={{ ...quietBtn, marginTop: 4 }}>
-        Fine — start my own
+        Start my own household
       </button>
     );
   }
@@ -20,13 +20,12 @@ export default function StartOwn() {
       display: 'flex', flexDirection: 'column', gap: 12, width: '100%',
       maxWidth: 360, textAlign: 'left', marginTop: 4,
     }}>
-      <Field label="What to call your books" name="name" placeholder="Home"
-        required maxLength={60} autoFocus
-        hint="Entirely yours. Nothing from anyone else’s books comes with you." />
+      <Field label="Household name" name="name" placeholder="Home"
+        required maxLength={60} autoFocus />
       {state?.error && <ErrorNote>{state.error}</ErrorNote>}
       <button type="submit" disabled={pending} className="el2"
         style={{ ...primaryBtn, opacity: pending ? 0.65 : 1 }}>
-        {pending ? 'Ruling the columns…' : 'Open them'}
+        {pending ? 'Creating…' : 'Create household'}
       </button>
     </form>
   );

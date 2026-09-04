@@ -6,7 +6,7 @@ import { startAnotherHousehold, switchTo, renameHousehold } from './actions';
 
 type Book = { id: string; name: string; role: 'owner' | 'adult' | 'viewer'; active: boolean; people: number };
 
-const ROLE = { owner: 'you own these', adult: 'you write in these', viewer: 'you only watch these' } as const;
+const ROLE = { owner: 'Owner', adult: 'Contributing member', viewer: 'Viewer' } as const;
 
 export default function BooksSwitcher({ books, canRename }: { books: Book[]; canRename: boolean }) {
   const [, switchAct] = useActionState(switchTo, null);
@@ -43,7 +43,7 @@ export default function BooksSwitcher({ books, canRename }: { books: Book[]; can
             <span style={{
               flex: 'none', fontSize: 11.5, fontWeight: 700, padding: '6px 10px', borderRadius: 8,
               background: 'var(--c-ok-tint)', color: 'var(--c-ok)', letterSpacing: '.03em',
-            }}>ON SCREEN</span>
+            }}>CURRENT</span>
           ) : (
             <form action={switchAct}>
               <input type="hidden" name="householdId" value={b.id} />
@@ -61,13 +61,13 @@ export default function BooksSwitcher({ books, canRename }: { books: Book[]; can
           display: 'flex', flexDirection: 'column', gap: 10, padding: '14px 0',
           borderBottom: '1px solid var(--c-rule)',
         }}>
-          <Field label="Call these books something else" name="name"
+          <Field label="Household name" name="name"
             defaultValue={books.find((b) => b.active)?.name} required maxLength={60} autoFocus />
           {renameState && !renameState.ok && <ErrorNote>{renameState.error}</ErrorNote>}
           <div style={{ display: 'flex', gap: 9 }}>
-            <button type="button" onClick={() => setEditing(false)} style={ghost}>Leave it</button>
+            <button type="button" onClick={() => setEditing(false)} style={ghost}>Cancel</button>
             <button type="submit" disabled={renaming} style={{ ...solid, flex: 1 }}>
-              {renaming ? 'Renaming…' : 'Rename'}
+              {renaming ? 'Saving…' : 'Save'}
             </button>
           </div>
         </form>
@@ -76,7 +76,7 @@ export default function BooksSwitcher({ books, canRename }: { books: Book[]; can
           ...row, borderBottom: '1px solid var(--c-rule)',
         }}>
           <Pencil />
-          <span style={{ flex: 1 }}>Rename these books</span>
+          <span style={{ flex: 1 }}>Rename this household</span>
           {renameState?.ok && (
             <span style={{ fontSize: 12, color: 'var(--c-ok)', fontWeight: 600 }}>done</span>
           )}
@@ -85,21 +85,21 @@ export default function BooksSwitcher({ books, canRename }: { books: Book[]; can
 
       {adding ? (
         <form action={startAct} style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: '14px 0' }}>
-          <Field label="Name for the new set" name="name" placeholder="The flat, the shop, Ammi’s"
+          <Field label="Household name" name="name" placeholder="The shop"
             required maxLength={60} autoFocus
-            hint="Completely separate books. Nothing crosses over, which is rather the point." />
+            hint="A separate set of books. Nothing is shared between them." />
           {newState && !newState.ok && <ErrorNote>{newState.error}</ErrorNote>}
           <div style={{ display: 'flex', gap: 9 }}>
-            <button type="button" onClick={() => setAdding(false)} style={ghost}>Never mind</button>
+            <button type="button" onClick={() => setAdding(false)} style={ghost}>Cancel</button>
             <button type="submit" disabled={starting} style={{ ...solid, flex: 1 }}>
-              {starting ? 'Ruling the columns…' : 'Start them'}
+              {starting ? 'Creating…' : 'Create household'}
             </button>
           </div>
         </form>
       ) : (
         <button type="button" onClick={() => setAdding(true)} style={row}>
           <Plus />
-          <span style={{ flex: 1 }}>Start another set of books</span>
+          <span style={{ flex: 1 }}>New household</span>
         </button>
       )}
     </section>

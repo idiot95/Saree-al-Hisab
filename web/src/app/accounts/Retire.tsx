@@ -12,24 +12,24 @@ export function RetireAccount({ id, name, blocked }: { id: string; name: string;
   if (!sure) {
     return (
       <button type="button" onClick={() => setSure(true)} style={link}>
-        Retire it
+        Archive
       </button>
     );
   }
   return (
     <span style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-end' }}>
       <span style={{ display: 'flex', gap: 8 }}>
-        <button type="button" onClick={() => setSure(false)} style={link}>Keep it</button>
+        <button type="button" onClick={() => setSure(false)} style={link}>Cancel</button>
         <form action={act}>
           <input type="hidden" name="id" value={id} />
           <button type="submit" disabled={pending} style={{ ...link, color: 'var(--c-danger)' }}>
-            {pending ? 'Retiring…' : `Yes, retire ${name}`}
+            {pending ? 'Archiving…' : `Archive ${name}`}
           </button>
         </form>
       </span>
       {blocked > 0 && (
         <span style={{ fontSize: 11.5, color: 'var(--c-meta)', textAlign: 'right', maxWidth: 210 }}>
-          {blocked === 1 ? 'One way to pay still' : `${blocked} ways to pay still`} draws on this.
+          {blocked === 1 ? '1 payment method draws' : `${blocked} payment methods draw`} on this.
         </span>
       )}
       {state && !state.ok && (
@@ -53,22 +53,22 @@ export function MethodControls({ id, isDefault }: { id: string; isDefault: boole
           <span style={{
             fontSize: 11, fontWeight: 700, padding: '5px 9px', borderRadius: 7,
             background: 'var(--c-ok-tint)', color: 'var(--c-ok)', letterSpacing: '.03em',
-          }}>OPENS BY DEFAULT</span>
+          }}>DEFAULT</span>
         ) : (
           <form action={setDefault}>
             <input type="hidden" name="id" value={id} />
-            <button type="submit" style={link}>Make it the default</button>
+            <button type="submit" style={link}>Make default</button>
           </form>
         )}
         {sure ? (
           <form action={retire}>
             <input type="hidden" name="id" value={id} />
             <button type="submit" disabled={retiring} style={{ ...link, color: 'var(--c-danger)' }}>
-              {retiring ? 'Retiring…' : 'Sure?'}
+              {retiring ? 'Archiving…' : 'Confirm'}
             </button>
           </form>
         ) : (
-          <button type="button" onClick={() => setSure(true)} style={link}>Retire</button>
+          <button type="button" onClick={() => setSure(true)} style={link}>Archive</button>
         )}
       </span>
       {retireState && !retireState.ok && (

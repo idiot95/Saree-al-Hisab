@@ -45,14 +45,14 @@ export async function saveEntry(d: Draft): Promise<SaveResult> {
   // A viewer can read the books and nothing else. Checked here rather than by
   // hiding the button, because this function is reachable by direct POST.
   if (role === 'viewer') {
-    return { ok: false, error: 'You are here to look, not to spend. Ask an owner for a promotion.' };
+    return { ok: false, error: 'Viewers cannot add entries.' };
   }
 
   if (!Number.isSafeInteger(d.amountMinor) || d.amountMinor <= 0) {
-    return { ok: false, error: 'An amount would help.' };
+    return { ok: false, error: 'Enter an amount.' };
   }
   if (!/^\d{4}-\d{2}-\d{2}$/.test(d.occurredOn)) {
-    return { ok: false, error: 'That is not a date any calendar recognises.' };
+    return { ok: false, error: 'That date is not valid.' };
   }
 
   // The method decides the account, so the client never names one. This is
@@ -60,11 +60,11 @@ export async function saveEntry(d: Draft): Promise<SaveResult> {
   const [method] = await sql`
     select id, funding_account_id from payment_method
     where id = ${d.methodId} and household_id = ${household_id} and archived_at is null`;
-  if (!method) return { ok: false, error: 'That is not one of your ways of paying.' };
+  if (!method) return { ok: false, error: 'That payment method is not one of yours.' };
 
   let categoryId: string | null = null;
   if (d.kind !== 'transfer') {
-    if (!d.categoryId) return { ok: false, error: 'Pick a category. Everything belongs somewhere.' };
+    if (!d.categoryId) return { ok: false, error: 'Choose a category.' };
     const [cat] = await sql`
       select id from category
       where id = ${d.categoryId} and household_id = ${household_id} and archived_at is null`;
@@ -74,13 +74,13 @@ export async function saveEntry(d: Draft): Promise<SaveResult> {
 
   let counter: string | null = null;
   if (d.kind === 'transfer') {
-    if (!d.counterAccountId) return { ok: false, error: 'Money has to land somewhere. Choose where.' };
+    if (!d.counterAccountId) return { ok: false, error: 'Choose where it is going.' };
     const [acc] = await sql`
       select id from real_account
       where id = ${d.counterAccountId} and household_id = ${household_id} and archived_at is null`;
     if (!acc) return { ok: false, error: 'That account is not one of yours.' };
     if (acc.id === method.funding_account_id) {
-      return { ok: false, error: 'An account cannot pay itself. That is just sitting still.' };
+      return { ok: false, error: 'An account cannot transfer to itself.' };
     }
     counter = acc.id;
   }
@@ -107,6 +107,6 @@ export async function saveEntry(d: Draft): Promise<SaveResult> {
     // A constraint fired. The message is for us, not for the person — they get
     // something they can act on.
     console.error('saveEntry refused by the database:', e);
-    return { ok: false, error: 'The database said no. Check the amount and have another go.' };
+    return { ok: false, error: 'That could not be saved. Check the amount and try again.' };
   }
 }

@@ -13,7 +13,6 @@ export default async function SignIn() {
   return (
     <AuthShell
       title={<>Every rupee,<br />where you left it.</>}
-      blurb="Which is rarely where you thought."
     >
       <div style={{
         marginTop: 'auto', padding: '28px 20px 26px',
@@ -28,15 +27,13 @@ export default async function SignIn() {
           </span>
           <span style={{ flex: 1, height: 1, background: 'var(--c-border)' }} />
         </div>
-        <a href="/signup" style={quietBtn}>Start your own books</a>
+        <a href="/signup" style={quietBtn}>Create an account</a>
 
         <p style={{
           margin: '6px 4px 0', fontSize: 12.5, lineHeight: 1.5, textAlign: 'center',
           color: 'var(--c-meta)',
         }}>
-          Waiting on an invitation to somebody else&rsquo;s books? Signing up here will not
-          sneak you in — nudge them instead. Forgotten the password? Whoever owns those books
-          can hand you a fresh link, and will enjoy it.
+          Forgotten your password? The owner of your household can send you a reset link.
         </p>
       </div>
     </AuthShell>

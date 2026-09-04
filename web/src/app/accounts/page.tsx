@@ -8,7 +8,7 @@ import AddAccount from './AddAccount';
 import AddMethod from './AddMethod';
 import { RetireAccount, MethodControls } from './Retire';
 
-export const metadata = { title: 'Where the money sits · Quiet Ledger' };
+export const metadata = { title: 'Accounts · Quiet Ledger' };
 export const dynamic = 'force-dynamic';
 
 const KIND_LABEL = {
@@ -43,9 +43,13 @@ export default async function Accounts() {
   const have = holdings.reduce((n, a) => n + Number(a.balance), 0);
   const owed = cards.reduce((n, a) => n + Number(a.balance), 0); // negative when owing
   const cycleFor = (id: string) => cycles.find((c) => c.account_id === id);
-  /* Straight out of sign-up they have the starter kit and nothing else. Making
-     them tap "add" before they can type is a toll booth on an empty road. */
-  const untouched = accounts.length <= 1 && methods.length <= 1;
+  /* Straight out of sign-up they have the starter kit and nothing else, so the
+     relevant form opens itself rather than making them tap "add" on an empty
+     screen. Each has its own condition: the account form while they still only
+     have the starter cash, the payment-method form once they have added an
+     account but no way to pay from it. */
+  const needsAccounts = accounts.length <= 1;
+  const needsMethods = accounts.length > 1 && methods.length <= 1;
 
   return (
     <main style={{ minHeight: '100dvh', background: 'var(--c-bg)', paddingBottom: 44 }}>
@@ -64,19 +68,19 @@ export default async function Accounts() {
         </a>
         <p style={{ margin: 0, fontSize: 13, color: 'rgba(255,255,255,.72)' }}>{name}</p>
         <h1 className="t" style={{ margin: 0, fontSize: 27, letterSpacing: '-.018em' }}>
-          Where the money sits
+          Accounts
         </h1>
         <div style={{ display: 'flex', gap: 22, marginTop: 4 }}>
           <span style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
             <span style={{ fontSize: 11.5, color: 'rgba(255,255,255,.66)', letterSpacing: '.04em' }}>
-              YOU HAVE
+              BALANCE
             </span>
             <span className="t" style={{ fontSize: 25, letterSpacing: '-.02em' }}>{format(have)}</span>
           </span>
           {cards.length > 0 && (
             <span style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
               <span style={{ fontSize: 11.5, color: 'rgba(255,255,255,.66)', letterSpacing: '.04em' }}>
-                YOU OWE
+                OWED ON CARDS
               </span>
               <span className="t" style={{ fontSize: 25, letterSpacing: '-.02em' }}>
                 {format(Math.abs(owed))}
@@ -86,7 +90,7 @@ export default async function Accounts() {
         </div>
       </header>
 
-      <Head>Accounts</Head>
+      <Head>Bank and cash</Head>
       <Card>
         {holdings.map((a, i) => (
           <div key={a.id} style={{
@@ -110,7 +114,7 @@ export default async function Accounts() {
             </span>
           </div>
         ))}
-        {holdings.length === 0 && <Empty>Nothing yet. Even cash counts.</Empty>}
+        {holdings.length === 0 && <Empty>No accounts yet.</Empty>}
       </Card>
 
       {cards.length > 0 && (
@@ -171,7 +175,7 @@ export default async function Accounts() {
                         {' '}due {new Date(cyc.due_on).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}.
                       </>
                     ) : (
-                      <>Nothing on it this cycle. Enjoy it while it lasts.</>
+                      <>Nothing on this cycle yet.</>
                     )}
                   </span>
 
@@ -187,14 +191,13 @@ export default async function Accounts() {
         </>
       )}
 
-      {canWrite && <AddAccount startOpen={untouched} />}
+      {canWrite && <AddAccount startOpen={needsAccounts} />}
 
-      <Head>How you pay</Head>
+      <Head>Payment methods</Head>
       <p style={{
         margin: '-4px 20px 12px', fontSize: 12.5, lineHeight: 1.5, color: 'var(--c-meta)',
       }}>
-        Each of these empties exactly one account. That is what keeps &ldquo;paid by GPay&rdquo;
-        from inventing a pot of money that does not exist.
+        Each one draws on a single account, so spending is recorded against the right balance.
       </p>
       <Card>
         {methods.map((m, i) => (
@@ -210,23 +213,23 @@ export default async function Accounts() {
             <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
               <span style={{ fontSize: 15.5, fontWeight: 600 }}>{m.name}</span>
               <span style={{ fontSize: 12.5, color: 'var(--c-meta)' }}>
-                empties {m.funds}{m.handle && ` · ${m.handle}`}
+                {m.funds}{m.handle && ` · ${m.handle}`}
               </span>
             </span>
             {canWrite && <MethodControls id={m.id} isDefault={m.is_default} />}
           </div>
         ))}
-        {methods.length === 0 && <Empty>No way to pay, no way to record anything.</Empty>}
+        {methods.length === 0 && <Empty>No payment methods yet.</Empty>}
       </Card>
 
-      {canWrite && <AddMethod startOpen={untouched && accounts.length > 1}
+      {canWrite && <AddMethod startOpen={needsMethods}
         accounts={accounts.map((a) => ({ id: a.id, name: a.name, kind: a.kind }))} />}
 
       {!canWrite && (
         <p style={{
           margin: '0 20px', fontSize: 12.5, lineHeight: 1.5, color: 'var(--c-meta)', textAlign: 'center',
         }}>
-          You are here to look. Rearranging the furniture is somebody else&rsquo;s job.
+          Only owners and contributing members can change accounts.
         </p>
       )}
     </main>

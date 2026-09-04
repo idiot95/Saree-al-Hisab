@@ -198,3 +198,22 @@ export async function methodsWithFunding(householdId: string) {
                  is_default: boolean; sort_order: number; account_id: string;
                  funds: string; funds_kind: string; uses: number }[]>;
 }
+
+/** What the household has actually done yet. Drives the getting-started list,
+ *  so the steps tick themselves off from real rows rather than from a flag
+ *  somebody has to remember to set. */
+export async function setupProgress(householdId: string) {
+  const [r] = await sql`
+    select
+      (select count(*)::int from account
+        where household_id = ${householdId} and archived_at is null and kind <> 'person') as accounts,
+      (select count(*)::int from account
+        where household_id = ${householdId} and archived_at is null and kind = 'credit') as cards,
+      (select count(*)::int from payment_method
+        where household_id = ${householdId} and archived_at is null) as methods,
+      (select count(*)::int from txn
+        where household_id = ${householdId} and deleted_at is null) as entries,
+      (select count(*)::int from member where household_id = ${householdId}) as members`;
+  return r as unknown as {
+    accounts: number; cards: number; methods: number; entries: number; members: number };
+}

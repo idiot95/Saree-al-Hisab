@@ -13,9 +13,9 @@ export const dynamic = 'force-dynamic';
 
 const LABEL = { owner: 'Owner', adult: 'Contributing member', viewer: 'Viewer' } as const;
 const WHAT = {
-  owner: 'Everything below, plus deciding who else gets in and who quietly gets out. Comes with the receipts.',
-  adult: 'Adds, edits and deletes entries, and sets budgets. Cannot change the guest list.',
-  viewer: 'Reads every entry, budget and chart. Cannot move a single figure. Ideal for the relative with opinions.',
+  owner: 'Everything a contributing member can do, plus inviting people, changing roles and removing them.',
+  adult: 'Adds, edits and deletes entries, and sets budgets. Cannot change who is in the household.',
+  viewer: 'Reads every entry, budget and chart. Cannot change anything.',
 } as const;
 
 export default async function Household() {
@@ -55,8 +55,8 @@ export default async function Household() {
         </a>
         <h1 className="t" style={{ margin: 0, fontSize: 27, letterSpacing: '-.018em' }}>{name}</h1>
         <p style={{ margin: 0, fontSize: 13.5, color: 'rgba(255,255,255,.84)' }}>
-          {members.length === 1 ? 'Just you so far' : `${members.length} people`}
-          {live.length > 0 && ` · ${live.length} invited and dawdling`}
+          {members.length} {members.length === 1 ? 'member' : 'members'}
+          {live.length > 0 && ` · ${live.length} invited`}
         </p>
       </header>
 
@@ -71,13 +71,11 @@ export default async function Household() {
           <path d="M8 10V7.5a4 4 0 0 1 8 0V10" />
         </svg>
         <span>
-          One household, <b>one set of books</b>. Everybody in here sees every entry and every
-          budget, including the ones you would rather they did not. That is the deal that makes
-          the totals mean anything.
+          Everyone in a household sees every entry and every budget.
         </span>
       </p>
 
-      <Head>Who is in here</Head>
+      <Head>Members</Head>
       <Card pad="0 16px">
         {members.map((m, i) => (
           <MemberRow
@@ -93,12 +91,12 @@ export default async function Household() {
 
       {canManage && <InviteForm origin={origin} />}
 
-      <Head>Books you keep</Head>
+      <Head>Your households</Head>
       <BooksSwitcher books={books} canRename={canManage} />
 
       {invites.length > 0 && (
         <>
-          <Head>Invited, still dawdling</Head>
+          <Head>Invited</Head>
           <Card pad="0 16px">
             {invites.map((iv, i) => (
               <div key={iv.id} style={{
@@ -124,7 +122,7 @@ export default async function Household() {
                   <span style={{
                     fontSize: 12.5, color: iv.expired ? 'var(--c-danger)' : 'var(--c-meta)',
                   }}>
-                    {LABEL[iv.role]} · {iv.expired ? 'expired, ignored' : `good until ${when(iv.expires_at)}`}
+                    {LABEL[iv.role]} · {iv.expired ? 'expired' : `expires ${when(iv.expires_at)}`}
                   </span>
                 </span>
                 {canManage && <RevokeButton id={iv.id} />}
@@ -134,10 +132,10 @@ export default async function Household() {
         </>
       )}
 
-      <Head>You, specifically</Head>
+      <Head>Your account</Head>
       <PasswordCard />
 
-      <Head>Who is allowed to do what</Head>
+      <Head>What each role can do</Head>
       <Card pad="4px 16px">
         {(['owner', 'adult', 'viewer'] as const).map((r, i) => (
           <div key={r} style={{
@@ -155,7 +153,7 @@ export default async function Household() {
           margin: '0 20px', fontSize: 12.5, lineHeight: 1.5, color: 'var(--c-meta)',
           textAlign: 'center',
         }}>
-          Only an owner hands out keys. Take it up with them.
+          Only an owner can invite or remove people.
         </p>
       )}
     </main>

@@ -17,7 +17,7 @@ export type Result = { ok: true; message?: string } | { ok: false; error: string
 async function mustWrite() {
   const actor = await currentActor();
   if (actor.role === 'viewer') {
-    throw new Error('You are here to look, not to rearrange the furniture.');
+    throw new Error('Viewers cannot change accounts.');
   }
   return actor;
 }
@@ -29,15 +29,15 @@ const RAILS = ['upi', 'card', 'netbanking', 'cash', 'cheque', 'wallet', 'autodeb
    in words a person can act on. The trigger is what makes it true; this is
    what makes it kind. */
 function railProblem(rail: string, accountKind: string): string | null {
-  if (accountKind === 'person') return 'You cannot pay out of a person.';
+  if (accountKind === 'person') return 'A payment method cannot draw on a person.';
   if (rail === 'card' && accountKind !== 'credit') {
-    return 'A card has to draw on a credit card account. That is rather the point of it.';
+    return 'A card must draw on a credit card account.';
   }
   if (rail === 'upi' && !['spending', 'cash'].includes(accountKind)) {
-    return 'UPI draws on a bank or cash account, never on a credit card.';
+    return 'UPI must draw on a bank or cash account.';
   }
   if (rail === 'netbanking' && accountKind !== 'spending') {
-    return 'Net banking needs a bank account behind it.';
+    return 'Net banking must draw on a bank account.';
   }
   return null;
 }
@@ -48,7 +48,7 @@ function railProblem(rail: string, accountKind: string): string | null {
 function dayProblem(label: string, v: string): string | null {
   const n = Number(v);
   if (!Number.isInteger(n) || n < 1 || n > 28) {
-    return `${label} has to be a day from 1 to 28 — every month has those, and the 31st does not.`;
+    return `${label} must be between 1 and 28 — every month has those days.`;
   }
   return null;
 }
@@ -61,15 +61,15 @@ export async function addAccount(_prev: Result | null, fd: FormData): Promise<Re
   const kind = String(fd.get('kind') ?? '');
   const last4 = String(fd.get('last4') ?? '').trim() || null;
 
-  if (name.length < 2) return { ok: false, error: 'Give it a name you will recognise in a hurry.' };
-  if (name.length > 60) return { ok: false, error: 'Sixty characters. It is a bank account, not a poem.' };
-  if (!(KINDS as readonly string[]).includes(kind)) return { ok: false, error: 'Pick what sort of account it is.' };
-  if (last4 && !/^\d{4}$/.test(last4)) return { ok: false, error: 'Last four digits means four digits.' };
+  if (name.length < 2) return { ok: false, error: 'Give the account a name.' };
+  if (name.length > 60) return { ok: false, error: 'Account names are 60 characters at most.' };
+  if (!(KINDS as readonly string[]).includes(kind)) return { ok: false, error: 'Choose an account type.' };
+  if (last4 && !/^\d{4}$/.test(last4)) return { ok: false, error: 'Enter exactly four digits, or leave it blank.' };
 
   const [clash] = await sql`
     select 1 from account where household_id = ${actor.household_id}
       and lower(name) = ${name.toLowerCase()} and archived_at is null`;
-  if (clash) return { ok: false, error: 'You already have one by that name. Two would only confuse you.' };
+  if (clash) return { ok: false, error: 'You already have an account with that name.' };
 
   const opening = amount(fd.get('opening'));
 
@@ -92,7 +92,7 @@ export async function addAccount(_prev: Result | null, fd: FormData): Promise<Re
   }
 
   revalidatePath('/accounts');
-  return { ok: true, message: `${name} is on the books.` };
+  return { ok: true, message: `${name} added.` };
 }
 
 export async function archiveAccount(_prev: Result | null, fd: FormData): Promise<Result> {
@@ -106,7 +106,7 @@ export async function archiveAccount(_prev: Result | null, fd: FormData): Promis
     select count(*)::int as n from payment_method
     where funding_account_id = ${id} and archived_at is null`;
   if (rails > 0) {
-    return { ok: false, error: `Something still pays out of this. Retire the ${rails === 1 ? 'way to pay' : `${rails} ways to pay`} first.` };
+    return { ok: false, error: `Archive the ${rails === 1 ? 'payment method' : `${rails} payment methods`} that draw on this first.` };
   }
 
   /* Archived, never deleted. Entries keep pointing at it, so the months it
@@ -114,7 +114,7 @@ export async function archiveAccount(_prev: Result | null, fd: FormData): Promis
   await sql`update account set archived_at = now()
             where id = ${id} and household_id = ${actor.household_id}`;
   revalidatePath('/accounts');
-  return { ok: true, message: 'Tucked away. Old entries still remember it.' };
+  return { ok: true, message: 'Archived. Existing entries are unchanged.' };
 }
 
 export async function addMethod(_prev: Result | null, fd: FormData): Promise<Result> {
@@ -126,16 +126,23 @@ export async function addMethod(_prev: Result | null, fd: FormData): Promise<Res
   const accountId = String(fd.get('funding_account_id') ?? '');
   const handle = String(fd.get('handle') ?? '').trim() || null;
 
-  if (name.length < 2) return { ok: false, error: 'Name it something you would recognise at a till.' };
-  if (!(RAILS as readonly string[]).includes(rail)) return { ok: false, error: 'Pick how the money actually travels.' };
+  if (name.length < 2) return { ok: false, error: 'Give the payment method a name.' };
+  if (!(RAILS as readonly string[]).includes(rail)) return { ok: false, error: 'Choose a payment method type.' };
 
   const [acc] = await sql`
     select id, kind, name from real_account
     where id = ${accountId} and household_id = ${actor.household_id} and archived_at is null`;
-  if (!acc) return { ok: false, error: 'That is not one of your accounts.' };
+  if (!acc) return { ok: false, error: 'That account is not one of yours.' };
 
   const bad = railProblem(rail, acc.kind);
   if (bad) return { ok: false, error: bad };
+
+  // Two payment methods with the same name are indistinguishable in the picker
+  // on Add Entry, which is the one place it matters.
+  const [clash] = await sql`
+    select 1 from payment_method where household_id = ${actor.household_id}
+      and lower(name) = ${name.toLowerCase()} and archived_at is null`;
+  if (clash) return { ok: false, error: 'You already have a payment method with that name.' };
 
   const [{ n }] = await sql`
     select count(*)::int as n from payment_method where household_id = ${actor.household_id}`;
@@ -145,12 +152,12 @@ export async function addMethod(_prev: Result | null, fd: FormData): Promise<Res
       insert into payment_method (household_id, name, kind, funding_account_id, handle, sort_order)
       values (${actor.household_id}, ${name}, ${rail}, ${acc.id}, ${handle}, ${n})`;
   } catch {
-    return { ok: false, error: 'The database refused that pairing. Check what it draws on.' };
+    return { ok: false, error: 'That combination is not allowed. Check which account it draws on.' };
   }
 
   revalidatePath('/accounts');
   revalidatePath('/add');
-  return { ok: true, message: `${name} now comes out of ${acc.name}.` };
+  return { ok: true, message: `${name} added, drawing on ${acc.name}.` };
 }
 
 export async function archiveMethod(_prev: Result | null, fd: FormData): Promise<Result> {
@@ -162,14 +169,14 @@ export async function archiveMethod(_prev: Result | null, fd: FormData): Promise
     select count(*)::int as n from payment_method
     where household_id = ${actor.household_id} and archived_at is null`;
   if (n <= 1) {
-    return { ok: false, error: 'That is your last way to pay. Add another before retiring this one.' };
+    return { ok: false, error: 'This is your last payment method. Add another one first.' };
   }
 
   await sql`update payment_method set archived_at = now(), is_default = false
             where id = ${id} and household_id = ${actor.household_id}`;
   revalidatePath('/accounts');
   revalidatePath('/add');
-  return { ok: true, message: 'Retired. Entries that used it are untouched.' };
+  return { ok: true, message: 'Archived. Existing entries are unchanged.' };
 }
 
 /** Exactly one default, so Add Entry always opens on something. */

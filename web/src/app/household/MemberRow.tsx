@@ -84,7 +84,7 @@ export default function MemberRow({ member, canManage, isSelf, last, origin }: {
           <form action={saveRole} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             <input type="hidden" name="userId" value={member.id} />
             <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--c-meta)' }}>
-              How much rope {member.name.split(' ')[0]} gets
+              What {member.name.split(' ')[0]} can do
             </span>
             <div style={{ display: 'flex', gap: 8 }}>
               <select
@@ -95,16 +95,16 @@ export default function MemberRow({ member, canManage, isSelf, last, origin }: {
                   fontWeight: 600, padding: '0 10px',
                 }}
               >
-                <option value="adult">Contributing member — writes in the books</option>
-                <option value="viewer">Viewer — looks, does not touch</option>
-                <option value="owner">Owner — hands out keys too</option>
+                <option value="adult">Contributing member</option>
+                <option value="viewer">Viewer</option>
+                <option value="owner">Owner</option>
               </select>
               <button type="submit" disabled={savingRole || role === member.role} style={{
                 minHeight: 46, padding: '0 16px', borderRadius: 11, fontSize: 14.5, fontWeight: 600,
                 background: role === member.role ? 'var(--c-sunk)' : 'var(--c-seagrass)',
                 color: role === member.role ? 'var(--c-meta)' : 'var(--c-on-fill)',
               }}>
-                {savingRole ? 'Saving…' : 'Set it'}
+                {savingRole ? 'Saving…' : 'Save'}
               </button>
             </div>
           </form>
@@ -119,7 +119,7 @@ export default function MemberRow({ member, canManage, isSelf, last, origin }: {
               background: 'var(--c-card)', border: '1px solid var(--c-border)',
               color: 'var(--c-ink)',
             }}>
-              {sendingReset ? 'Cutting a key…' : 'They forgot their password, obviously'}
+              {sendingReset ? 'Creating…' : 'Send a password reset link'}
             </button>
           </form>
 
@@ -131,12 +131,10 @@ export default function MemberRow({ member, canManage, isSelf, last, origin }: {
               minHeight: 46, borderRadius: 11, fontSize: 14.5, fontWeight: 600,
               background: 'var(--c-danger-tint)', color: 'var(--c-danger)',
             }}>
-              {removing ? 'Showing them out…' : `Show ${member.name.split(' ')[0]} the door`}
+              {removing ? 'Removing…' : `Remove ${member.name.split(' ')[0]}`}
             </button>
             <span style={{ fontSize: 12, lineHeight: 1.45, color: 'var(--c-meta)' }}>
-              Everything they wrote down stays exactly where it is. The books belong to the
-              household, not to whoever is currently in it — nobody rewrites a month on
-              their way out.
+              Their entries stay. Removing someone never changes what a month cost.
             </span>
           </form>
         </div>
@@ -169,8 +167,8 @@ function ResetLink({ url, copied, setCopied }: {
       display: 'flex', flexDirection: 'column', gap: 8,
     }}>
       <span style={{ fontSize: 12.5, lineHeight: 1.5, color: 'var(--c-ink)' }}>
-        Hand this over in person, or in a message meant for one pair of eyes. <b>Whoever
-        opens it sets that password and becomes them.</b> Works once, dead within the day.
+        Send this privately. <b>Anyone who opens it can set that password and sign in as
+        them.</b> It works once and expires in a day.
       </span>
       <code style={{
         display: 'block', padding: '9px 11px', borderRadius: 9, background: 'var(--c-card)',
@@ -183,7 +181,7 @@ function ResetLink({ url, copied, setCopied }: {
         minHeight: 44, borderRadius: 10, background: 'var(--c-card)',
         border: '1px solid var(--c-border)', color: 'var(--c-ink)', fontSize: 14, fontWeight: 600,
       }}>
-        {copied ? 'Copied. Off you go' : 'Copy the link'}
+        {copied ? 'Copied' : 'Copy link'}
       </button>
     </div>
   );

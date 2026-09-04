@@ -11,12 +11,12 @@ type Acc = { id: string; name: string; kind: string };
    offering it: the person learns the rule by being told off. */
 const RAILS = [
   { id: 'upi', label: 'UPI', hint: 'GPay, PhonePe, Paytm', on: ['spending', 'cash'] },
-  { id: 'card', label: 'Card', hint: 'The plastic itself', on: ['credit'] },
-  { id: 'netbanking', label: 'Net banking', hint: 'Straight from the bank', on: ['spending'] },
-  { id: 'autodebit', label: 'Standing instruction', hint: 'Leaves whether you look or not', on: ['spending', 'credit'] },
-  { id: 'cash', label: 'Cash', hint: 'Notes, as intended', on: ['cash', 'spending'] },
-  { id: 'wallet', label: 'Wallet', hint: 'Paytm balance and friends', on: ['spending', 'cash'] },
-  { id: 'cheque', label: 'Cheque', hint: 'For the landlord who insists', on: ['spending'] },
+  { id: 'card', label: 'Card', hint: 'The card itself', on: ['credit'] },
+  { id: 'netbanking', label: 'Net banking', hint: 'Direct from the bank', on: ['spending'] },
+  { id: 'autodebit', label: 'Auto-debit', hint: 'Standing instruction', on: ['spending', 'credit'] },
+  { id: 'cash', label: 'Cash', hint: 'Notes', on: ['cash', 'spending'] },
+  { id: 'wallet', label: 'Wallet', hint: 'Paytm and similar', on: ['spending', 'cash'] },
+  { id: 'cheque', label: 'Cheque', hint: '', on: ['spending'] },
 ] as const;
 
 export default function AddMethod({ accounts, startOpen = false }: { accounts: Acc[]; startOpen?: boolean }) {
@@ -43,7 +43,7 @@ export default function AddMethod({ accounts, startOpen = false }: { accounts: A
           <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor"
             strokeWidth={2.2} strokeLinecap="round" aria-hidden><path d="M12 5v14M5 12h14" /></svg>
         </span>
-        Add a way to pay
+        Add a payment method
       </button>
     );
   }
@@ -55,7 +55,7 @@ export default function AddMethod({ accounts, startOpen = false }: { accounts: A
     }}>
       <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--c-meta)' }}>
-          Which account does it actually empty
+          Draws on
         </span>
         <select name="funding_account_id" value={accountId}
           onChange={(e) => setAccountId(e.target.value)}
@@ -67,14 +67,13 @@ export default function AddMethod({ accounts, startOpen = false }: { accounts: A
           {accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
         </select>
         <span style={{ fontSize: 12, lineHeight: 1.45, color: 'var(--c-meta)' }}>
-          This is the whole trick: pay by GPay and the money leaves the bank behind it, not some
-          imaginary GPay pot. You never have to remember which is which again.
+          Spending on this method is recorded against this account.
         </span>
       </label>
 
       <fieldset style={{ border: 0, padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 7 }}>
         <legend style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--c-meta)', padding: 0 }}>
-          How the money travels
+          Type
         </legend>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
           {allowed.map((r, i) => (
@@ -94,15 +93,14 @@ export default function AddMethod({ accounts, startOpen = false }: { accounts: A
         </div>
         {allowed.length === 0 && (
           <span style={{ fontSize: 12.5, color: 'var(--c-meta)' }}>
-            Nothing can draw on that sort of account. Pick another.
+            No payment method can draw on that account type.
           </span>
         )}
       </fieldset>
 
-      <Field label="What you call it" name="name" required maxLength={60} placeholder="GPay" />
-      <Field label="The handle on it, if there is one" name="handle" maxLength={60}
-        placeholder="you@okhdfc"
-        hint="Purely so you can tell two UPI apps apart. Nothing is sent anywhere." />
+      <Field label="Name" name="name" required maxLength={60} placeholder="GPay" />
+      <Field label="Handle or reference (optional)" name="handle" maxLength={60}
+        placeholder="you@okhdfc" />
 
       {state && !state.ok && <ErrorNote>{state.error}</ErrorNote>}
 
@@ -110,12 +108,12 @@ export default function AddMethod({ accounts, startOpen = false }: { accounts: A
         <button type="button" onClick={() => setOpen(false)} style={{
           minHeight: 50, padding: '0 16px', borderRadius: 13, fontSize: 14.5, fontWeight: 600,
           background: 'var(--c-sunk)', color: 'var(--c-meta)',
-        }}>Never mind</button>
+        }}>Cancel</button>
         <button type="submit" disabled={pending || allowed.length === 0} style={{
           flex: 1, minHeight: 50, borderRadius: 13, fontSize: 15.5, fontWeight: 600,
           background: 'var(--c-seagrass)', color: 'var(--c-on-fill)',
           opacity: pending || allowed.length === 0 ? 0.65 : 1,
-        }}>{pending ? 'Wiring it up…' : 'Add it'}</button>
+        }}>{pending ? 'Saving…' : 'Add payment method'}</button>
       </div>
     </form>
   );

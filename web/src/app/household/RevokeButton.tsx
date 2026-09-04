@@ -14,7 +14,7 @@ export default function RevokeButton({ id }: { id: string }) {
           minHeight: 44, padding: '0 13px', borderRadius: 11, fontSize: 13.5, fontWeight: 600,
           background: 'var(--c-sunk)', color: 'var(--c-danger)',
         }}>
-        {pending ? 'Changing the locks…' : 'Withdraw it'}
+        {pending ? 'Withdrawing…' : 'Withdraw'}
       </button>
     </form>
   );

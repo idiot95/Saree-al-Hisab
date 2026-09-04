@@ -25,21 +25,21 @@ export default async function Join({ params, searchParams }: {
   const actor = await actorOrNull();
 
   if (!invite) {
-    return <DeadEnd title="This link goes nowhere"
-      body="Mistyped, withdrawn, or invented. Whichever it is, ask whoever sent it to try again." />;
+    return <DeadEnd title="This link is not valid"
+      body="Ask whoever invited you to send a new one." />;
   }
   if (invite.status === 'revoked') {
-    return <DeadEnd title="Somebody changed their mind"
-      body={`This invitation was withdrawn. Take it up with whoever keeps ${invite.household}’s books.`} />;
+    return <DeadEnd title="This invitation was withdrawn"
+      body={`Ask the owner of ${invite.household} for a new one.`} />;
   }
   if (invite.status === 'accepted') {
-    return <DeadEnd title="Already spent"
-      body={`An invitation works once. If it was you who used it, you are already in ${invite.household} — just sign in.`}
+    return <DeadEnd title="This invitation has been used"
+      body={`If that was you, sign in — you are already in ${invite.household}.`}
       cta={{ href: '/signin', label: 'Sign in' }} />;
   }
   if (invite.expired) {
-    return <DeadEnd title="Too late"
-      body={`Invitations last a week and this one did not. Ask whoever keeps ${invite.household}’s books to cut another.`} />;
+    return <DeadEnd title="This invitation has expired"
+      body={`Invitations last seven days. Ask the owner of ${invite.household} for a new one.`} />;
   }
 
   /* Being in books of your own is not a reason to turn someone away — that is
@@ -56,7 +56,7 @@ export default async function Join({ params, searchParams }: {
 
   return (
     <AuthShell
-      kicker={invite.invited_by ? `${invite.invited_by} is letting you into` : 'Somebody is letting you into'}
+      kicker={invite.invited_by ? `${invite.invited_by} invited you to join` : 'You have been invited to join'}
       title={invite.household}
     >
       <div style={{ padding: '22px 20px 30px', display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -65,26 +65,25 @@ export default async function Join({ params, searchParams }: {
           display: 'flex', flexDirection: 'column', gap: 9,
         }}>
           <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--c-meta)' }}>
-            You would be a
+            Your role
           </span>
           <span style={{ fontSize: 16, fontWeight: 600 }}>
             {invite.role === 'adult' ? 'Contributing member' : 'Viewer'}
           </span>
           <span style={{ fontSize: 12.5, lineHeight: 1.5, color: 'var(--c-meta)' }}>
             {invite.role === 'adult'
-              ? 'Add entries, edit them, set budgets. You will also see every rupee anyone else has recorded, which cuts both ways.'
-              : 'Read every entry, budget and chart, and change precisely none of them. Restful, in its way.'}
+              ? 'Add and edit entries, and set budgets. You will see everything the household records.'
+              : 'Read every entry, budget and chart. You cannot change them.'}
           </span>
         </div>
 
-        {e === '1' && <ErrorNote>That did not take. The invitation may have been withdrawn while you were reading.</ErrorNote>}
+        {e === '1' && <ErrorNote>That invitation could not be accepted. It may have just been withdrawn.</ErrorNote>}
 
         {wrongAccount && (
           <>
             <ErrorNote>
-              You are signed in as {signedInAs}. This invitation was written to
-              {' '}{maskEmail(invite.email)}, which is somebody else. Sign out and try the
-              link again.
+              You are signed in as {signedInAs}, but this invitation was sent to
+              {' '}{maskEmail(invite.email)}. Sign out and open the link again.
             </ErrorNote>
             <form action={async () => { 'use server'; await signOut({ redirectTo: `/join/${token}` }); }}>
               <button type="submit" style={quietBtn}>Sign out</button>
@@ -94,8 +93,8 @@ export default async function Join({ params, searchParams }: {
 
         {rightAccount && actor?.household_id && (
           <p style={{ margin: 0, fontSize: 13, lineHeight: 1.5, color: 'var(--c-meta)' }}>
-            You already keep books of your own. Joining these adds a second set — separate,
-            side by side, and you flip between them whenever you like.
+            You keep your own household too. Joining adds a second one — you can switch
+            between them any time.
           </p>
         )}
 
@@ -103,7 +102,7 @@ export default async function Join({ params, searchParams }: {
           <form action={acceptInvitation}>
             <input type="hidden" name="token" value={token} />
             <button type="submit" className="el2" style={primaryBtn}>
-              {actor?.household_id ? `Join ${invite.household} as well` : `Take my place in ${invite.household}`}
+              Join {invite.household}
             </button>
           </form>
         )}
@@ -111,8 +110,7 @@ export default async function Join({ params, searchParams }: {
         {!signedInAs && invite.has_account && (
           <>
             <p style={{ margin: 0, fontSize: 13.5, lineHeight: 1.5, color: 'var(--c-meta)' }}>
-              That address already has an account. Sign in with it and come back to this
-              link — we will still be here.
+              That email already has an account. Sign in, then open this link again.
             </p>
             <a href="/signin" style={quietBtn}>Sign in</a>
           </>
@@ -121,9 +119,9 @@ export default async function Join({ params, searchParams }: {
         {!signedInAs && !invite.has_account && <JoinForm token={token} email={invite.email} />}
 
         <p style={{ margin: '2px 4px 0', fontSize: 12, lineHeight: 1.5, color: 'var(--c-meta)' }}>
-          <b>Anyone holding this link can take this place</b> — there is no second check.
-          Works once, and dead by {new Date(invite.expires_at).toLocaleDateString('en-IN',
-            { day: 'numeric', month: 'long' })}. Do not forward it.
+          <b>Anyone who opens this link can take this place.</b> Do not forward it. It works
+          once and expires on {new Date(invite.expires_at).toLocaleDateString('en-IN',
+            { day: 'numeric', month: 'long' })}.
         </p>
       </div>
     </AuthShell>

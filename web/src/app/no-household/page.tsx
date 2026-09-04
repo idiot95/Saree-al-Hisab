@@ -3,7 +3,7 @@ import { signOut } from '@/auth';
 import { actorOrNull } from '@/db/queries';
 import StartOwn from './StartOwn';
 
-export const metadata = { title: 'Nowhere to put anything · Quiet Ledger' };
+export const metadata = { title: 'No household · Quiet Ledger' };
 export const dynamic = 'force-dynamic';
 
 /* Signed in and in nobody's books — almost always because they were removed.
@@ -32,13 +32,13 @@ export default async function NoHousehold() {
       </span>
 
       <h1 className="t" style={{ margin: '4px 0 0', fontSize: 25, letterSpacing: '-.016em' }}>
-        Hello {actor.user_name || 'you'}. You have nowhere to put anything.
+        You are not in a household
       </h1>
       <p style={{
         margin: 0, fontSize: 14.5, lineHeight: 1.55, color: 'var(--c-meta)', maxWidth: '34ch',
       }}>
-        You are signed in and in nobody&rsquo;s books. Either somebody invites you into theirs,
-        or you stop waiting and start your own.
+        Signed in as {actor.user_name || 'you'}. Ask someone to invite you to theirs, or
+        start your own.
       </p>
 
       {actor.email && (
@@ -48,11 +48,11 @@ export default async function NoHousehold() {
           maxWidth: '34ch',
         }}>
           <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--c-meta)' }}>
-            The address to nag them with
+            Ask them to invite this email
           </span>
           <span style={{ fontSize: 15, fontWeight: 600, wordBreak: 'break-all' }}>{actor.email}</span>
           <span style={{ fontSize: 12, lineHeight: 1.45, color: 'var(--c-meta)', marginTop: 3 }}>
-            An invitation is tied to the address it was written to, so it has to be this exact one.
+            An invitation is tied to the email it is sent to.
           </span>
         </p>
       )}
@@ -65,7 +65,7 @@ export default async function NoHousehold() {
           borderRadius: 13, background: 'transparent', color: 'var(--c-meta)',
           fontSize: 14, fontWeight: 600, marginTop: 2,
         }}>
-          Or sulk elsewhere — sign out
+          Sign out
         </button>
       </form>
     </main>

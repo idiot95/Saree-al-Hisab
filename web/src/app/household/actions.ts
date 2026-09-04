@@ -25,7 +25,7 @@ export type Result = { ok: true; message?: string } | { ok: false; error: string
 async function mustManage() {
   const actor = await currentActor();
   if (actor.role !== 'owner') {
-    throw new Error('Only an owner rearranges the guest list. Not you, today.');
+    throw new Error('Only an owner can change who is in this household.');
   }
   return actor;
 }
@@ -38,18 +38,18 @@ export async function createInvite(_prev: Result | null, formData: FormData): Pr
   const role = String(formData.get('role') ?? '');
 
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
-    return { ok: false, error: 'That address is missing something. An @, probably.' };
+    return { ok: false, error: 'That does not look like an email address.' };
   }
   // Ownership is not handed out through a link. It is transferred deliberately,
   // by an owner, to someone already in the household.
   if (role !== 'adult' && role !== 'viewer') {
-    return { ok: false, error: 'Pick how much rope they get. Ownership is not handed out by link.' };
+    return { ok: false, error: 'Choose what they can do. Ownership cannot be given by link.' };
   }
 
   const [already] = await sql`
     select 1 from member m join app_user u on u.id = m.user_id
     where m.household_id = ${actor.household_id} and lower(u.email) = ${email}`;
-  if (already) return { ok: false, error: 'They are already in here. Look up.' };
+  if (already) return { ok: false, error: 'They are already in this household.' };
 
   // Supersede any earlier open invite to the same person rather than leaving
   // two live links to the same books.
@@ -86,7 +86,7 @@ export async function changeRole(_prev: Result | null, formData: FormData): Prom
   try { actor = await mustManage(); } catch (e) { return { ok: false, error: (e as Error).message }; }
   const userId = String(formData.get('userId') ?? '');
   const role = String(formData.get('role') ?? '');
-  if (!['owner', 'adult', 'viewer'].includes(role)) return { ok: false, error: 'No such role. Nice try.' };
+  if (!['owner', 'adult', 'viewer'].includes(role)) return { ok: false, error: 'Unknown role.' };
 
   if (userId === actor.user_id && role !== 'owner') {
     // Otherwise the last owner demotes themselves and nobody can ever invite
@@ -95,7 +95,7 @@ export async function changeRole(_prev: Result | null, formData: FormData): Prom
       select count(*)::int from member
       where household_id = ${actor.household_id} and role = 'owner'`;
     if (count <= 1) {
-      return { ok: false, error: 'Somebody has to own the place. Promote someone before you demote yourself.' };
+      return { ok: false, error: 'Make someone else an owner first — a household needs one.' };
     }
   }
 
@@ -110,7 +110,7 @@ export async function removeMember(_prev: Result | null, formData: FormData): Pr
   try { actor = await mustManage(); } catch (e) { return { ok: false, error: (e as Error).message }; }
   const userId = String(formData.get('userId') ?? '');
   if (userId === actor.user_id) {
-    return { ok: false, error: 'You cannot show yourself the door. Hand ownership over first.' };
+    return { ok: false, error: 'You cannot remove yourself. Make someone else an owner first.' };
   }
   // Their entries stay. The ledger is the household's, not the person's —
   // removing someone must never silently change what the month cost.
@@ -138,7 +138,7 @@ export async function issueReset(_prev: Result | null, formData: FormData): Prom
   const [member] = await sql`
     select u.id from member m join app_user u on u.id = m.user_id
     where m.household_id = ${actor.household_id} and u.id = ${userId}`;
-  if (!member) return { ok: false, error: 'They are not in these books at all.' };
+  if (!member) return { ok: false, error: 'They are not in this household.' };
 
   // One live link at a time, so an old one cannot be dug out of a chat later.
   await sql`update password_reset set used_at = now()
@@ -162,12 +162,12 @@ export async function changeMyPassword(_prev: Result | null, formData: FormData)
 
   const [me] = await sql`select email, password_hash from app_user where id = ${actor.user_id}`;
   if (!me?.password_hash || !(await verifyPassword(current, me.password_hash))) {
-    return { ok: false, error: 'That is not your current password. Awkward.' };
+    return { ok: false, error: 'That is not your current password.' };
   }
   const weak = passwordProblem(next, me.email);
   if (weak) return { ok: false, error: weak };
   if (String(formData.get('confirm') ?? '') !== next) {
-    return { ok: false, error: 'Those two do not match. One of them has a typo in it.' };
+    return { ok: false, error: 'The two new passwords do not match.' };
   }
 
   await sql`update app_user
@@ -177,7 +177,7 @@ export async function changeMyPassword(_prev: Result | null, formData: FormData)
   // Any reset link an owner issued is now moot.
   await sql`update password_reset set used_at = now()
             where user_id = ${actor.user_id} and used_at is null`;
-  return { ok: true, message: 'Swapped. Use the new one from here on.' };
+  return { ok: true, message: 'Password changed.' };
 }
 
 /* ── more than one set of books ─────────────────────────────────────────── */
@@ -188,7 +188,7 @@ export async function switchTo(_prev: Result | null, formData: FormData): Promis
   const actor = await currentActor();
   const householdId = String(formData.get('householdId') ?? '');
   const moved = await switchHousehold(actor.user_id, householdId);
-  if (!moved) return { ok: false, error: 'Those are not books you are in.' };
+  if (!moved) return { ok: false, error: 'You are not a member of that household.' };
   revalidatePath('/', 'layout');
   redirect('/');
 }
@@ -200,8 +200,8 @@ export async function startAnotherHousehold(
 ): Promise<Result> {
   const actor = await currentActor();
   const name = String(formData.get('name') ?? '').trim();
-  if (name.length < 2) return { ok: false, error: 'Books want a name. Even a dull one.' };
-  if (name.length > 60) return { ok: false, error: 'Sixty characters. This is a name, not a saga.' };
+  if (name.length < 2) return { ok: false, error: 'Give your household a name.' };
+  if (name.length > 60) return { ok: false, error: 'Household names are 60 characters at most.' };
   await createHousehold(actor.user_id, name);
   revalidatePath('/', 'layout');
   redirect('/household');
@@ -212,9 +212,9 @@ export async function renameHousehold(_prev: Result | null, formData: FormData):
   try { actor = await mustManage(); } catch (e) { return { ok: false, error: (e as Error).message }; }
   const name = String(formData.get('name') ?? '').trim();
   if (name.length < 2 || name.length > 60) {
-    return { ok: false, error: 'Between two and sixty characters. Pick a lane.' };
+    return { ok: false, error: 'Use between 2 and 60 characters.' };
   }
   await sql`update household set name = ${name} where id = ${actor.household_id}`;
   revalidatePath('/', 'layout');
-  return { ok: true, message: 'Renamed. Nobody will notice but you.' };
+  return { ok: true, message: 'Renamed.' };
 }

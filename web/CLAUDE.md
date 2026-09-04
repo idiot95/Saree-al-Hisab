@@ -229,14 +229,32 @@ live way to pay cannot be retired, and neither can your last way to pay.
 
 ## The voice
 
-Labels, hints and empty states are **dry and a bit fatalistic** — "Own up to
-something", "Show them the door", "invited and dawdling", "Ideal for the
-relative with opinions". Money apps are grim enough.
+**Plain.** Buttons say what they do — "Add account", "Create invitation",
+"Sign in", "Save", "Archive". Labels are nouns, not jokes.
 
-The one place the joke stops: **anything that warns about consequence stays
-unmistakable.** "Whoever opens this link becomes them" is bolded and literal,
-because a reader who is amused but unclear about who can now see their salary
-has been badly served. Wit in the label, plain fact in the warning.
+Descriptions earn their place or they are cut. A hint stays only when it
+prevents a mistake ("Use a day between 1 and 28"), explains something the app
+does invisibly ("Spending on this method is recorded against this account"), or
+warns about consequence. Everything else was the app talking about itself.
+
+The warnings stay blunt: "Anyone who opens this link can take that place in the
+household." That is a fact the reader has to act on, so it is stated flatly and
+bolded.
+
+## Teaching the app
+
+There is no coach-mark tour. Two things do the job instead:
+
+- **`GettingStarted`** on the home screen — four steps that tick themselves off
+  from real rows (`setupProgress`), not from a flag somebody has to remember to
+  set, so it cannot drift out of step with what the household has actually
+  done. It disappears when all four are complete.
+- **`/guide`** — five short sections on how the app is meant to be used,
+  reachable from home at any time, because the questions it answers come back
+  weeks later.
+
+Empty screens open the relevant form themselves rather than making someone tap
+"add" first.
 
 ## Open
 

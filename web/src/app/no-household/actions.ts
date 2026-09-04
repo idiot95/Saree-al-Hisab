@@ -16,8 +16,8 @@ export async function startYourOwnBooks(_prev: Result, fd: FormData): Promise<Re
   if (await membershipOf(session.user.id)) redirect('/');
 
   const name = String(fd.get('name') ?? '').trim();
-  if (name.length < 2) return { error: 'Books want a name. Even a dull one.' };
-  if (name.length > 60) return { error: 'Sixty characters. This is a name, not a saga.' };
+  if (name.length < 2) return { error: 'Give your household a name.' };
+  if (name.length > 60) return { error: 'Household names are 60 characters at most.' };
 
   await createHousehold(session.user.id, name);
   revalidatePath('/', 'layout');

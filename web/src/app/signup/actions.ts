@@ -18,19 +18,19 @@ export async function createAccountAndHousehold(
   const household = String(fd.get('household') ?? '').trim();
   const password = String(fd.get('password') ?? '');
 
-  if (name.length < 2) return { error: 'A name. Any name. Even a nickname.' };
+  if (name.length < 2) return { error: 'Enter your name.' };
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
-    return { error: 'That address is missing something. An @, probably.' };
+    return { error: 'That does not look like an email address.' };
   }
-  if (household.length < 2) return { error: 'Your books need a name. “Home” is a perfectly good one.' };
-  if (household.length > 60) return { error: 'That is a novel, not a name. Sixty characters, tops.' };
+  if (household.length < 2) return { error: 'Give your household a name.' };
+  if (household.length > 60) return { error: 'Household names are 60 characters at most.' };
   const weak = passwordProblem(password, email);
   if (weak) return { error: weak };
   if (String(fd.get('confirm') ?? '') !== password) {
-    return { error: 'Those two passwords are not speaking to each other.' };
+    return { error: 'The two passwords do not match.' };
   }
   if (await emailIsTaken(email)) {
-    return { error: 'That address already has an account. Sign in, or admit you forgot.' };
+    return { error: 'That email already has an account. Sign in instead.' };
   }
 
   await signUp(email, name, await hashPassword(password), household);
@@ -38,7 +38,7 @@ export async function createAccountAndHousehold(
   try {
     await signIn('credentials', { email, password, redirectTo: '/' });
   } catch (e) {
-    if (e instanceof AuthError) return { error: 'Account made. Sign-in got shy — try it yourself.' };
+    if (e instanceof AuthError) return { error: 'Account created. Please sign in.' };
     throw e;
   }
   return null;
