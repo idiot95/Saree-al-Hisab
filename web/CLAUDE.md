@@ -80,7 +80,8 @@ A repayment is `kind = 'claim_receipt'` — money in, but explicitly not income.
 ## Running it
 
     npm run migrate            # in filename order; --reset drops and rebuilds
-    npm run test:invariants    # 38 assertions against real Postgres
+    npm run test:invariants    # 47 assertions against real Postgres
+    npm run test:lib           # money, password hashing and link tokens
     npm run tokens             # regenerate tokens.css from the canvas palette
 
 Neon is provisioned through Vercel; `DATABASE_URL` lives in `.env.local`,
@@ -91,13 +92,15 @@ because they are idempotent, so a changed view ships without a new file.
 ## Proven, not assumed
 
 `npm run test:invariants` tries to BREAK each rule and expects Postgres to
-refuse. 38 assertions currently pass, covering: a move can never look like
+refuse. 47 assertions currently pass, covering: a move can never look like
 spending, `spend_txn` is the only definition of spending, refunds net off in
 the month they land, a card purchase files itself into the right cycle, a
 payment method is a rail and not a balance, lending never touches the budget,
 duplicates are detected but never prevented, budgets are one row per
-category per month keyed on the first, and an invitation admits only the
-address it was sent to — never whoever holds the link.
+category per month keyed on the first, an invitation is single-use and its
+plaintext is nowhere in the database, a password cannot exist without an
+address to use it with, and an account that has recorded entries cannot be
+deleted at all — the ledger holds it in place.
 
     npm run seed               # the Mogul Household, INR only
 
@@ -117,37 +120,74 @@ foreign key, but it would not stop one household writing into another's.
 
 ## Who can see the books
 
-Sign-in is Google, through Auth.js v5 with JWT sessions — no adapter tables.
+Sign-in is an **address and a password we hold ourselves** — no Google, no
+third party, no OAuth console to keep alive. Auth.js v5 with JWT sessions and a
+credentials provider; the only environment variable it needs is `AUTH_SECRET`.
+
+Passwords are hashed with **scrypt out of `node:crypto`** at OWASP's parameters
+(N=2^17, r=8, p=1) — about a third of a second and 128 MB each, which is the
+point. Stored as `scrypt$logN$r$p$salt$hash`, so the cost can be raised later
+and old hashes still verify; a sign-in against a weaker hash quietly upgrades
+it. No native module, so nothing to break on a serverless build.
+
+Guessing gets slower in the database, not in memory: five wrong tries buys a
+minute, doubling to a ceiling of thirty. An unknown address is checked against
+a decoy hash so it costs the same as a known one — otherwise "no such account"
+is measurable with a stopwatch.
 
 **The token carries one fact: which `app_user` row this is.** Not the
 household, not the role. Those are read from Postgres on every request in
 `src/db/membership.ts`, because a JWT lives for weeks and being removed from a
-household — or dropped to viewer — has to bite on the next tap, not at the
-next sign-in.
+household — or dropped to viewer — has to bite on the next tap. Proven: change
+a role in the database and the very next page load says so, cookie untouched.
 
-Three roles: **owner** (also invites, changes roles, removes people),
-**contributing member** (`adult` — adds, edits, budgets), **viewer**
-(reads everything, changes nothing). A viewer is blocked inside `saveEntry`,
-not by hiding the button, because a Server Action is reachable by direct POST.
+Three roles: **owner** (also invites, changes roles, removes people, issues
+reset links), **contributing member** (`adult` — adds, edits, budgets),
+**viewer** (reads everything, changes nothing). A viewer is blocked inside
+`saveEntry`, not by hiding the button, because a Server Action is reachable by
+direct POST.
 
-**An invitation is bound to an email address, not to its link.** `/join/<token>`
-only *shows* the invitation; what admits someone is an open, unexpired invite
-addressed to the Google account they sign in with. So a link that is forwarded,
-screenshotted or sitting in a chat backup gets a stranger a page and nothing
-else. Ownership is never handed out by link. Invites last seven days, and a new
-invite to the same address revokes the previous one.
+### Links are credentials, and the copy says so
 
-Joining is never automatic. The first person to sign in claims the seeded
-household (it is created with no members); everyone after that needs an invite,
-or they land on `/no-household`, which shows them the address to have invited.
+With no outside identity to prove, **whoever opens an invitation link can take
+that place**. That is the honest cost of dropping Google, so it is mitigated
+rather than hidden: 256-bit tokens, only the SHA-256 stored (a stolen database
+yields no working links), single use, seven days for an invite and one day for
+a reset. The screen that hands the owner a link says all of it. A link is shown
+exactly once — losing it means revoking and reissuing.
 
-`/join` is excluded from the proxy matcher — an invitation has to open for
-someone who is not signed in yet.
+Nobody here can send email, so a forgotten password is recovered the way
+anything else in a household is: **you ask, and an owner hands you a link.**
+Which does mean an owner can take over any account — already true of someone
+who can change your role and remove you, and pretending otherwise would only
+have added a mail provider to the bill. Changing your own password needs the
+old one.
+
+Joining is never automatic. `/setup` is open exactly once — the first person
+through the door owns the books, and only if the household has actually been
+set up (an empty shell left by a migration is not somewhere to land). After
+that the screen closes forever and everyone needs an invite, or they land on
+`/no-household`, which shows them the address to have invited.
+
+`/signin`, `/setup`, `/join` and `/reset` are excluded from the proxy matcher —
+all four have to open for someone not signed in yet.
+
+**Timestamps are written with `now()`, never a JS `Date`.** Expiry is compared
+against `now()` in Postgres so it should be set by the same clock — and a Date
+handed to the driver through a bundled build is not always recognised as one,
+which turns into a serialisation error at the worst possible moment. It did.
+
+**Actions take `(prevState, formData)`** so they can go straight into
+`useActionState`. Not a formality: an action wrapped in a client closure loses
+its no-JS fallback, and the form then does nothing until the bundle has
+hydrated — a real window of vanishing taps on a slow phone.
 
 ## Open
 
-- Nothing is deployed yet beyond the slice. The Vercel project is
-  `saree-al-hisab`, linked to `idiot95/Saree-al-Hisab` with root directory
-  `web`. `AUTH_GOOGLE_ID` and `AUTH_GOOGLE_SECRET` still have to be set —
-  redirect URIs `https://saree-al-hisab.vercel.app/api/auth/callback/google`
-  and `http://localhost:3000/api/auth/callback/google`.
+- The Vercel project is `saree-al-hisab`, linked to `idiot95/Saree-al-Hisab`
+  with root directory `web`. `AUTH_SECRET` is set in all three environments and
+  is the only secret sign-in needs.
+- Auth.js trusts the host automatically on Vercel. Running `next start` by hand
+  needs `AUTH_TRUST_HOST=true`, which is why it is not in the committed config.
+- Deployment protection is still on. Claim the household through `/setup`
+  before lifting it, or the first stranger to find the URL owns the books.

@@ -3,17 +3,13 @@
 import { useActionState, useState } from 'react';
 import { createInvite } from './actions';
 
-/* The invite is bound to the email address, not to the link. That is what
-   makes it safe to paste a link into WhatsApp: whoever opens it still has to
-   sign in with the Google account it was addressed to. */
+/* Say plainly what this link is. Sign-in is an address and a password we hold
+   ourselves, so there is no outside identity for an invitation to lean on:
+   whoever opens the link can take the place it was meant for. The link is
+   therefore a credential, and the copy here treats it as one. */
 
-type Result = { ok: true; message?: string } | { ok: false; error: string };
-
-export default function InviteForm() {
-  const [state, act, pending] = useActionState(
-    async (_prev: Result | null, fd: FormData) => createInvite(fd),
-    null,
-  );
+export default function InviteForm({ origin }: { origin: string }) {
+  const [state, act, pending] = useActionState(createInvite, null);
   const [email, setEmail] = useState('');
   const token = state?.ok ? state.message : undefined;
 
@@ -32,11 +28,11 @@ export default function InviteForm() {
         <form action={act} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--c-meta)' }}>
-              Their Google address
+              Their email address
             </span>
             <input
               name="email" type="email" inputMode="email" autoComplete="off"
-              placeholder="name@gmail.com" required
+              placeholder="name@example.com" required
               value={email} onChange={(e) => setEmail(e.target.value)}
               style={{
                 minHeight: 50, borderRadius: 13, border: '1px solid var(--c-border)',
@@ -87,7 +83,7 @@ export default function InviteForm() {
           )}
         </form>
 
-        {token && <InviteLink token={token} email={email} />}
+        {token && <InviteLink url={`${origin}/join/${token}`} email={email} />}
       </section>
     </>
   );
@@ -112,9 +108,8 @@ function Choice({ name, value, title, what, defaultChecked }: {
   );
 }
 
-function InviteLink({ token, email }: { token: string; email: string }) {
+function InviteLink({ url, email }: { url: string; email: string }) {
   const [copied, setCopied] = useState<'idle' | 'done' | 'failed'>('idle');
-  const url = typeof window === 'undefined' ? '' : `${window.location.origin}/join/${token}`;
 
   return (
     <div style={{
@@ -132,8 +127,13 @@ function InviteLink({ token, email }: { token: string; email: string }) {
         Invite ready
       </span>
       <p style={{ margin: 0, fontSize: 13, lineHeight: 1.5, color: 'var(--c-ink)' }}>
-        Send this to {email || 'them'} however you like. Only that Google account can use it,
-        so a forwarded link lets nobody else in. It expires in seven days.
+        Send this to {email || 'them'} privately — a message, not a group. Anyone who opens it
+        can take that place in the household, so treat it like a key. It works once and
+        expires in seven days.
+      </p>
+      <p style={{ margin: 0, fontSize: 12, lineHeight: 1.5, color: 'var(--c-meta)' }}>
+        This is the only time it is shown. If you lose it, revoke the invitation and send
+        a new one.
       </p>
       <code style={{
         display: 'block', padding: '10px 12px', borderRadius: 10, background: 'var(--c-card)',

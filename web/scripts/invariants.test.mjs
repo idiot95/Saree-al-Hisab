@@ -29,9 +29,13 @@ async function allows(what, fn) {
 // ── a household to work in ─────────────────────────────────────────────────
 // Clear anything a previous run left behind, so this is repeatable even after
 // a crash. Everything below is namespaced to a test household and two phones.
-const PHONES = ['+910000000001', '+910000000002'];
-const EMAILS = ['invited@invariant.test', 'someone.else@invariant.test'];
+const PHONES = ['+910000000001', '+910000000002', '+910000000003'];
+const EMAILS = ['invited@invariant.test', 'someone.else@invariant.test',
+                'passing@invariant.test', 'negative@invariant.test'];
 await sql`delete from household where name = 'Invariant test'`;
+// A crashed run can leave reset links behind; they hold their user in place.
+await sql`delete from password_reset where user_id in
+  (select id from app_user where phone = any(${PHONES}) or email = any(${EMAILS}))`;
 await sql`delete from app_user where phone in ${sql(PHONES)}`;
 await sql`delete from app_user where email in ${sql(EMAILS)}`;
 
@@ -145,8 +149,8 @@ console.log('\nACCESS — an invitation is bound to a person, not to a link');
 const invited = EMAILS[0];
 const mkInvite = (o = {}) => sql`insert into invite ${sql({
   household_id: hh.id, email: invited, role: 'adult', invited_by: user.id,
-  token: 'tok-' + Math.random().toString(36).slice(2),
-  expires_at: new Date(Date.now() + 7 * 864e5), ...o })} returning id, token`;
+  token_hash: 'hash-' + Math.random().toString(36).slice(2),
+  expires_at: new Date(Date.now() + 7 * 864e5), ...o })} returning id, token_hash`;
 
 await refuses('an invite marked accepted with no time on it is refused',
   () => mkInvite({ status: 'accepted' }));
@@ -154,7 +158,13 @@ await refuses('an owner role handed out by invite is refused at the column',
   () => mkInvite({ role: 'nobody' }));
 const [live] = await mkInvite();
 await refuses('two invites cannot share a token',
-  () => mkInvite({ token: live.token }));
+  () => mkInvite({ token_hash: live.token_hash }));
+// The plaintext token is never written down. A stolen database is a list of
+// hashes, and a hash opens nothing.
+const [{ n: tokenCols }] = await sql`
+  select count(*)::int as n from information_schema.columns
+  where table_name = 'invite' and column_name = 'token'`;
+ok(tokenCols === 0, 'the invite table has no column to leak a usable link from');
 
 /* This is the query that actually admits someone — the same shape as
    acceptInviteFor in src/db/membership.ts. What it must never do is admit on
@@ -171,7 +181,25 @@ ok(await admits(invited) === 0, 'a revoked invite admits nobody, link or no link
 await sql`update invite set status = 'open', expires_at = now() - interval '1 day' where id = ${live.id}`;
 ok(await admits(invited) === 0, 'an expired invite admits nobody');
 
+console.log('\nACCOUNTS — a password is worth nothing without an address');
+await refuses('a password on a row with no email is refused',
+  () => sql`insert into app_user ${sql({ phone: '+910000000003', name: 'X', password_hash: 'scrypt$17$8$1$a$b' })}`);
+await refuses('a mixed-case address is refused, so one person cannot become two accounts',
+  () => sql`insert into app_user ${sql({ email: 'Invited@Invariant.Test', name: 'X' })}`);
+await refuses('a negative attempt count is refused',
+  () => sql`insert into app_user ${sql({ email: 'negative@invariant.test', name: 'X', failed_attempts: -1 })}`);
+
 const [joiner] = await sql`insert into app_user ${sql({ email: invited, name: 'Invited' })} returning id`;
+await allows('a reset link can be issued for a member',
+  () => sql`insert into password_reset ${sql({ user_id: joiner.id, issued_by: user.id,
+    token_hash: 'reset-' + Math.random().toString(36).slice(2),
+    expires_at: new Date(Date.now() + 864e5) })}`);
+await refuses('two reset links cannot share a token',
+  () => sql`insert into password_reset ${sql([
+    { user_id: joiner.id, issued_by: user.id, token_hash: 'twin', expires_at: new Date(Date.now() + 864e5) },
+    { user_id: joiner.id, issued_by: user.id, token_hash: 'twin', expires_at: new Date(Date.now() + 864e5) }])}`);
+const resetsBefore = (await sql`select count(*)::int as n from password_reset where user_id = ${joiner.id}`)[0].n;
+ok(resetsBefore > 0, 'the reset link is on record');
 await sql`insert into member ${sql({ household_id: hh.id, user_id: joiner.id, role: 'adult' })}`;
 await sql`insert into txn ${sql({ household_id: hh.id, created_by: joiner.id, kind: 'expense',
   amount: 55500, occurred_on: '2026-09-03', account_id: cash, category_id: cat })}`;
@@ -181,8 +209,24 @@ ok(await spent() === withThem,
   'removing someone leaves what they recorded standing — the books are the household\'s');
 await refuses('a member row pointing at no user is refused',
   () => sql`insert into member ${sql({ household_id: hh.id, user_id: hh.id, role: 'adult' })}`);
+/* An account that has recorded entries cannot be deleted at all — the ledger
+   holds it in place. This is the database half of the same rule the household
+   screen states: removing someone must never change what a month cost. */
+await refuses('an account that has recorded entries cannot be deleted',
+  () => sql`delete from app_user where id = ${joiner.id}`);
+
+// One that has recorded nothing can go, and takes its reset links with it.
+const [passer] = await sql`insert into app_user ${sql({ email: EMAILS[2], name: 'Passing' })} returning id`;
+await sql`insert into password_reset ${sql({ user_id: passer.id, issued_by: user.id,
+  token_hash: 'passer-' + Math.random().toString(36).slice(2),
+  expires_at: new Date(Date.now() + 864e5) })}`;
+await sql`delete from app_user where id = ${passer.id}`;
+const orphanResets = (await sql`select count(*)::int as n from password_reset where user_id = ${passer.id}`)[0].n;
+ok(orphanResets === 0, 'deleting an account with no entries takes its reset links with it');
 
 await sql`delete from household where id = ${hh.id}`;
+await sql`delete from password_reset where user_id in
+  (select id from app_user where phone = any(${PHONES}) or email = any(${EMAILS}))`;
 await sql`delete from app_user where phone in ${sql(PHONES)}`;
 await sql`delete from app_user where email in ${sql(EMAILS)}`;
 

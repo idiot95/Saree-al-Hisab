@@ -3,11 +3,8 @@
 import { useActionState } from 'react';
 import { revokeInvite } from './actions';
 
-type Result = { ok: true; message?: string } | { ok: false; error: string };
-
 export default function RevokeButton({ id }: { id: string }) {
-  const [state, act, pending] = useActionState(
-    async (_p: Result | null, fd: FormData) => revokeInvite(fd), null);
+  const [state, act, pending] = useActionState(revokeInvite, null);
 
   return (
     <form action={act} style={{ flex: 'none' }}>

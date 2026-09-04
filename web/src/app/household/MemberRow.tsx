@@ -1,28 +1,28 @@
 'use client';
 
 import { useActionState, useState } from 'react';
-import { changeRole, removeMember } from './actions';
+import { changeRole, issueReset, removeMember } from './actions';
 
 type Role = 'owner' | 'adult' | 'viewer';
-type Result = { ok: true; message?: string } | { ok: false; error: string };
-
 const LABEL: Record<Role, string> = {
   owner: 'Owner', adult: 'Contributing member', viewer: 'Viewer',
 };
 
-export default function MemberRow({ member, canManage, isSelf, last }: {
+export default function MemberRow({ member, canManage, isSelf, last, origin }: {
   member: { id: string; name: string; email: string | null; image: string | null; role: Role };
-  canManage: boolean; isSelf: boolean; last: boolean;
+  canManage: boolean; isSelf: boolean; last: boolean; origin: string;
 }) {
-  const [roleState, saveRole, savingRole] = useActionState(
-    async (_p: Result | null, fd: FormData) => changeRole(fd), null);
-  const [removeState, remove, removing] = useActionState(
-    async (_p: Result | null, fd: FormData) => removeMember(fd), null);
+  const [roleState, saveRole, savingRole] = useActionState(changeRole, null);
+  const [removeState, remove, removing] = useActionState(removeMember, null);
+  const [resetState, sendReset, sendingReset] = useActionState(issueReset, null);
   const [confirming, setConfirming] = useState(false);
+  const [copied, setCopied] = useState(false);
   const [role, setRole] = useState<Role>(member.role);
+  const resetToken = resetState?.ok ? resetState.message : undefined;
 
   const error = (roleState && !roleState.ok && roleState.error)
-    || (removeState && !removeState.ok && removeState.error) || null;
+    || (removeState && !removeState.ok && removeState.error)
+    || (resetState && !resetState.ok && resetState.error) || null;
 
   return (
     <div style={{
@@ -109,6 +109,22 @@ export default function MemberRow({ member, canManage, isSelf, last }: {
             </div>
           </form>
 
+          {/* Nobody here can send email, so a forgotten password is recovered
+              the way anything else in a household is: you ask, and the owner
+              hands over a link. */}
+          <form action={sendReset} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <input type="hidden" name="userId" value={member.id} />
+            <button type="submit" disabled={sendingReset} style={{
+              minHeight: 46, borderRadius: 11, fontSize: 14.5, fontWeight: 600,
+              background: 'var(--c-card)', border: '1px solid var(--c-border)',
+              color: 'var(--c-ink)',
+            }}>
+              {sendingReset ? 'Making a link…' : 'Give them a password reset link'}
+            </button>
+          </form>
+
+          {resetToken && <ResetLink url={`${origin}/reset/${resetToken}`} copied={copied} setCopied={setCopied} />}
+
           <form action={remove} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             <input type="hidden" name="userId" value={member.id} />
             <button type="submit" disabled={removing} style={{
@@ -138,6 +154,36 @@ export default function MemberRow({ member, canManage, isSelf, last }: {
           {error}
         </p>
       )}
+    </div>
+  );
+}
+
+
+function ResetLink({ url, copied, setCopied }: {
+  url: string; copied: boolean; setCopied: (v: boolean) => void;
+}) {
+  return (
+    <div style={{
+      padding: 12, borderRadius: 12, background: 'var(--c-warn-tint)',
+      display: 'flex', flexDirection: 'column', gap: 8,
+    }}>
+      <span style={{ fontSize: 12.5, lineHeight: 1.5, color: 'var(--c-ink)' }}>
+        Hand this over in person or in a private message. Anyone who opens it can set that
+        password and sign in as them. It works once and dies in a day.
+      </span>
+      <code style={{
+        display: 'block', padding: '9px 11px', borderRadius: 9, background: 'var(--c-card)',
+        border: '1px solid var(--c-border)', fontSize: 11, lineHeight: 1.5,
+        wordBreak: 'break-all', color: 'var(--c-meta)',
+      }}>{url}</code>
+      <button type="button" onClick={async () => {
+        try { await navigator.clipboard.writeText(url); setCopied(true); } catch { setCopied(false); }
+      }} style={{
+        minHeight: 44, borderRadius: 10, background: 'var(--c-card)',
+        border: '1px solid var(--c-border)', color: 'var(--c-ink)', fontSize: 14, fontWeight: 600,
+      }}>
+        {copied ? 'Copied' : 'Copy the link'}
+      </button>
     </div>
   );
 }

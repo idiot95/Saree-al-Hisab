@@ -2,6 +2,7 @@ import 'server-only';
 import { sql } from './client';
 import { auth } from '@/auth';
 import { membershipOf } from './membership';
+import { hashLinkToken } from '@/lib/link-token';
 
 /* Who is asking, and what they may do — resolved on the server, on every
    request. A Server Action is reachable by direct POST, so the household a
@@ -96,15 +97,18 @@ export async function membersOf(householdId: string) {
 }
 
 export async function openInvitesOf(householdId: string) {
-  // Expiry is decided by the clock, not by a job that may never have run.
+  /* Expiry is decided by the clock, not by a job that may never have run.
+     There is no token here to select: only its hash is stored, so a link
+     cannot be shown twice. Losing one means revoking it and sending another,
+     which is the behaviour we want anyway. */
   return sql`
-    select id, email, role, token, expires_at,
+    select id, email, role, expires_at,
            expires_at <= now() as expired
     from invite
     where household_id = ${householdId} and status = 'open'
     order by created_at desc
   ` as Promise<{ id: string; email: string; role: 'adult' | 'viewer';
-                 token: string; expires_at: Date; expired: boolean }[]>;
+                 expires_at: Date; expired: boolean }[]>;
 }
 
 export async function householdName(householdId: string) {
@@ -112,22 +116,34 @@ export async function householdName(householdId: string) {
   return (h?.name as string) ?? 'Household';
 }
 
-/** An invite looked up by its link. The token is only a way of SHOWING someone
- *  what they have been invited to — it is never what admits them. Acceptance
- *  happens in `resolveActor`, and matches on the email address, so a link that
- *  is forwarded, screenshotted or sitting in a chat backup opens this page for
- *  a stranger and gets them no further. */
+/** An invite looked up by its link. Only the SHA-256 of the token is stored,
+ *  so this is the only way back to the row and a copy of the database yields
+ *  no working links. */
 export async function inviteByToken(token: string) {
   const [row] = await sql`
     select i.id, i.email, i.role, i.status, i.expires_at,
            i.expires_at <= now() as expired,
-           h.name as household, u.name as invited_by
+           h.name as household, u.name as invited_by,
+           exists (select 1 from app_user a where a.email = lower(i.email)) as has_account
     from invite i
     join household h on h.id = i.household_id
     left join app_user u on u.id = i.invited_by
-    where i.token = ${token}`;
+    where i.token_hash = ${hashLinkToken(token)}`;
   return (row ?? null) as null | {
     id: string; email: string; role: 'adult' | 'viewer';
     status: 'open' | 'accepted' | 'revoked' | 'expired';
-    expires_at: Date; expired: boolean; household: string; invited_by: string | null };
+    expires_at: Date; expired: boolean; household: string;
+    invited_by: string | null; has_account: boolean };
+}
+
+/** A reset link. Deliberately says nothing about who it belongs to beyond the
+ *  name — a link that has gone astray should not also hand over an address. */
+export async function resetByToken(token: string) {
+  const [row] = await sql`
+    select r.id, r.expires_at, r.used_at,
+           r.expires_at <= now() as expired, u.name
+    from password_reset r join app_user u on u.id = r.user_id
+    where r.token_hash = ${hashLinkToken(token)}`;
+  return (row ?? null) as null | {
+    id: string; expires_at: Date; used_at: Date | null; expired: boolean; name: string };
 }

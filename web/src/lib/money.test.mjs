@@ -1,6 +1,6 @@
-// Run with: node --experimental-strip-types src/lib/money.test.mjs
+// Run through: node scripts/lib.test.mjs
 import assert from 'node:assert/strict';
-const { format, fromKeys, keysDisplay } = await import('./money.ts');
+const { format, fromKeys, keysDisplay } = await import(`${process.env.LIB}/money.js`);
 
 // Indian grouping is the whole reason this file exists.
 assert.equal(format(21560000), '₹2,15,600');
@@ -24,7 +24,7 @@ assert.equal(keysDisplay('007'), '7');
 console.log('money: 15 assertions passed');
 
 // Paise, and the guards around the keypad.
-const { pushKey, popKey } = await import('./money.mjs');
+const { pushKey, popKey } = await import(`${process.env.LIB}/money.js`);
 assert.equal(fromKeys('2340.5'), 234050);
 assert.equal(fromKeys('2340.55'), 234055);
 assert.equal(fromKeys('.5'), 50);

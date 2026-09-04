@@ -40,8 +40,12 @@ export const household = pgTable('household', {
   check('month_start_valid', sql`${t.monthStartsOn} between 1 and 28`),
 ]);
 
-/* Identity comes from Google, so email is the key and phone is optional —
-   it stays because a household still wants a number to remind someone on. */
+/* Email address plus a password we store the hash of — no third party stands
+   between the household and its books. Phone stays optional because a
+   household still wants a number to remind someone on.
+
+   Addresses are stored lowercased and the database insists on it, so that
+   Ammar@… and ammar@… can never become two accounts arguing over one person. */
 export const appUser = pgTable('app_user', {
   id: uuid('id').primaryKey().defaultRandom(),
   email: text('email').unique(),
@@ -49,12 +53,24 @@ export const appUser = pgTable('app_user', {
   name: text('name').notNull(),
   image: text('image'),
   recoveryEmail: text('recovery_email'),
+  // scrypt$N$r$p$salt$hash — self-describing, so the cost can be raised later
+  // and old hashes still verify. Never the password itself, obviously.
+  passwordHash: text('password_hash'),
+  passwordSetAt: timestamp('password_set_at', { withTimezone: true }),
+  // Guessing has to get slower. Counted here rather than in memory because a
+  // serverless function is a fresh process every few requests.
+  failedAttempts: integer('failed_attempts').notNull().default(0),
+  lockedUntil: timestamp('locked_until', { withTimezone: true }),
   lastSeenAt: timestamp('last_seen_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [
   // One of the two must identify them. Without this a nameless row with
   // neither could be created and never matched to anyone again.
   check('has_an_identity', sql`${t.email} IS NOT NULL OR ${t.phone} IS NOT NULL`),
+  check('email_is_lowercase', sql`${t.email} IS NULL OR ${t.email} = lower(${t.email})`),
+  // A password with no address is a login nobody can perform.
+  check('password_needs_an_address', sql`${t.passwordHash} IS NULL OR ${t.email} IS NOT NULL`),
+  check('attempts_not_negative', sql`${t.failedAttempts} >= 0`),
 ]);
 
 export const member = pgTable('member', {
@@ -68,18 +84,20 @@ export const member = pgTable('member', {
 
 export const inviteStatus = pgEnum('invite_status', ['open', 'accepted', 'revoked', 'expired']);
 
-/* An invite is bound to ONE email address, not just a token. The link alone is
-   not enough: whoever opens it has to sign in with the Google account it was
-   sent to. A link that leaks — forwarded, screenshotted, in a chat backup —
-   therefore lets nobody into the books. */
+/* An invite is a 256-bit token, sent to one address, good once.
+   Be honest about what it is: with a password login there is no outside
+   identity to prove, so whoever OPENS the link can take that place. Hence the
+   care — the token is unguessable, only its SHA-256 is stored (a stolen
+   database yields no working links), it dies on first use, and it expires. The
+   screen that hands the owner the link says all of this. */
 export const invite = pgTable('invite', {
   id: uuid('id').primaryKey().defaultRandom(),
   householdId: uuid('household_id').notNull().references(() => household.id, { onDelete: 'cascade' }),
   email: text('email').notNull(),
   role: memberRole('role').notNull(),
-  token: text('token').notNull().unique(),
+  tokenHash: text('token_hash').notNull().unique(),
   status: inviteStatus('status').notNull().default('open'),
-  invitedBy: uuid('invited_by').notNull().references(() => appUser.id),
+  invitedBy: uuid('invited_by').references(() => appUser.id, { onDelete: 'set null' }),
   expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
   acceptedAt: timestamp('accepted_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
@@ -89,6 +107,23 @@ export const invite = pgTable('invite', {
   // Only an owner may hand out ownership, enforced in the action — but the
   // shape rule that an accepted invite has a timestamp belongs here.
   check('accepted_has_a_time', sql`${t.status} <> 'accepted' OR ${t.acceptedAt} IS NOT NULL`),
+]);
+
+/* Nobody here can send email, so a forgotten password is recovered the way
+   anything else in a household is: you ask. An owner issues a link, hands it
+   over, and it works once. That is a deliberate trade — no mail provider, no
+   deliverability, no address to spoof — and it means an owner can always take
+   over another member's account. In a household that is already true. */
+export const passwordReset = pgTable('password_reset', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').notNull().references(() => appUser.id, { onDelete: 'cascade' }),
+  tokenHash: text('token_hash').notNull().unique(),
+  issuedBy: uuid('issued_by').references(() => appUser.id, { onDelete: 'set null' }),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  usedAt: timestamp('used_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  index('password_reset_user').on(t.userId),
 ]);
 
 export const account = pgTable('account', {

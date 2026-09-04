@@ -6,8 +6,8 @@ export const metadata = { title: 'Waiting for an invite · Quiet Ledger' };
 export const dynamic = 'force-dynamic';
 
 /* Signed in, but in nobody's books. This screen exists because the alternative
-   — dropping any Google account that finds the URL into the first household —
-   would be a hole, not a feature. */
+   — dropping anyone who signs up into the first household they find — would be
+   a hole, not a feature. */
 export default async function NoHousehold() {
   const actor = await actorOrNull();
   if (!actor) redirect('/signin');

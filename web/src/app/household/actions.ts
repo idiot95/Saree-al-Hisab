@@ -1,9 +1,10 @@
 'use server';
 
-import { randomBytes } from 'node:crypto';
 import { revalidatePath } from 'next/cache';
 import { sql } from '@/db/client';
 import { currentActor } from '@/db/queries';
+import { newLinkToken } from '@/lib/link-token';
+import { hashPassword, passwordProblem, verifyPassword } from '@/lib/password';
 
 /* Every one of these is reachable by direct POST, so each re-establishes who
    is asking and what they are allowed to do. Hiding a button is presentation;
@@ -11,7 +12,13 @@ import { currentActor } from '@/db/queries';
 
 const INVITE_DAYS = 7;
 
-type Result = { ok: true; message?: string } | { ok: false; error: string };
+export type Result = { ok: true; message?: string } | { ok: false; error: string };
+
+/* Every one takes (previous state, form data) so it can be handed straight to
+   useActionState. That is not a formality: an action passed through a client
+   closure loses its no-JS fallback, and the form then does nothing at all
+   until the bundle has downloaded and hydrated — which on a slow phone is a
+   real window of taps that vanish. */
 
 async function mustManage() {
   const actor = await currentActor();
@@ -21,7 +28,7 @@ async function mustManage() {
   return actor;
 }
 
-export async function createInvite(formData: FormData): Promise<Result> {
+export async function createInvite(_prev: Result | null, formData: FormData): Promise<Result> {
   let actor;
   try { actor = await mustManage(); } catch (e) { return { ok: false, error: (e as Error).message }; }
 
@@ -48,21 +55,21 @@ export async function createInvite(formData: FormData): Promise<Result> {
             where household_id = ${actor.household_id}
               and lower(email) = ${email} and status = 'open'`;
 
-  const token = randomBytes(32).toString('base64url');
-  await sql`insert into invite ${sql({
-    household_id: actor.household_id,
-    email,
-    role,
-    token,
-    invited_by: actor.user_id,
-    expires_at: new Date(Date.now() + INVITE_DAYS * 864e5),
-  })}`;
+  // Only the hash is kept. The plaintext exists in this response and in
+  // whatever the owner pastes it into — nowhere else, and never again.
+  const { token, hash } = newLinkToken();
+  // now() rather than a Date from here: expiry is judged by the database's
+  // clock, so it should be set by it too.
+  await sql`
+    insert into invite (household_id, email, role, token_hash, invited_by, expires_at)
+    values (${actor.household_id}, ${email}, ${role}, ${hash}, ${actor.user_id},
+            now() + ${INVITE_DAYS} * interval '1 day')`;
 
   revalidatePath('/household');
   return { ok: true, message: token };
 }
 
-export async function revokeInvite(formData: FormData): Promise<Result> {
+export async function revokeInvite(_prev: Result | null, formData: FormData): Promise<Result> {
   let actor;
   try { actor = await mustManage(); } catch (e) { return { ok: false, error: (e as Error).message }; }
   const id = String(formData.get('id') ?? '');
@@ -72,7 +79,7 @@ export async function revokeInvite(formData: FormData): Promise<Result> {
   return { ok: true };
 }
 
-export async function changeRole(formData: FormData): Promise<Result> {
+export async function changeRole(_prev: Result | null, formData: FormData): Promise<Result> {
   let actor;
   try { actor = await mustManage(); } catch (e) { return { ok: false, error: (e as Error).message }; }
   const userId = String(formData.get('userId') ?? '');
@@ -96,7 +103,7 @@ export async function changeRole(formData: FormData): Promise<Result> {
   return { ok: true };
 }
 
-export async function removeMember(formData: FormData): Promise<Result> {
+export async function removeMember(_prev: Result | null, formData: FormData): Promise<Result> {
   let actor;
   try { actor = await mustManage(); } catch (e) { return { ok: false, error: (e as Error).message }; }
   const userId = String(formData.get('userId') ?? '');
@@ -109,4 +116,64 @@ export async function removeMember(formData: FormData): Promise<Result> {
             where household_id = ${actor.household_id} and user_id = ${userId}`;
   revalidatePath('/household');
   return { ok: true };
+}
+
+/* ── passwords ──────────────────────────────────────────────────────────── */
+
+const RESET_HOURS = 24;
+
+/** Nobody here can send email, so a forgotten password is recovered the way
+ *  anything else in a household is: you ask, and the owner hands you a link.
+ *
+ *  Which does mean an owner can take over any account in the household. That
+ *  is already true of someone who can change your role and remove you, and
+ *  pretending otherwise would only have added a mail provider to the bill. */
+export async function issueReset(_prev: Result | null, formData: FormData): Promise<Result> {
+  let actor;
+  try { actor = await mustManage(); } catch (e) { return { ok: false, error: (e as Error).message }; }
+  const userId = String(formData.get('userId') ?? '');
+
+  const [member] = await sql`
+    select u.id from member m join app_user u on u.id = m.user_id
+    where m.household_id = ${actor.household_id} and u.id = ${userId}`;
+  if (!member) return { ok: false, error: 'They are not in this household.' };
+
+  // One live link at a time, so an old one cannot be dug out of a chat later.
+  await sql`update password_reset set used_at = now()
+            where user_id = ${userId} and used_at is null`;
+
+  const { token, hash } = newLinkToken();
+  await sql`
+    insert into password_reset (user_id, token_hash, issued_by, expires_at)
+    values (${userId}, ${hash}, ${actor.user_id}, now() + ${RESET_HOURS} * interval '1 hour')`;
+
+  revalidatePath('/household');
+  return { ok: true, message: token };
+}
+
+/** Changing your own password needs the old one, which is what stops a
+ *  borrowed unlocked phone from becoming a permanent takeover. */
+export async function changeMyPassword(_prev: Result | null, formData: FormData): Promise<Result> {
+  const actor = await currentActor();
+  const current = String(formData.get('current') ?? '');
+  const next = String(formData.get('next') ?? '');
+
+  const [me] = await sql`select email, password_hash from app_user where id = ${actor.user_id}`;
+  if (!me?.password_hash || !(await verifyPassword(current, me.password_hash))) {
+    return { ok: false, error: 'That is not your current password.' };
+  }
+  const weak = passwordProblem(next, me.email);
+  if (weak) return { ok: false, error: weak };
+  if (String(formData.get('confirm') ?? '') !== next) {
+    return { ok: false, error: 'The two new passwords are not the same.' };
+  }
+
+  await sql`update app_user
+            set password_hash = ${await hashPassword(next)}, password_set_at = now(),
+                failed_attempts = 0, locked_until = null
+            where id = ${actor.user_id}`;
+  // Any reset link an owner issued is now moot.
+  await sql`update password_reset set used_at = now()
+            where user_id = ${actor.user_id} and used_at is null`;
+  return { ok: true, message: 'Changed. It takes effect next time you sign in.' };
 }

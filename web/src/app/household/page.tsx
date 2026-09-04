@@ -1,8 +1,10 @@
+import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { actorOrNull, membersOf, openInvitesOf, householdName } from '@/db/queries';
 import InviteForm from './InviteForm';
 import MemberRow from './MemberRow';
 import RevokeButton from './RevokeButton';
+import PasswordCard from './PasswordCard';
 
 export const metadata = { title: 'Household · Quiet Ledger' };
 export const dynamic = 'force-dynamic';
@@ -25,6 +27,8 @@ export default async function Household() {
     openInvitesOf(actor.household_id),
   ]);
   const canManage = actor.role === 'owner';
+  const h = await headers();
+  const origin = `${h.get('x-forwarded-proto') ?? 'http'}://${h.get('host')}`;
   const live = invites.filter((i) => !i.expired);
 
   return (
@@ -76,13 +80,14 @@ export default async function Household() {
             key={m.id}
             member={m}
             canManage={canManage}
+            origin={origin}
             isSelf={m.id === actor.user_id}
             last={i === members.length - 1}
           />
         ))}
       </Card>
 
-      {canManage && <InviteForm />}
+      {canManage && <InviteForm origin={origin} />}
 
       {invites.length > 0 && (
         <>
@@ -121,6 +126,9 @@ export default async function Household() {
           </Card>
         </>
       )}
+
+      <Head>Your account</Head>
+      <PasswordCard />
 
       <Head>What each role can do</Head>
       <Card pad="4px 16px">

@@ -1,37 +1,58 @@
 import NextAuth from 'next-auth';
-import Google from 'next-auth/providers/google';
-import { upsertUserByEmail, resolveMembership } from '@/db/membership';
+import Credentials from 'next-auth/providers/credentials';
+import {
+  findLoginUser, isLocked, recordFailedAttempt, recordSuccessfulLogin,
+} from '@/db/membership';
+import { verifyPassword, needsRehash, hashPassword, decoyHash } from '@/lib/password';
 
-/* Google is the whole of sign-in. It costs nothing, needs no SMS provider, and
-   everyone in a household already has an account. Sessions are JWTs, so
-   Auth.js keeps no tables of its own.
+/* An address and a password, ours end to end — no third party between the
+   household and its books.
 
    The token carries ONE fact: which app_user row this is. It deliberately does
-   not carry the household or the role — those are read from the database on
+   not carry the household or the role. Those are read from the database on
    every request (src/db/membership.ts), so that removing someone or dropping
    them to viewer takes effect immediately rather than whenever their token
    happens to expire.
 
-   Env: AUTH_GOOGLE_ID, AUTH_GOOGLE_SECRET, AUTH_SECRET.                      */
+   Env: AUTH_SECRET. That is the whole list.                                  */
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  providers: [Google],
   session: { strategy: 'jwt' },
   pages: { signIn: '/signin' },
+  providers: [
+    Credentials({
+      credentials: { email: {}, password: {} },
+      async authorize(raw) {
+        const email = String(raw?.email ?? '').trim().toLowerCase();
+        const password = String(raw?.password ?? '');
+        if (!email || !password) return null;
+
+        const user = await findLoginUser(email);
+
+        /* An unknown address must cost the same as a known one. Without this
+           the difference between "no such account" and "wrong password" is a
+           third of a second on a stopwatch, which is how you find out who
+           banks here. */
+        if (!user?.password_hash) {
+          await verifyPassword(password, await decoyHash());
+          return null;
+        }
+        if (isLocked(user)) return null;
+
+        if (!(await verifyPassword(password, user.password_hash))) {
+          await recordFailedAttempt(user.id);
+          return null;
+        }
+        // Getting in is also when the cost gets raised on an older hash.
+        await recordSuccessfulLogin(
+          user.id, needsRehash(user.password_hash) ? await hashPassword(password) : null);
+        return { id: user.id, email: user.email, name: user.name };
+      },
+    }),
+  ],
   callbacks: {
     async jwt({ token, user }) {
-      const email = user?.email ?? (token.email as string | undefined);
-      if (user?.email) {
-        const userId = await upsertUserByEmail(
-          user.email, user.name ?? user.email, user.image);
-        token.userId = userId;
-        // Sign-in is also when an invitation is accepted, and when the very
-        // first person claims the seeded household.
-        await resolveMembership(userId, user.email);
-      } else if (!token.userId && email) {
-        // A token minted before this field existed.
-        token.userId = await upsertUserByEmail(email, (token.name as string) ?? email, null);
-      }
+      if (user?.id) token.userId = user.id;
       return token;
     },
     async session({ session, token }) {
