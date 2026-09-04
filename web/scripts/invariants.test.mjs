@@ -80,7 +80,11 @@ await txn({ kind: 'card_payment', account_id: spend, counter_account_id: card, a
 await txn({ kind: 'expense', account_id: savings, category_id: cat, amount: 900000 });
 await txn({ kind: 'expense', account_id: card, category_id: cat, amount: 450000 });
 
-const spent = async () => Number((await sql`select coalesce(sum(amount),0)::bigint as t from spend_txn`)[0].t);
+/* Scoped to the test household. Without this the totals below quietly depend
+   on the database holding nothing else, which stopped being true the moment
+   the app had a real user in it. */
+const spent = async () => Number((await sql`
+  select coalesce(sum(amount),0)::bigint as t from spend_txn where household_id = ${hh.id}`)[0].t);
 ok(await spent() === 234000 + 450000,
   `only the two real expenses count — ₹${(await spent()) / 100}, transfer and card payment excluded`);
 
@@ -98,6 +102,35 @@ ok(iso(cyc[0]?.period_start) === '2026-08-06' && iso(cyc[0]?.period_end) === '20
   `a 1 Sep purchase filed into the 6 Aug – 5 Sep cycle (got ${iso(cyc[0]?.period_start)} – ${iso(cyc[0]?.period_end)})`);
 ok(iso(cyc[0]?.due_on) === '2026-09-12', 'the bill is due on the 12th, seven days after the statement');
 ok(Number(cyc[0]?.charged) === 450000, 'the cycle holds exactly the card purchase');
+
+console.log('\nBALANCES — derived from the entries, never written down');
+const balanceOf = async (id) =>
+  Number((await sql`select balance::bigint from account_balance where id = ${id}`)[0].balance);
+
+// Earlier sections have already spent from these accounts, so every check here
+// is relative — which is the honest way to test a derived figure anyway.
+const [fresh] = await sql`insert into account ${sql({
+  household_id: hh.id, name: 'Kotak Savings', kind: 'spending', opening_balance: 10000000 })} returning id`;
+ok(await balanceOf(fresh.id) === 10000000,
+  'an account with no entries is worth exactly its opening balance');
+
+await txn({ kind: 'expense', account_id: fresh.id, category_id: cat, amount: 250000 });
+ok(await balanceOf(fresh.id) === 9750000, 'spending ₹2,500 leaves ₹97,500');
+
+await txn({ kind: 'income', account_id: fresh.id, category_id: cat, amount: 1000000 });
+ok(await balanceOf(fresh.id) === 10750000, 'income puts it back');
+
+/* A credit account goes NEGATIVE as you spend on it, because that is what
+   owing money is. Paying the bill walks it back towards zero, and the cash for
+   it leaves the bank on the same entry. */
+const cardBefore = await balanceOf(card);
+const bankBefore = await balanceOf(fresh.id);
+await txn({ kind: 'expense', account_id: card, category_id: cat, amount: 300000 });
+ok(await balanceOf(card) === cardBefore - 300000,
+  'a card purchase makes the card balance more negative — that is what owing is');
+await txn({ kind: 'card_payment', account_id: fresh.id, counter_account_id: card, amount: 300000 });
+ok(await balanceOf(card) === cardBefore, 'paying the bill walks the card back to where it was');
+ok(await balanceOf(fresh.id) === bankBefore - 300000, 'and the cash for it left the bank');
 
 console.log('\nPAYMENT METHODS — a rail is not a balance');
 await refuses('a UPI method drawing on a credit card is refused',

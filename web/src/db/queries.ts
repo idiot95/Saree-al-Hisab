@@ -147,3 +147,54 @@ export async function resetByToken(token: string) {
   return (row ?? null) as null | {
     id: string; expires_at: Date; used_at: Date | null; expired: boolean; name: string };
 }
+
+/* ── where the money sits ───────────────────────────────────────────────── */
+
+export type AccountRow = {
+  id: string; name: string; kind: 'spending' | 'savings' | 'credit' | 'cash';
+  last4: string | null; opening_balance: string; balance: string; entries: number;
+  credit_limit: string | null; statement_day: number | null; due_day: number | null;
+  methods: number;
+};
+
+/** Balances come from `account_balance`, never from a stored figure — a
+ *  balance written down is a balance that can disagree with the entries
+ *  underneath it, which is precisely what the audit of v1 found. */
+export async function accountsWithBalances(householdId: string) {
+  return sql`
+    select b.id, b.name, b.kind, b.last4, b.opening_balance::text, b.balance::text,
+           b.entries::int, b.credit_limit::text, b.statement_day, b.due_day,
+           (select count(*)::int from payment_method m
+            where m.funding_account_id = b.id and m.archived_at is null) as methods
+    from account_balance b
+    where b.household_id = ${householdId} and b.archived_at is null and b.kind <> 'person'
+    order by case b.kind when 'spending' then 0 when 'cash' then 1
+                         when 'savings' then 2 else 3 end, b.name
+  ` as Promise<AccountRow[]>;
+}
+
+export async function openCyclesFor(householdId: string) {
+  return sql`
+    select c.account_id, c.period_start, c.period_end, c.due_on,
+           c.charged::text, c.entries::int
+    from card_open_cycle c
+    join account a on a.id = c.account_id
+    where a.household_id = ${householdId}
+  ` as Promise<{ account_id: string; period_start: Date; period_end: Date;
+                 due_on: Date; charged: string; entries: number }[]>;
+}
+
+export async function methodsWithFunding(householdId: string) {
+  return sql`
+    select m.id, m.name, m.kind, m.handle, m.is_default, m.sort_order,
+           a.id as account_id, a.name as funds, a.kind as funds_kind,
+           (select count(*)::int from txn t
+            where t.payment_method_id = m.id and t.deleted_at is null) as uses
+    from payment_method m
+    join account a on a.id = m.funding_account_id
+    where m.household_id = ${householdId} and m.archived_at is null
+    order by m.sort_order, m.name
+  ` as Promise<{ id: string; name: string; kind: string; handle: string | null;
+                 is_default: boolean; sort_order: number; account_id: string;
+                 funds: string; funds_kind: string; uses: number }[]>;
+}

@@ -80,7 +80,7 @@ A repayment is `kind = 'claim_receipt'` — money in, but explicitly not income.
 ## Running it
 
     npm run migrate            # in filename order; --reset drops and rebuilds
-    npm run test:invariants    # 51 assertions against real Postgres
+    npm run test:invariants    # 57 assertions against real Postgres
     npm run test:lib           # money, password hashing and link tokens
     npm run tokens             # regenerate tokens.css from the canvas palette
 
@@ -92,7 +92,7 @@ because they are idempotent, so a changed view ships without a new file.
 ## Proven, not assumed
 
 `npm run test:invariants` tries to BREAK each rule and expects Postgres to
-refuse. 51 assertions currently pass, covering: a move can never look like
+refuse. 57 assertions currently pass, covering: a move can never look like
 spending, `spend_txn` is the only definition of spending, refunds net off in
 the month they land, a card purchase files itself into the right cycle, a
 payment method is a rail and not a balance, lending never touches the budget,
@@ -101,7 +101,8 @@ category per month keyed on the first, an invitation is single-use and its
 plaintext is nowhere in the database, a password cannot exist without an
 address to use it with, and an account that has recorded entries cannot be
 deleted at all — the ledger holds it in place — and one person can keep
-several sets of books without either set knowing about the other.
+several sets of books without either set knowing about the other, and a
+balance is only ever the sum of the entries beneath it.
 
     npm run seed you@example.com   # fills YOUR books with the designs' data
 
@@ -197,6 +198,34 @@ which turns into a serialisation error at the worst possible moment. It did.
 `useActionState`. Not a formality: an action wrapped in a client closure loses
 its no-JS fallback, and the form then does nothing until the bundle has
 hydrated — a real window of vanishing taps on a slow phone.
+
+## Where the money sits
+
+`/accounts` is the screen that makes everything else possible — a new household
+has one cash account, so nothing realistic can be recorded until this exists.
+
+**Balances are derived, never stored.** `account_balance` (0104) adds the
+opening balance to every entry that has touched it. A written-down balance is
+one that can disagree with the entries underneath it, which is exactly what the
+audit of v1 found. Sign convention: a **credit account goes negative as you
+spend on it**, because that is what owing money is; paying the bill moves cash
+from the bank into the card and walks it back towards zero. The UI says "you
+owe ₹X"; the arithmetic stays honest.
+
+**A way to pay empties exactly one account.** The rail rules live in the
+`method_funding_is_valid()` trigger — a card must draw on a credit account, UPI
+on a bank or cash account, nothing draws on a person. The form only offers
+pairings the database will accept, and `railProblem()` says the same rule in
+words, because being told off after the fact teaches the rule the hard way.
+
+**A card's statement day is what does the work.** Punch it in and every
+purchase files itself into the right billing cycle through `txn_apply_method()`.
+Days 1–28 only: the 31st silently becomes the 28th for four months of the year
+and nobody notices until the bill is late.
+
+Accounts and ways to pay are **archived, never deleted** — entries keep
+pointing at them, so the months they appear in still add up. An account with a
+live way to pay cannot be retired, and neither can your last way to pay.
 
 ## The voice
 

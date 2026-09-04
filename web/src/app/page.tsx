@@ -48,6 +48,17 @@ export default async function Home() {
         background: 'radial-gradient(120% 100% at 25% 0%, rgba(255,255,255,.18) 0%, rgba(255,255,255,0) 60%),'
           + 'linear-gradient(145deg,#2C5063 0%,#1C3541 100%)',
       }}>Own up to something</Link>
+      <Link href="/accounts" style={{
+        minHeight: 52, borderRadius: 14, display: 'flex', alignItems: 'center', gap: 10,
+        padding: '0 16px', textDecoration: 'none', background: 'var(--c-card)',
+        border: '1px solid var(--c-border)', color: 'var(--c-ink)', fontSize: 15.5, fontWeight: 600,
+      }}>
+        <svg width={19} height={19} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+          <path d="M3.5 9.5h17" /><rect x="3.5" y="6.5" width="17" height="11" rx="1.6" />
+        </svg>
+        Where the money sits
+      </Link>
       <Link href="/household" style={{
         minHeight: 52, borderRadius: 14, display: 'flex', alignItems: 'center', gap: 10,
         padding: '0 16px', textDecoration: 'none', background: 'var(--c-card)',
