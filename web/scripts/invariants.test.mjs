@@ -30,8 +30,10 @@ async function allows(what, fn) {
 // Clear anything a previous run left behind, so this is repeatable even after
 // a crash. Everything below is namespaced to a test household and two phones.
 const PHONES = ['+910000000001', '+910000000002'];
+const EMAILS = ['invited@invariant.test', 'someone.else@invariant.test'];
 await sql`delete from household where name = 'Invariant test'`;
 await sql`delete from app_user where phone in ${sql(PHONES)}`;
+await sql`delete from app_user where email in ${sql(EMAILS)}`;
 
 const [hh] = await sql`insert into household ${sql({ name: 'Invariant test' })} returning id`;
 const [user] = await sql`insert into app_user ${sql({ phone: '+910000000001', name: 'T' })} returning id`;
@@ -139,8 +141,50 @@ await allows('a budget on the first is allowed',
 await refuses('the same category twice in one month is refused',
   () => sql`insert into budget ${sql({ household_id: hh.id, category_id: cat, month: '2026-09-01', amount: 1 })}`);
 
+console.log('\nACCESS — an invitation is bound to a person, not to a link');
+const invited = EMAILS[0];
+const mkInvite = (o = {}) => sql`insert into invite ${sql({
+  household_id: hh.id, email: invited, role: 'adult', invited_by: user.id,
+  token: 'tok-' + Math.random().toString(36).slice(2),
+  expires_at: new Date(Date.now() + 7 * 864e5), ...o })} returning id, token`;
+
+await refuses('an invite marked accepted with no time on it is refused',
+  () => mkInvite({ status: 'accepted' }));
+await refuses('an owner role handed out by invite is refused at the column',
+  () => mkInvite({ role: 'nobody' }));
+const [live] = await mkInvite();
+await refuses('two invites cannot share a token',
+  () => mkInvite({ token: live.token }));
+
+/* This is the query that actually admits someone — the same shape as
+   acceptInviteFor in src/db/membership.ts. What it must never do is admit on
+   the strength of the token, because a link gets forwarded and screenshotted. */
+const admits = async (email) => (await sql`
+  select id from invite
+  where lower(email) = lower(${email}) and status = 'open' and expires_at > now()`).length;
+
+ok(await admits(invited) === 1, 'the address the invite was sent to is admitted');
+ok(await admits(EMAILS[1]) === 0, 'a different address holding the same link is not admitted');
+
+await sql`update invite set status = 'revoked' where id = ${live.id}`;
+ok(await admits(invited) === 0, 'a revoked invite admits nobody, link or no link');
+await sql`update invite set status = 'open', expires_at = now() - interval '1 day' where id = ${live.id}`;
+ok(await admits(invited) === 0, 'an expired invite admits nobody');
+
+const [joiner] = await sql`insert into app_user ${sql({ email: invited, name: 'Invited' })} returning id`;
+await sql`insert into member ${sql({ household_id: hh.id, user_id: joiner.id, role: 'adult' })}`;
+await sql`insert into txn ${sql({ household_id: hh.id, created_by: joiner.id, kind: 'expense',
+  amount: 55500, occurred_on: '2026-09-03', account_id: cash, category_id: cat })}`;
+const withThem = await spent();
+await sql`delete from member where household_id = ${hh.id} and user_id = ${joiner.id}`;
+ok(await spent() === withThem,
+  'removing someone leaves what they recorded standing — the books are the household\'s');
+await refuses('a member row pointing at no user is refused',
+  () => sql`insert into member ${sql({ household_id: hh.id, user_id: hh.id, role: 'adult' })}`);
+
 await sql`delete from household where id = ${hh.id}`;
 await sql`delete from app_user where phone in ${sql(PHONES)}`;
+await sql`delete from app_user where email in ${sql(EMAILS)}`;
 
 console.log(`\n  ${pass} passed, ${fail} failed\n`);
 await sql.end();

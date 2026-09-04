@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
-import { signIn, auth } from '@/auth';
+import { signIn } from '@/auth';
+import { actorOrNull } from '@/db/queries';
 
 export const metadata = { title: 'Sign in · Quiet Ledger' };
 export const dynamic = 'force-dynamic';
@@ -7,8 +8,8 @@ export const dynamic = 'force-dynamic';
 export default async function SignIn({
   searchParams,
 }: { searchParams: Promise<{ error?: string }> }) {
-  const session = await auth();
-  if (session?.householdId) redirect('/');
+  const actor = await actorOrNull();
+  if (actor?.household_id) redirect('/');
   const { error } = await searchParams;
 
   return (

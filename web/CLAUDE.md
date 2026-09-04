@@ -80,7 +80,7 @@ A repayment is `kind = 'claim_receipt'` — money in, but explicitly not income.
 ## Running it
 
     npm run migrate            # in filename order; --reset drops and rebuilds
-    npm run test:invariants    # 29 assertions against real Postgres
+    npm run test:invariants    # 38 assertions against real Postgres
     npm run tokens             # regenerate tokens.css from the canvas palette
 
 Neon is provisioned through Vercel; `DATABASE_URL` lives in `.env.local`,
@@ -91,12 +91,13 @@ because they are idempotent, so a changed view ships without a new file.
 ## Proven, not assumed
 
 `npm run test:invariants` tries to BREAK each rule and expects Postgres to
-refuse. 29 assertions currently pass, covering: a move can never look like
+refuse. 38 assertions currently pass, covering: a move can never look like
 spending, `spend_txn` is the only definition of spending, refunds net off in
 the month they land, a card purchase files itself into the right cycle, a
 payment method is a rail and not a balance, lending never touches the budget,
-duplicates are detected but never prevented, and budgets are one row per
-category per month keyed on the first.
+duplicates are detected but never prevented, budgets are one row per
+category per month keyed on the first, and an invitation admits only the
+address it was sent to — never whoever holds the link.
 
     npm run seed               # the Mogul Household, INR only
 
@@ -114,9 +115,39 @@ A Server Action is reachable by direct POST, not just through the UI, so
 every id sent belongs to that household. The database would refuse a bad
 foreign key, but it would not stop one household writing into another's.
 
+## Who can see the books
+
+Sign-in is Google, through Auth.js v5 with JWT sessions — no adapter tables.
+
+**The token carries one fact: which `app_user` row this is.** Not the
+household, not the role. Those are read from Postgres on every request in
+`src/db/membership.ts`, because a JWT lives for weeks and being removed from a
+household — or dropped to viewer — has to bite on the next tap, not at the
+next sign-in.
+
+Three roles: **owner** (also invites, changes roles, removes people),
+**contributing member** (`adult` — adds, edits, budgets), **viewer**
+(reads everything, changes nothing). A viewer is blocked inside `saveEntry`,
+not by hiding the button, because a Server Action is reachable by direct POST.
+
+**An invitation is bound to an email address, not to its link.** `/join/<token>`
+only *shows* the invitation; what admits someone is an open, unexpired invite
+addressed to the Google account they sign in with. So a link that is forwarded,
+screenshotted or sitting in a chat backup gets a stranger a page and nothing
+else. Ownership is never handed out by link. Invites last seven days, and a new
+invite to the same address revokes the previous one.
+
+Joining is never automatic. The first person to sign in claims the seeded
+household (it is created with no members); everyone after that needs an invite,
+or they land on `/no-household`, which shows them the address to have invited.
+
+`/join` is excluded from the proxy matcher — an invitation has to open for
+someone who is not signed in yet.
+
 ## Open
 
-- **No auth yet.** `currentActor()` returns the single seeded household. When
-  sign-in lands it becomes a session lookup and nothing above it changes.
-- Nothing is deployed yet. The Vercel project is `saree-al-hisab`, linked to
-  `idiot95/Saree-al-Hisab` with root directory `web`.
+- Nothing is deployed yet beyond the slice. The Vercel project is
+  `saree-al-hisab`, linked to `idiot95/Saree-al-Hisab` with root directory
+  `web`. `AUTH_GOOGLE_ID` and `AUTH_GOOGLE_SECRET` still have to be set —
+  redirect URIs `https://saree-al-hisab.vercel.app/api/auth/callback/google`
+  and `http://localhost:3000/api/auth/callback/google`.

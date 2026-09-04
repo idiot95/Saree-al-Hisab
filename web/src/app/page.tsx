@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { signOut } from '@/auth';
-import { actorOrNull } from '@/db/queries';
+import { actorOrNull, householdName } from '@/db/queries';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,6 +9,9 @@ export default async function Home() {
   const actor = await actorOrNull();
   if (!actor) redirect('/signin');
   if (!actor.household_id) redirect('/no-household');
+  const name = await householdName(actor.household_id);
+  const role = actor.role === 'owner' ? 'owner'
+    : actor.role === 'viewer' ? 'viewer' : 'contributing member';
 
   return (
     <main style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -23,7 +26,7 @@ export default async function Home() {
         <span style={{ flex: 1, minWidth: 0 }}>
           <span style={{ display: 'block', fontSize: 15.5, fontWeight: 600 }}>{actor.user_name}</span>
           <span style={{ display: 'block', fontSize: 12.5, color: 'var(--c-meta)' }}>
-            Mogul Household · {actor.role}
+            {name} · {role}
           </span>
         </span>
         <form action={async () => { 'use server'; await signOut({ redirectTo: '/signin' }); }}>
@@ -45,6 +48,18 @@ export default async function Home() {
         background: 'radial-gradient(120% 100% at 25% 0%, rgba(255,255,255,.18) 0%, rgba(255,255,255,0) 60%),'
           + 'linear-gradient(145deg,#2C5063 0%,#1C3541 100%)',
       }}>Add an entry</Link>
+      <Link href="/household" style={{
+        minHeight: 52, borderRadius: 14, display: 'flex', alignItems: 'center', gap: 10,
+        padding: '0 16px', textDecoration: 'none', background: 'var(--c-card)',
+        border: '1px solid var(--c-border)', color: 'var(--c-ink)', fontSize: 15.5, fontWeight: 600,
+      }}>
+        <svg width={19} height={19} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+          <circle cx="9" cy="8.5" r="3.2" /><path d="M3 19.5a6 6 0 0 1 12 0" />
+          <path d="M16 5.6a3.2 3.2 0 0 1 0 5.8" /><path d="M17 14.2a6 6 0 0 1 4 5.3" />
+        </svg>
+        Who is in this household
+      </Link>
     </main>
   );
 }

@@ -40,7 +40,13 @@ export async function checkDuplicate(amountMinor: number, occurredOn: string) {
 }
 
 export async function saveEntry(d: Draft): Promise<SaveResult> {
-  const { household_id, user_id } = await currentActor();
+  const { household_id, user_id, role } = await currentActor();
+
+  // A viewer can read the books and nothing else. Checked here rather than by
+  // hiding the button, because this function is reachable by direct POST.
+  if (role === 'viewer') {
+    return { ok: false, error: 'You can view this household, but not add to it.' };
+  }
 
   if (!Number.isSafeInteger(d.amountMinor) || d.amountMinor <= 0) {
     return { ok: false, error: 'Enter an amount first.' };

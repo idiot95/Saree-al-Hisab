@@ -66,6 +66,31 @@ export const member = pgTable('member', {
   uniqueIndex('member_pk').on(t.householdId, t.userId),
 ]);
 
+export const inviteStatus = pgEnum('invite_status', ['open', 'accepted', 'revoked', 'expired']);
+
+/* An invite is bound to ONE email address, not just a token. The link alone is
+   not enough: whoever opens it has to sign in with the Google account it was
+   sent to. A link that leaks — forwarded, screenshotted, in a chat backup —
+   therefore lets nobody into the books. */
+export const invite = pgTable('invite', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  householdId: uuid('household_id').notNull().references(() => household.id, { onDelete: 'cascade' }),
+  email: text('email').notNull(),
+  role: memberRole('role').notNull(),
+  token: text('token').notNull().unique(),
+  status: inviteStatus('status').notNull().default('open'),
+  invitedBy: uuid('invited_by').notNull().references(() => appUser.id),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  acceptedAt: timestamp('accepted_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  index('invite_email_open').on(t.email, t.status),
+  index('invite_household').on(t.householdId),
+  // Only an owner may hand out ownership, enforced in the action — but the
+  // shape rule that an accepted invite has a timestamp belongs here.
+  check('accepted_has_a_time', sql`${t.status} <> 'accepted' OR ${t.acceptedAt} IS NOT NULL`),
+]);
+
 export const account = pgTable('account', {
   id: uuid('id').primaryKey().defaultRandom(),
   householdId: uuid('household_id').notNull().references(() => household.id, { onDelete: 'cascade' }),

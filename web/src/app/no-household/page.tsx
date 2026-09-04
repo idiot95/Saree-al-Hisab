@@ -36,6 +36,21 @@ export default async function NoHousehold() {
         You are not in a household yet. Someone who is already in one has to invite you before
         you can see any books.
       </p>
+      {actor.email && (
+        <p style={{
+          margin: 0, display: 'flex', flexDirection: 'column', gap: 5, padding: '13px 16px',
+          borderRadius: 14, background: 'var(--c-card)', border: '1px solid var(--c-border)',
+          maxWidth: '34ch',
+        }}>
+          <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--c-meta)' }}>
+            Ask them to invite this address
+          </span>
+          <span style={{ fontSize: 15, fontWeight: 600, wordBreak: 'break-all' }}>{actor.email}</span>
+          <span style={{ fontSize: 12, lineHeight: 1.45, color: 'var(--c-meta)', marginTop: 3 }}>
+            An invitation is tied to the address it is sent to, so it has to be this one.
+          </span>
+        </p>
+      )}
       <form action={async () => { 'use server'; await signOut({ redirectTo: '/signin' }); }}>
         <button type="submit" style={{
           minHeight: 50, padding: '0 22px', display: 'flex', alignItems: 'center',
