@@ -1,7 +1,9 @@
 'use client';
 
-import { useState } from 'react';
-import { keysDisplay, pushKey, popKey, fromKeys, symbolOf } from '@/lib/money';
+import { useState, useTransition, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { keysDisplay, pushKey, popKey, fromKeys, symbolOf, format } from '@/lib/money';
+import { saveEntry, checkDuplicate } from './actions';
 
 /* Add Entry — the screen the whole product rests on.
    With no bank feed and no SMS, this is how nearly everything gets in, so it
@@ -18,37 +20,55 @@ const KINDS: { id: Kind; label: string }[] = [
   { id: 'transfer', label: 'Transfer' },
 ];
 
-// Seed data. Replaced by the household's real categories and accounts once a
-// database exists — the shape is already what the schema returns.
-const CATEGORIES = [
-  { id: 'c1', name: 'Groceries', tint: 'green' },
-  { id: 'c2', name: 'Eating Out', tint: 'orange' },
-  { id: 'c3', name: 'Transport', tint: 'blue' },
-  { id: 'c4', name: 'Shopping', tint: 'purple' },
-  { id: 'c5', name: 'Children', tint: 'pink' },
-  { id: 'c6', name: 'Utilities', tint: 'cyan' },
-];
-const METHODS = [
-  { id: 'm1', name: 'GPay', funds: 'HDFC Savings' },
-  { id: 'm2', name: 'HDFC Regalia', funds: 'HDFC Regalia' },
-  { id: 'm3', name: 'Cash', funds: 'Cash' },
-];
+export type Category = { id: string; name: string; tint: string };
+export type Method = { id: string; name: string; funds: string };
+export type Account = { id: string; name: string; kind: string };
 
 const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '00', '0', '.'];
 
-export default function AddEntry() {
+export default function AddEntry({
+  categories, methods, accounts, today,
+}: { categories: Category[]; methods: Method[]; accounts: Account[]; today: string }) {
+  const router = useRouter();
+  const [pending, start] = useTransition();
   const [kind, setKind] = useState<Kind>('expense');
   const [keys, setKeys] = useState('');
   const [categoryId, setCategoryId] = useState<string | null>(null);
-  const [methodId, setMethodId] = useState('m1');
+  const [methodId, setMethodId] = useState(methods[0]?.id ?? '');
+  const [counterId, setCounterId] = useState<string | null>(null);
   const [shared, setShared] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [dupe, setDupe] = useState<Awaited<ReturnType<typeof checkDuplicate>>>(null);
 
   const minor = fromKeys(keys);
-  const method = METHODS.find((m) => m.id === methodId)!;
+  const method = methods.find((m) => m.id === methodId) ?? methods[0];
+
+  /* Prevention beats detection: ask what is already recorded while they are
+     still typing, so the warning arrives at the moment of the decision rather
+     than as cleanup in the Inbox later. Debounced, because every keypress
+     would otherwise be a round trip. */
+  useEffect(() => {
+    if (minor <= 0) { setDupe(null); return; }
+    const t = setTimeout(() => { checkDuplicate(minor, today).then(setDupe).catch(() => {}); }, 450);
+    return () => clearTimeout(t);
+  }, [minor, today]);
+
+  function save() {
+    setError(null);
+    start(async () => {
+      const r = await saveEntry({
+        kind, amountMinor: minor, categoryId, methodId,
+        counterAccountId: counterId, merchant: '', occurredOn: today, isShared: shared,
+      });
+      if (r.ok) { setKeys(''); setCategoryId(null); setDupe(null); router.push('/'); }
+      else setError(r.error);
+    });
+  }
   // A transfer moves money and can never wear a category — the same rule the
   // database enforces, applied here so the field simply is not offered.
   const wantsCategory = kind !== 'transfer';
-  const canSave = minor > 0 && (!wantsCategory || categoryId !== null);
+  const canSave = minor > 0 && (!wantsCategory || categoryId !== null)
+    && (kind !== 'transfer' || counterId !== null) && !pending;
 
   return (
     <main style={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column', background: 'var(--c-bg)' }}>
@@ -112,14 +132,32 @@ export default function AddEntry() {
       </header>
 
       <div className="el" style={{ margin: '-18px 18px 12px', background: 'var(--c-card)', borderRadius: 18, padding: '2px 16px' }}>
-        <Row label="Paid to" value="Big Bazaar" />
-        <Row label={kind === 'transfer' ? 'From' : 'Paid using'} value={method.name} hint={method.funds !== method.name ? `from ${method.funds}` : undefined} />
-        <Row label={kind === 'transfer' ? 'Into' : 'Date'} value={kind === 'transfer' ? 'Cash (USD)' : 'Today, 4 Sep'} last />
+        <Row
+          label={kind === 'transfer' ? 'From' : 'Paid using'}
+          value={method?.name ?? '—'}
+          hint={method && method.funds !== method.name ? `leaves ${method.funds}` : undefined}
+          onClick={() => setMethodId(methods[(methods.findIndex((m) => m.id === methodId) + 1) % methods.length].id)}
+        />
+        {kind === 'transfer' ? (
+          <Row
+            label="Into"
+            value={accounts.find((a) => a.id === counterId)?.name ?? 'Choose an account'}
+            muted={!counterId}
+            onClick={() => {
+              const pick = accounts.filter((a) => a.id !== undefined);
+              const i = pick.findIndex((a) => a.id === counterId);
+              setCounterId(pick[(i + 1) % pick.length].id);
+            }}
+            last
+          />
+        ) : (
+          <Row label="Date" value={friendly(today)} last />
+        )}
       </div>
 
       {wantsCategory && (
         <div style={{ display: 'flex', gap: 8, padding: '0 18px 10px', overflowX: 'auto', scrollbarWidth: 'none' }}>
-          {CATEGORIES.map((c) => {
+          {categories.map((c) => {
             const on = c.id === categoryId;
             return (
               <button
@@ -138,6 +176,31 @@ export default function AddEntry() {
               </button>
             );
           })}
+        </div>
+      )}
+
+      {dupe && (
+        <div style={{
+          display: 'flex', alignItems: 'flex-start', gap: 10, margin: '0 18px 12px',
+          padding: '13px 15px', borderRadius: 14, background: 'var(--c-pollen)', color: 'var(--c-on-fill)',
+        }}>
+          <Glyph d="M12 7.5v5.5 M12 16.6v.1 M20.5 12a8.5 8.5 0 1 1-17 0 8.5 8.5 0 0 1 17 0" size={17} w={1.9} />
+          <span style={{ flex: 1, fontSize: 13, lineHeight: 1.45 }}>
+            <b>{dupe.who}</b> recorded {format(dupe.amountMinor)}
+            {dupe.merchant ? ` at ${dupe.merchant}` : ''} on {friendly(dupe.on)}, from {dupe.account}.
+            Is this the same thing?
+          </span>
+        </div>
+      )}
+
+      {error && (
+        <div role="alert" style={{
+          display: 'flex', alignItems: 'center', gap: 10, margin: '0 18px 12px',
+          padding: '13px 15px', borderRadius: 14, background: 'var(--c-danger-tint)', color: 'var(--c-danger)',
+          fontSize: 13.5, fontWeight: 600,
+        }}>
+          <Glyph d="M12 7.5v5.5 M12 16.6v.1 M20.5 12a8.5 8.5 0 1 1-17 0 8.5 8.5 0 0 1 17 0" size={17} w={2} />
+          {error}
         </div>
       )}
 
@@ -172,6 +235,7 @@ export default function AddEntry() {
             <Glyph d="M9.5 5.5h9a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-9L3 12Z M13 9.5l4 5 M17 9.5l-4 5" size={23} />
           </button>
           <button
+            onClick={save}
             disabled={!canSave}
             className="el2"
             style={{
@@ -184,7 +248,7 @@ export default function AddEntry() {
             }}
           >
             <Glyph d="M5 12.5 10 17.5 19 7" size={24} w={2.2} />
-            Save
+            {pending ? 'Saving…' : 'Save'}
           </button>
         </div>
       </div>
@@ -205,15 +269,25 @@ const key: React.CSSProperties = {
   borderRadius: 14, background: 'var(--c-sunk2)', fontSize: 23, fontWeight: 600, color: 'var(--c-ink)',
 };
 
-function Row({ label, value, hint, last }: { label: string; value: string; hint?: string; last?: boolean }) {
+function friendly(iso: string) {
+  const d = new Date(iso + 'T00:00:00');
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const same = d.getTime() === today.getTime();
+  const s = d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+  return same ? `Today, ${s}` : s;
+}
+
+function Row({ label, value, hint, last, muted, onClick }: {
+  label: string; value: string; hint?: string; last?: boolean; muted?: boolean; onClick?: () => void;
+}) {
   return (
-    <button style={{
+    <button onClick={onClick} style={{
       display: 'flex', alignItems: 'center', gap: 12, width: '100%', minHeight: 56,
       borderBottom: last ? undefined : '1px solid var(--c-rule)',
     }}>
       <span style={{ width: 92, flex: 'none', fontSize: 13.5, fontWeight: 600, color: 'var(--c-meta)' }}>{label}</span>
       <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
-        <span style={{ fontSize: 15.5, fontWeight: 600 }}>{value}</span>
+        <span style={{ fontSize: 15.5, fontWeight: 600, color: muted ? 'var(--c-ph)' : undefined }}>{value}</span>
         {hint && <span style={{ fontSize: 12, color: 'var(--c-meta)' }}>{hint}</span>}
       </span>
       <Glyph d="M9 5l7 7-7 7" size={18} colour="var(--c-faint)" />

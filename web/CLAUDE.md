@@ -98,9 +98,25 @@ payment method is a rail and not a balance, lending never touches the budget,
 duplicates are detected but never prevented, and budgets are one row per
 category per month keyed on the first.
 
+    npm run seed               # the Mogul Household, INR only
+
+## Where the slice reaches
+
+`/add` is wired end to end: real categories, ways to pay and accounts come out
+of Postgres, and Save writes a row through `saveEntry`. Paying by GPay leaves
+HDFC Savings, because the METHOD decides the account — the client never names
+one. Before Save, a debounced `checkDuplicate` shows what a household member
+already recorded within ±1% and ±2 days, which is the prevention half of the
+duplicate rule; the Inbox card is only the fallback.
+
+A Server Action is reachable by direct POST, not just through the UI, so
+`saveEntry` resolves the household and author on the SERVER and re-checks that
+every id sent belongs to that household. The database would refuse a bad
+foreign key, but it would not stop one household writing into another's.
+
 ## Open
 
-- Add Entry uses seed categories, methods and accounts. The shape already
-  matches what the schema returns, so swapping in real data is a query.
+- **No auth yet.** `currentActor()` returns the single seeded household. When
+  sign-in lands it becomes a session lookup and nothing above it changes.
 - Nothing is deployed yet. The Vercel project is `saree-al-hisab`, linked to
   `idiot95/Saree-al-Hisab` with root directory `web`.

@@ -10,7 +10,8 @@
     "migrate": "node scripts/migrate.mjs",
     "tokens": "node scripts/gen-tokens.mjs",
     "test:money": "node scripts/money.test.mjs",
-    "test:invariants": "node scripts/invariants.test.mjs"
+    "test:invariants": "node scripts/invariants.test.mjs",
+    "seed": "node scripts/seed.mjs"
   },
   "dependencies": {
     "drizzle-orm": "^0.45.2",
@@ -27,6 +28,7 @@
     "drizzle-kit": "^0.31.10",
     "eslint": "^9",
     "eslint-config-next": "16.3.3",
+    "server-only": "^0.0.1",
     "tailwindcss": "^4",
     "typescript": "^5"
   }
