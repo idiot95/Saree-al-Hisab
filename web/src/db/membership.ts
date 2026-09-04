@@ -49,12 +49,17 @@ export async function acceptInviteFor(userId: string, email: string): Promise<Me
 
 /** An unclaimed household is one nobody is a member of — the seed creates
  *  exactly that. The first person through the door owns it, and after that
- *  there is nothing left to claim. */
+ *  there is nothing left to claim.
+ *
+ *  It must also be SET UP: a household with no accounts is a shell left behind
+ *  by a migration or a half-finished run, and landing the first person in one
+ *  gives them an app with nothing in it and no way back out. */
 async function claimUnclaimedHousehold(userId: string): Promise<Membership | null> {
   const [orphan] = await sql`
     select h.id from household h
     left join member m on m.household_id = h.id
     where m.household_id is null
+      and exists (select 1 from account a where a.household_id = h.id)
     order by h.created_at limit 1`;
   if (!orphan) return null;
   await sql`insert into member ${sql({
