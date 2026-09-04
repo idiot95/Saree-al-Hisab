@@ -64,6 +64,20 @@
       "when": 1788522606470,
       "tag": "0008_which_books_are_on_screen",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1788529945958,
+      "tag": "0009_revocable_sessions",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1788530277440,
+      "tag": "0010_rate_limit",
+      "breakpoints": true
     }
   ]
 }

@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { signOut } from '@/auth';
-import { actorOrNull, householdName, setupProgress } from '@/db/queries';
+import { actorOrNull, setupProgress } from '@/db/queries';
 import { HEADER_BG } from './auth-ui';
 import GettingStarted from './GettingStarted';
 
@@ -14,10 +14,8 @@ export default async function Home() {
   if (!actor) redirect('/signin');
   if (!actor.household_id) redirect('/no-household');
 
-  const [name, progress] = await Promise.all([
-    householdName(actor.household_id),
-    setupProgress(actor.household_id),
-  ]);
+  const name = actor.household_name;
+  const progress = await setupProgress(actor.household_id);
 
   return (
     <main style={{ minHeight: '100dvh', background: 'var(--c-bg)', paddingBottom: 44 }}>

@@ -3,6 +3,7 @@
 import { useActionState, useState } from 'react';
 import { Field, ErrorNote } from '../auth-ui';
 import { changeMyPassword } from './actions';
+import SignOutEverywhere from './SignOutEverywhere';
 
 export default function PasswordCard() {
   const [state, act, pending] = useActionState(changeMyPassword, null);
@@ -32,7 +33,9 @@ export default function PasswordCard() {
           <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="var(--c-meta)"
             strokeWidth={2} strokeLinecap="round" aria-hidden><path d="M9 5l7 7-7 7" /></svg>
         </button>
-      ) : (
+      ) : null}
+
+      {!open ? <SignOutEverywhere /> : (
         <form action={act} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {/* The current password is required so that a borrowed unlocked
               phone cannot become a permanent takeover. */}

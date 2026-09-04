@@ -67,6 +67,11 @@ export const appUser = pgTable('app_user', {
      It is a preference, not a permission: membership is what grants access,
      and this only says which of those memberships is on screen. */
   activeHouseholdId: uuid('active_household_id').references(() => household.id, { onDelete: 'set null' }),
+  /* Sessions are JWTs, which means a cookie that has walked out of the door
+     cannot be taken back — unless something on the server can date it. This is
+     that something: any token issued before this moment is refused. Changing a
+     password, using a reset link, or signing out everywhere moves it. */
+  sessionsValidFrom: timestamp('sessions_valid_from', { withTimezone: true }).notNull().defaultNow(),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [
   // One of the two must identify them. Without this a nameless row with
@@ -397,3 +402,16 @@ export const txnRelations = relations(txn, ({ one }) => ({
   counterAccount: one(account, { fields: [txn.counterAccountId], references: [account.id] }),
   category: one(category, { fields: [txn.categoryId], references: [category.id] }),
 }));
+
+/* Counting attempts per caller, in the database rather than in memory, for the
+   same reason the login lockout lives there: a serverless function is a fresh
+   process every few requests, so an in-memory counter resets for free.
+
+   The account lockout on app_user stops someone grinding at ONE account. This
+   stops them spreading the same effort across many — credential stuffing, and
+   probing which addresses are registered. */
+export const rateLimit = pgTable('rate_limit', {
+  bucket: text('bucket').primaryKey(),
+  windowStart: timestamp('window_start', { withTimezone: true }).notNull().defaultNow(),
+  hits: integer('hits').notNull().default(1),
+});

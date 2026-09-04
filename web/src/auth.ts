@@ -8,8 +8,8 @@ import { verifyPassword, needsRehash, hashPassword, decoyHash } from '@/lib/pass
 /* An address and a password, ours end to end — no third party between the
    household and its books.
 
-   The token carries ONE fact: which app_user row this is. It deliberately does
-   not carry the household or the role. Those are read from the database on
+   The token carries ONE fact plus a timestamp: which app_user row this is, and
+   when it was issued. It deliberately does not carry the household or the role. Those are read from the database on
    every request (src/db/membership.ts), so that removing someone or dropping
    them to viewer takes effect immediately rather than whenever their token
    happens to expire.
@@ -17,7 +17,11 @@ import { verifyPassword, needsRehash, hashPassword, decoyHash } from '@/lib/pass
    Env: AUTH_SECRET. That is the whole list.                                  */
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  session: { strategy: 'jwt' },
+  session: {
+    strategy: 'jwt',
+    maxAge: 30 * 24 * 60 * 60,   // a phone should not ask every week
+    updateAge: 24 * 60 * 60,
+  },
   pages: { signIn: '/signin' },
   providers: [
     Credentials({
@@ -57,6 +61,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
     async session({ session, token }) {
       session.user.id = token.userId as string;
+      /* Auth.js stamps iat on the token. Passing it through is what lets the
+         server refuse a cookie that was issued before the account's session
+         epoch — see sessionsValidFrom. */
+      session.issuedAt = typeof token.iat === 'number' ? token.iat : 0;
       return session;
     },
   },
@@ -64,6 +72,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
 declare module 'next-auth' {
   interface Session {
+    issuedAt: number;
     user: { id: string } & import('next-auth').DefaultSession['user'];
   }
 }

@@ -241,6 +241,63 @@ The warnings stay blunt: "Anyone who opens this link can take that place in the
 household." That is a fact the reader has to act on, so it is stated flatly and
 bolded.
 
+## Security posture
+
+**Sessions are revocable, despite being JWTs.** `app_user.sessions_valid_from`
+is a per-account epoch; the token's `iat` is passed through the session and
+compared against it on every request. Changing a password, using a reset link,
+or "Sign out everywhere" moves the epoch, and every cookie older than it stops
+working on the next tap. Without this, a stolen cookie stayed good for 30 days
+and changing your password was cosmetic.
+
+**One round trip decides everything about the caller.** `contextFor(userId,
+iat)` returns household, role, household name and staleness in a single query —
+because the database is not always next door, and every extra round trip is
+paid by whoever is furthest from it.
+
+**Headers.** `next.config.ts` sets HSTS, `X-Content-Type-Options`,
+`X-Frame-Options: DENY`, COOP/CORP, a closed `Permissions-Policy`, and
+`Referrer-Policy: no-referrer` — that last one matters here specifically,
+because `/join/<token>` and `/reset/<token>` put a credential in the URL.
+`poweredByHeader` is off.
+
+**CSP with a per-request nonce**, set in `src/proxy.ts`. Next inlines a
+bootstrap script on every page, so a policy without a nonce would need
+`'unsafe-inline'` and be worth very little. With one plus `'strict-dynamic'`,
+`script-src` is genuinely closed. Verified: every script tag carries the nonce
+from that response's header, and none are un-nonced.
+
+**Rate limiting is in Postgres** (`rate_limit`), not in memory, for the same
+reason the lockout is: a serverless process is torn down every few requests.
+The account lockout stops grinding at one account; this stops the same effort
+being spread across many. Sign-in 10/15min, sign-up 5/hour, reset and join
+10/15min, keyed on a hash of the forwarded address — which is used for counting
+only, never for authorisation, because it can be forged when nothing is in
+front of us.
+
+**`redirect()` works by throwing**, so every `catch` around an action helper
+calls `rethrowControlFlow(e)` first. Without it, "you have been signed out"
+arrives as "something went wrong".
+
+Also: no `sql.unsafe` anywhere, every query scoped by `household_id` or a
+user-derived id, no `dangerouslySetInnerHTML`, and constraint failures log the
+error code and constraint name only — a Postgres error carries the offending
+row in `detail`, which here means amounts and merchant names.
+
+## Where it runs, and why that is the speed
+
+The Neon database is in **us-east-1**. Vercel functions are in **iad1**, the
+same region, so in production the server sits next to the database and queries
+cost single-digit milliseconds.
+
+Locally it is a different story: a laptop in India talking to Virginia pays
+**~274 ms per round trip**, and the first connection costs about four seconds.
+That is why dev felt slow, and why pages were collapsed from three or four
+round trips to two.
+
+The remaining win is geography: moving Neon to `ap-south-1` and Vercel to
+`bom1` together. Moving only one makes things worse.
+
 ## Teaching the app
 
 There is no coach-mark tour. Two things do the job instead:

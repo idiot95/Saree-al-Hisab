@@ -1,0 +1,1 @@
+ALTER TABLE "app_user" ADD COLUMN "sessions_valid_from" timestamp with time zone DEFAULT now() NOT NULL;

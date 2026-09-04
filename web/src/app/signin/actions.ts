@@ -3,6 +3,7 @@
 import { AuthError } from 'next-auth';
 import { signIn } from '@/auth';
 import { findLoginUser, isLocked } from '@/db/membership';
+import { tooMany, waitMessage } from '@/db/rate-limit';
 
 export type AuthResult = { error: string } | null;
 
@@ -20,6 +21,12 @@ export async function signInWithPassword(_prev: AuthResult, fd: FormData): Promi
   const email = String(fd.get('email') ?? '').trim().toLowerCase();
   const password = String(fd.get('password') ?? '');
   if (!email || !password) return { error: 'Enter your email and password.' };
+
+  /* The lockout on app_user stops someone grinding at one account. This stops
+     the same effort being spread across many, which is what credential
+     stuffing actually looks like. */
+  const wait = await tooMany('signin', 10, 15 * 60);
+  if (wait) return { error: `Too many sign-in attempts. ${waitMessage(wait)}` };
 
   /* Only to word the message. authorize() enforces the wait itself, because
      this action is not the only way to reach it. */

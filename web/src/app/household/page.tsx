@@ -1,6 +1,6 @@
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { actorOrNull, membersOf, openInvitesOf, householdName } from '@/db/queries';
+import { actorOrNull, membersOf, openInvitesOf } from '@/db/queries';
 import { householdsOf } from '@/db/membership';
 import InviteForm from './InviteForm';
 import MemberRow from './MemberRow';
@@ -23,8 +23,8 @@ export default async function Household() {
   if (!actor) redirect('/signin');
   if (!actor.household_id) redirect('/no-household');
 
-  const [name, members, invites, books] = await Promise.all([
-    householdName(actor.household_id),
+  const name = actor.household_name;
+  const [members, invites, books] = await Promise.all([
     membersOf(actor.household_id),
     openInvitesOf(actor.household_id),
     householdsOf(actor.user_id),

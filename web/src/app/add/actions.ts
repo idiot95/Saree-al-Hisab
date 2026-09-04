@@ -104,9 +104,11 @@ export async function saveEntry(d: Draft): Promise<SaveResult> {
     revalidatePath('/');
     return { ok: true, id: row.id };
   } catch (e) {
-    // A constraint fired. The message is for us, not for the person — they get
-    // something they can act on.
-    console.error('saveEntry refused by the database:', e);
+    /* A constraint fired. Log what rule was broken, never the row — a
+       Postgres error carries the offending values in `detail`, which here
+       means amounts and merchant names. */
+    const pg = e as { code?: string; constraint_name?: string };
+    console.error('saveEntry refused:', pg.code ?? 'unknown', pg.constraint_name ?? '');
     return { ok: false, error: 'That could not be saved. Check the amount and try again.' };
   }
 }

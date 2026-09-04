@@ -4,10 +4,14 @@ import { AuthError } from 'next-auth';
 import { signIn } from '@/auth';
 import { usePasswordReset } from '@/db/membership';
 import { hashPassword, passwordProblem } from '@/lib/password';
+import { tooMany, waitMessage } from '@/db/rate-limit';
 
 export type AuthResult = { error: string } | null;
 
 export async function setNewPassword(_prev: AuthResult, fd: FormData): Promise<AuthResult> {
+  const wait = await tooMany('reset', 10, 15 * 60);
+  if (wait) return { error: `Too many attempts. ${waitMessage(wait)}` };
+
   const token = String(fd.get('token') ?? '');
   const password = String(fd.get('password') ?? '');
   const weak = passwordProblem(password);

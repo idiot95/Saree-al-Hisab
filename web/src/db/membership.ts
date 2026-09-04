@@ -17,14 +17,49 @@ export type Membership = { household_id: string; role: Role };
    so a stale or forged preference gets you nothing — the join below only ever
    returns a household you are genuinely a member of. */
 export async function membershipOf(userId: string): Promise<Membership | null> {
-  const [m] = await sql`
-    select m.household_id, m.role
-    from member m
-    join app_user u on u.id = m.user_id
-    where m.user_id = ${userId}
-    order by (m.household_id = u.active_household_id) desc, m.joined_at
-    limit 1`;
-  return (m as Membership | undefined) ?? null;
+  const c = await contextFor(userId, Number.MAX_SAFE_INTEGER);
+  return c && c.household_id ? { household_id: c.household_id, role: c.role! } : null;
+}
+
+export type PageContext = {
+  household_id: string | null;
+  role: Role | null;
+  household_name: string | null;
+  stale: boolean;
+};
+
+/* One round trip for everything a page needs to know about who is asking:
+   which household is on screen, what they may do there, what it is called, and
+   whether the cookie that arrived is still one we honour.
+
+   It is one query rather than three because the database is not always next
+   door — every extra round trip is paid by whoever is furthest from it. */
+export async function contextFor(userId: string, tokenIssuedAt: number): Promise<PageContext | null> {
+  const [row] = await sql`
+    select m.household_id, m.role, h.name as household_name,
+           extract(epoch from u.sessions_valid_from) > ${tokenIssuedAt} as stale
+    from app_user u
+    left join member m
+      on m.user_id = u.id
+     and m.household_id = coalesce(
+           (select m2.household_id from member m2
+            where m2.user_id = u.id and m2.household_id = u.active_household_id),
+           (select m3.household_id from member m3
+            where m3.user_id = u.id order by m3.joined_at limit 1))
+    left join household h on h.id = m.household_id
+    where u.id = ${userId}`;
+  if (!row) return null;
+  return {
+    household_id: row.household_id ?? null,
+    role: (row.role as Role) ?? null,
+    household_name: row.household_name ?? null,
+    stale: row.stale === true,
+  };
+}
+
+/** Every session for this person, issued before now, stops working. */
+export async function revokeSessions(userId: string) {
+  await sql`update app_user set sessions_valid_from = now() where id = ${userId}`;
 }
 
 export async function householdsOf(userId: string) {
@@ -82,7 +117,7 @@ export async function recordFailedAttempt(userId: string) {
           when failed_attempts + 1 >= ${FREE_TRIES}
           then now() + least(
             power(2, failed_attempts + 1 - ${FREE_TRIES}) * interval '1 minute',
-            interval '${sql.unsafe(String(MAX_WAIT_MIN))} minutes')
+            ${MAX_WAIT_MIN} * interval '1 minute')
           else locked_until end
     where id = ${userId}`;
 }
@@ -206,7 +241,8 @@ export async function usePasswordReset(token: string, passwordHash: string) {
              where user_id = ${r.user_id} and used_at is null`;
     await tx`update app_user
              set password_hash = ${passwordHash}, password_set_at = now(),
-                 failed_attempts = 0, locked_until = null
+                 failed_attempts = 0, locked_until = null,
+                 sessions_valid_from = now()
              where id = ${r.user_id}`;
     const [u] = await tx`select email from app_user where id = ${r.user_id}`;
     return { userId: r.user_id as string, email: u.email as string };

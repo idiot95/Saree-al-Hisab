@@ -4,6 +4,7 @@ import { AuthError } from 'next-auth';
 import { signIn } from '@/auth';
 import { emailIsTaken, signUp } from '@/db/membership';
 import { hashPassword, passwordProblem } from '@/lib/password';
+import { tooMany, waitMessage } from '@/db/rate-limit';
 
 export type AuthResult = { error: string } | null;
 
@@ -13,6 +14,11 @@ export type AuthResult = { error: string } | null;
 export async function createAccountAndHousehold(
   _prev: AuthResult, fd: FormData,
 ): Promise<AuthResult> {
+  /* Sign-up is open, so it is also the cheapest way to probe which addresses
+     are registered, and the cheapest way to fill the table with junk. */
+  const wait = await tooMany('signup', 5, 60 * 60);
+  if (wait) return { error: `Too many accounts created from here. ${waitMessage(wait)}` };
+
   const name = String(fd.get('name') ?? '').trim();
   const email = String(fd.get('email') ?? '').trim().toLowerCase();
   const household = String(fd.get('household') ?? '').trim();

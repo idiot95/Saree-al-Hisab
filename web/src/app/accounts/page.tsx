@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import {
-  actorOrNull, accountsWithBalances, methodsWithFunding, openCyclesFor, householdName,
+  actorOrNull, accountsWithBalances, methodsWithFunding, openCyclesFor,
 } from '@/db/queries';
 import { format } from '@/lib/money';
 import { HEADER_BG } from '../auth-ui';
@@ -30,8 +30,8 @@ export default async function Accounts() {
   if (!actor) redirect('/signin');
   if (!actor.household_id) redirect('/no-household');
 
-  const [name, accounts, methods, cycles] = await Promise.all([
-    householdName(actor.household_id),
+  const name = actor.household_name;
+  const [accounts, methods, cycles] = await Promise.all([
     accountsWithBalances(actor.household_id),
     methodsWithFunding(actor.household_id),
     openCyclesFor(actor.household_id),

@@ -1,38 +1,53 @@
 import 'server-only';
+import { redirect } from 'next/navigation';
 import { sql } from './client';
 import { auth } from '@/auth';
-import { membershipOf } from './membership';
+import { contextFor } from './membership';
 import { hashLinkToken } from '@/lib/link-token';
 
 /* Who is asking, and what they may do — resolved on the server, on every
-   request. A Server Action is reachable by direct POST, so the household a
-   write lands in is decided here and nowhere else. The session says only who
-   the person is; the role comes from the database, so a demotion or a removal
-   bites on the next tap rather than at the next sign-in. */
+   request, in a single round trip.
+
+   Three things are checked here and nowhere else:
+     · the session cookie is real (Auth.js has already verified its signature);
+     · it was issued AFTER the account's session epoch, so a cookie that walked
+       out of the door before a password change is refused;
+     · the role comes from the database, so a demotion or a removal bites on
+       the next tap rather than at the next sign-in.
+
+   A Server Action is reachable by direct POST, so the household a write lands
+   in is decided here and nowhere else. */
 export async function currentActor() {
   const session = await auth();
-  if (!session?.user?.id) throw new Error('Not signed in.');
-  const m = await membershipOf(session.user.id);
-  if (!m) throw new Error('No household yet.');
+  if (!session?.user?.id) redirect('/signin');
+  const c = await contextFor(session.user.id, session.issuedAt ?? 0);
+  // A cookie older than the account's session epoch is not an error to report,
+  // it is somebody who has been signed out. Send them to sign in again.
+  if (!c || c.stale) redirect('/signin');
+  if (!c.household_id) redirect('/no-household');
   return {
-    household_id: m.household_id,
+    household_id: c.household_id,
     user_id: session.user.id,
-    role: m.role,
+    role: c.role!,
     user_name: session.user.name ?? '',
+    household_name: c.household_name ?? 'Household',
   };
 }
 
 /** For pages that need to tell the three states apart: signed out, signed in
- *  without a household, and signed in with one. */
+ *  without a household, and signed in with one. A stale cookie counts as
+ *  signed out. */
 export async function actorOrNull() {
   const session = await auth();
   if (!session?.user?.id) return null;
-  const m = await membershipOf(session.user.id);
+  const c = await contextFor(session.user.id, session.issuedAt ?? 0);
+  if (!c || c.stale) return null;
   return {
-    household_id: m?.household_id ?? null,
+    household_id: c.household_id,
     user_id: session.user.id,
-    role: m?.role ?? null,
+    role: c.role,
     user_name: session.user.name ?? '',
+    household_name: c.household_name ?? 'Household',
     email: session.user.email ?? null,
     image: session.user.image ?? null,
   };

@@ -1,6 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { rethrowControlFlow } from '@/lib/rethrow';
 import { sql } from '@/db/client';
 import { currentActor } from '@/db/queries';
 import { fromKeys } from '@/lib/money';
@@ -55,7 +56,7 @@ function dayProblem(label: string, v: string): string | null {
 
 export async function addAccount(_prev: Result | null, fd: FormData): Promise<Result> {
   let actor;
-  try { actor = await mustWrite(); } catch (e) { return { ok: false, error: (e as Error).message }; }
+  try { actor = await mustWrite(); } catch (e) { rethrowControlFlow(e); return { ok: false, error: (e as Error).message }; }
 
   const name = String(fd.get('name') ?? '').trim();
   const kind = String(fd.get('kind') ?? '');
@@ -97,7 +98,7 @@ export async function addAccount(_prev: Result | null, fd: FormData): Promise<Re
 
 export async function archiveAccount(_prev: Result | null, fd: FormData): Promise<Result> {
   let actor;
-  try { actor = await mustWrite(); } catch (e) { return { ok: false, error: (e as Error).message }; }
+  try { actor = await mustWrite(); } catch (e) { rethrowControlFlow(e); return { ok: false, error: (e as Error).message }; }
   const id = String(fd.get('id') ?? '');
 
   // Ways to pay would be left pointing at nothing, and the ledger would start
@@ -119,7 +120,7 @@ export async function archiveAccount(_prev: Result | null, fd: FormData): Promis
 
 export async function addMethod(_prev: Result | null, fd: FormData): Promise<Result> {
   let actor;
-  try { actor = await mustWrite(); } catch (e) { return { ok: false, error: (e as Error).message }; }
+  try { actor = await mustWrite(); } catch (e) { rethrowControlFlow(e); return { ok: false, error: (e as Error).message }; }
 
   const name = String(fd.get('name') ?? '').trim();
   const rail = String(fd.get('kind') ?? '');
@@ -162,7 +163,7 @@ export async function addMethod(_prev: Result | null, fd: FormData): Promise<Res
 
 export async function archiveMethod(_prev: Result | null, fd: FormData): Promise<Result> {
   let actor;
-  try { actor = await mustWrite(); } catch (e) { return { ok: false, error: (e as Error).message }; }
+  try { actor = await mustWrite(); } catch (e) { rethrowControlFlow(e); return { ok: false, error: (e as Error).message }; }
   const id = String(fd.get('id') ?? '');
 
   const [{ n }] = await sql`
@@ -182,7 +183,7 @@ export async function archiveMethod(_prev: Result | null, fd: FormData): Promise
 /** Exactly one default, so Add Entry always opens on something. */
 export async function makeDefaultMethod(_prev: Result | null, fd: FormData): Promise<Result> {
   let actor;
-  try { actor = await mustWrite(); } catch (e) { return { ok: false, error: (e as Error).message }; }
+  try { actor = await mustWrite(); } catch (e) { rethrowControlFlow(e); return { ok: false, error: (e as Error).message }; }
   const id = String(fd.get('id') ?? '');
 
   await sql.begin(async (tx) => {

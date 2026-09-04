@@ -5,12 +5,16 @@ import { redirect } from 'next/navigation';
 import { auth, signIn } from '@/auth';
 import { acceptInviteAs, createFromInvite } from '@/db/membership';
 import { hashPassword, passwordProblem } from '@/lib/password';
+import { tooMany, waitMessage } from '@/db/rate-limit';
 
 export type AuthResult = { error: string } | null;
 
 /** Someone with no account, holding an invitation. The address is the
  *  invitation's, not theirs to choose — it is who the invitation was for. */
 export async function joinWithNewAccount(_prev: AuthResult, fd: FormData): Promise<AuthResult> {
+  const wait = await tooMany('join', 10, 15 * 60);
+  if (wait) return { error: `Too many attempts. ${waitMessage(wait)}` };
+
   const token = String(fd.get('token') ?? '');
   const name = String(fd.get('name') ?? '').trim();
   const password = String(fd.get('password') ?? '');

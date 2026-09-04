@@ -1,10 +1,11 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { rethrowControlFlow } from '@/lib/rethrow';
 import { redirect } from 'next/navigation';
 import { sql } from '@/db/client';
 import { currentActor } from '@/db/queries';
-import { createHousehold, switchHousehold } from '@/db/membership';
+import { createHousehold, revokeSessions, switchHousehold } from '@/db/membership';
 import { newLinkToken } from '@/lib/link-token';
 import { hashPassword, passwordProblem, verifyPassword } from '@/lib/password';
 
@@ -32,7 +33,7 @@ async function mustManage() {
 
 export async function createInvite(_prev: Result | null, formData: FormData): Promise<Result> {
   let actor;
-  try { actor = await mustManage(); } catch (e) { return { ok: false, error: (e as Error).message }; }
+  try { actor = await mustManage(); } catch (e) { rethrowControlFlow(e); return { ok: false, error: (e as Error).message }; }
 
   const email = String(formData.get('email') ?? '').trim().toLowerCase();
   const role = String(formData.get('role') ?? '');
@@ -73,7 +74,7 @@ export async function createInvite(_prev: Result | null, formData: FormData): Pr
 
 export async function revokeInvite(_prev: Result | null, formData: FormData): Promise<Result> {
   let actor;
-  try { actor = await mustManage(); } catch (e) { return { ok: false, error: (e as Error).message }; }
+  try { actor = await mustManage(); } catch (e) { rethrowControlFlow(e); return { ok: false, error: (e as Error).message }; }
   const id = String(formData.get('id') ?? '');
   await sql`update invite set status = 'revoked'
             where id = ${id} and household_id = ${actor.household_id} and status = 'open'`;
@@ -83,7 +84,7 @@ export async function revokeInvite(_prev: Result | null, formData: FormData): Pr
 
 export async function changeRole(_prev: Result | null, formData: FormData): Promise<Result> {
   let actor;
-  try { actor = await mustManage(); } catch (e) { return { ok: false, error: (e as Error).message }; }
+  try { actor = await mustManage(); } catch (e) { rethrowControlFlow(e); return { ok: false, error: (e as Error).message }; }
   const userId = String(formData.get('userId') ?? '');
   const role = String(formData.get('role') ?? '');
   if (!['owner', 'adult', 'viewer'].includes(role)) return { ok: false, error: 'Unknown role.' };
@@ -107,7 +108,7 @@ export async function changeRole(_prev: Result | null, formData: FormData): Prom
 
 export async function removeMember(_prev: Result | null, formData: FormData): Promise<Result> {
   let actor;
-  try { actor = await mustManage(); } catch (e) { return { ok: false, error: (e as Error).message }; }
+  try { actor = await mustManage(); } catch (e) { rethrowControlFlow(e); return { ok: false, error: (e as Error).message }; }
   const userId = String(formData.get('userId') ?? '');
   if (userId === actor.user_id) {
     return { ok: false, error: 'You cannot remove yourself. Make someone else an owner first.' };
@@ -132,7 +133,7 @@ const RESET_HOURS = 24;
  *  pretending otherwise would only have added a mail provider to the bill. */
 export async function issueReset(_prev: Result | null, formData: FormData): Promise<Result> {
   let actor;
-  try { actor = await mustManage(); } catch (e) { return { ok: false, error: (e as Error).message }; }
+  try { actor = await mustManage(); } catch (e) { rethrowControlFlow(e); return { ok: false, error: (e as Error).message }; }
   const userId = String(formData.get('userId') ?? '');
 
   const [member] = await sql`
@@ -177,7 +178,12 @@ export async function changeMyPassword(_prev: Result | null, formData: FormData)
   // Any reset link an owner issued is now moot.
   await sql`update password_reset set used_at = now()
             where user_id = ${actor.user_id} and used_at is null`;
-  return { ok: true, message: 'Password changed.' };
+  /* And every session but this one stops working. A password is changed
+     because something went wrong; leaving old cookies alive for a month would
+     make the change cosmetic. This one included — signing back in is a small
+     price for knowing nobody else is still holding the door. */
+  await revokeSessions(actor.user_id);
+  return { ok: true, message: 'Password changed. Sign in again with the new one.' };
 }
 
 /* ── more than one set of books ─────────────────────────────────────────── */
@@ -209,7 +215,7 @@ export async function startAnotherHousehold(
 
 export async function renameHousehold(_prev: Result | null, formData: FormData): Promise<Result> {
   let actor;
-  try { actor = await mustManage(); } catch (e) { return { ok: false, error: (e as Error).message }; }
+  try { actor = await mustManage(); } catch (e) { rethrowControlFlow(e); return { ok: false, error: (e as Error).message }; }
   const name = String(formData.get('name') ?? '').trim();
   if (name.length < 2 || name.length > 60) {
     return { ok: false, error: 'Use between 2 and 60 characters.' };
@@ -217,4 +223,12 @@ export async function renameHousehold(_prev: Result | null, formData: FormData):
   await sql`update household set name = ${name} where id = ${actor.household_id}`;
   revalidatePath('/', 'layout');
   return { ok: true, message: 'Renamed.' };
+}
+
+/** Ends every session for this account, this one included. The blunt
+ *  instrument for a lost phone or a password someone else has seen. */
+export async function signOutEverywhere(_prev: Result | null): Promise<Result> {
+  const actor = await currentActor();
+  await revokeSessions(actor.user_id);
+  redirect('/signin');
 }
