@@ -77,10 +77,30 @@ A repayment is `kind = 'claim_receipt'` — money in, but explicitly not income.
   `kind` is the highest-stakes field: anything below high confidence lands as
   `unknown` and blocks Confirm.
 
+## Running it
+
+    npm run migrate            # in filename order; --reset drops and rebuilds
+    npm run test:invariants    # 29 assertions against real Postgres
+    npm run tokens             # regenerate tokens.css from the canvas palette
+
+Neon is provisioned through Vercel; `DATABASE_URL` lives in `.env.local`,
+which is gitignored. Migrations are tracked in a `_migration` table — the
+`00xx` files run once, the `01xx` views and triggers re-apply every run
+because they are idempotent, so a changed view ships without a new file.
+
+## Proven, not assumed
+
+`npm run test:invariants` tries to BREAK each rule and expects Postgres to
+refuse. 29 assertions currently pass, covering: a move can never look like
+spending, `spend_txn` is the only definition of spending, refunds net off in
+the month they land, a card purchase files itself into the right cycle, a
+payment method is a rail and not a balance, lending never touches the budget,
+duplicates are detected but never prevented, and budgets are one row per
+category per month keyed on the first.
+
 ## Open
 
-- No database provisioned yet, so the CHECK constraints are generated but not
-  yet proven against a live Postgres. First job when `DATABASE_URL` exists:
-  tests that try to violate each one and confirm it is rejected.
 - Add Entry uses seed categories, methods and accounts. The shape already
   matches what the schema returns, so swapping in real data is a query.
+- Nothing is deployed yet. The Vercel project is `saree-al-hisab`, linked to
+  `idiot95/Saree-al-Hisab` with root directory `web`.

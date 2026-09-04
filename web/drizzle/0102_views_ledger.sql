@@ -2,7 +2,10 @@
 -- Lending never appears here at all, because it is a transfer to a person's
 -- account and invariant 2 already excludes transfers.
 -- A reimbursable expense DOES appear: it was genuinely your spending.
-CREATE OR REPLACE VIEW spend_txn AS
+-- Supersedes the spend_txn defined in 0100: fewer columns, and refunds
+-- netted off. CREATE OR REPLACE cannot narrow a view, so it is dropped first.
+DROP VIEW IF EXISTS spend_txn CASCADE;
+CREATE VIEW spend_txn AS
 SELECT t.id, t.household_id, t.category_id, t.account_id, t.occurred_on,
        t.book_id, t.merchant, t.is_shared, t.created_by,
        CASE WHEN t.kind = 'refund' THEN -t.amount ELSE t.amount END AS amount

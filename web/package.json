@@ -6,7 +6,11 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "migrate": "node scripts/migrate.mjs",
+    "tokens": "node scripts/gen-tokens.mjs",
+    "test:money": "node scripts/money.test.mjs",
+    "test:invariants": "node scripts/invariants.test.mjs"
   },
   "dependencies": {
     "drizzle-orm": "^0.45.2",
