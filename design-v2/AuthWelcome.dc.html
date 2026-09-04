@@ -1,0 +1,47 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="crossorigin">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap">
+  <style>
+    *{box-sizing:border-box}
+    body{margin:0;background:#F2F5F0;color:#233D4D;font-family:"Instrument Sans","Helvetica Neue",Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;font-size:15px;line-height:1.35}
+    a{color:#3F7F6E;text-decoration:none}
+    a:hover{color:#0A5049}
+    button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;text-align:left}
+    .n{font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
+    .t{font-family:"Instrument Serif",Georgia,"Times New Roman",serif;font-weight:400;letter-spacing:-0.004em}
+    .el{box-shadow:0 1px 2px rgba(40,54,24,0.06),0 10px 26px -14px rgba(40,54,24,0.18)}
+    .el2{box-shadow:0 2px 8px rgba(24,32,14,0.12),0 22px 44px -20px rgba(24,32,14,0.40)}
+    .sec{margin:0;font-size:16.5px;font-weight:600;letter-spacing:-0.012em;color:#233D4D}
+    .eyebrow{font-size:11.5px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase}
+  </style>
+</helmet>
+
+<div style="width:390px;min-height:844px;display:flex;flex-direction:column;background:#F2F5F0">
+
+  <div class="el2" style="background:repeating-linear-gradient(0deg, rgba(255,255,255,0.045) 0px, rgba(255,255,255,0.045) 1px, rgba(0,0,0,0) 1px, rgba(0,0,0,0) 26px),radial-gradient(130% 85% at 82% -12%, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0) 62%),linear-gradient(150deg,#2C5063 0%,#233D4D 58%,#172B37 100%);color:#FFFFFF;border-radius:0 0 32px 32px;padding:64px 26px 48px;display:flex;flex-direction:column;gap:18px">
+    <span style="width:54px;height:54px;border-radius:16px;background:rgba(255,255,255,0.16);border:1px solid rgba(255,255,255,0.24);display:flex;align-items:center;justify-content:center;color:#FFFFFF"><svg width="27" height="27" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6.5h16"/><path d="M7 12h10"/><path d="M10 17.5h4"/></svg></span>
+    <h1 class="t" style="margin:0;font-size:38px;line-height:1.06;letter-spacing:-0.02em;text-wrap:balance;color:#FFFFFF">Every rupee,<br>where you left it.</h1>
+    <p style="margin:0;font-size:15.5px;line-height:1.5;color:rgba(255,255,255,0.88)">One set of books for your money, or your household's. Budget a month, and everything reports against it.</p>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:10px;margin-top:auto;padding:30px 20px 26px">
+    <button class="el2" style="width:100%;min-height:58px;border-radius:16px;background:radial-gradient(120% 100% at 25% 0%, rgba(255,255,255,0.20) 0%, rgba(255,255,255,0) 60%),linear-gradient(145deg,#2C5063 0%,#1C3541 100%);color:#FFFFFF;font-size:16.5px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:9px"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2.5" width="12" height="19" rx="2.6"/><path d="M10.5 18.6h3"/></svg> Continue with phone</button>
+    <button class="el" style="width:100%;min-height:54px;border-radius:16px;background:#FFFFFF;color:#233D4D;font-size:15.5px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:9px"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="12" r="4"/><path d="M12 12h9"/><path d="M17.5 12v3.2"/><path d="M20.5 12v2.2"/></svg> Continue with Apple</button>
+    <button class="el" style="width:100%;min-height:54px;border-radius:16px;background:#FFFFFF;color:#233D4D;font-size:15.5px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:9px"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.8" y="5" width="18.4" height="14" rx="2.4"/><path d="M3.4 6.6 12 12.8l8.6-6.2"/></svg> Continue with Google</button>
+    <p style="margin:10px 4px 0;font-size:12.5px;line-height:1.5;text-align:center;color:#4A6472">By continuing you agree to the Terms and Privacy Policy.</p>
+  </div>
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {}
+</script>
+</body>
+</html>

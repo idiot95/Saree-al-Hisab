@@ -1,0 +1,95 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="crossorigin">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap">
+  <style>
+    *{box-sizing:border-box}
+    body{margin:0;background:#F2F5F0;color:#233D4D;font-family:"Instrument Sans","Helvetica Neue",Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;font-size:15px;line-height:1.35}
+    a{color:#3F7F6E;text-decoration:none}
+    a:hover{color:#0A5049}
+    button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;text-align:left}
+    .n{font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
+    .t{font-family:"Instrument Serif",Georgia,"Times New Roman",serif;font-weight:400;letter-spacing:-0.004em}
+    .el{box-shadow:0 1px 2px rgba(40,54,24,0.06),0 10px 26px -14px rgba(40,54,24,0.18)}
+    .el2{box-shadow:0 2px 8px rgba(24,32,14,0.12),0 22px 44px -20px rgba(24,32,14,0.40)}
+    .sec{margin:0;font-size:16.5px;font-weight:600;letter-spacing:-0.012em;color:#233D4D}
+    .eyebrow{font-size:11.5px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase}
+  </style>
+</helmet>
+
+<div style="width:390px;min-height:1120px;display:flex;flex-direction:column;background:#F2F5F0">
+
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:20px 20px 0">
+    <button style="width:44px;height:44px;margin-left:-10px;border-radius:999px;display:flex;align-items:center;justify-content:center;color:#4A6472"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
+    <h1 class="t" style="margin:0;font-size:19px">Scanning</h1>
+    <span style="width:44px;height:44px"></span>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:11px;padding:18px 22px 20px">
+    <h1 class="t" style="margin:0;font-size:33px;line-height:1.1;letter-spacing:-0.02em;text-wrap:balance">Scan receipts and screenshots</h1>
+    <p style="margin:0;font-size:15.5px;line-height:1.5;color:#4A6472">Bring your own Google Gemini key. It reads a photo and fills in the entry for you — you always confirm before anything is saved.</p>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:7px;padding:0 20px 18px">
+    <span class="eyebrow" style="color:#4A6472">Gemini API key</span>
+    <div style="min-height:58px;display:flex;align-items:center;gap:10px;padding:0 16px;border-radius:15px;background:#FFFFFF;border:1.5px solid #619B8A">
+      <span class="n" style="flex:1;font-size:15.5px;letter-spacing:0.04em">AIza••••••••••••••••••••3fQ</span>
+      <span style="display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:700;letter-spacing:0.03em;text-transform:uppercase;color:#12703F;background:#DCEFE4;border-radius:5px;padding:3px 7px;flex:none"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17.5 19 7"/></svg>Working</span>
+    </div>
+    <a href="#" style="min-height:44px;display:flex;align-items:center;font-size:13.5px;font-weight:600">Get a key from Google AI Studio</a>
+  </div>
+
+  <section class="el" style="margin:0 18px 20px;background:#FFFFFF;border-radius:18px;padding:0 16px">
+    <div style="display:flex;gap:13px">
+      <span style="margin-top:15px;width:38px;height:38px;border-radius:999px;background:#E4F0F8;display:flex;align-items:center;justify-content:center;color:#215F8C;flex:none"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="10" width="15" height="10.5" rx="2.5"/><path d="M8 10V7.5a4 4 0 0 1 8 0V10"/></svg></span>
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px;padding:15px 0;border-bottom:1px solid #EAEFF0">
+        <span style="font-size:15px;font-weight:600">It stays on this phone</span>
+        <span style="font-size:13px;line-height:1.5;color:#4A6472">Kept in this browser only. Never written to our database, and never stored on our server — it passes through and is forgotten.</span>
+      </div>
+    </div>
+    <div style="display:flex;gap:13px">
+      <span style="margin-top:15px;width:38px;height:38px;border-radius:999px;background:#EEF0F1;display:flex;align-items:center;justify-content:center;color:#4F5D66;flex:none"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="12" rx="2"/><path d="M8 20.5h8"/><path d="M12 16.5v4"/></svg></span>
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px;padding:15px 0;border-bottom:1px solid #EAEFF0">
+        <span style="font-size:15px;font-weight:600">Each device needs its own</span>
+        <span style="font-size:13px;line-height:1.5;color:#4A6472">Enter it again on your other phone. Everyone then spends their own quota rather than sharing one.</span>
+      </div>
+    </div>
+    <div style="display:flex;gap:13px">
+      <span style="margin-top:15px;width:38px;height:38px;border-radius:999px;background:#FFEEE4;display:flex;align-items:center;justify-content:center;color:#A9541A;flex:none"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 7.5v5.5"/><path d="M12 16.6v.1"/><circle cx="12" cy="12" r="8.5"/></svg></span>
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px;padding:15px 0">
+        <span style="font-size:15px;font-weight:600">Pictures go to Google</span>
+        <span style="font-size:13px;line-height:1.5;color:#4A6472">A receipt or screenshot you scan is sent to Gemini to be read. Nothing else in this app is.</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="el" style="margin:0 18px 26px;background:#FFFFFF;border-radius:18px;padding:0 16px">
+    <div style="display:flex;align-items:center;gap:12px;min-height:64px;border-bottom:1px solid #EAEFF0">
+      <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+        <span style="font-size:15px;font-weight:600">Scanned this month</span>
+        <span style="font-size:12.5px;color:#4A6472">14 receipts, 6 screenshots</span>
+      </span>
+      <span class="n" style="font-size:15px;font-weight:600;color:#4A6472">20</span>
+    </div>
+    <button style="display:flex;align-items:center;gap:12px;width:100%;min-height:64px">
+      <span style="flex:1;font-size:15px;font-weight:600;color:#B3261E">Remove this key</span>
+    </button>
+  </section>
+
+  <div style="display:flex;align-items:flex-start;gap:10px;margin:0 18px 26px;padding:14px 15px;border-radius:14px;background:#F3F6F5">
+    <span style="color:#4A6472;flex:none;margin-top:1px"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 7.5v5.5"/><path d="M12 16.6v.1"/><circle cx="12" cy="12" r="8.5"/></svg></span>
+    <span style="flex:1;font-size:13px;line-height:1.5;color:#4A6472">Without a key the app works exactly as it does now — the keypad, and everything else. Only scanning is switched off.</span>
+  </div>
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":390,"height":1120}}'>
+class Component extends DCLogic {}
+</script>
+</body>
+</html>

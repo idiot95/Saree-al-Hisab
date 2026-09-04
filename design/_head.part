@@ -1,0 +1,25 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="crossorigin">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&display=swap">
+  <style>
+    *{box-sizing:border-box}
+    body{margin:0;background:#F4F1EA;color:#211E1A;font-family:"Instrument Sans","Helvetica Neue",Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;font-size:15px;line-height:1.35}
+    a{color:#0F6B60;text-decoration:none}
+    a:hover{color:#0A5049}
+    button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;text-align:left}
+    .n{font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
+    .t{font-family:"Newsreader",Georgia,"Times New Roman",serif;font-weight:500;letter-spacing:-0.012em}
+    .el{box-shadow:0 1px 2px rgba(58,48,38,0.05),0 10px 26px -14px rgba(58,48,38,0.20)}
+    .el2{box-shadow:0 2px 8px rgba(40,32,26,0.10),0 22px 44px -20px rgba(40,32,26,0.45)}
+    .sec{margin:0;font-size:16.5px;font-weight:600;letter-spacing:-0.012em;color:#211E1A}
+    .eyebrow{font-size:11.5px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase}
+  </style>
+</helmet>

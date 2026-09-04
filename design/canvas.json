@@ -1,0 +1,26 @@
+{
+  "artboards": [
+    { "file": "Main.dc.html",              "x": 0,    "y": 0,    "w": 390, "h": 1540, "title": "Home" },
+    { "file": "Transactions.dc.html",      "x": 470,  "y": 0,    "w": 390, "h": 1300, "title": "Transactions" },
+    { "file": "AddExpense.dc.html",        "x": 940,  "y": 0,    "w": 390, "h": 1300, "title": "Add Expense", "is_interactive": true },
+    { "file": "Budget.dc.html",            "x": 1410, "y": 0,    "w": 390, "h": 1240, "title": "Budget" },
+
+    { "file": "MoneyToGetBack.dc.html",    "x": 0,    "y": 1680, "w": 390, "h": 1140, "title": "Money to Get Back" },
+    { "file": "ScheduledPayments.dc.html", "x": 470,  "y": 1680, "w": 390, "h": 1400, "title": "Scheduled Payments" },
+    { "file": "NetWorth.dc.html",          "x": 940,  "y": 1680, "w": 390, "h": 1100, "title": "Net Worth" },
+    { "file": "MoreMenu.dc.html",          "x": 1410, "y": 1680, "w": 390, "h": 1080, "title": "More" },
+
+    { "file": "SetupStart.dc.html",        "x": 0,    "y": 3220, "w": 390, "h": 880,  "title": "Setup — Just me or household" },
+    { "file": "SetupAccounts.dc.html",     "x": 470,  "y": 3220, "w": 390, "h": 940,  "title": "Setup — Accounts" }
+  ],
+  "annotations": [
+    { "id": "direction", "x": 0, "y": -170, "w": 430, "text": "Quiet Ledger, colour-coded.\nEvery screen carries its own domain colour in a gradient header — Home teal, Transactions charcoal, Budget indigo, Money to get back gold, Scheduled blue, Net worth plum — and the tab bar picks up that colour too, so you know where you are before reading a word." },
+    { "id": "home-patterns", "x": 470, "y": -170, "w": 430, "text": "Quick actions sit directly under the balance, and accounts run as a horizontal carousel so each currency keeps its own figure instead of collapsing into one lump sum. Category colours repeat down every list in the app." },
+    { "id": "add-expense-live", "x": 940, "y": -170, "w": 430, "text": "This one is live — tap More options, then the Need this money back toggle.\nOnly Amount, Paid to, Category, Paid using and Date come before Save." },
+    { "id": "budget-scopes", "x": 1410, "y": -170, "w": 430, "text": "Personal and Household carry separate budgets. Home shows Household (₹1,51,400 of ₹1,75,000); Budget shows Personal (₹64,200 of ₹1,00,000). The totals differ on purpose." },
+    { "id": "scheduled-not-expense", "x": 470, "y": 1555, "w": 430, "text": "Nothing here is an expense until it is confirmed paid. Hijri-scheduled items keep their Hijri rule and show the Gregorian date beside it." },
+    { "id": "tx-card-payment", "x": 1410, "y": 1555, "w": 430, "text": "A card payment stays grey with no minus sign wherever it appears — it moves money, it does not spend it, and it must never re-count as an expense." },
+    { "id": "setup-skippable", "x": 0, "y": 3080, "w": 430, "text": "Twelve steps, every one skippable, and nothing is trapped in setup — all of it stays editable later." }
+  ],
+  "launch": { "view": "canvas" }
+}

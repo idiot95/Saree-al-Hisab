@@ -1,0 +1,47 @@
+@import "tailwindcss";
+@import "./tokens.css";
+
+@theme inline {
+  --color-ink: var(--c-ink);
+  --color-meta: var(--c-meta);
+  --color-faint: var(--c-faint);
+  --color-card: var(--c-card);
+  --color-ground: var(--c-bg);
+  --color-rule: var(--c-rule);
+  --color-sunk: var(--c-sunk);
+  --color-seagrass: var(--c-seagrass);
+  --color-pollen: var(--c-pollen);
+  --color-olive: var(--c-olive);
+  --color-pumpkin: var(--c-pumpkin);
+  --color-ok: var(--c-ok);
+  --color-warn: var(--c-warn);
+  --color-danger: var(--c-danger);
+  --font-sans: var(--font-ui-loaded), var(--font-ui);
+  --font-display: var(--font-display-loaded), var(--font-display);
+}
+
+@layer base {
+  html { color-scheme: light dark; }
+  body {
+    margin: 0;
+    background: var(--c-bg);
+    color: var(--c-ink);
+    font-family: var(--font-ui-loaded), var(--font-ui);
+    font-size: 15px;
+    line-height: 1.35;
+    -webkit-font-smoothing: antialiased;
+    /* The ledger is a phone app. Never let it rubber-band or zoom-jump. */
+    overscroll-behavior-y: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; text-align: left; }
+  /* Digits line up in columns everywhere in this app. */
+  .n { font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
+  .t { font-family: var(--font-display-loaded), var(--font-display); font-weight: 400; letter-spacing: -0.004em; }
+  .el  { box-shadow: var(--el); }
+  .el2 { box-shadow: var(--el2); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}

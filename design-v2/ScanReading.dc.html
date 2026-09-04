@@ -1,0 +1,51 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="crossorigin">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap">
+  <style>
+    *{box-sizing:border-box}
+    body{margin:0;background:#F2F5F0;color:#233D4D;font-family:"Instrument Sans","Helvetica Neue",Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;font-size:15px;line-height:1.35}
+    a{color:#3F7F6E;text-decoration:none}
+    a:hover{color:#0A5049}
+    button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;text-align:left}
+    .n{font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
+    .t{font-family:"Instrument Serif",Georgia,"Times New Roman",serif;font-weight:400;letter-spacing:-0.004em}
+    .el{box-shadow:0 1px 2px rgba(40,54,24,0.06),0 10px 26px -14px rgba(40,54,24,0.18)}
+    .el2{box-shadow:0 2px 8px rgba(24,32,14,0.12),0 22px 44px -20px rgba(24,32,14,0.40)}
+    .sec{margin:0;font-size:16.5px;font-weight:600;letter-spacing:-0.012em;color:#233D4D}
+    .eyebrow{font-size:11.5px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase}
+  </style>
+</helmet>
+
+<div style="width:390px;min-height:760px;display:flex;flex-direction:column;background:#F2F5F0">
+
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;padding:40px 34px;text-align:center">
+    <div style="width:150px;height:196px;border-radius:18px;background:#EDF1F1;border:1px solid #DCE5E7;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:#5E7885">
+      <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3.5h12v17l-2-1.4-2 1.4-2-1.4-2 1.4-2-1.4-2 1.4Z"/><path d="M9 8.5h6"/><path d="M9 12.5h6"/></svg>
+      <span style="font-size:12px;font-weight:600">Big Bazaar</span>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px;align-items:center">
+      <h2 class="t" style="margin:0;font-size:24px;letter-spacing:-0.016em">Reading the receipt</h2>
+      <p style="margin:0;font-size:14.5px;line-height:1.55;color:#4A6472;max-width:30ch">A second or two. You will get a chance to correct anything before it is saved.</p>
+    </div>
+    <div style="width:180px;height:5px;border-radius:999px;background:#E6ECEC;overflow:hidden">
+      <div style="width:62%;height:5px;border-radius:999px;background:#619B8A"></div>
+    </div>
+  </div>
+  <div style="padding:0 18px 30px">
+    <button style="width:100%;min-height:50px;display:flex;align-items:center;justify-content:center;color:#4A6472;font-size:15px;font-weight:600">Cancel</button>
+  </div>
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":390,"height":760}}'>
+class Component extends DCLogic {}
+</script>
+</body>
+</html>

@@ -1,0 +1,132 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="crossorigin">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap">
+  <style>
+    *{box-sizing:border-box}
+    body{margin:0;background:#F2F5F0;color:#233D4D;font-family:"Instrument Sans","Helvetica Neue",Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;font-size:15px;line-height:1.35}
+    a{color:#3F7F6E;text-decoration:none}
+    a:hover{color:#0A5049}
+    button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;text-align:left}
+    .n{font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
+    .t{font-family:"Instrument Serif",Georgia,"Times New Roman",serif;font-weight:400;letter-spacing:-0.004em}
+    .el{box-shadow:0 1px 2px rgba(40,54,24,0.06),0 10px 26px -14px rgba(40,54,24,0.18)}
+    .el2{box-shadow:0 2px 8px rgba(24,32,14,0.12),0 22px 44px -20px rgba(24,32,14,0.40)}
+    .sec{margin:0;font-size:16.5px;font-weight:600;letter-spacing:-0.012em;color:#233D4D}
+    .eyebrow{font-size:11.5px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase}
+  </style>
+</helmet>
+
+<div style="width:390px;min-height:1300px;display:flex;flex-direction:column;background:#F2F5F0">
+
+  <div class="el2" style="background:repeating-linear-gradient(0deg, rgba(255,255,255,0.045) 0px, rgba(255,255,255,0.045) 1px, rgba(0,0,0,0) 1px, rgba(0,0,0,0) 26px),radial-gradient(130% 85% at 82% -12%, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0) 62%),linear-gradient(150deg,#AC4711 0%,#8A390D 58%,#682B0A 100%);color:#FFFFFF;border-radius:0 0 28px 28px;padding:22px 20px 24px;display:flex;flex-direction:column;gap:18px">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+      <button style="width:44px;height:44px;margin-left:-10px;border-radius:999px;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,0.92)"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
+      <h1 class="t" style="margin:0;font-size:20px;color:#FFFFFF">Ahmed Raza</h1>
+      <button style="width:44px;height:44px;border-radius:999px;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,0.92)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.9v2.6M12 18.5v2.6M4.6 7.6l2.2 1.3M17.2 15.1l2.2 1.3M4.6 16.4l2.2-1.3M17.2 8.9l2.2-1.3"/></svg></button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:7px">
+      <span class="eyebrow" style="color:rgba(255,255,255,0.86)">Owes you</span>
+      <span class="n" style="font-size:44px;font-weight:600;line-height:1;letter-spacing:-0.03em">₹35,900</span>
+      <span class="n" style="font-size:13px;color:rgba(255,255,255,0.86)">Friend · 4 entries · nothing back yet</span>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="el" style="flex:1;min-height:50px;display:flex;align-items:center;justify-content:center;gap:8px;border-radius:14px;background:rgba(255,255,255,0.16);border:1px solid rgba(255,255,255,0.24);color:#FFFFFF;font-size:14.5px;font-weight:600"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="12" r="2.6"/><circle cx="17.5" cy="6" r="2.6"/><circle cx="17.5" cy="18" r="2.6"/><path d="M8.3 10.8 15.2 7.2"/><path d="M8.3 13.2l6.9 3.6"/></svg> Remind</button>
+      <button class="el" style="flex:1;min-height:50px;display:flex;align-items:center;justify-content:center;gap:8px;border-radius:14px;background:#FFFFFF;color:#233D4D;font-size:14.5px;font-weight:600"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17.5 19 7"/></svg> Settle up</button>
+    </div>
+  </div>
+
+  <div style="display:flex;align-items:center;gap:10px;padding:20px 22px 10px">
+    <span style="font-size:12px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:#4A6472">Dubai trip</span>
+    <span style="flex:1;height:1px;background:#DCE5E7"></span>
+    <span class="n" style="font-size:12.5px;font-weight:600;color:#4A6472">₹35,900</span>
+  </div>
+  <section class="el" style="margin:0 18px 22px;background:#FFFFFF;border-radius:18px;padding:0 16px">
+    <div style="display:flex;align-items:center;gap:11px;padding:10px 0 8px;border-bottom:1px solid #EAEFF0">
+      <span class="n" style="width:46px;flex:none;font-size:10.5px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:#5E7885">Date</span>
+      <span style="flex:1;font-size:10.5px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:#5E7885">Entry</span>
+      <span style="font-size:10.5px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:#5E7885">Amount · balance</span>
+    </div>
+    <div style="display:flex;align-items:flex-start;gap:11px;min-height:62px;padding:13px 0;border-bottom:1px solid #EAEFF0">
+      <span class="n" style="width:46px;flex:none;font-size:12px;color:#5E7885;padding-top:2px">26 Aug</span>
+      <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px">
+        <span style="font-size:14.5px;font-weight:600">Flight — Emirates</span>
+        <span style="font-size:12px;color:#4A6472">You paid · HDFC Regalia</span>
+      </span>
+      <span style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;flex:none">
+        <span class="n" style="font-size:14.5px;font-weight:600;color:#233D4D">+18,400</span>
+        <span class="n" style="font-size:12px;color:#5E7885">18,400</span>
+      </span>
+    </div>
+    <div style="display:flex;align-items:flex-start;gap:11px;min-height:62px;padding:13px 0;border-bottom:1px solid #EAEFF0">
+      <span class="n" style="width:46px;flex:none;font-size:12px;color:#5E7885;padding-top:2px">27 Aug</span>
+      <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px">
+        <span style="font-size:14.5px;font-weight:600">Hotel — Taj Palace</span>
+        <span style="font-size:12px;color:#4A6472">You paid · HDFC Regalia</span>
+      </span>
+      <span style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;flex:none">
+        <span class="n" style="font-size:14.5px;font-weight:600;color:#233D4D">+12,500</span>
+        <span class="n" style="font-size:12px;color:#5E7885">30,900</span>
+      </span>
+    </div>
+    <div style="display:flex;align-items:flex-start;gap:11px;min-height:62px;padding:13px 0;border-bottom:1px solid #EAEFF0">
+      <span class="n" style="width:46px;flex:none;font-size:12px;color:#5E7885;padding-top:2px">28 Aug</span>
+      <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px">
+        <span style="font-size:14.5px;font-weight:600">Taxis</span>
+        <span style="font-size:12px;color:#4A6472">You paid · Cash</span>
+      </span>
+      <span style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;flex:none">
+        <span class="n" style="font-size:14.5px;font-weight:600;color:#233D4D">+3,200</span>
+        <span class="n" style="font-size:12px;color:#5E7885">34,100</span>
+      </span>
+    </div>
+    <div style="display:flex;align-items:flex-start;gap:11px;min-height:62px;padding:13px 0">
+      <span class="n" style="width:46px;flex:none;font-size:12px;color:#5E7885;padding-top:2px">29 Aug</span>
+      <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px">
+        <span style="font-size:14.5px;font-weight:600">Meals</span>
+        <span style="font-size:12px;color:#4A6472">You paid · HDFC Regalia</span>
+      </span>
+      <span style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;flex:none">
+        <span class="n" style="font-size:14.5px;font-weight:600;color:#233D4D">+1,800</span>
+        <span class="n" style="font-size:12px;color:#5E7885">35,900</span>
+      </span>
+    </div>
+  </section>
+
+  <div style="display:flex;align-items:flex-start;gap:10px;margin:0 18px 24px;padding:14px 15px;border-radius:14px;background:#81AFA1">
+    <span style="color:#233D4D;flex:none;margin-top:1px"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 7.5v5.5"/><path d="M12 16.6v.1"/><circle cx="12" cy="12" r="8.5"/></svg></span>
+    <span style="flex:1;font-size:13px;line-height:1.5;color:#233D4D">These four are <b>your spending</b> — they were on your card, so they count in August's budget. When Ahmed pays you back it lands as money in, never as income.</span>
+  </div>
+
+  <div style="display:flex;align-items:center;gap:10px;padding:0 20px 12px">
+    <span style="width:26px;height:26px;border-radius:8px;background:#EEF0F1;display:flex;align-items:center;justify-content:center;color:#4A6472;flex:none"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 1.8"/></svg></span>
+    <h2 class="sec" style="flex:none">Settled earlier</h2>
+    <span style="flex:1;height:1px;background:#DCE5E7"></span>
+    
+  </div>
+  <section class="el" style="margin:0 18px 26px;background:#FFFFFF;border-radius:18px;padding:0 16px">
+    <div style="display:flex;align-items:center;gap:11px;min-height:60px;opacity:0.72">
+      <span class="n" style="width:46px;flex:none;font-size:12px;color:#5E7885">12 Jul</span>
+      <span style="flex:1;font-size:14.5px">Concert tickets</span>
+      <span style="display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:700;letter-spacing:0.03em;text-transform:uppercase;color:#12703F;background:#DCEFE4;border-radius:5px;padding:3px 7px;flex:none"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17.5 19 7"/></svg>Settled</span>
+      <span class="n" style="font-size:14px;font-weight:600;color:#4A6472">₹4,800</span>
+    </div>
+  </section>
+
+  <div style="margin-top:auto;padding:0 18px 26px">
+    <button class="el2" style="width:100%;min-height:58px;border-radius:16px;background:radial-gradient(120% 100% at 25% 0%, rgba(255,255,255,0.20) 0%, rgba(255,255,255,0) 60%),linear-gradient(145deg,#2C5063 0%,#1C3541 100%);color:#FFFFFF;font-size:16.5px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:9px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg> Add to Ahmed's book</button>
+  </div>
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":390,"height":1300}}'>
+class Component extends DCLogic {}
+</script>
+</body>
+</html>

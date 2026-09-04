@@ -1,0 +1,110 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="crossorigin">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap">
+  <style>
+    *{box-sizing:border-box}
+    body{margin:0;background:#F2F5F0;color:#233D4D;font-family:"Instrument Sans","Helvetica Neue",Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;font-size:15px;line-height:1.35}
+    a{color:#3F7F6E;text-decoration:none}
+    a:hover{color:#0A5049}
+    button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;text-align:left}
+    .n{font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
+    .t{font-family:"Instrument Serif",Georgia,"Times New Roman",serif;font-weight:400;letter-spacing:-0.004em}
+    .el{box-shadow:0 1px 2px rgba(40,54,24,0.06),0 10px 26px -14px rgba(40,54,24,0.18)}
+    .el2{box-shadow:0 2px 8px rgba(24,32,14,0.12),0 22px 44px -20px rgba(24,32,14,0.40)}
+    .sec{margin:0;font-size:16.5px;font-weight:600;letter-spacing:-0.012em;color:#233D4D}
+    .eyebrow{font-size:11.5px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase}
+  </style>
+</helmet>
+
+<div style="width:390px;min-height:1040px;display:flex;flex-direction:column;background:#F2F5F0">
+
+  <div class="el2" style="background:repeating-linear-gradient(0deg, rgba(255,255,255,0.045) 0px, rgba(255,255,255,0.045) 1px, rgba(0,0,0,0) 1px, rgba(0,0,0,0) 26px),radial-gradient(130% 85% at 82% -12%, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0) 62%),linear-gradient(150deg,#356F60 0%,#28564B 58%,#1C4038 100%);color:#FFFFFF;border-radius:0 0 28px 28px;padding:22px 20px 26px;display:flex;flex-direction:column;gap:18px">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+      <button style="width:44px;height:44px;margin-left:-10px;border-radius:999px;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,0.92)"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
+      <h1 class="t" style="margin:0;font-size:20px;color:#FFFFFF">Household</h1>
+      <span style="width:44px;height:44px"></span>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <h2 class="t" style="margin:0;font-size:26px;color:#FFFFFF">Mogul Household</h2>
+      <span class="n" style="font-size:13px;color:rgba(255,255,255,0.86)">2 members · created 4 Aug 2026</span>
+    </div>
+  </div>
+
+  <div style="display:flex;align-items:flex-start;gap:10px;margin:20px 18px 20px;padding:14px 15px;border-radius:14px;background:#EAEBF7">
+    <span style="color:#233D4D;flex:none;margin-top:1px"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="10" width="15" height="10.5" rx="2.5"/><path d="M8 10V7.5a4 4 0 0 1 8 0V10"/></svg></span>
+    <span style="flex:1;font-size:13px;line-height:1.5;color:#3F45A0">A household keeps one set of books. Everyone in it sees every entry and every budget — that is what makes the shared totals work.</span>
+  </div>
+
+  <div style="display:flex;align-items:center;gap:10px;padding:0 20px 12px">
+    <span style="width:26px;height:26px;border-radius:8px;background:#EAEBF7;display:flex;align-items:center;justify-content:center;color:#3F45A0;flex:none"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8.5" r="3.2"/><path d="M3 19.5a6 6 0 0 1 12 0"/><path d="M16 5.6a3.2 3.2 0 0 1 0 5.8"/><path d="M17 14.2a6 6 0 0 1 4 5.3"/></svg></span>
+    <h2 class="sec" style="flex:none">Members</h2>
+    <span style="flex:1;height:1px;background:#DCE5E7"></span>
+    
+  </div>
+  <section class="el" style="margin:0 18px 22px;background:#FFFFFF;border-radius:18px;padding:0 16px">
+    <div style="display:flex;align-items:center;gap:12px;min-height:72px;border-bottom:1px solid #EAEFF0">
+      <span style="width:42px;height:42px;border-radius:999px;background:linear-gradient(140deg,${CAT.green[0]} 0%,#A9D07E 100%);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:${C.tealD};flex:none">AM</span>
+      <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px">
+        <span style="font-size:15.5px;font-weight:600">Abdeali M</span>
+        <span style="font-size:12.5px;color:#4A6472">You · joined 4 Aug</span>
+      </span>
+      <button style="min-height:44px;padding:0 12px;display:flex;align-items:center;gap:6px;border-radius:11px;background:#EAEBF7;color:#3F45A0;font-size:13px;font-weight:600">Owner <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 9l7 7 7-7"/></svg></button>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;min-height:72px">
+      <span style="width:42px;height:42px;border-radius:999px;background:linear-gradient(140deg,${CAT.purple[0]} 0%,#DE93CC 100%);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:${C.plum};flex:none">FM</span>
+      <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px">
+        <span style="font-size:15.5px;font-weight:600">Fatema M</span>
+        <span style="font-size:12.5px;color:#4A6472">Joined 6 Aug</span>
+      </span>
+      <button style="min-height:44px;padding:0 12px;display:flex;align-items:center;gap:6px;border-radius:11px;background:#EDF1F1;color:#4A6472;font-size:13px;font-weight:600">Adult <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 9l7 7 7-7"/></svg></button>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;min-height:72px;border-top:1px solid #EAEFF0">
+      <span style="width:42px;height:42px;border-radius:999px;background:#FDF1D5;display:flex;align-items:center;justify-content:center;color:#8A6510;flex:none"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 1.8"/></svg></span>
+      <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px">
+        <span style="font-size:15.5px;font-weight:600;color:#4A6472">+91 98204 41213</span>
+        <span style="font-size:12.5px;color:#8A6510">Invited 29 Aug · expires in 5 days</span>
+      </span>
+      <button style="min-height:44px;padding:0 12px;display:flex;align-items:center;border-radius:11px;background:#F3F6F5;color:#4A6472;font-size:13px;font-weight:600">Resend</button>
+    </div>
+  </section>
+
+  <button style="margin:0 18px 24px;display:flex;align-items:center;justify-content:center;gap:8px;min-height:52px;border-radius:15px;border:1.5px dashed #BCC9CE;color:#3F7F6E;font-size:14.5px;font-weight:600">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+    Invite someone
+  </button>
+
+  <div style="display:flex;align-items:center;gap:10px;padding:0 20px 12px">
+    <span style="width:26px;height:26px;border-radius:8px;background:#EEF0F1;display:flex;align-items:center;justify-content:center;color:#4A6472;flex:none"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6.5h16"/><path d="M7 12h10"/><path d="M10 17.5h4"/></svg></span>
+    <h2 class="sec" style="flex:none">What each role can do</h2>
+    <span style="flex:1;height:1px;background:#DCE5E7"></span>
+    
+  </div>
+  <section class="el" style="margin:0 18px 26px;background:#FFFFFF;border-radius:18px;padding:0 16px">
+    <div style="display:flex;flex-direction:column;gap:4px;padding:15px 0;border-bottom:1px solid #EAEFF0">
+      <span style="font-size:14.5px;font-weight:600">Owner</span>
+      <span style="font-size:13px;line-height:1.5;color:#4A6472">Billing, removing members, deleting the household.</span>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:4px;padding:15px 0;border-bottom:1px solid #EAEFF0">
+      <span style="font-size:14.5px;font-weight:600">Adult</span>
+      <span style="font-size:13px;line-height:1.5;color:#4A6472">Adds, edits and deletes anything. Cannot remove members.</span>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:4px;padding:15px 0">
+      <span style="font-size:14.5px;font-weight:600">Viewer</span>
+      <span style="font-size:13px;line-height:1.5;color:#4A6472">Reads everything, records only their own entries.</span>
+    </div>
+  </section>
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":390,"height":1040}}'>
+class Component extends DCLogic {}
+</script>
+</body>
+</html>

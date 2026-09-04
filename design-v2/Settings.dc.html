@@ -1,0 +1,182 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="crossorigin">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap">
+  <style>
+    *{box-sizing:border-box}
+    body{margin:0;background:#F2F5F0;color:#233D4D;font-family:"Instrument Sans","Helvetica Neue",Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;font-size:15px;line-height:1.35}
+    a{color:#3F7F6E;text-decoration:none}
+    a:hover{color:#0A5049}
+    button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;text-align:left}
+    .n{font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
+    .t{font-family:"Instrument Serif",Georgia,"Times New Roman",serif;font-weight:400;letter-spacing:-0.004em}
+    .el{box-shadow:0 1px 2px rgba(40,54,24,0.06),0 10px 26px -14px rgba(40,54,24,0.18)}
+    .el2{box-shadow:0 2px 8px rgba(24,32,14,0.12),0 22px 44px -20px rgba(24,32,14,0.40)}
+    .sec{margin:0;font-size:16.5px;font-weight:600;letter-spacing:-0.012em;color:#233D4D}
+    .eyebrow{font-size:11.5px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase}
+  </style>
+</helmet>
+
+<div style="width:390px;min-height:1300px;display:flex;flex-direction:column;background:#F2F5F0">
+
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:20px 20px 0">
+    <button style="width:44px;height:44px;margin-left:-10px;border-radius:999px;display:flex;align-items:center;justify-content:center;color:#4A6472"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
+    <h1 class="t" style="margin:0;font-size:19px">Settings</h1>
+    <span style="width:44px;height:44px"></span>
+  </div>
+
+  <div style="display:flex;align-items:center;gap:10px;padding:22px 20px 12px">
+    <span style="width:26px;height:26px;border-radius:8px;background:#E3F5F1;display:flex;align-items:center;justify-content:center;color:#3F7F6E;flex:none"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="10" width="15" height="10.5" rx="2.5"/><path d="M8 10V7.5a4 4 0 0 1 8 0V10"/></svg></span>
+    <h2 class="sec" style="flex:none">Lock &amp; privacy</h2>
+    <span style="flex:1;height:1px;background:#DCE5E7"></span>
+    
+  </div>
+  <section class="el" style="margin:0 18px 24px;background:#FFFFFF;border-radius:18px;padding:0 16px">
+    <div style="display:flex;align-items:center;gap:12px;min-height:66px;border-bottom:1px solid #EAEFF0">
+      <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+        <span style="font-size:15px;font-weight:600">Face ID</span>
+        <span style="font-size:12.5px;color:#4A6472">Falls back to your PIN</span>
+      </span>
+      <span style="width:50px;height:30px;border-radius:999px;background:#619B8A;display:flex;align-items:center;justify-content:flex-end;padding:3px;flex:none"><span style="width:24px;height:24px;border-radius:999px;background:#FFFFFF"></span></span>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;min-height:66px;border-bottom:1px solid #EAEFF0">
+      <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+        <span style="font-size:15px;font-weight:600">Lock after</span>
+        <span style="font-size:12.5px;color:#4A6472">2 minutes in the background</span>
+      </span>
+      <span style="display:flex;align-items:center;gap:6px;font-size:14px;font-weight:600;color:#4A6472">2 min <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></span>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;min-height:66px;border-bottom:1px solid #EAEFF0">
+      <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+        <span style="font-size:15px;font-weight:600">Hide amounts in the app switcher</span>
+        <span style="font-size:12.5px;color:#4A6472">Blurs balances when you swipe away</span>
+      </span>
+      <span style="width:50px;height:30px;border-radius:999px;background:#619B8A;display:flex;align-items:center;justify-content:flex-end;padding:3px;flex:none"><span style="width:24px;height:24px;border-radius:999px;background:#FFFFFF"></span></span>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;min-height:66px;border-bottom:1px solid #EAEFF0">
+      <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+        <span style="font-size:15px;font-weight:600">Always ask before the Vault</span>
+        <span style="font-size:12.5px;color:#4A6472">Even when the app is unlocked</span>
+      </span>
+      <span style="width:50px;height:30px;border-radius:999px;background:#619B8A;display:flex;align-items:center;justify-content:flex-end;padding:3px;flex:none"><span style="width:24px;height:24px;border-radius:999px;background:#FFFFFF"></span></span>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;min-height:66px;border-bottom:1px solid #EAEFF0">
+      <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+        <span style="font-size:15px;font-weight:600">Change PIN</span>
+        
+      </span>
+      <span style="color:#5E7885"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></span>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;min-height:66px">
+      <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+        <span style="font-size:15px;font-weight:600">Devices</span>
+        <span style="font-size:12.5px;color:#4A6472">3 signed in</span>
+      </span>
+      <span style="color:#5E7885"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></span>
+    </div>
+  </section>
+
+  <div style="display:flex;align-items:center;gap:10px;padding:0 20px 12px">
+    <span style="width:26px;height:26px;border-radius:8px;background:#FDF1D5;display:flex;align-items:center;justify-content:center;color:#8A6510;flex:none"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 12 4l9 5.5"/><path d="M5.5 11v7"/><path d="M12 11v7"/><path d="M18.5 11v7"/><path d="M3 20.5h18"/></svg></span>
+    <h2 class="sec" style="flex:none">Money</h2>
+    <span style="flex:1;height:1px;background:#DCE5E7"></span>
+    
+  </div>
+  <section class="el" style="margin:0 18px 24px;background:#FFFFFF;border-radius:18px;padding:0 16px">
+    <div style="display:flex;align-items:center;gap:12px;min-height:66px;border-bottom:1px solid #EAEFF0">
+      <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+        <span style="font-size:15px;font-weight:600">Main currency</span>
+        <span style="font-size:12.5px;line-height:1.4;color:#4A6472">INR · ₹</span>
+      </span>
+      <span style="display:flex;align-items:center;gap:6px;font-size:14px;font-weight:600;color:#4A6472">₹ INR <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></span>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;min-height:66px;border-bottom:1px solid #EAEFF0">
+      <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+        <span style="font-size:15px;font-weight:600">Exchange rates</span>
+        <span style="font-size:12.5px;line-height:1.4;color:#4A6472">Updated daily · 1 USD = ₹83.50</span>
+      </span>
+      <span style="color:#5E7885"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></span>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;min-height:66px;border-bottom:1px solid #EAEFF0">
+      <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+        <span style="font-size:15px;font-weight:600">Month starts on</span>
+        <span style="font-size:12.5px;line-height:1.4;color:#4A6472">The 1st</span>
+      </span>
+      <span style="display:flex;align-items:center;gap:6px;font-size:14px;font-weight:600;color:#4A6472">1st <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></span>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;min-height:66px;border-bottom:1px solid #EAEFF0">
+      <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+        <span style="font-size:15px;font-weight:600">Show the Hijri date</span>
+        <span style="font-size:12.5px;line-height:1.4;color:#4A6472">Beside Gregorian on scheduled payments</span>
+      </span>
+      <span style="width:50px;height:30px;border-radius:999px;background:#619B8A;display:flex;align-items:center;justify-content:flex-end;padding:3px;flex:none"><span style="width:24px;height:24px;border-radius:999px;background:#FFFFFF"></span></span>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;min-height:66px">
+      <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+        <span style="font-size:15px;font-weight:600">Read payment messages</span>
+        <span style="font-size:12.5px;line-height:1.4;color:#4A6472">Suggests entries in your Inbox — nothing is added without you</span>
+      </span>
+      <span style="width:50px;height:30px;border-radius:999px;background:#619B8A;display:flex;align-items:center;justify-content:flex-end;padding:3px;flex:none"><span style="width:24px;height:24px;border-radius:999px;background:#FFFFFF"></span></span>
+    </div>
+  </section>
+
+  <div style="display:flex;align-items:center;gap:10px;padding:0 20px 12px">
+    <span style="width:26px;height:26px;border-radius:8px;background:#E4F0F8;display:flex;align-items:center;justify-content:center;color:#2F6382;flex:none"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9a6 6 0 1 1 12 0c0 4 1.5 5.5 1.5 5.5h-15S6 13 6 9Z"/><path d="M10 18.5a2 2 0 0 0 4 0"/></svg></span>
+    <h2 class="sec" style="flex:none">Nudges</h2>
+    <span style="flex:1;height:1px;background:#DCE5E7"></span>
+    
+  </div>
+  <section class="el" style="margin:0 18px 24px;background:#FFFFFF;border-radius:18px;padding:0 16px">
+    <div style="display:flex;align-items:center;gap:12px;min-height:62px;border-bottom:1px solid #EAEFF0">
+      <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+        <span style="font-size:15px;font-weight:600">A payment is due tomorrow</span>
+        
+      </span>
+      <span style="width:50px;height:30px;border-radius:999px;background:#619B8A;display:flex;align-items:center;justify-content:flex-end;padding:3px;flex:none"><span style="width:24px;height:24px;border-radius:999px;background:#FFFFFF"></span></span>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;min-height:62px;border-bottom:1px solid #EAEFF0">
+      <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+        <span style="font-size:15px;font-weight:600">Something is overdue</span>
+        
+      </span>
+      <span style="width:50px;height:30px;border-radius:999px;background:#619B8A;display:flex;align-items:center;justify-content:flex-end;padding:3px;flex:none"><span style="width:24px;height:24px;border-radius:999px;background:#FFFFFF"></span></span>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;min-height:62px;border-bottom:1px solid #EAEFF0">
+      <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+        <span style="font-size:15px;font-weight:600">A category is nearly spent</span>
+        <span style="font-size:12.5px;color:#4A6472">At 80%</span>
+      </span>
+      <span style="width:50px;height:30px;border-radius:999px;background:#619B8A;display:flex;align-items:center;justify-content:flex-end;padding:3px;flex:none"><span style="width:24px;height:24px;border-radius:999px;background:#FFFFFF"></span></span>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;min-height:62px">
+      <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+        <span style="font-size:15px;font-weight:600">Weekly summary</span>
+        <span style="font-size:12.5px;color:#4A6472">Sunday evening</span>
+      </span>
+      <span style="width:50px;height:30px;border-radius:999px;background:#CBD5D8;display:flex;align-items:center;justify-content:flex-start;padding:3px;flex:none"><span style="width:24px;height:24px;border-radius:999px;background:#FFFFFF"></span></span>
+    </div>
+  </section>
+
+  <section class="el" style="margin:0 18px 26px;background:#FFFFFF;border-radius:18px;padding:0 16px">
+    <button style="display:flex;align-items:center;gap:12px;width:100%;min-height:62px;border-bottom:1px solid #EAEFF0">
+      <span style="flex:1;font-size:15px;font-weight:600;color:#3F7F6E">Export everything</span>
+      <span style="color:#5E7885"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></span>
+    </button>
+    <button style="display:flex;align-items:center;gap:12px;width:100%;min-height:62px">
+      <span style="flex:1;font-size:15px;font-weight:600;color:#C2551A">Sign out</span>
+    </button>
+  </section>
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":390,"height":1300}}'>
+class Component extends DCLogic {}
+</script>
+</body>
+</html>

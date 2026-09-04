@@ -1,0 +1,151 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="crossorigin">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap">
+  <style>
+    *{box-sizing:border-box}
+    body{margin:0;background:#F2F5F0;color:#233D4D;font-family:"Instrument Sans","Helvetica Neue",Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;font-size:15px;line-height:1.35}
+    a{color:#3F7F6E;text-decoration:none}
+    a:hover{color:#0A5049}
+    button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;text-align:left}
+    .n{font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
+    .t{font-family:"Instrument Serif",Georgia,"Times New Roman",serif;font-weight:400;letter-spacing:-0.004em}
+    .el{box-shadow:0 1px 2px rgba(40,54,24,0.06),0 10px 26px -14px rgba(40,54,24,0.18)}
+    .el2{box-shadow:0 2px 8px rgba(24,32,14,0.12),0 22px 44px -20px rgba(24,32,14,0.40)}
+    .sec{margin:0;font-size:16.5px;font-weight:600;letter-spacing:-0.012em;color:#233D4D}
+    .eyebrow{font-size:11.5px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase}
+  </style>
+</helmet>
+
+<div style="width:390px;min-height:1240px;display:flex;flex-direction:column;background:#F2F5F0">
+
+  <div class="el2" style="background:repeating-linear-gradient(0deg, rgba(255,255,255,0.045) 0px, rgba(255,255,255,0.045) 1px, rgba(0,0,0,0) 1px, rgba(0,0,0,0) 26px),radial-gradient(130% 85% at 82% -12%, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0) 62%),linear-gradient(150deg,#AC4711 0%,#8A390D 58%,#682B0A 100%);color:#FFFFFF;border-radius:0 0 28px 28px;padding:22px 20px 24px;display:flex;flex-direction:column;gap:18px">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+      <button style="width:44px;height:44px;margin-left:-10px;border-radius:999px;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,0.92)"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
+      <h1 class="t" style="margin:0;font-size:20px;color:#FFFFFF">Money to get back</h1>
+      <span style="width:44px;height:44px"></span>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:9px">
+      <span class="eyebrow" style="color:rgba(255,255,255,0.86)">Still owed to you</span>
+      <span class="n" style="font-size:48px;font-weight:600;line-height:1;letter-spacing:-0.034em">₹55,000</span>
+      <span class="n" style="font-size:13px;color:rgba(255,255,255,0.86)">From 3 people · ₹8,000 received so far</span>
+    </div>
+    <button class="el" style="min-height:52px;display:flex;align-items:center;justify-content:center;gap:8px;border-radius:15px;background:#FFFFFF;color:#5A4208;font-size:15.5px;font-weight:600"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg> Record a payment received</button>
+  </div>
+
+  <div style="display:flex;gap:8px;padding:18px 18px 16px;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none">
+    <button class="el" style="min-height:42px;padding:0 15px;display:flex;align-items:center;border-radius:999px;background:linear-gradient(145deg,#C2551A 0%,#9C3F0D 100%);color:#FFFFFF;font-size:13.5px;font-weight:600;flex:none">All</button>
+    <button style="min-height:42px;padding:0 15px;display:flex;align-items:center;border-radius:999px;background:#FFFFFF;border:1px solid #DCE5E7;color:#4A6472;font-size:13.5px;font-weight:600;flex:none;scroll-snap-align:start;white-space:nowrap">Reimbursements</button>
+    <button style="min-height:42px;padding:0 15px;display:flex;align-items:center;border-radius:999px;background:#FFFFFF;border:1px solid #DCE5E7;color:#4A6472;font-size:13.5px;font-weight:600;flex:none;scroll-snap-align:start;white-space:nowrap">Loans</button>
+    <button style="min-height:42px;padding:0 15px;display:flex;align-items:center;border-radius:999px;background:#FFFFFF;border:1px solid #DCE5E7;color:#4A6472;font-size:13.5px;font-weight:600;flex:none;scroll-snap-align:start;white-space:nowrap">Shared</button>
+  </div>
+
+  <section class="el" style="margin:0 18px 12px;background:#FFFFFF;border-radius:18px;padding:15px 16px;display:flex;flex-direction:column;gap:13px">
+    <div style="display:flex;align-items:center;gap:12px">
+      <span style="width:44px;height:44px;border-radius:999px;background:linear-gradient(140deg,${CAT.orange[0]} 0%,#FBA766 100%);display:flex;align-items:center;justify-content:center;font-size:14.5px;font-weight:700;color:${C.goldInk};flex:none">AR</span>
+      <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px">
+        <span style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:16.5px;font-weight:600">Ahmed Raza</span>
+          
+        </span>
+        <span style="font-size:12.5px;color:#4A6472">Dubai trip · shared 26 Aug</span>
+      </span>
+      <span class="n" style="font-size:20px;font-weight:600;letter-spacing:-0.025em">₹35,900</span>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:9px;padding:12px 0;border-top:1px solid #EAEFF0;border-bottom:1px solid #EAEFF0">
+      <div style="display:flex;align-items:center;gap:9px">
+        <span style="width:8px;height:8px;border-radius:999px;background:#2F6382;flex:none"></span>
+        <span style="flex:1;font-size:14px;color:#4A6472">Flight — Emirates</span>
+        <span class="n" style="font-size:14px;font-weight:600;color:#4A6472">₹18,400</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:9px">
+        <span style="width:8px;height:8px;border-radius:999px;background:#8A3E70;flex:none"></span>
+        <span style="flex:1;font-size:14px;color:#4A6472">Hotel — Taj Palace</span>
+        <span class="n" style="font-size:14px;font-weight:600;color:#4A6472">₹12,500</span>
+      </div>
+      <a href="#" style="min-height:44px;display:flex;align-items:center;gap:6px;font-size:13.5px;font-weight:600">See all 4 items <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></a>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button style="flex:1;min-height:46px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:13px;background:#F3F6F5;color:#233D4D;font-size:14px;font-weight:600"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="12" r="2.6"/><circle cx="17.5" cy="6" r="2.6"/><circle cx="17.5" cy="18" r="2.6"/><path d="M8.3 10.8 15.2 7.2"/><path d="M8.3 13.2l6.9 3.6"/></svg> Remind</button>
+      <button style="flex:1;min-height:46px;display:flex;align-items:center;justify-content:center;border-radius:13px;background:linear-gradient(145deg,#C2551A 0%,#9C3F0D 100%);color:#FFFFFF;font-size:14px;font-weight:600">Mark received</button>
+    </div>
+  </section>
+
+  <section class="el" style="margin:0 18px 12px;background:#FFFFFF;border-radius:18px;padding:15px 16px;display:flex;flex-direction:column;gap:13px">
+    <div style="display:flex;align-items:center;gap:12px">
+      <span style="width:44px;height:44px;border-radius:999px;background:linear-gradient(140deg,${CAT.blue[0]} 0%,#7FBCE4 100%);display:flex;align-items:center;justify-content:center;font-size:14.5px;font-weight:700;color:${C.blue};flex:none">SI</span>
+      <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px">
+        <span style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:16.5px;font-weight:600">Sara Iyer</span>
+          <span style="display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:700;letter-spacing:0.03em;text-transform:uppercase;color:#8A6510;background:#FDF1D5;border-radius:5px;padding:3px 7px;flex:none"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 1.8"/></svg>Part paid</span>
+        </span>
+        <span style="font-size:12.5px;color:#4A6472">Loan given · due by 15 Sep</span>
+      </span>
+      <span class="n" style="font-size:20px;font-weight:600;letter-spacing:-0.025em">₹12,000</span>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:7px;padding:12px 0;border-top:1px solid #EAEFF0;border-bottom:1px solid #EAEFF0">
+      <div style="height:7px;border-radius:999px;background:#E6ECEC;overflow:hidden"><div style="width:40%;height:7px;border-radius:999px;background:linear-gradient(90deg,#7BB0A0 0%,#619B8A 100%)"></div></div>
+      <span class="n" style="font-size:12.5px;color:#5E7885">₹8,000 of ₹20,000 back</span>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button style="flex:1;min-height:46px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:13px;background:#F3F6F5;color:#233D4D;font-size:14px;font-weight:600"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="12" r="2.6"/><circle cx="17.5" cy="6" r="2.6"/><circle cx="17.5" cy="18" r="2.6"/><path d="M8.3 10.8 15.2 7.2"/><path d="M8.3 13.2l6.9 3.6"/></svg> Remind</button>
+      <button style="flex:1;min-height:46px;display:flex;align-items:center;justify-content:center;border-radius:13px;background:linear-gradient(145deg,#C2551A 0%,#9C3F0D 100%);color:#FFFFFF;font-size:14px;font-weight:600">Mark received</button>
+    </div>
+  </section>
+
+  <section class="el" style="margin:0 18px 12px;background:#FFFFFF;border-radius:18px;padding:15px 16px;display:flex;flex-direction:column;gap:13px">
+    <div style="display:flex;align-items:center;gap:12px">
+      <span style="width:44px;height:44px;border-radius:999px;background:linear-gradient(140deg,${CAT.purple[0]} 0%,#DE93CC 100%);display:flex;align-items:center;justify-content:center;font-size:14.5px;font-weight:700;color:${C.plum};flex:none">ZL</span>
+      <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px">
+        <span style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:16.5px;font-weight:600">Zenith Labs</span>
+          
+        </span>
+        <span style="font-size:12.5px;color:#4A6472">Work reimbursement · shared 24 Aug</span>
+      </span>
+      <span class="n" style="font-size:20px;font-weight:600;letter-spacing:-0.025em">₹7,100</span>
+    </div>
+
+    <div style="display:flex;gap:8px">
+      <button style="flex:1;min-height:46px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:13px;background:#F3F6F5;color:#233D4D;font-size:14px;font-weight:600"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="12" r="2.6"/><circle cx="17.5" cy="6" r="2.6"/><circle cx="17.5" cy="18" r="2.6"/><path d="M8.3 10.8 15.2 7.2"/><path d="M8.3 13.2l6.9 3.6"/></svg> Remind</button>
+      <button style="flex:1;min-height:46px;display:flex;align-items:center;justify-content:center;border-radius:13px;background:linear-gradient(145deg,#C2551A 0%,#9C3F0D 100%);color:#FFFFFF;font-size:14px;font-weight:600">Mark received</button>
+    </div>
+  </section>
+
+  <div style="margin-top:auto;display:flex;align-items:center;gap:2px;padding:8px 10px 24px;background:#FFFFFF;border-top:1px solid #DCE5E7;box-shadow:0 -10px 30px -22px rgba(24,32,14,0.50)">
+    <a href="#" style="flex:1;min-height:56px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;border-radius:15px;background:transparent;color:#5E7885">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5.5 9.5V20a1 1 0 0 0 1 1H10v-6h4v6h3.5a1 1 0 0 0 1-1V9.5"/></svg>
+      <span style="font-size:10.5px;font-weight:600">Home</span>
+    </a>
+    <a href="#" style="flex:1;min-height:56px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;border-radius:15px;background:transparent;color:#5E7885">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h13"/><path d="M14 5l3 3-3 3"/><path d="M20 16H7"/><path d="M10 13l-3 3 3 3"/></svg>
+      <span style="font-size:10.5px;font-weight:600">Activity</span>
+    </a>
+    <div style="flex:1;display:flex;justify-content:center">
+      <button style="width:56px;height:56px;border-radius:999px;background:radial-gradient(120% 100% at 30% 10%, rgba(255,255,255,0.30) 0%, rgba(255,255,255,0) 60%),linear-gradient(145deg,#FE7F2D 0%,#F16B15 100%);color:#233D4D;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 22px -6px rgba(221,95,20,0.45)">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+      </button>
+    </div>
+    <a href="#" style="flex:1;min-height:56px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;border-radius:15px;background:transparent;color:#5E7885">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 3.5v8.5h8.5"/></svg>
+      <span style="font-size:10.5px;font-weight:600">Budget</span>
+    </a>
+    <a href="#" style="flex:1;min-height:56px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;border-radius:15px;background:#81AFA1;color:#233D4D">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.5" cy="12" r="1.6" fill="currentColor"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><circle cx="18.5" cy="12" r="1.6" fill="currentColor"/></svg>
+      <span style="font-size:10.5px;font-weight:600">More</span>
+    </a>
+  </div>
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":390,"height":1240}}'>
+class Component extends DCLogic {}
+</script>
+</body>
+</html>

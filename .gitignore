@@ -1,0 +1,29 @@
+# dependencies
+node_modules/
+.pnp
+.pnp.*
+
+# next
+.next/
+out/
+next-env.d.ts
+*.tsbuildinfo
+
+# env
+.env
+.env*.local
+.vercel
+
+# os
+.DS_Store
+*.pem
+
+# logs
+npm-debug.log*
+yarn-error.log*
+
+# The seeded design canvases are build output — several megabytes each, and
+# rewritten whole on every save. The sources are _build/*.mjs, the .dc.html
+# artboards and canvas.json, which are all tracked.
+design/family-finance-app.html
+design-v2/family-finance-app-v2.html

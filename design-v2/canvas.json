@@ -1,0 +1,804 @@
+{
+  "artboards": [
+    {
+      "file": "Main.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 1530,
+      "title": "Home"
+    },
+    {
+      "file": "Transactions.dc.html",
+      "x": 470,
+      "y": 0,
+      "w": 390,
+      "h": 1400,
+      "title": "Activity"
+    },
+    {
+      "file": "AddExpense.dc.html",
+      "x": 940,
+      "y": 0,
+      "w": 390,
+      "h": 900,
+      "title": "Add — with keypad",
+      "is_interactive": true
+    },
+    {
+      "file": "AddSheet.dc.html",
+      "x": 1410,
+      "y": 0,
+      "w": 390,
+      "h": 560,
+      "title": "The + sheet"
+    },
+    {
+      "file": "Budget.dc.html",
+      "x": 1880,
+      "y": 0,
+      "w": 390,
+      "h": 1880,
+      "title": "Budget — the spine"
+    },
+    {
+      "file": "MoneyToGetBack.dc.html",
+      "x": 0,
+      "y": 2120,
+      "w": 390,
+      "h": 1240,
+      "title": "Money to Get Back"
+    },
+    {
+      "file": "ScheduledPayments.dc.html",
+      "x": 470,
+      "y": 2120,
+      "w": 390,
+      "h": 1480,
+      "title": "Scheduled Payments"
+    },
+    {
+      "file": "NetWorth.dc.html",
+      "x": 940,
+      "y": 2120,
+      "w": 390,
+      "h": 1430,
+      "title": "Net Worth"
+    },
+    {
+      "file": "MoreMenu.dc.html",
+      "x": 1410,
+      "y": 2120,
+      "w": 390,
+      "h": 1180,
+      "title": "More"
+    },
+    {
+      "file": "SetupHousehold.dc.html",
+      "x": 0,
+      "y": 4000,
+      "w": 390,
+      "h": 900,
+      "title": "Setup 1 — Household"
+    },
+    {
+      "file": "SetupAccounts.dc.html",
+      "x": 470,
+      "y": 4000,
+      "w": 390,
+      "h": 1000,
+      "title": "Setup 2 — Accounts"
+    },
+    {
+      "file": "SetupBudget.dc.html",
+      "x": 940,
+      "y": 4000,
+      "w": 390,
+      "h": 1000,
+      "title": "Setup 3 — Budget"
+    },
+    {
+      "file": "AuthWelcome.dc.html",
+      "x": 0,
+      "y": 5900,
+      "w": 390,
+      "h": 844,
+      "title": "1 · Welcome"
+    },
+    {
+      "file": "AuthPhone.dc.html",
+      "x": 470,
+      "y": 5900,
+      "w": 390,
+      "h": 844,
+      "title": "2 · Phone"
+    },
+    {
+      "file": "AuthCode.dc.html",
+      "x": 940,
+      "y": 5900,
+      "w": 390,
+      "h": 844,
+      "title": "3 · Code"
+    },
+    {
+      "file": "AuthName.dc.html",
+      "x": 1410,
+      "y": 5900,
+      "w": 390,
+      "h": 844,
+      "title": "4 · Name & recovery"
+    },
+    {
+      "file": "AuthSetPin.dc.html",
+      "x": 1880,
+      "y": 5900,
+      "w": 390,
+      "h": 844,
+      "title": "5 · Set PIN"
+    },
+    {
+      "file": "AuthConfirmPin.dc.html",
+      "x": 0,
+      "y": 7144,
+      "w": 390,
+      "h": 844,
+      "title": "6 · Confirm PIN"
+    },
+    {
+      "file": "AuthBiometric.dc.html",
+      "x": 470,
+      "y": 7144,
+      "w": 390,
+      "h": 844,
+      "title": "7 · Face ID"
+    },
+    {
+      "file": "AuthLocked.dc.html",
+      "x": 940,
+      "y": 7144,
+      "w": 390,
+      "h": 844,
+      "title": "8 · Locked"
+    },
+    {
+      "file": "AuthReauth.dc.html",
+      "x": 1410,
+      "y": 7144,
+      "w": 390,
+      "h": 560,
+      "title": "9 · Re-auth"
+    },
+    {
+      "file": "AuthDevices.dc.html",
+      "x": 1880,
+      "y": 7144,
+      "w": 390,
+      "h": 900,
+      "title": "10 · Devices"
+    },
+    {
+      "file": "AuthRecovery.dc.html",
+      "x": 0,
+      "y": 8388,
+      "w": 390,
+      "h": 844,
+      "title": "11 · Recovery"
+    },
+    {
+      "file": "Inbox.dc.html",
+      "x": 0,
+      "y": 10132,
+      "w": 390,
+      "h": 1240,
+      "title": "Inbox"
+    },
+    {
+      "file": "ShareSettle.dc.html",
+      "x": 470,
+      "y": 10132,
+      "w": 390,
+      "h": 1080,
+      "title": "Shared expense"
+    },
+    {
+      "file": "ShareCompose.dc.html",
+      "x": 940,
+      "y": 10132,
+      "w": 390,
+      "h": 720,
+      "title": "Send the breakdown"
+    },
+    {
+      "file": "RecordPayment.dc.html",
+      "x": 1410,
+      "y": 10132,
+      "w": 390,
+      "h": 880,
+      "title": "Payment received"
+    },
+    {
+      "file": "HouseholdMembers.dc.html",
+      "x": 0,
+      "y": 11772,
+      "w": 390,
+      "h": 1040,
+      "title": "Household members"
+    },
+    {
+      "file": "HouseholdInvite.dc.html",
+      "x": 470,
+      "y": 11772,
+      "w": 390,
+      "h": 880,
+      "title": "Invite"
+    },
+    {
+      "file": "HouseholdRole.dc.html",
+      "x": 940,
+      "y": 11772,
+      "w": 390,
+      "h": 660,
+      "title": "Change role"
+    },
+    {
+      "file": "Settings.dc.html",
+      "x": 0,
+      "y": 13212,
+      "w": 390,
+      "h": 1300,
+      "title": "Settings"
+    },
+    {
+      "file": "Vault.dc.html",
+      "x": 470,
+      "y": 13212,
+      "w": 390,
+      "h": 1000,
+      "title": "Vault"
+    },
+    {
+      "file": "BudgetEdit.dc.html",
+      "x": 0,
+      "y": 15412,
+      "w": 390,
+      "h": 1240,
+      "title": "Set the month"
+    },
+    {
+      "file": "Accounts.dc.html",
+      "x": 470,
+      "y": 15412,
+      "w": 390,
+      "h": 1240,
+      "title": "Accounts & types"
+    },
+    {
+      "file": "AccountEdit.dc.html",
+      "x": 940,
+      "y": 15412,
+      "w": 390,
+      "h": 1000,
+      "title": "What an account is for"
+    },
+    {
+      "file": "Savings.dc.html",
+      "x": 1410,
+      "y": 15412,
+      "w": 390,
+      "h": 1140,
+      "title": "Savings"
+    },
+    {
+      "file": "Trends.dc.html",
+      "x": 1880,
+      "y": 15412,
+      "w": 390,
+      "h": 1500,
+      "title": "Trends"
+    },
+    {
+      "file": "CardControl.dc.html",
+      "x": 0,
+      "y": 17052,
+      "w": 390,
+      "h": 1510,
+      "title": "Card control"
+    },
+    {
+      "file": "Dedupe.dc.html",
+      "x": 470,
+      "y": 17052,
+      "w": 390,
+      "h": 1080,
+      "title": "Possible duplicates"
+    },
+    {
+      "file": "LedgerCentre.dc.html",
+      "x": 0,
+      "y": 19462,
+      "w": 390,
+      "h": 1240,
+      "title": "Ledger Centre"
+    },
+    {
+      "file": "LedgerPerson.dc.html",
+      "x": 470,
+      "y": 19462,
+      "w": 390,
+      "h": 1300,
+      "title": "One person's khata"
+    },
+    {
+      "file": "LedgerBook.dc.html",
+      "x": 940,
+      "y": 19462,
+      "w": 390,
+      "h": 1180,
+      "title": "A book"
+    },
+    {
+      "file": "LedgerAddEntry.dc.html",
+      "x": 1410,
+      "y": 19462,
+      "w": 390,
+      "h": 1000,
+      "title": "Add an entry"
+    },
+    {
+      "file": "LedgerWriteOff.dc.html",
+      "x": 1880,
+      "y": 19462,
+      "w": 390,
+      "h": 760,
+      "title": "Write off"
+    },
+    {
+      "file": "PaymentMethods.dc.html",
+      "x": 0,
+      "y": 21162,
+      "w": 390,
+      "h": 1300,
+      "title": "How you pay"
+    },
+    {
+      "file": "MethodEdit.dc.html",
+      "x": 470,
+      "y": 21162,
+      "w": 390,
+      "h": 1080,
+      "title": "Set one up"
+    },
+    {
+      "file": "CardCycle.dc.html",
+      "x": 940,
+      "y": 21162,
+      "w": 390,
+      "h": 1360,
+      "title": "A card cycle"
+    },
+    {
+      "file": "ScanReading.dc.html",
+      "x": 0,
+      "y": 22762,
+      "w": 390,
+      "h": 760,
+      "title": "Reading a receipt"
+    },
+    {
+      "file": "ScanReview.dc.html",
+      "x": 470,
+      "y": 22762,
+      "w": 390,
+      "h": 1180,
+      "title": "Check it over"
+    },
+    {
+      "file": "AssistKey.dc.html",
+      "x": 940,
+      "y": 22762,
+      "w": 390,
+      "h": 1120,
+      "title": "Scanning setup"
+    },
+    {
+      "file": "EmptyHome.dc.html",
+      "x": 0,
+      "y": 24842,
+      "w": 390,
+      "h": 1160,
+      "title": "First run — Home"
+    },
+    {
+      "file": "EmptyActivity.dc.html",
+      "x": 470,
+      "y": 24842,
+      "w": 390,
+      "h": 844,
+      "title": "Empty — Activity"
+    },
+    {
+      "file": "EmptyBudget.dc.html",
+      "x": 940,
+      "y": 24842,
+      "w": 390,
+      "h": 844,
+      "title": "Empty — Budget"
+    },
+    {
+      "file": "EmptyMoneyBack.dc.html",
+      "x": 1410,
+      "y": 24842,
+      "w": 390,
+      "h": 844,
+      "title": "Empty — Money to Get Back"
+    },
+    {
+      "file": "DarkMain.dc.html",
+      "x": 0,
+      "y": 26902,
+      "w": 390,
+      "h": 1530,
+      "title": "Home"
+    },
+    {
+      "file": "DarkTransactions.dc.html",
+      "x": 470,
+      "y": 26902,
+      "w": 390,
+      "h": 1400,
+      "title": "Activity"
+    },
+    {
+      "file": "DarkBudget.dc.html",
+      "x": 940,
+      "y": 26902,
+      "w": 390,
+      "h": 1880,
+      "title": "Budget"
+    },
+    {
+      "file": "DarkAddExpense.dc.html",
+      "x": 1410,
+      "y": 26902,
+      "w": 390,
+      "h": 900,
+      "title": "Add"
+    },
+    {
+      "file": "DarkTrends.dc.html",
+      "x": 1880,
+      "y": 26902,
+      "w": 390,
+      "h": 1500,
+      "title": "Trends"
+    },
+    {
+      "file": "DarkCardControl.dc.html",
+      "x": 0,
+      "y": 29182,
+      "w": 390,
+      "h": 1510,
+      "title": "Card control"
+    },
+    {
+      "file": "DarkSavings.dc.html",
+      "x": 470,
+      "y": 29182,
+      "w": 390,
+      "h": 1140,
+      "title": "Savings"
+    },
+    {
+      "file": "DarkAccounts.dc.html",
+      "x": 940,
+      "y": 29182,
+      "w": 390,
+      "h": 1240,
+      "title": "Accounts"
+    },
+    {
+      "file": "DarkInbox.dc.html",
+      "x": 1410,
+      "y": 29182,
+      "w": 390,
+      "h": 1240,
+      "title": "Inbox"
+    },
+    {
+      "file": "DarkNetWorth.dc.html",
+      "x": 1880,
+      "y": 29182,
+      "w": 390,
+      "h": 1430,
+      "title": "Net Worth"
+    },
+    {
+      "file": "DarkAuthLocked.dc.html",
+      "x": 0,
+      "y": 31092,
+      "w": 390,
+      "h": 844,
+      "title": "Locked"
+    },
+    {
+      "file": "DarkDedupe.dc.html",
+      "x": 470,
+      "y": 31092,
+      "w": 390,
+      "h": 1080,
+      "title": "Duplicates"
+    }
+  ],
+  "annotations": [
+    {
+      "id": "band-page-1",
+      "x": 0,
+      "y": -210,
+      "w": 900,
+      "text": "THE APP"
+    },
+    {
+      "id": "band-page-2",
+      "x": 0,
+      "y": 5690,
+      "w": 900,
+      "text": "AUTH & LOCK"
+    },
+    {
+      "id": "band-page-3",
+      "x": 0,
+      "y": 9922,
+      "w": 900,
+      "text": "INBOX, SHARING & HOUSEHOLD"
+    },
+    {
+      "id": "band-page-5",
+      "x": 0,
+      "y": 15202,
+      "w": 900,
+      "text": "BUDGET, ACCOUNTS & CARDS"
+    },
+    {
+      "id": "band-page-7",
+      "x": 0,
+      "y": 19252,
+      "w": 900,
+      "text": "LEDGER, PAYMENT METHODS & SCANNING"
+    },
+    {
+      "id": "band-page-4",
+      "x": 0,
+      "y": 24632,
+      "w": 900,
+      "text": "EMPTY & FIRST RUN"
+    },
+    {
+      "id": "band-page-6",
+      "x": 0,
+      "y": 26692,
+      "w": 900,
+      "text": "DARK"
+    },
+    {
+      "id": "colour-system",
+      "x": 0,
+      "y": -880,
+      "w": 430,
+      "text": "TWO SYSTEMS, KEPT APART\nThe last pass had one real fault: Pumpkin Spice was both the add button and the over-budget alarm. An action colour and a danger colour must never be the same — you cannot tell \"do this\" from \"something is wrong\". They are separated now.\n\nBRAND — identity and navigation, never status.\nCharcoal Blue: ink and headers, all 43 screens. Seagrass: every progress fill, the active tab, selections. Golden Pollen: the Inbox and informational highlights. Muted Olive: savings, the Shared tag, neutral positive surfaces. Pumpkin Spice: the add button, and the owed/scheduled header family — attention, never alarm.\nTwo needed a lighter step where 13px text sits on them, Seagrass to #81AFA1 and Pumpkin to #FE8C42. Bars and the add button keep your values exactly.\n\nSTATUS — reserved, and never reused for identity.\nGood #12703F on #DCEFE4 · Warning #8A6510 on #FDF1D5 · Danger #B3261E on #F9E3E1. Dark gets its own steps.\nWhere they apply: over budget and overdue and duplicate charges are DANGER; close to a limit, part-paid and pending statements are WARNING; paid, received, settled and on-track are GOOD; income reads good because money in is genuinely good news.\n\nNEVER COLOUR ALONE (WCAG 1.4.1).\nEvery status chip ships an icon and a word — an alert glyph with \"Over\", a clock with \"Close\", a check with \"On track\". The overdue rows carry the alert glyph and the words \"3 days late\" beside the red, so the screen still works in greyscale, for a colour-blind reader, and in a screenshot.\nEvery ink-on-fill pair was measured, not assumed: nothing below 4.5:1."
+    },
+    {
+      "id": "motion-timing",
+      "x": 0,
+      "y": -420,
+      "w": 430,
+      "text": "MOTION SPEC — applies to every artboard\nDurations 120ms press and toggle · 220ms sheets, expanding panels, row swipes · 320ms screen push and pop · 400ms number tweens.\nEasing cubic-bezier(.2,.8,.2,1). Sheets and row swipes run on a spring, so a half-swipe rubber-bands back instead of snapping.\nAll 117 targets take a press state: scale(.97) plus a 6% ink overlay over 120ms. Nothing in v1 acknowledged a tap.\nNumbers that change tween rather than jump — Left to spend after a save, category totals after an edit. The .n class already sets tabular-nums so digits do not jitter.\nProgress bars animate their width on mount, staggered 40ms down the list.\nEvery one of the above sits inside @media (prefers-reduced-motion: reduce), which drops travel and leaves a cross-fade."
+    },
+    {
+      "id": "home-nav",
+      "x": 470,
+      "y": -420,
+      "w": 430,
+      "text": "HOME — FEWER SECTIONS, ONE FEED\nSix stacked sections became three, taking Home from 1,720px to 1,530px.\nFour full-width cards (Inbox, Savings, Card, Owed) collapsed into one scrolling strip of four tiles. Same four destinations, a quarter of the height, and they read as a row of statuses rather than four competing announcements.\n\"Coming up\" and \"Recent\" merged into one feed under a single heading, split by two rules — Still to pay, then Today. That is the Monzo idea worth taking: a home screen is a timeline, not a dashboard. The overdue row carries its Paid button inline, so the commonest action never needs a second screen.\nSearch moved into the header, where it is reachable on every visit rather than buried in Activity.\nWhat was deliberately not copied: Monzo's look. The tile strip, the feed rules and the pace chart are its navigational ideas rebuilt in Quiet Ledger's own type, colour and density."
+    },
+    {
+      "id": "home-changes-old",
+      "x": 940,
+      "y": 1800,
+      "w": 430,
+      "text": "HOME — the rest of what changed\nF06 The four quick actions are gone. The + button is the only way to add, and it opens the sheet three frames right. That returned ~100px above the fold.\nF04 The overdue maid salary now leads Coming up, in the red treatment, with Paid / Not yet / Skip on the card. In v1 it only existed on Scheduled.\nF13 \"Needs attention\" is now \"Inbox\" — one name, matching More.\nF07 \"Transfers and card payments are not counted as spending\" sits under Money out. The rule was already right; it was never stated.\nF23 The accounts total says it converts $500 at ₹83.50.\nF15 Cards are 150px, so the third peeks 48px instead of 12px.\nThe scope pill is gone; Home now also carries Savings and the card cycle, so the two questions asked most often are answered without leaving it."
+    },
+    {
+      "id": "charts-spec",
+      "x": 1880,
+      "y": 1800,
+      "w": 430,
+      "text": "CHARTS — WHAT AND WHY\nOne axis, thin marks, solid hairline grid one shade off the surface, direct labels only where they earn it.\nEvery SINGLE-SERIES chart uses your palette directly, because nothing sits adjacent to confuse it: the pace line and all progress fills are Seagrass, over-budget is Pumpkin Spice, savings bars are Muted Olive, caution is Golden Pollen.\nThe two DONUTS are the exception and it is a real one. Six mutually-distinguishable hues is a harder problem than five harmonious ones, and the palette cannot do it — Muted Olive against Golden Pollen is ΔE 13.8 to normal vision, below the 15 floor, meaning full-colour readers struggle to tell them apart side by side. So the donuts use a validated six-step set drawn from the same hue families, passing every check in both themes with zero warnings.\nDonuts appear exactly twice, where the story is genuinely part-to-whole: Where August went, and What is on the card. Six segments maximum, none under 9%, a 2px surface gap rather than a border, the total in the hole, every share in the legend. Anything comparative stays a bar."
+    },
+    {
+      "id": "home-gestures",
+      "x": 940,
+      "y": -420,
+      "w": 430,
+      "text": "GESTURES — Home and Activity\nPull to refresh on both. Release at 64px, spinner in the header well.\nAccounts carousel scrolls: overflow-x:auto with scroll-snap-type: x mandatory and scroll-snap-align: start on each card. v1 had overflow:hidden, so the fourth account was unreachable.\nFilter chips on Activity and the category chips on Add scroll the same way, so the last chip is reachable rather than clipped.\nRe-tapping the active tab scrolls that screen to top.\nLong-press a transaction row to change its category without opening it.\nSwipe a transaction row: left reveals Edit and Delete, right marks it To get back.\nHaptics: light on Paid / Mark received / Save, warning tick when a save pushes a category over its limit."
+    },
+    {
+      "id": "keypad-spec",
+      "x": 1410,
+      "y": -420,
+      "w": 430,
+      "text": "ADD — F02, the blocking one\nv1 had a caret but no keypad, and Save was pinned to the bottom where the system keypad lands. This artboard is 390×900 and everything fits with the pad drawn in.\nSave is the tall key in the pad, thumb-reachable, so entry is amount → category chip → Save. Three taps.\nThe type switcher (Expense / Income / Transfer) means a wrong start no longer needs backing out.\nCategory is a scrolling chip row of the budgeted six, with All categories at the end for anything else. Recents fill Paid to.\nThis artboard is live: tap More options, then Need this money back.\nMotion: the pad slides up 220ms on mount. More options height-animates. Digits scale-pulse 90ms on press."
+    },
+    {
+      "id": "sheet-spec",
+      "x": 1880,
+      "y": -420,
+      "w": 430,
+      "text": "THE + SHEET\nReplaces Home's quick-action row. Four entries, one of them a capture path rather than a fourth transaction type — \"Scan a receipt\" lands in Add with the amount and merchant filled.\nGesture: drag-to-dismiss with a spring. Backdrop fades 0→44% over 220ms while the sheet travels; dismissing reverses both.\nTapping the backdrop dismisses. The grabber is decorative — the whole sheet is draggable."
+    },
+    {
+      "id": "one-ledger",
+      "x": 0,
+      "y": 1800,
+      "w": 430,
+      "text": "ONE LEDGER — THE PERSONAL / HOUSEHOLD PILL IS GONE\nv1 had three different scope controls and two conflicting defaults. v2 unified them into one pill. This round removes the pill entirely, because a toggle makes the app modal: you could read \"₹23,600 left\" and not know whose it was until you checked the control above it, and it pushed a classification decision onto every single entry.\nNow there is one set of books. Entries that belong to the household carry a Shared tag, set by one switch in Add. Reading a number never requires reading a mode first.\nThe cost, accepted deliberately: a household sees everything. SetupHousehold used to promise \"your personal money stays private\" — that copy is gone, and the invite and role screens now say plainly that everyone sees every entry.\nNumbers merged accordingly: ₹1,51,400 + ₹64,200 = ₹2,15,600 spent, against ₹1,75,000 + ₹1,00,000 = ₹2,40,000 budgeted."
+    },
+    {
+      "id": "swipe-rows",
+      "x": 470,
+      "y": 1800,
+      "w": 430,
+      "text": "SWIPE INSTEAD OF BUTTON ROWS\nMoney to Get Back and Scheduled carry Paid / Not yet / Skip and Remind / Mark received as visible buttons here so the comp reads. On device these also live behind a swipe, and the buttons stay for discoverability.\nSwipe travel 220ms on a spring; past 40% it commits, under 40% it rubber-bands back. Committing collapses the row height over 220ms and shows a 5-second Undo snackbar.\nF09 Scheduled now headlines ₹99,849 — what you actually need to cover — instead of ₹90,849, which quietly excluded the ₹9,000 overdue sitting right beneath it.\nF10 Every person on Money to Get Back gets the same two actions. In v1 only Zenith Labs had any.\nF11 Both screens now have a back arrow, plus edge-swipe-to-back."
+    },
+    {
+      "id": "nav-fixes",
+      "x": 940,
+      "y": 1800,
+      "w": 430,
+      "text": "TAB BAR\nF14 \"Transactions\" is now \"Activity\". Each slot is 72.4px — (390 − 20 padding − 8 gaps) ÷ 5 — and \"Transactions\" measured ~69px in Instrument Sans and wider in the Helvetica fallback. It also reads truer now that transfers and card payments live there.\nF12 More keeps its teal pill on all of its children. In v1 the same tab rendered gold on Money to Get Back, blue on Scheduled, plum on Net Worth and teal on More — one tab, four colours. The domain colour now lives only in the header gradient.\nF05 Inactive labels moved from #A39A8D (2.78:1) to #6E665C (5.65:1)."
+    },
+    {
+      "id": "contrast-pass",
+      "x": 1410,
+      "y": 1800,
+      "w": 430,
+      "text": "F05 — CONTRAST, EVERY SCREEN\n#948B7F at 3.36:1 across 59 uses → #635B51 at 6.68:1. That token was already in the stylesheet, just unused for meta text.\n#A39A8D at 2.78:1 across 32 uses → #6E665C at 5.65:1.\n#B5ADA1 at 2.22:1 → #7A7268 at 4.74:1 for placeholders.\nHeader text is the harder half. A 150deg gradient puts its 0% stop at the top-left — exactly under the eyebrow — so the old measurement against the 58% stop was wrong. At the real stop, even pure white reached only 3.26:1 on gold and 4.42:1 on teal, so no opacity could fix it. The three light ramps were darkened at 0% (teal #158775→#127666, gold #B4872A→#85641F, blue #3A78AF→#356D9F) and all secondary header text set to rgba(255,255,255,.86) — 4.5:1 or better on every header.\nF19 Text links — See all, Edit — now carry a 44px target instead of the ~18px they had.\nF21 Account counts reconcile: 4 cash-and-bank accounts plus 1 credit card, said the same way in More and Net Worth.\nF22 Vault now says what it holds."
+    },
+    {
+      "id": "setup-spec",
+      "x": 0,
+      "y": 3680,
+      "w": 430,
+      "text": "F17 — TWELVE STEPS CUT TO THREE\nEvery v1 step was skippable, which was the right instinct, but a skip is still a decision and a tap — twelve of them before a single number appeared. Account setup alone spanned two steps because opening balances had been split off.\nNow: household or solo, accounts with opening balances inline, and a first budget. What they covered moved to the six-item \"Finish setting up\" checklist on the first-run Home (page 4), which dismisses when complete.\nMotion: the progress bar animates its width 320ms on each advance; screens push horizontally 320ms with the outgoing one parallaxing at 30%."
+    },
+    {
+      "id": "auth-order",
+      "x": 0,
+      "y": 5480,
+      "w": 430,
+      "text": "F03 — AUTH, WHICH v1 HAD NONE OF\nSetup opened at \"Step 2 of 12\" with no account concept ahead of it, and no lock at all despite net worth, partial account numbers and a Vault.\nOrder: Welcome → phone → 6-digit code → name and recovery email → set PIN → confirm → Face ID → into setup.\nPhone OTP is primary: India-first, matching the ₹ / HDFC / ICICI world the app already lives in, and there is no password to design, recover or breach. Apple and Google sign-in are there for their own platforms.\nThe recovery email on frame 4 is optional but load-bearing — a solo user with no household has no other way back in."
+    },
+    {
+      "id": "auth-motion",
+      "x": 940,
+      "y": 5480,
+      "w": 430,
+      "text": "MOTION — AUTH\nCode digits scale from .9 with a 90ms pop as each lands; a full code auto-submits after 180ms.\nA wrong code or a mismatched PIN shakes ±6px over 300ms and the dots go red — no toast, no dialog.\nKeypad keys take the same 120ms press as everywhere else, with a light haptic per digit.\nUnder prefers-reduced-motion the shake becomes a border-colour cross-fade."
+    },
+    {
+      "id": "lock-rules",
+      "x": 470,
+      "y": 6824,
+      "w": 430,
+      "text": "APP LOCK — REQUIRED, NOT OPTIONAL\nBiometric with a 6-digit PIN fallback, on by default.\nLocks on cold start, after 2 minutes backgrounded, and always before the Vault — a second prompt even inside an unlocked session.\nSensitive actions re-prompt: deleting an account that has transactions, changing a member's role, exporting data, opening the Vault. Everything else stays frictionless.\nPrivacy: balances blur in the app-switcher snapshot, and tapping the big number hides amounts — the gesture people already try.\nThe Locked screen unlocks with a 220ms scale-and-fade into Home, not a cut."
+    },
+    {
+      "id": "recovery-note",
+      "x": 0,
+      "y": 8068,
+      "w": 430,
+      "text": "RECOVERY\nOTP to the same number is the normal path. If the number is gone: the recovery email, or a household Owner re-inviting them.\nThis is why the optional email on frame 4 matters, and why the gold note here says plainly what happens without it."
+    },
+    {
+      "id": "devices-note",
+      "x": 1880,
+      "y": 6824,
+      "w": 430,
+      "text": "SESSIONS\nOne long-lived refresh token per device. Signing a device out ends its session immediately.\n\"Sign out everywhere else\" is the one destructive action here, so it is the only red control on the screen."
+    },
+    {
+      "id": "inbox-spec",
+      "x": 0,
+      "y": 9712,
+      "w": 430,
+      "text": "THE INBOX — THE BIGGEST HOLE IN v1\nIt was badged \"3\" on Home and again in More, linked from both, and designed nowhere.\nOne card per decision, each carrying its own two answers, so the queue empties without leaving the screen. Nothing here has touched a balance yet — that line is the whole promise of the screen.\nThe three are real: an imported payment to confirm and categorise, an expected salary to mark received, and a detected recurring charge to schedule.\nMotion: answering a card collapses it 220ms and the badge counts down. Emptying the queue fades in the closing line."
+    },
+    {
+      "id": "share-spec",
+      "x": 940,
+      "y": 9712,
+      "w": 430,
+      "text": "SHARE & SETTLE — REFERENCED THREE TIMES IN v1, DESIGNED NEVER\n\"Shared expense\" was one of four kinds in Add Expense, Ahmed's card said \"shared 26 Aug\", and Zenith Labs offered \"Share again\".\nThree frames: the shared expense itself with its items and split, the sheet that sends the breakdown, and recording what comes back.\nThe note on Payment received matters — money returned is not income, and saying so stops it double-counting in Money in."
+    },
+    {
+      "id": "household-spec",
+      "x": 0,
+      "y": 11452,
+      "w": 430,
+      "text": "HOUSEHOLD & ROLES\nSetupHousehold promises \"your personal money stays private\". That has to be enforced by a permission model, not just copy — hence three roles.\nOwner: billing, removing members, deleting the household. Adult: full read and write on Household, own Personal private. Viewer: reads Household, writes only their own — for teens and helpers.\nInvites go by phone number with a 7-day code. The invitee signs in with their own number and chooses to link.\nChanging a role asks for Face ID first."
+    },
+    {
+      "id": "settings-spec",
+      "x": 0,
+      "y": 12892,
+      "w": 430,
+      "text": "SETTINGS & VAULT\nEverything More linked to and v1 never drew. Lock and privacy first, because that is what people come here for.\n\"Read payment messages\" is opt-in and says what it does: it suggests entries in the Inbox and adds nothing on its own.\nThe Vault re-prompts on every open, even mid-session, and says so at the top rather than silently asking."
+    },
+    {
+      "id": "budget-spine",
+      "x": 0,
+      "y": 14952,
+      "w": 430,
+      "text": "THE BUDGET IS THE SPINE\nSet the month, and every report measures against it. Monthly, carried forward: September starts as a copy of August, so you set it once and correct it as real months teach you.\nBudget screen (page 1) now reconciles both ways, which v2's did not: eight categories hold ₹1,31,200 of ₹2,15,600 spent, with ₹84,400 \"Not in a category\" making up the rest; ₹1,47,000 of ₹2,40,000 is assigned, with ₹93,000 still loose. Both gaps are shown rather than left for the reader to notice.\n\"Not in a category\" is a link, not a dead row — it opens those 14 entries so they can be given a budget. That is how the plan grows."
+    },
+    {
+      "id": "accounts-spine",
+      "x": 470,
+      "y": 14952,
+      "w": 430,
+      "text": "WHAT AN ACCOUNT IS FOR\nSet once per account, and everything downstream keys off it.\nSpending and Cash feed the budget. Savings is held out of it — so moving money there is a transfer, never an expense, and the savings figure is not competing with your spending figure. Credit is a balance owed rather than money held.\nThis is what makes \"check my savings every once in a while\" a two-tap job: Home carries a savings row, and the screen behind it shows six months, the month's contribution, and what share of income it represents.\nAugust's ₹8,350 into Cash (USD) is the same transfer that appears in the Activity ledger — the savings figure is not a separate number, it is the ledger read a different way."
+    },
+    {
+      "id": "card-dedupe",
+      "x": 940,
+      "y": 16592,
+      "w": 430,
+      "text": "CARD CONTROL AND DEDUPE\nThree ways card spending goes wrong, all handled on these two frames.\nDouble counting: the purchase is the expense, the bill payment is not. The card screen states it in one line — all ₹42,850 is already counted on the day each purchase happened, and paying the bill will not count it again. Card payments also carry a Not an expense tag in the ledger.\nDuplicates: the bank message arrives after you have already typed the expense in. Detection is same amount, same card, within three days. It surfaces as a decision card in the Inbox you already clear, and as a screen when there is more than one — both sources side by side with their timestamps, one button. Whichever you drop waits seven days in the Inbox before it goes.\nControl: a limit ring rather than a bar, because a limit is not a budget; a warn-me threshold; and autopay stated in full so the bill never becomes a surprise."
+    },
+    {
+      "id": "scan-model",
+      "x": 1880,
+      "y": 18922,
+      "w": 430,
+      "text": "SCANNING — PROPOSE, NEVER POST\nA photo produces a DRAFT. The reader will eventually turn ₹1,180 into ₹11,800, and a ledger that saves that silently is worse than no reader at all — so the amount is the largest thing on the review screen, and anything the model was unsure of wears a Check mark.\nCategory and account are GUESSED from the merchant, not read off the paper. The screen says so, because a guess presented with the same confidence as a reading is how wrong data gets confirmed.\nVoice was dropped. Microphone access is documented as unreliable in an installed iPhone PWA — it works once from the home screen and then fails — and home-screen install is the mode push needs. A receipt photo has none of that risk: <input capture> hands off to the system camera app and returns a file, so it never touches getUserMedia.\nPlain OCR was considered and rejected. It solves the easy half — turning pixels into text — and leaves the hard half: deciding which of six numbers on a thermal receipt is the total. It would also add megabytes of wasm to a PWA. One path, one call, structured output.\nTHE KEY. A browser cannot reach Gemini directly; CORS refuses it. So the key lives in this device's browser, travels with each request to our own route, and is forgotten — never written to a database, never at rest on a server. Each device enters its own, and each person spends their own quota."
+    },
+    {
+      "id": "methods-model",
+      "x": 1410,
+      "y": 18922,
+      "w": 430,
+      "text": "AN ACCOUNT HOLDS MONEY. A METHOD IS A RAIL.\nGPay holds nothing. Paying by GPay moves money out of the bank account GPay draws on, so a method carries a funding account and the transaction still records that account. Without this, \"where is my money\" is wrong the moment UPI is involved — which in India is most of the time.\nThe database refuses the nonsense cases rather than trusting the form: a method can never draw on a person, a card rail must draw on a credit account, and UPI must draw on spending or cash. Savings is not offered, because savings is held out of the budget and therefore cannot be a way of paying.\nCARD CYCLES, and what \"auto offset\" actually means. Give a card its statement day and every purchase files itself into the right cycle on write — a trigger derives the period from the date, opening the cycle if it does not exist yet. Paying the bill clears that cycle.\nNothing is counted twice, and now it is checkable rather than a claim in a caption: the purchases are expenses, counted on the day they happened; the payment is a card_payment, which invariant 1 keeps out of spending entirely. The two can never meet.\nOne case the cycle screen has to say out loud: ₹12,500 of that bill is Ahmed's. It is on your card and in your August budget, and it is also in his book — when he repays it comes off there, not off the bill."
+    },
+    {
+      "id": "ledger-model",
+      "x": 0,
+      "y": 18922,
+      "w": 430,
+      "text": "THE LEDGER CENTRE — A KHATA PER PERSON\nA person is modelled as an ACCOUNT of kind 'person'. Lending is then a transfer, and every invariant already built applies free: it is not spending, it never touches the budget, a running balance is just an account balance, and Net Worth picks it up with no new sum. The UI never says account — it says Ahmed.\nPerson then Book then Entry. The book is optional and may span several people, which a folder nested inside one person could not express. Grouping only, no splits, by decision — every case here is one person owing the whole amount.\nTHREE KINDS OF MONEY, now structural rather than a convention:\nLending is NOT spending. A transfer out; it becomes money owed to you.\nPaying for someone IS your spending, in that month, because it was on your card. It is marked to get back, and the repayment lands as money in, never as income.\nA refund UNDOES spending. It carries the original purchase's category and reduces it in the month the refund lands, so it goes back into the category it came out of.\nWriting a loan off is an expense dated today, never backdated — net worth falls by the full amount while the month you originally lent it stays exactly as it was."
+    },
+    {
+      "id": "ledger-ux",
+      "x": 940,
+      "y": 18922,
+      "w": 430,
+      "text": "WHY IT READS LIKE A PAPER LEDGER\nJakob — a khata is oldest-first with the running balance down the right edge. People already know how to read that, so it is not reinvented. The header row labels Date, Entry, Amount and balance, the way a passbook does.\nHick — two segments on the landing screen, People and Books, not five filter chips. Every extra choice costs a decision before any work happens.\nVon Restorff — one figure is large per screen; everything else is deliberately secondary.\nFitts — the primary action is a 58px bar at the thumb, never a header icon. Remind and Settle sit in the header precisely because they are secondary to adding.\nCommon region — a book is a bordered card, so who is in it reads without words.\nAdd an entry leads with the FORK, not the amount. Which of the three kinds this is decides how it behaves, and it is the one thing a user cannot correct later without the arithmetic drifting."
+    },
+    {
+      "id": "dark-spec",
+      "x": 0,
+      "y": 26442,
+      "w": 430,
+      "text": "DARK IS SELECTED, NOT INVERTED\nEvery step was re-measured against the dark card (#16242D) rather than flipped. Body ink lands at 13.9:1, secondary 8.2:1, the faintest step 4.9:1 — all above AA, where a naive inversion would have put the two slate greys near 2:1.\nThe ground is a deep slate (#0D171E) drawn from the palette's own darkest colour, so night is the same product rather than a different one.\nThe nine category tints are a second, separate set — a pale wash that works on white becomes an unreadable smear on slate — and each disc was re-picked. Every icon clears 5.3:1 on its own tint.\nHeader gradients are their own dark ramps, not the light ones dimmed.\nThe chart palette is deliberately the SAME six steps in both themes — colour follows the entity, so a category does not change hue when the lights go out. It was validated separately against the dark surface.\nTwelve screens are drawn dark: the ones where the palette does real work — every chart, the ledger, the card cycle and the lock screen."
+    },
+    {
+      "id": "empty-spec",
+      "x": 0,
+      "y": 24422,
+      "w": 430,
+      "text": "EMPTY & FIRST-RUN — v1 ASSUMED A MATURE ACCOUNT ON EVERY SCREEN\nFirst-run Home carries what F17 moved out of the wizard, as a six-item checklist that dismisses when complete. Home, Activity and Budget read ₹— rather than ₹0, because nothing recorded is not the same as zero. Money to Get Back genuinely is ₹0 — all square — and says so.\nEach empty state names one action and explains the mechanism in a sentence — Money to Get Back points back at the toggle in Add Expense, Budget offers to seed limits from last month's spending.\nMotion: the checklist ticks with a 220ms draw-on check and the progress bar advances behind it."
+    }
+  ],
+  "launch": {
+    "view": "canvas"
+  }
+}

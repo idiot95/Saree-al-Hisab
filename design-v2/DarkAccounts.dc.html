@@ -1,0 +1,165 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="crossorigin">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap">
+  <style>
+    *{box-sizing:border-box}
+    body{margin:0;background:#0D171E;color:#EAF1F2;font-family:"Instrument Sans","Helvetica Neue",Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;font-size:15px;line-height:1.35}
+    a{color:#7FC2AF;text-decoration:none}
+    a:hover{color:#0A5049}
+    button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;text-align:left}
+    .n{font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
+    .t{font-family:"Instrument Serif",Georgia,"Times New Roman",serif;font-weight:400;letter-spacing:-0.004em}
+    .el{box-shadow:0 1px 2px rgba(40,54,24,0.06),0 10px 26px -14px rgba(40,54,24,0.18)}
+    .el2{box-shadow:0 2px 8px rgba(24,32,14,0.12),0 22px 44px -20px rgba(24,32,14,0.40)}
+    .sec{margin:0;font-size:16.5px;font-weight:600;letter-spacing:-0.012em;color:#EAF1F2}
+    .eyebrow{font-size:11.5px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase}
+  </style>
+</helmet>
+
+<div style="width:390px;min-height:1240px;display:flex;flex-direction:column;background:#0D171E">
+
+  <div class="el2" style="background:repeating-linear-gradient(0deg, rgba(255,255,255,0.045) 0px, rgba(255,255,255,0.045) 1px, rgba(0,0,0,0) 1px, rgba(0,0,0,0) 26px),radial-gradient(130% 85% at 82% -12%, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0) 62%),linear-gradient(150deg,#1B3341 0%,#142832 58%,#0F1E26 100%);color:#FFFFFF;border-radius:0 0 28px 28px;padding:22px 20px 24px;display:flex;flex-direction:column;gap:18px">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+      <button style="width:44px;height:44px;margin-left:-10px;border-radius:999px;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,0.92)"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
+      <h1 class="t" style="margin:0;font-size:20px;color:#FFFFFF">Accounts</h1>
+      <button style="width:44px;height:44px;border-radius:999px;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,0.92)"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg></button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:9px">
+      <span class="eyebrow" style="color:rgba(255,255,255,0.86)">Across every account</span>
+      <span class="n" style="font-size:48px;font-weight:600;line-height:1;letter-spacing:-0.034em">₹4,21,930</span>
+      <span class="n" style="font-size:13px;color:rgba(255,255,255,0.86)">4 accounts · 1 credit card · INR and USD</span>
+    </div>
+    <div style="display:flex;border-top:1px solid rgba(255,255,255,0.18);padding-top:16px">
+      <div style="flex:1;display:flex;flex-direction:column;gap:4px">
+        <span style="font-size:12px;font-weight:600;color:rgba(255,255,255,0.86)">Feeds the budget</span>
+        <span class="n" style="font-size:19px;font-weight:600">₹3,80,180</span>
+      </div>
+      <div style="width:1px;background:rgba(255,255,255,0.18)"></div>
+      <div style="flex:1;display:flex;flex-direction:column;gap:4px;padding-left:18px">
+        <span style="font-size:12px;font-weight:600;color:rgba(255,255,255,0.86)">Held as savings</span>
+        <span class="n" style="font-size:19px;font-weight:600;color:${C.tealL}">₹41,750</span>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;align-items:flex-start;gap:10px;margin:20px 18px 22px;padding:14px 15px;border-radius:14px;background:#81AFA1">
+    <span style="color:#12212A;flex:none;margin-top:1px"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 7.5v5.5"/><path d="M12 16.6v.1"/><circle cx="12" cy="12" r="8.5"/></svg></span>
+    <span style="flex:1;font-size:13px;line-height:1.5;color:#4E9784">What an account is <b>for</b> decides how it is counted. Spending and Cash feed your budget. Savings is held out of it, so moving money there never looks like an expense.</span>
+  </div>
+
+  <div style="display:flex;align-items:center;gap:10px;padding:0 20px 12px">
+    <span style="width:26px;height:26px;border-radius:8px;background:#1A4344;display:flex;align-items:center;justify-content:center;color:#7FC2AF;flex:none"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 12 4l9 5.5"/><path d="M5.5 11v7"/><path d="M12 11v7"/><path d="M18.5 11v7"/><path d="M3 20.5h18"/></svg></span>
+    <h2 class="sec" style="flex:none">Feeds the budget</h2>
+    <span style="flex:1;height:1px;background:#2B4049"></span>
+    <span class="n" style="font-size:14px;font-weight:600;color:#A8BEC7">₹3,80,180</span>
+  </div>
+  <section class="el" style="margin:0 18px 22px;background:#16242D;border-radius:18px;padding:0 16px">
+    <a href="#" style="display:flex;gap:13px;color:#EAF1F2">
+      <span style="margin-top:15px;width:40px;height:40px;border-radius:999px;background:#1A4344;display:flex;align-items:center;justify-content:center;color:#7FC2AF;flex:none"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 12 4l9 5.5"/><path d="M5.5 10.5v7.5"/><path d="M10 10.5v7.5"/><path d="M14 10.5v7.5"/><path d="M18.5 10.5v7.5"/><path d="M3 20.5h18"/></svg></span>
+      <div style="flex:1;min-width:0;display:flex;align-items:center;gap:12px;padding:15px 0;border-bottom:1px solid #22343E">
+        <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px">
+          <span style="font-size:15.5px;font-weight:600">HDFC Savings</span>
+          <span style="display:flex;align-items:center;gap:7px;flex-wrap:wrap">
+            <span style="font-size:10.5px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:#7FC2AF;background:#1A4344;border-radius:5px;padding:2px 6px;flex:none">Spending</span>
+            <span style="font-size:12.5px;color:#A8BEC7">INR · ends 4471</span>
+          </span>
+        </span>
+        <span class="n" style="font-size:16px;font-weight:600">₹2,83,530</span>
+        <span style="color:#8CA5B0;flex:none"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></span>
+      </div>
+    </a>
+    <a href="#" style="display:flex;gap:13px;color:#EAF1F2">
+      <span style="margin-top:15px;width:40px;height:40px;border-radius:999px;background:#1B3B4F;display:flex;align-items:center;justify-content:center;color:#7FBCE4;flex:none"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 12 4l9 5.5"/><path d="M5.5 10.5v7.5"/><path d="M10 10.5v7.5"/><path d="M14 10.5v7.5"/><path d="M18.5 10.5v7.5"/><path d="M3 20.5h18"/></svg></span>
+      <div style="flex:1;min-width:0;display:flex;align-items:center;gap:12px;padding:15px 0;border-bottom:1px solid #22343E">
+        <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px">
+          <span style="font-size:15.5px;font-weight:600">ICICI Savings</span>
+          <span style="display:flex;align-items:center;gap:7px;flex-wrap:wrap">
+            <span style="font-size:10.5px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:#7FC2AF;background:#1A4344;border-radius:5px;padding:2px 6px;flex:none">Spending</span>
+            <span style="font-size:12.5px;color:#A8BEC7">INR · ends 9930</span>
+          </span>
+        </span>
+        <span class="n" style="font-size:16px;font-weight:600">₹78,200</span>
+        <span style="color:#8CA5B0;flex:none"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></span>
+      </div>
+    </a>
+    <a href="#" style="display:flex;gap:13px;color:#EAF1F2">
+      <span style="margin-top:15px;width:40px;height:40px;border-radius:999px;background:#2D3B43;display:flex;align-items:center;justify-content:center;color:#A9B6BE;flex:none"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7.5" width="18" height="12" rx="2.5"/><path d="M9 7.5V6a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v1.5"/></svg></span>
+      <div style="flex:1;min-width:0;display:flex;align-items:center;gap:12px;padding:15px 0">
+        <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px">
+          <span style="font-size:15.5px;font-weight:600">Cash</span>
+          <span style="display:flex;align-items:center;gap:7px;flex-wrap:wrap">
+            <span style="font-size:10.5px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:#A9B6BE;background:#2D3B43;border-radius:5px;padding:2px 6px;flex:none">Cash</span>
+            <span style="font-size:12.5px;color:#A8BEC7">INR · in hand</span>
+          </span>
+        </span>
+        <span class="n" style="font-size:16px;font-weight:600">₹18,450</span>
+        <span style="color:#8CA5B0;flex:none"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></span>
+      </div>
+    </a>
+  </section>
+
+  <div style="display:flex;align-items:center;gap:10px;padding:0 20px 12px">
+    <span style="width:26px;height:26px;border-radius:8px;background:#2C4533;display:flex;align-items:center;justify-content:center;color:#A1C181;flex:none"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="M6.5 10.5 12 5l5.5 5.5"/></svg></span>
+    <h2 class="sec" style="flex:none">Held as savings</h2>
+    <span style="flex:1;height:1px;background:#2B4049"></span>
+    <span class="n" style="font-size:14px;font-weight:600;color:#A8BEC7">₹41,750</span>
+  </div>
+  <section class="el" style="margin:0 18px 22px;background:#16242D;border-radius:18px;padding:0 16px">
+    <a href="#" style="display:flex;gap:13px;color:#EAF1F2">
+      <span style="margin-top:15px;width:40px;height:40px;border-radius:999px;background:#2C4533;display:flex;align-items:center;justify-content:center;color:#A1C181;flex:none"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7.5" width="18" height="12" rx="2.5"/><path d="M9 7.5V6a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v1.5"/></svg></span>
+      <div style="flex:1;min-width:0;display:flex;align-items:center;gap:12px;padding:15px 0">
+        <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px">
+          <span style="font-size:15.5px;font-weight:600">Cash (USD)</span>
+          <span style="display:flex;align-items:center;gap:7px;flex-wrap:wrap">
+            <span style="font-size:10.5px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:#A1C181;background:#2C4533;border-radius:5px;padding:2px 6px;flex:none">Savings</span>
+            <span style="font-size:12.5px;color:#A8BEC7">$500.00 at ₹83.50</span>
+          </span>
+        </span>
+        <span class="n" style="font-size:16px;font-weight:600">₹41,750</span>
+        <span style="color:#8CA5B0;flex:none"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></span>
+      </div>
+    </a>
+  </section>
+
+  <div style="display:flex;align-items:center;gap:10px;padding:0 20px 12px">
+    <span style="width:26px;height:26px;border-radius:8px;background:#412F2A;display:flex;align-items:center;justify-content:center;color:#F09270;flex:none"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="5.5" width="19" height="13" rx="2.5"/><path d="M2.5 10h19"/></svg></span>
+    <h2 class="sec" style="flex:none">Cards</h2>
+    <span style="flex:1;height:1px;background:#2B4049"></span>
+    <span class="n" style="font-size:14px;font-weight:600;color:#FE7F2D">−₹42,850</span>
+  </div>
+  <section class="el" style="margin:0 18px 22px;background:#16242D;border-radius:18px;padding:0 16px">
+    <a href="#" style="display:flex;gap:13px;color:#EAF1F2">
+      <span style="margin-top:15px;width:40px;height:40px;border-radius:999px;background:#412F2A;display:flex;align-items:center;justify-content:center;color:#F09270;flex:none"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="5.5" width="19" height="13" rx="2.5"/><path d="M2.5 10h19"/></svg></span>
+      <div style="flex:1;min-width:0;display:flex;align-items:center;gap:12px;padding:15px 0">
+        <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px">
+          <span style="font-size:15.5px;font-weight:600">HDFC Regalia</span>
+          <span style="display:flex;align-items:center;gap:7px;flex-wrap:wrap">
+            <span style="font-size:10.5px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:#FE7F2D;background:#412F2A;border-radius:5px;padding:2px 6px;flex:none">Credit card</span>
+            <span style="font-size:12.5px;color:#A8BEC7">INR · ends 8802 · due 12 Sep</span>
+          </span>
+        </span>
+        <span class="n" style="font-size:16px;font-weight:600">−₹42,850</span>
+        <span style="color:#8CA5B0;flex:none"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></span>
+      </div>
+    </a>
+  </section>
+
+  <button style="margin:0 18px 26px;display:flex;align-items:center;justify-content:center;gap:8px;min-height:52px;border-radius:15px;border:1.5px dashed #3B505B;color:#7FC2AF;font-size:14.5px;font-weight:600">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+    Add an account
+  </button>
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":390,"height":1240}}'>
+class Component extends DCLogic {}
+</script>
+</body>
+</html>

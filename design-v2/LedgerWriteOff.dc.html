@@ -1,0 +1,62 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="crossorigin">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap">
+  <style>
+    *{box-sizing:border-box}
+    body{margin:0;background:#F2F5F0;color:#233D4D;font-family:"Instrument Sans","Helvetica Neue",Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;font-size:15px;line-height:1.35}
+    a{color:#3F7F6E;text-decoration:none}
+    a:hover{color:#0A5049}
+    button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;text-align:left}
+    .n{font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
+    .t{font-family:"Instrument Serif",Georgia,"Times New Roman",serif;font-weight:400;letter-spacing:-0.004em}
+    .el{box-shadow:0 1px 2px rgba(40,54,24,0.06),0 10px 26px -14px rgba(40,54,24,0.18)}
+    .el2{box-shadow:0 2px 8px rgba(24,32,14,0.12),0 22px 44px -20px rgba(24,32,14,0.40)}
+    .sec{margin:0;font-size:16.5px;font-weight:600;letter-spacing:-0.012em;color:#233D4D}
+    .eyebrow{font-size:11.5px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase}
+  </style>
+</helmet>
+
+<div style="width:390px;min-height:760px;display:flex;flex-direction:column;background:#F2F5F0">
+
+  <div style="flex:1;background:rgba(35,61,77,0.46)"></div>
+  <div class="el2" style="background:#FFFFFF;border-radius:26px 26px 0 0;padding:10px 22px 28px;display:flex;flex-direction:column;gap:14px">
+    <span style="width:38px;height:4px;border-radius:999px;background:#C6D2D6;align-self:center;margin-bottom:8px"></span>
+    <span style="width:48px;height:48px;border-radius:999px;background:#F9E3E1;display:flex;align-items:center;justify-content:center;color:#B3261E;flex:none"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 7.5v5.5"/><path d="M12 16.6v.1"/><circle cx="12" cy="12" r="8.5"/></svg></span>
+    <h2 class="t" style="margin:2px 0 0;font-size:22px;letter-spacing:-0.015em">Write off ₹12,000 from Sara?</h2>
+    <p style="margin:0;font-size:14.5px;line-height:1.5;color:#4A6472">You are deciding this money is not coming back. That is a real cost, so it is recorded as one.</p>
+
+    <div style="display:flex;flex-direction:column;gap:11px;padding:15px 16px;border-radius:16px;background:#F3F6F5">
+      <div style="display:flex;gap:10px"><span style="flex:1;font-size:13.5px;color:#4A6472">Sara owes you</span><span class="n" style="font-size:13.5px;font-weight:600;color:#233D4D">₹12,000</span></div>
+      <div style="display:flex;gap:10px"><span style="flex:1;font-size:13.5px;color:#4A6472">Becomes an expense today</span><span class="n" style="font-size:13.5px;font-weight:600;color:#B3261E">₹12,000</span></div>
+      <div style="display:flex;gap:10px"><span style="flex:1;font-size:13.5px;color:#4A6472">Net worth falls by</span><span class="n" style="font-size:13.5px;font-weight:600;color:#B3261E">₹12,000</span></div>
+      <div style="display:flex;gap:10px;padding-top:10px;border-top:1px solid #DCE5E7">
+        <span style="flex:1;font-size:13.5px;font-weight:600">August stays as it was</span>
+        <span class="n" style="font-size:13.5px;font-weight:600;color:#12703F">unchanged</span>
+      </div>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:12px;min-height:58px;padding:0 15px;border-radius:14px;border:1px solid #DCE5E7">
+      <span style="flex:1;font-size:14px;font-weight:600;color:#4A6472">Put it under</span>
+      <span style="display:flex;align-items:center;gap:7px;font-size:14.5px;font-weight:600"><span style="width:26px;height:26px;border-radius:999px;background:#FBE8ED;display:flex;align-items:center;justify-content:center;color:#A32F4E;flex:none"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 20.5a7.5 7.5 0 0 1 15 0"/></svg></span> Gifts &amp; help <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></span>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:8px;margin-top:4px">
+      <button class="el2" style="width:100%;min-height:56px;border-radius:16px;background:#F38B80;color:#233D4D;font-size:16px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:8px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17.5 19 7"/></svg> Write it off</button>
+      <button style="width:100%;min-height:50px;display:flex;align-items:center;justify-content:center;color:#4A6472;font-size:15px;font-weight:600">Keep chasing it</button>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":390,"height":760}}'>
+class Component extends DCLogic {}
+</script>
+</body>
+</html>
