@@ -13,7 +13,9 @@ import { fileURLToPath } from 'node:url';
 import postgres from 'postgres';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
-const url = /^DATABASE_URL="?([^"\n]+)/m.exec(readFileSync(join(root, '.env.local'), 'utf8'))[1];
+const url = process.env.DATABASE_URL
+  ?? /^APP_DATABASE_URL="?([^"\n]+)/m.exec(env)?.[1]
+  ?? /^DATABASE_URL="?([^"\n]+)/m.exec(readFileSync(join(root, '.env.local'), 'utf8'))[1];
 const sql = postgres(url, { ssl: 'require', max: 1, onnotice: () => {} });
 
 const email = (process.argv[2] ?? '').trim().toLowerCase();

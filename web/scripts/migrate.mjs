@@ -42,7 +42,12 @@ function statements(sqlText) {
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const env = readFileSync(join(root, '.env.local'), 'utf8');
-const url = /^DATABASE_URL="?([^"\n]+)/m.exec(env)[1];
+/* An explicit DATABASE_URL in the environment wins, so the same scripts can
+   be pointed at a second database — which is how a region move is done
+   without editing files and forgetting to put them back. */
+const url = process.env.DATABASE_URL
+  ?? /^APP_DATABASE_URL="?([^"\n]+)/m.exec(env)?.[1]
+  ?? /^DATABASE_URL="?([^"\n]+)/m.exec(env)[1];
 // NOTICEs are informational ("already exists, skipping") and drown the output.
 const sql = postgres(url, { ssl: 'require', max: 1, onnotice: () => {} });
 

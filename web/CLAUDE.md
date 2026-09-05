@@ -284,86 +284,31 @@ user-derived id, no `dangerouslySetInnerHTML`, and constraint failures log the
 error code and constraint name only — a Postgres error carries the offending
 row in `detail`, which here means amounts and merchant names.
 
-## Where it runs, and why that is the speed
+## Where it runs
 
-The Neon database is in **us-east-1**. Vercel functions are in **iad1**, the
-same region, so in production the server sits next to the database and queries
-cost single-digit milliseconds.
+**Both halves are in Singapore** — Neon `aws-ap-southeast-1`, Vercel functions
+`sin1` — so the server sits next to the database and each query costs single
+digits rather than a hop across the Pacific.
 
-Locally it is a different story: a laptop in India talking to Virginia pays
-**~274 ms per round trip**, and the first connection costs about four seconds.
-That is why dev felt slow, and why pages were collapsed from three or four
-round trips to two.
+Mumbai would be closer still, and **Neon has no Mumbai region**: the choices are
+`cle1, iad1, pdx1, fra1, lhr1, syd1, sin1, gru1`. Putting the functions in
+`bom1` while the database stayed in Singapore would have split them and made
+every extra query cost 35 ms instead of 2, so both went to `sin1` together.
 
-The remaining win is geography: moving Neon to `ap-south-1` and Vercel to
-`bom1` together. Moving only one makes things worse.
+Measured from a laptop in India: warm round trip **259 ms → 82 ms**, and page
+loads **~550 ms → ~160-210 ms**.
 
-## The budget, which everything reports against
+`APP_DATABASE_URL` is what the app actually reads, falling back to
+`DATABASE_URL`. A marketplace store cannot be renamed or moved between regions,
+so the override is what makes changing region a configuration change instead of
+a race between disconnecting one store and connecting another. Every script
+resolves it the same way, so migrations and tests can never drift onto a
+different database from the app.
 
-`/budget` sets an amount per category per month. Spending comes from
-`spend_txn`, never `txn` — that view is where "a transfer is not spending" and
-"a refund nets off" actually live, so the budget cannot disagree with the
-ledger.
+The old `us-east-1` store is still connected and still holds an identical copy.
+Delete it only once the new one has been lived in for a few days.
 
-**Each month is its own set of figures.** Editing September never rewrites
-August: every write is scoped to one month, and a new month can start as a copy
-of the last (`on conflict do nothing`, so it can never overwrite work already
-done). An amount of zero deletes the row rather than storing a zero, so
-"unbudgeted" and "budgeted nothing" stay the same thing.
-
-`MonthSoFar` on the home screen carries a **pace marker**: a tick on the bar for
-how far through the month it is. Being 60% through the money is fine on the
-20th and a problem on the 6th, and only one of those is visible from a total.
-
-## The ledger
-
-`/entries` lists a month at a time, newest first, grouped by day. Tap one to
-correct the amount, the date, the category, the merchant, the note or how it
-was paid. Deleting sets `deleted_at`; every view already filters on it, so the
-figures move at once while the row stays on record.
-
-**What an edit may NOT change is the kind.** Turning an expense into a transfer
-changes which shape rules apply and which columns must be filled, and quietly
-rewriting a row into a different shape is how a ledger starts disagreeing with
-itself. The screen says so and offers delete-and-re-add instead.
-
-**Correcting how something was paid moves the money.** That took a trigger fix:
-`txn_apply_method` only stamped `account_id` when it was NULL, so on an UPDATE
-it did nothing — "paid by GPay" corrected to "paid by the card" would have left
-the money on the bank and the edit would have been cosmetic. It also never
-cleared `card_cycle_id`, so a purchase moved off a card kept riding that card's
-bill. Both are fixed and both have assertions.
-
-A budget line drills into its own entries (`/entries?c=…`), which is what makes
-a number answerable rather than just a number.
-
-## The UX laws, and where each one shows up
-
-- **Jakob** — a bottom tab bar, because every finance app people already use has
-  one. Before it, you had to walk back to home to get anywhere.
-- **Fitts** — tab targets are 60px in the thumb zone and Add is centre and
-  raised. The budget's Save is sticky at the TOP, not the bottom, because a
-  bottom bar sits under the phone keyboard the moment someone types a number.
-- **Hick** — five tabs and no more. The home tiles were deleted once navigation
-  became persistent: the same four choices twice is just more to read past.
-- **Miller** — the month view shows the top four categories, not all eight;
-  getting-started is five steps; the guide is six sections.
-- **Tesler** — the irreducible complexity is absorbed by the app, not handed to
-  the person: the payment method decides the account, a card files its own
-  billing cycle, balances are derived from entries.
-- **Doherty** — the budget total recalculates as you type rather than on submit,
-  and pages went from three or four database round trips to two.
-- **Gestalt** — common region (cards), proximity (a category's name, spend and
-  amount on one row), similarity (one tint per category everywhere).
-- **Serial position** — home leads with the month and ends with one quiet link.
-- **Von Restorff** — over-budget is the only red; Add is the only filled tab.
-- **Postel** — amount fields accept `₹`, commas and spaces and keep the digits.
-- **Aesthetic-usability** — one token set, one header background, one card
-  shape. The header's ruled-paper stripes were removed: on a phone they read as
-  banding, and a texture that looks like a rendering fault costs more trust
-  than it buys.
-
-## Teaching the app
+## Teaching the app## Teaching the app
 
 There is no coach-mark tour. Two things do the job instead:
 
