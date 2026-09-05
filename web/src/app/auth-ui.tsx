@@ -2,9 +2,13 @@
    books. No hooks here on purpose, so the same pieces work in a server page
    and inside a client form. */
 
+/* The one header background, used by every screen that has one.
+
+   It used to carry a repeating 1px line every 26px, meant to read as ruled
+   ledger paper. On a phone it read as banding across the header instead, so it
+   is gone. A soft highlight and the gradient are the whole thing now. */
 export const HEADER_BG =
-  'repeating-linear-gradient(0deg, rgba(255,255,255,.045) 0 1px, rgba(0,0,0,0) 1px 26px),'
-  + 'radial-gradient(130% 85% at 82% -12%, rgba(255,255,255,.18) 0%, rgba(255,255,255,0) 62%),'
+  'radial-gradient(130% 85% at 82% -12%, rgba(255,255,255,.16) 0%, rgba(255,255,255,0) 62%),'
   + 'linear-gradient(150deg,#2C5063 0%,#233D4D 58%,#172B37 100%)';
 
 export const primaryBtn: React.CSSProperties = {

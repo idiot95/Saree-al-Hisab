@@ -232,3 +232,61 @@ export async function setupProgress(householdId: string) {
   return r as unknown as {
     accounts: number; cards: number; methods: number; entries: number; members: number };
 }
+
+/* ── the budget, which everything reports against ───────────────────────── */
+
+export type BudgetRow = {
+  category_id: string; name: string; icon: string; tint: string;
+  budget: string; spent: string;
+};
+
+/** Every category with what it was given this month and what has gone out of
+ *  it. Spending comes from `spend_txn`, never from `txn` — that view is where
+ *  "a transfer is not spending" and "a refund nets off" actually live. */
+export async function budgetFor(householdId: string, month: string) {
+  return sql`
+    select c.id as category_id, c.name, c.icon, c.tint,
+           coalesce(b.amount, 0)::text as budget,
+           coalesce((
+             select sum(s.amount) from spend_txn s
+             where s.category_id = c.id
+               and s.occurred_on >= ${month}::date
+               and s.occurred_on <  (${month}::date + interval '1 month')
+           ), 0)::text as spent
+    from category c
+    left join budget b on b.category_id = c.id and b.month = ${month}::date
+    where c.household_id = ${householdId} and c.archived_at is null
+    order by coalesce(b.amount, 0) desc, c.sort_order
+  ` as Promise<BudgetRow[]>;
+}
+
+/** The month in one line: what was budgeted, what has gone, what came in. */
+export async function monthTotals(householdId: string, month: string) {
+  const [r] = await sql`
+    select
+      coalesce((select sum(amount) from budget
+                where household_id = ${householdId} and month = ${month}::date), 0)::text as budget,
+      coalesce((select sum(amount) from spend_txn
+                where household_id = ${householdId}
+                  and occurred_on >= ${month}::date
+                  and occurred_on <  (${month}::date + interval '1 month')), 0)::text as spent,
+      coalesce((select sum(amount) from income_txn
+                where household_id = ${householdId}
+                  and occurred_on >= ${month}::date
+                  and occurred_on <  (${month}::date + interval '1 month')), 0)::text as income,
+      (select count(*)::int from txn
+        where household_id = ${householdId} and deleted_at is null
+          and occurred_on >= ${month}::date
+          and occurred_on <  (${month}::date + interval '1 month')) as entries`;
+  return r as unknown as { budget: string; spent: string; income: string; entries: number };
+}
+
+/** Whether there is an earlier month to copy from, and what it came to. */
+export async function previousBudget(householdId: string, month: string) {
+  const [r] = await sql`
+    select b.month, sum(b.amount)::text as total, count(*)::int as categories
+    from budget b
+    where b.household_id = ${householdId} and b.month < ${month}::date
+    group by b.month order by b.month desc limit 1`;
+  return (r ?? null) as null | { month: Date; total: string; categories: number };
+}

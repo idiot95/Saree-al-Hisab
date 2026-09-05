@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useTransition, useEffect } from 'react';
+import { HEADER_BG } from '../auth-ui';
 import { useRouter } from 'next/navigation';
 import { keysDisplay, pushKey, popKey, fromKeys, symbolOf, format } from '@/lib/money';
 import { saveEntry, checkDuplicate } from './actions';
@@ -75,10 +76,7 @@ export default function AddEntry({
       <header
         className="el2"
         style={{
-          background:
-            'repeating-linear-gradient(0deg, rgba(255,255,255,.045) 0 1px, rgba(0,0,0,0) 1px 26px),' +
-            'radial-gradient(130% 85% at 82% -12%, rgba(255,255,255,.18) 0%, rgba(255,255,255,0) 62%),' +
-            'linear-gradient(150deg,#2C5063 0%,#233D4D 58%,#172B37 100%)',
+          background: HEADER_BG,
           color: '#fff',
           borderRadius: '0 0 26px 26px',
           padding: '18px 20px 22px',

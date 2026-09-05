@@ -298,6 +298,49 @@ round trips to two.
 The remaining win is geography: moving Neon to `ap-south-1` and Vercel to
 `bom1` together. Moving only one makes things worse.
 
+## The budget, which everything reports against
+
+`/budget` sets an amount per category per month. Spending comes from
+`spend_txn`, never `txn` — that view is where "a transfer is not spending" and
+"a refund nets off" actually live, so the budget cannot disagree with the
+ledger.
+
+**Each month is its own set of figures.** Editing September never rewrites
+August: every write is scoped to one month, and a new month can start as a copy
+of the last (`on conflict do nothing`, so it can never overwrite work already
+done). An amount of zero deletes the row rather than storing a zero, so
+"unbudgeted" and "budgeted nothing" stay the same thing.
+
+`MonthSoFar` on the home screen carries a **pace marker**: a tick on the bar for
+how far through the month it is. Being 60% through the money is fine on the
+20th and a problem on the 6th, and only one of those is visible from a total.
+
+## The UX laws, and where each one shows up
+
+- **Jakob** — a bottom tab bar, because every finance app people already use has
+  one. Before it, you had to walk back to home to get anywhere.
+- **Fitts** — tab targets are 60px in the thumb zone and Add is centre and
+  raised. The budget's Save is sticky at the TOP, not the bottom, because a
+  bottom bar sits under the phone keyboard the moment someone types a number.
+- **Hick** — five tabs and no more. The home tiles were deleted once navigation
+  became persistent: the same four choices twice is just more to read past.
+- **Miller** — the month view shows the top four categories, not all eight;
+  getting-started is five steps; the guide is six sections.
+- **Tesler** — the irreducible complexity is absorbed by the app, not handed to
+  the person: the payment method decides the account, a card files its own
+  billing cycle, balances are derived from entries.
+- **Doherty** — the budget total recalculates as you type rather than on submit,
+  and pages went from three or four database round trips to two.
+- **Gestalt** — common region (cards), proximity (a category's name, spend and
+  amount on one row), similarity (one tint per category everywhere).
+- **Serial position** — home leads with the month and ends with one quiet link.
+- **Von Restorff** — over-budget is the only red; Add is the only filled tab.
+- **Postel** — amount fields accept `₹`, commas and spaces and keep the digits.
+- **Aesthetic-usability** — one token set, one header background, one card
+  shape. The header's ruled-paper stripes were removed: on a phone they read as
+  banding, and a texture that looks like a rendering fault costs more trust
+  than it buys.
+
 ## Teaching the app
 
 There is no coach-mark tour. Two things do the job instead:

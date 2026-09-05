@@ -4,6 +4,7 @@ import {
 } from '@/db/queries';
 import { format } from '@/lib/money';
 import { HEADER_BG } from '../auth-ui';
+import TabBar, { TAB_BAR_SPACE } from '../TabBar';
 import AddAccount from './AddAccount';
 import AddMethod from './AddMethod';
 import { RetireAccount, MethodControls } from './Retire';
@@ -52,7 +53,7 @@ export default async function Accounts() {
   const needsMethods = accounts.length > 1 && methods.length <= 1;
 
   return (
-    <main style={{ minHeight: '100dvh', background: 'var(--c-bg)', paddingBottom: 44 }}>
+    <main style={{ minHeight: '100dvh', background: 'var(--c-bg)', paddingBottom: TAB_BAR_SPACE }}>
       <header className="el2" style={{
         background: HEADER_BG, color: '#fff', borderRadius: '0 0 28px 28px',
         padding: '18px 20px 30px', display: 'flex', flexDirection: 'column', gap: 12,
@@ -232,6 +233,7 @@ export default async function Accounts() {
           Only owners and contributing members can change accounts.
         </p>
       )}
+      <TabBar current="/accounts" />
     </main>
   );
 }

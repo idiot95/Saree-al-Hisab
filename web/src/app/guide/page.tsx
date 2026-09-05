@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { actorOrNull } from '@/db/queries';
+import TabBar, { TAB_BAR_SPACE } from '../TabBar';
 import { HEADER_BG } from '../auth-ui';
 
 export const metadata = { title: 'How it works · Quiet Ledger' };
@@ -39,6 +40,16 @@ const SECTIONS = [
     ],
   },
   {
+    title: 'The budget is the point',
+    href: '/budget', link: 'Open budget',
+    lines: [
+      'Give each category an amount for the month. Everything you record then reports against it.',
+      'Each month is its own set of figures — changing this month never rewrites the last one.',
+      'A new month can start as a copy of the one before, so you set it once and adjust.',
+      'Money moved into savings is not spending, so it never eats the budget.',
+    ],
+  },
+  {
     title: 'Recording an entry',
     href: '/add', link: 'New entry',
     lines: [
@@ -64,7 +75,7 @@ export default async function Guide() {
   if (!actor) redirect('/signin');
 
   return (
-    <main style={{ minHeight: '100dvh', background: 'var(--c-bg)', paddingBottom: 44 }}>
+    <main style={{ minHeight: '100dvh', background: 'var(--c-bg)', paddingBottom: TAB_BAR_SPACE }}>
       <header className="el2" style={{
         background: HEADER_BG, color: '#fff', borderRadius: '0 0 28px 28px',
         padding: '18px 20px 28px', display: 'flex', flexDirection: 'column', gap: 11,
@@ -82,7 +93,7 @@ export default async function Guide() {
           How it works
         </h1>
         <p style={{ margin: 0, fontSize: 14, lineHeight: 1.5, color: 'rgba(255,255,255,.82)' }}>
-          Five things worth knowing. Two minutes.
+          Six things worth knowing. Two minutes.
         </p>
       </header>
 
@@ -129,6 +140,7 @@ export default async function Guide() {
         background: 'radial-gradient(120% 100% at 25% 0%, rgba(255,255,255,.18) 0%, rgba(255,255,255,0) 60%),'
           + 'linear-gradient(145deg,#2C5063 0%,#1C3541 100%)',
       }}>Back to home</Link>
+      <TabBar current="/guide" />
     </main>
   );
 }

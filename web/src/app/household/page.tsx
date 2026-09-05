@@ -5,7 +5,9 @@ import { householdsOf } from '@/db/membership';
 import InviteForm from './InviteForm';
 import MemberRow from './MemberRow';
 import RevokeButton from './RevokeButton';
+import TabBar, { TAB_BAR_SPACE } from '../TabBar';
 import PasswordCard from './PasswordCard';
+import { HEADER_BG } from '../auth-ui';
 import BooksSwitcher from './BooksSwitcher';
 
 export const metadata = { title: 'Household · Quiet Ledger' };
@@ -35,12 +37,9 @@ export default async function Household() {
   const live = invites.filter((i) => !i.expired);
 
   return (
-    <main style={{ minHeight: '100dvh', background: 'var(--c-bg)', paddingBottom: 44 }}>
+    <main style={{ minHeight: '100dvh', background: 'var(--c-bg)', paddingBottom: TAB_BAR_SPACE }}>
       <header className="el2" style={{
-        background:
-          'repeating-linear-gradient(0deg, rgba(255,255,255,.045) 0 1px, rgba(0,0,0,0) 1px 26px),'
-          + 'radial-gradient(130% 85% at 82% -12%, rgba(255,255,255,.18) 0%, rgba(255,255,255,0) 62%),'
-          + 'linear-gradient(150deg,#2C5063 0%,#233D4D 58%,#172B37 100%)',
+        background: HEADER_BG,
         color: '#fff', borderRadius: '0 0 28px 28px', padding: '18px 20px 26px',
         display: 'flex', flexDirection: 'column', gap: 12,
       }}>
@@ -156,6 +155,7 @@ export default async function Household() {
           Only an owner can invite or remove people.
         </p>
       )}
+      <TabBar current="/household" />
     </main>
   );
 }

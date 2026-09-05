@@ -7,7 +7,7 @@ import Link from 'next/link';
 type Step = { title: string; blurb: string; href: string; cta: string; done: boolean };
 
 export default function GettingStarted({ progress }: {
-  progress: { accounts: number; methods: number; entries: number; members: number };
+  progress: { accounts: number; methods: number; entries: number; members: number; budget: number };
 }) {
   const steps: Step[] = [
     {
@@ -21,6 +21,12 @@ export default function GettingStarted({ progress }: {
       blurb: 'GPay, a card, net banking. Each one draws on an account.',
       href: '/accounts', cta: 'Go to accounts',
       done: progress.methods > 1,
+    },
+    {
+      title: 'Set this month\u2019s budget',
+      blurb: 'Give each category an amount. Everything else reports against it.',
+      href: '/budget', cta: 'Go to budget',
+      done: progress.budget > 0,
     },
     {
       title: 'Record an entry',
