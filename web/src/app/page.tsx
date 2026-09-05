@@ -65,6 +65,30 @@ export default async function Home() {
             Household on every screen, so repeating them here is only more to
             read past. Home shows what only home can show, plus one quiet way
             back to the explanation. */}
+        <Link href="/household" className="el" style={{
+          minHeight: 58, borderRadius: 15, display: 'flex', alignItems: 'center', gap: 12,
+          padding: '0 16px', textDecoration: 'none', background: 'var(--c-card)',
+          border: '1px solid var(--c-border)', color: 'var(--c-ink)',
+        }}>
+          <span style={{
+            width: 34, height: 34, flex: 'none', borderRadius: 999, display: 'flex',
+            alignItems: 'center', justifyContent: 'center',
+            background: 'var(--c-sunk)', color: 'var(--c-meta)',
+          }}>
+            <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <circle cx="9" cy="8.5" r="3.2" /><path d="M3 19.5a6 6 0 0 1 12 0" />
+              <path d="M16 5.6a3.2 3.2 0 0 1 0 5.8" /><path d="M17 14.2a6 6 0 0 1 4 5.3" />
+            </svg>
+          </span>
+          <span style={{ flex: 1, fontSize: 15, fontWeight: 600 }}>Household</span>
+          <span style={{ fontSize: 12.5, color: 'var(--c-meta)' }}>
+            {progress.members} {progress.members === 1 ? 'member' : 'members'}
+          </span>
+          <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="var(--c-off)"
+            strokeWidth={2} strokeLinecap="round" aria-hidden><path d="M9 5l7 7-7 7" /></svg>
+        </Link>
+
         <Link href="/guide" className="el" style={{
           minHeight: 58, borderRadius: 15, display: 'flex', alignItems: 'center', gap: 12,
           padding: '0 16px', textDecoration: 'none', background: 'var(--c-card)',

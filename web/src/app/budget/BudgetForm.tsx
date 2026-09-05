@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useActionState, useState } from 'react';
 import { ErrorNote } from '../auth-ui';
 import { saveBudget } from './actions';
@@ -88,9 +89,14 @@ export default function BudgetForm({ month, rows, canEdit }: {
 
               <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
                 <span style={{ fontSize: 15, fontWeight: 600 }}>{r.name}</span>
-                <span style={{ fontSize: 12, color: over ? 'var(--c-danger)' : 'var(--c-meta)' }}>
-                  {spent > 0 ? `${format(spent)} spent` : 'nothing spent yet'}
-                </span>
+                {spent > 0 ? (
+                  <Link href={`/entries?m=${month}&c=${r.category_id}`} style={{
+                    fontSize: 12, textDecoration: 'none',
+                    color: over ? 'var(--c-danger)' : 'var(--c-teal)', fontWeight: 600,
+                  }}>{format(spent)} spent</Link>
+                ) : (
+                  <span style={{ fontSize: 12, color: 'var(--c-meta)' }}>nothing spent yet</span>
+                )}
               </span>
 
               <span style={{

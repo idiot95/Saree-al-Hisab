@@ -59,6 +59,16 @@ const SECTIONS = [
     ],
   },
   {
+    title: 'Everything you have recorded',
+    href: '/entries', link: 'Open entries',
+    lines: [
+      'Entries lists a month at a time, newest first, grouped by day.',
+      'Tap any one to correct the amount, the date, the category or how it was paid.',
+      'Correcting how it was paid moves the money to the account behind that method.',
+      'Tapping a category on the budget or the home screen shows just that category.',
+    ],
+  },
+  {
     title: 'Your household shares one set of books',
     href: '/household', link: 'Open household',
     lines: [
@@ -93,7 +103,7 @@ export default async function Guide() {
           How it works
         </h1>
         <p style={{ margin: 0, fontSize: 14, lineHeight: 1.5, color: 'rgba(255,255,255,.82)' }}>
-          Six things worth knowing. Two minutes.
+          Seven things worth knowing. Two minutes.
         </p>
       </header>
 

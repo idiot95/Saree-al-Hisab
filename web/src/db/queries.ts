@@ -290,3 +290,55 @@ export async function previousBudget(householdId: string, month: string) {
     group by b.month order by b.month desc limit 1`;
   return (r ?? null) as null | { month: Date; total: string; categories: number };
 }
+
+/* ── the ledger ─────────────────────────────────────────────────────────── */
+
+export type EntryRow = {
+  id: string; kind: string; amount: string; occurred_on: Date;
+  merchant: string | null; note: string | null; is_shared: boolean;
+  category_id: string | null; category: string | null; tint: string | null;
+  method: string | null; account: string; counter_account: string | null;
+  who: string; created_at: Date;
+};
+
+/** A month of entries, newest first, optionally narrowed to one category —
+ *  which is what makes a budget line answerable rather than just a number. */
+export async function entriesFor(
+  householdId: string, month: string, categoryId?: string | null,
+) {
+  return sql`
+    select t.id, t.kind, t.amount::text, t.occurred_on, t.merchant, t.note, t.is_shared,
+           t.category_id, c.name as category, c.tint,
+           m.name as method, a.name as account, ca.name as counter_account,
+           u.name as who, t.created_at
+    from txn t
+    join account a on a.id = t.account_id
+    left join account ca on ca.id = t.counter_account_id
+    left join category c on c.id = t.category_id
+    left join payment_method m on m.id = t.payment_method_id
+    join app_user u on u.id = t.created_by
+    where t.household_id = ${householdId}
+      and t.deleted_at is null
+      and t.occurred_on >= ${month}::date
+      and t.occurred_on <  (${month}::date + interval '1 month')
+      and (${categoryId ?? null}::uuid is null or t.category_id = ${categoryId ?? null}::uuid)
+    order by t.occurred_on desc, t.created_at desc
+  ` as Promise<EntryRow[]>;
+}
+
+export async function entryById(householdId: string, id: string) {
+  const [r] = await sql`
+    select t.id, t.kind, t.amount::text, t.occurred_on, t.merchant, t.note, t.is_shared,
+           t.category_id, t.payment_method_id, t.counter_account_id,
+           c.name as category, c.tint, m.name as method,
+           a.name as account, ca.name as counter_account, u.name as who, t.created_at
+    from txn t
+    join account a on a.id = t.account_id
+    left join account ca on ca.id = t.counter_account_id
+    left join category c on c.id = t.category_id
+    left join payment_method m on m.id = t.payment_method_id
+    join app_user u on u.id = t.created_by
+    where t.id = ${id} and t.household_id = ${householdId} and t.deleted_at is null`;
+  return (r ?? null) as null | (EntryRow & {
+    payment_method_id: string | null; counter_account_id: string | null });
+}

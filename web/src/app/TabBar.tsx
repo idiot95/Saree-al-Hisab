@@ -17,8 +17,8 @@ const TABS = [
   { href: '/', label: 'Home', d: 'M4 10.5 12 4l8 6.5V19a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 19z' },
   { href: '/budget', label: 'Budget', d: 'M4.5 19.5V10M9.8 19.5V5M15.2 19.5v-6.5M20.5 19.5V8' },
   { href: '/add', label: 'Add', d: 'M12 5v14M5 12h14' },
+  { href: '/entries', label: 'Entries', d: 'M6 4.5h12a1.5 1.5 0 0 1 1.5 1.5v13.5L12 16l-7.5 3.5V6A1.5 1.5 0 0 1 6 4.5zM8.5 9h7M8.5 12.5h4' },
   { href: '/accounts', label: 'Accounts', d: 'M3.5 9.5h17M4.5 6.5h15a1.6 1.6 0 0 1 1.6 1.6v7.8a1.6 1.6 0 0 1-1.6 1.6h-15a1.6 1.6 0 0 1-1.6-1.6V8.1a1.6 1.6 0 0 1 1.6-1.6z' },
-  { href: '/household', label: 'Household', d: 'M9 11.7a3.2 3.2 0 1 0 0-6.4 3.2 3.2 0 0 0 0 6.4zM3 19.5a6 6 0 0 1 12 0M16 5.6a3.2 3.2 0 0 1 0 5.8M17 14.2a6 6 0 0 1 4 5.3' },
 ] as const;
 
 /** Height of the bar, so pages can leave room for it. */

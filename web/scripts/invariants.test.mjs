@@ -144,6 +144,30 @@ const [routed] = await sql`insert into txn ${sql({ household_id: hh.id, created_
   amount: 118000, occurred_on: '2026-09-02', account_id: spend, category_id: cat, payment_method_id: gpay.id })} returning account_id`;
 ok(routed.account_id === spend, 'paying by GPay leaves the bank account it draws on');
 
+console.log('\nCORRECTIONS — an edit has to move the money, not just the label');
+const [upi] = await sql`select id from payment_method where household_id = ${hh.id} and name = 'GPay'`;
+const [plastic] = await sql`insert into payment_method ${sql({ household_id: hh.id, name: 'Regalia',
+  kind: 'card', funding_account_id: card })} returning id`;
+const [edited] = await sql`insert into txn ${sql({ household_id: hh.id, created_by: user.id,
+  kind: 'expense', amount: 175000, occurred_on: '2026-09-02', category_id: cat,
+  payment_method_id: upi.id })} returning id, account_id, card_cycle_id`;
+ok(edited.account_id === spend, 'paid by UPI, so it left the bank');
+ok(edited.card_cycle_id === null, 'and it is on no card cycle');
+
+const [moved] = await sql`update txn set payment_method_id = ${plastic.id}
+  where id = ${edited.id} returning account_id, card_cycle_id`;
+ok(moved.account_id === card, 'correcting it to the card MOVES the money to the card');
+ok(moved.card_cycle_id !== null, 'and files it into that card\'s cycle');
+
+const [back] = await sql`update txn set payment_method_id = ${upi.id}
+  where id = ${edited.id} returning account_id, card_cycle_id`;
+ok(back.account_id === spend, 'correcting it back moves the money back');
+ok(back.card_cycle_id === null, 'and clears the cycle, so the card bill stops counting it');
+
+const beforeDelete = await spent();
+await sql`update txn set deleted_at = now() where id = ${edited.id}`;
+ok(await spent() === beforeDelete - 175000, 'deleting an entry takes it out of the month');
+
 console.log('\nPEOPLE — lending is a transfer, never spending');
 const ahmed = await mk('Ahmed Raza', 'person');
 await sql`insert into counterparty ${sql({ household_id: hh.id, name: 'Ahmed Raza', account_id: ahmed })}`;

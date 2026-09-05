@@ -79,11 +79,22 @@ CREATE TRIGGER method_funding_check
 CREATE OR REPLACE FUNCTION txn_apply_method() RETURNS trigger AS $$
 DECLARE acct uuid; sday int; ps date; pe date; cyc uuid;
 BEGIN
+  /* The method decides the account. On insert that fills a blank; on update it
+     OVERRIDES, because correcting "paid by GPay" to "paid by the card" has to
+     move the money — otherwise the edit is cosmetic and the balances lie. */
   IF NEW.payment_method_id IS NOT NULL THEN
     SELECT funding_account_id INTO acct FROM payment_method WHERE id = NEW.payment_method_id;
-    IF NEW.account_id IS NULL THEN NEW.account_id := acct; END IF;
+    IF TG_OP = 'INSERT' THEN
+      IF NEW.account_id IS NULL THEN NEW.account_id := acct; END IF;
+    ELSIF NEW.payment_method_id IS DISTINCT FROM OLD.payment_method_id THEN
+      NEW.account_id := acct;
+    END IF;
   END IF;
 
+  /* Re-filed from scratch every write, which is what clears it when an entry
+     moves OFF a card. Leaving a stale cycle behind would keep a card bill
+     charging for a purchase that is no longer on that card. */
+  NEW.card_cycle_id := NULL;
   SELECT statement_day INTO sday FROM account WHERE id = NEW.account_id AND kind = 'credit';
   IF sday IS NOT NULL AND NEW.kind IN ('expense','refund') THEN
     SELECT period_start, period_end INTO ps, pe FROM cycle_bounds(sday, NEW.occurred_on);

@@ -100,7 +100,11 @@ export default function MonthSoFar({ month, rows, budget, spent }: {
             const pct = b > 0 ? Math.min(100, (s / b) * 100) : 0;
             const isOver = s > b;
             return (
-              <li key={r.category_id} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <li key={r.category_id}>
+                <Link href={`/entries?c=${r.category_id}`} style={{
+                  display: 'flex', alignItems: 'center', gap: 10, minHeight: 30,
+                  textDecoration: 'none',
+                }}>
                 <span style={{
                   fontSize: 12.5, width: 92, overflow: 'hidden', textOverflow: 'ellipsis',
                   whiteSpace: 'nowrap', color: 'var(--c-meta)',
@@ -118,6 +122,7 @@ export default function MonthSoFar({ month, rows, budget, spent }: {
                   fontSize: 12, width: 74, textAlign: 'right', fontWeight: 600,
                   color: isOver ? 'var(--c-danger)' : 'var(--c-meta)',
                 }}>{format(s)}</span>
+                </Link>
               </li>
             );
           })}

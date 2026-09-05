@@ -80,7 +80,7 @@ A repayment is `kind = 'claim_receipt'` — money in, but explicitly not income.
 ## Running it
 
     npm run migrate            # in filename order; --reset drops and rebuilds
-    npm run test:invariants    # 57 assertions against real Postgres
+    npm run test:invariants    # 64 assertions against real Postgres
     npm run test:lib           # money, password hashing and link tokens
     npm run tokens             # regenerate tokens.css from the canvas palette
 
@@ -92,7 +92,7 @@ because they are idempotent, so a changed view ships without a new file.
 ## Proven, not assumed
 
 `npm run test:invariants` tries to BREAK each rule and expects Postgres to
-refuse. 57 assertions currently pass, covering: a move can never look like
+refuse. 64 assertions currently pass, covering: a move can never look like
 spending, `spend_txn` is the only definition of spending, refunds net off in
 the month they land, a card purchase files itself into the right cycle, a
 payment method is a rail and not a balance, lending never touches the budget,
@@ -314,6 +314,28 @@ done). An amount of zero deletes the row rather than storing a zero, so
 `MonthSoFar` on the home screen carries a **pace marker**: a tick on the bar for
 how far through the month it is. Being 60% through the money is fine on the
 20th and a problem on the 6th, and only one of those is visible from a total.
+
+## The ledger
+
+`/entries` lists a month at a time, newest first, grouped by day. Tap one to
+correct the amount, the date, the category, the merchant, the note or how it
+was paid. Deleting sets `deleted_at`; every view already filters on it, so the
+figures move at once while the row stays on record.
+
+**What an edit may NOT change is the kind.** Turning an expense into a transfer
+changes which shape rules apply and which columns must be filled, and quietly
+rewriting a row into a different shape is how a ledger starts disagreeing with
+itself. The screen says so and offers delete-and-re-add instead.
+
+**Correcting how something was paid moves the money.** That took a trigger fix:
+`txn_apply_method` only stamped `account_id` when it was NULL, so on an UPDATE
+it did nothing — "paid by GPay" corrected to "paid by the card" would have left
+the money on the bank and the edit would have been cosmetic. It also never
+cleared `card_cycle_id`, so a purchase moved off a card kept riding that card's
+bill. Both are fixed and both have assertions.
+
+A budget line drills into its own entries (`/entries?c=…`), which is what makes
+a number answerable rather than just a number.
 
 ## The UX laws, and where each one shows up
 
