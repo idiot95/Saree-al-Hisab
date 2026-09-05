@@ -10,9 +10,12 @@ import { fileURLToPath } from 'node:url';
 import postgres from 'postgres';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
+/* Resolved the same way the app resolves it, so a test or a migration can
+   never end up pointing at a different database from the running app. */
+const envFile = readFileSync(join(root, '.env.local'), 'utf8');
 const url = process.env.DATABASE_URL
-  ?? /^APP_DATABASE_URL="?([^"\n]+)/m.exec(env)?.[1]
-  ?? /^DATABASE_URL="?([^"\n]+)/m.exec(readFileSync(join(root, '.env.local'), 'utf8'))[1];
+  ?? /^APP_DATABASE_URL="?([^"\n]+)/m.exec(envFile)?.[1]
+  ?? /^DATABASE_URL="?([^"\n]+)/m.exec(envFile)[1];
 const sql = postgres(url, { ssl: 'require', max: 1, onnotice: () => {} });
 
 let pass = 0, fail = 0;
