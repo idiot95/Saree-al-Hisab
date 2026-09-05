@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { actorOrNull, peopleFor } from '@/db/queries';
+import { actorOrNull, owedByPerson, peopleFor } from '@/db/queries';
 import { format } from '@/lib/money';
 import { HEADER_BG } from '../auth-ui';
 import TabBar, { TAB_BAR_SPACE } from '../TabBar';
@@ -25,12 +25,19 @@ export default async function People() {
   if (!actor) redirect('/signin');
   if (!actor.household_id) redirect('/no-household');
 
-  const people = await peopleFor(actor.household_id);
+  const [people, owed] = await Promise.all([
+    peopleFor(actor.household_id),
+    owedByPerson(actor.household_id),
+  ]);
+  const claimed = new Map(owed.map((o) => [o.id, Number(o.claimed)]));
+  const claimsTotal = owed.reduce((n, o) => n + Number(o.claimed), 0);
   const canWrite = actor.role !== 'viewer';
   const owedToYou = people.reduce((n, p) => n + Math.max(0, Number(p.balance)), 0);
   const youOwe = people.reduce((n, p) => n + Math.min(0, Number(p.balance)), 0);
-  const settled = people.filter((p) => Number(p.balance) === 0);
-  const open = people.filter((p) => Number(p.balance) !== 0);
+  const outstanding = (p: { id: string; balance: string }) =>
+    Number(p.balance) !== 0 || (claimed.get(p.id) ?? 0) > 0;
+  const settled = people.filter((p) => !outstanding(p));
+  const open = people.filter(outstanding);
 
   return (
     <main style={{ minHeight: '100dvh', background: 'var(--c-bg)', paddingBottom: TAB_BAR_SPACE }}>
@@ -56,7 +63,7 @@ export default async function People() {
               OWED TO YOU
             </span>
             <span className="t" style={{ fontSize: 25, letterSpacing: '-.02em' }}>
-              {format(owedToYou)}
+              {format(owedToYou + claimsTotal)}
             </span>
           </span>
           {youOwe < 0 && (
@@ -71,21 +78,22 @@ export default async function People() {
           )}
         </div>
         <p style={{ margin: 0, fontSize: 12.5, lineHeight: 1.45, color: 'rgba(255,255,255,.78)' }}>
-          Money lent is not spending. It sits here until it comes back — or until you decide
-          it will not.
+          {claimsTotal > 0
+            ? `${format(owedToYou)} lent · ${format(claimsTotal)} owed for things you paid for`
+            : 'Money lent is not spending. It sits here until it comes back — or until you decide it will not.'}
         </p>
       </header>
 
       <div style={{ paddingTop: 20 }}>
         {open.length > 0 && <Head>Outstanding</Head>}
-        {open.length > 0 && <List people={open} />}
+        {open.length > 0 && <List people={open} claimed={claimed} />}
 
         {canWrite && <AddPerson startOpen={people.length === 0} />}
 
         {settled.length > 0 && (
           <>
             <Head>Settled up</Head>
-            <List people={settled} />
+            <List people={settled} claimed={claimed} />
           </>
         )}
 
@@ -112,13 +120,16 @@ function Head({ children }: { children: React.ReactNode }) {
   );
 }
 
-function List({ people }: { people: Awaited<ReturnType<typeof peopleFor>> }) {
+function List({ people, claimed }: {
+  people: Awaited<ReturnType<typeof peopleFor>>; claimed: Map<string, number>;
+}) {
   return (
     <section className="el" style={{
       margin: '0 18px 22px', background: 'var(--c-card)', borderRadius: 18, padding: '0 16px',
     }}>
       {people.map((p, i) => {
         const bal = Number(p.balance);
+        const total = bal + (claimed.get(p.id) ?? 0);
         const [bg, ink] = TINT[p.tint] ?? ['var(--cat-neutral)', 'var(--cat-neutral-ink)'];
         return (
           <Link key={p.id} href={`/people/${p.id}`} style={{
@@ -134,19 +145,22 @@ function List({ people }: { people: Awaited<ReturnType<typeof peopleFor>> }) {
             <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
               <span style={{ fontSize: 15.5, fontWeight: 600 }}>{p.name}</span>
               <span style={{ fontSize: 12.5, color: 'var(--c-meta)' }}>
-                {p.entries === 0 ? 'nothing yet'
-                  : `${p.entries} ${p.entries === 1 ? 'entry' : 'entries'}`}
-                {p.relationship !== 'friend' && ` · ${p.relationship}`}
+                {(claimed.get(p.id) ?? 0) > 0 && bal !== 0
+                  ? `${format(bal)} lent · ${format(claimed.get(p.id)!)} shared`
+                  : (claimed.get(p.id) ?? 0) > 0
+                    ? 'shared costs'
+                    : p.entries === 0 ? 'nothing yet'
+                      : `${p.entries} ${p.entries === 1 ? 'entry' : 'entries'}`}
               </span>
             </span>
             <span style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', gap: 2 }}>
               <span className="t" style={{
                 fontSize: 17, letterSpacing: '-.01em',
-                color: bal > 0 ? 'var(--c-ink)' : bal < 0 ? 'var(--c-danger)' : 'var(--c-meta)',
-              }}>{bal === 0 ? '—' : format(Math.abs(bal))}</span>
-              {bal !== 0 && (
+                color: total > 0 ? 'var(--c-ink)' : total < 0 ? 'var(--c-danger)' : 'var(--c-meta)',
+              }}>{total === 0 ? '—' : format(Math.abs(total))}</span>
+              {total !== 0 && (
                 <span style={{ fontSize: 11, color: 'var(--c-meta)' }}>
-                  {bal > 0 ? 'owes you' : 'you owe'}
+                  {total > 0 ? 'owes you' : 'you owe'}
                 </span>
               )}
             </span>

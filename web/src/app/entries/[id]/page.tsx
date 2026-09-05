@@ -1,8 +1,11 @@
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
-import { actorOrNull, categoriesFor, entryById, methodsFor } from '@/db/queries';
+import {
+  actorOrNull, categoriesFor, claimsOnEntry, entryById, methodsFor, peopleFor,
+} from '@/db/queries';
 import { HEADER_BG } from '../../auth-ui';
 import EditEntry from './EditEntry';
+import OwedFor from './OwedFor';
 
 export const metadata = { title: 'Entry · Quiet Ledger' };
 export const dynamic = 'force-dynamic';
@@ -23,9 +26,11 @@ export default async function Entry({ params }: { params: Promise<{ id: string }
   const entry = await entryById(actor.household_id, id);
   if (!entry) notFound();
 
-  const [cats, methods] = await Promise.all([
+  const [cats, methods, people, claims] = await Promise.all([
     categoriesFor(actor.household_id),
     methodsFor(actor.household_id),
+    peopleFor(actor.household_id),
+    claimsOnEntry(actor.household_id, entry.id),
   ]);
 
   const recorded = new Date(entry.created_at).toLocaleDateString('en-IN', {
@@ -68,6 +73,14 @@ export default async function Entry({ params }: { params: Promise<{ id: string }
           methods={methods.map((m) => ({ id: m.id, name: m.name, funds: m.funds }))}
           canEdit={actor.role !== 'viewer'}
         />
+
+        {entry.kind === 'expense' && (
+          <OwedFor
+            txnId={entry.id} entryAmount={Number(entry.amount)}
+            people={people.map((p) => ({ id: p.id, name: p.name }))}
+            claims={claims} canEdit={actor.role !== 'viewer'}
+          />
+        )}
 
         {/* Tesler: the shape rules are real and cannot be wished away, so the
             app says which change it will not make rather than pretending. */}

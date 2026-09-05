@@ -279,6 +279,8 @@ export const txn = pgTable('txn', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   bookId: uuid('book_id'),
   reversesTxnId: uuid('reverses_txn_id'),
+  /* Set only on a claim_receipt: which claim this money is settling. */
+  claimId: uuid('claim_id'),
   /* How it was paid. The account stays authoritative for balances — the
      method only prefills it and answers "how much goes through UPI". */
   paymentMethodId: uuid('payment_method_id'),
@@ -314,19 +316,41 @@ export const txn = pgTable('txn', {
     (${t.kind} = 'refund') = (${t.reversesTxnId} IS NOT NULL)`),
   check('refund_has_a_category', sql`
     ${t.kind} <> 'refund' OR ${t.categoryId} IS NOT NULL`),
+  // Money coming back against a claim, and nothing else, carries a claim.
+  check('receipt_points_at_a_claim', sql`
+    (${t.kind} = 'claim_receipt') = (${t.claimId} IS NOT NULL)`),
 ]);
 
+/* A claim is money somebody owes you for something YOU already paid for.
+
+   This is not a loan and the difference matters. Lending moves money out of
+   your account into theirs and never counts as spending. A reimbursement is
+   spending — you bought the thing, it hit the budget, and it stays hit — and
+   what is outstanding is a claim against a person, not a balance in an
+   account. That is why claims live in their own table rather than as movements
+   on a person's account.
+
+   How much has come back is DERIVED from the claim_receipt entries pointing at
+   it (see the claim_state view), not stored. A stored counter is a number that
+   can disagree with the entries beneath it. */
 export const claim = pgTable('claim', {
   id: uuid('id').primaryKey().defaultRandom(),
   householdId: uuid('household_id').notNull().references(() => household.id, { onDelete: 'cascade' }),
-  person: text('person').notNull(),
-  kind: claimKind('kind').notNull(),
+  counterpartyId: uuid('counterparty_id').notNull().references(() => counterparty.id, { onDelete: 'cascade' }),
+  // The expense this is a claim on. Delete the entry and the claim goes too:
+  // there is nothing left to be owed for.
+  txnId: uuid('txn_id').notNull().references(() => txn.id, { onDelete: 'cascade' }),
+  kind: claimKind('kind').notNull().default('reimbursement'),
   expectedAmount: bigint('expected_amount', { mode: 'number' }).notNull(),
-  receivedAmount: bigint('received_amount', { mode: 'number' }).notNull().default(0),
   expectedBy: date('expected_by'),
-  status: claimStatus('status').notNull().default('open'),
+  note: text('note'),
+  writtenOffAt: timestamp('written_off_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [
-  check('received_not_over', sql`${t.receivedAmount} between 0 and ${t.expectedAmount}`),
+  index('claim_household').on(t.householdId),
+  index('claim_counterparty').on(t.counterpartyId),
+  uniqueIndex('claim_one_per_person_per_entry').on(t.txnId, t.counterpartyId),
+  check('claim_amount_positive', sql`${t.expectedAmount} > 0`),
 ]);
 
 export const claimItem = pgTable('claim_item', {

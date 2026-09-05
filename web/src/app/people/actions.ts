@@ -171,3 +171,99 @@ export async function writeOff(_prev: Result | null, fd: FormData): Promise<Resu
   revalidatePath('/');
   redirect(`/people/${person.id}`);
 }
+
+/* ── claims ─────────────────────────────────────────────────────────────── */
+
+/* Marking an expense as owed does NOT touch the expense. You paid for it, it
+   hit the budget, and it stays hit — that is what makes a reimbursement
+   different from a loan. What is created is a claim against a person, which
+   settles separately. */
+export async function addClaim(_prev: Result | null, fd: FormData): Promise<Result> {
+  let actor;
+  try { actor = await mustWrite(); }
+  catch (e) { rethrowControlFlow(e); return { ok: false, error: (e as Error).message }; }
+
+  const txnId = String(fd.get('txnId') ?? '');
+  const [entry] = await sql`
+    select id, amount::bigint, kind from txn
+    where id = ${txnId} and household_id = ${actor.household_id} and deleted_at is null`;
+  if (!entry) return { ok: false, error: 'That entry is not one of yours.' };
+  if (entry.kind !== 'expense') {
+    return { ok: false, error: 'Only an expense can be owed back to you.' };
+  }
+
+  const person = await personAccount(actor.household_id, String(fd.get('counterpartyId') ?? ''));
+  if (!person) return { ok: false, error: 'Choose who owes you.' };
+
+  const minor = amount(fd.get('amount'));
+  if (!Number.isSafeInteger(minor) || minor <= 0) return { ok: false, error: 'Enter an amount.' };
+  if (minor > Number(entry.amount)) {
+    return { ok: false, error: 'That is more than the entry itself came to.' };
+  }
+
+  try {
+    await sql`
+      insert into claim (household_id, counterparty_id, txn_id, kind, expected_amount, note)
+      values (${actor.household_id}, ${person.id}, ${entry.id}, 'reimbursement', ${minor},
+              ${String(fd.get('note') ?? '').trim() || null})`;
+  } catch {
+    return { ok: false, error: `${person.name} is already down as owing for this entry.` };
+  }
+
+  revalidatePath('/people');
+  revalidatePath(`/entries/${entry.id}`);
+  return { ok: true, message: `${person.name} owes you for this.` };
+}
+
+/** Money arriving against a claim. Not income, and not a reduction in what the
+ *  month cost — the spending already happened and stays counted. */
+export async function settleClaim(_prev: Result | null, fd: FormData): Promise<Result> {
+  let actor;
+  try { actor = await mustWrite(); }
+  catch (e) { rethrowControlFlow(e); return { ok: false, error: (e as Error).message }; }
+
+  const claimId = String(fd.get('claimId') ?? '');
+  const [c] = await sql`
+    select id, outstanding::bigint, counterparty_id from claim_state
+    where id = ${claimId} and household_id = ${actor.household_id}`;
+  if (!c) return { ok: false, error: 'That claim is not one of yours.' };
+
+  const minor = amount(fd.get('amount'));
+  if (!Number.isSafeInteger(minor) || minor <= 0) return { ok: false, error: 'Enter an amount.' };
+  if (minor > Number(c.outstanding)) {
+    return { ok: false, error: 'That is more than is still outstanding.' };
+  }
+
+  const on = String(fd.get('occurred_on') ?? '');
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(on)) return { ok: false, error: 'That date is not valid.' };
+
+  const into = await fundingAccount(actor.household_id, String(fd.get('methodId') ?? ''));
+  if (!into) return { ok: false, error: 'Choose where the money went.' };
+
+  await sql`
+    insert into txn (household_id, created_by, kind, amount, occurred_on,
+                     account_id, claim_id, source)
+    values (${actor.household_id}, ${actor.user_id}, 'claim_receipt', ${minor}, ${on}::date,
+            ${into}, ${c.id}, 'manual')`;
+
+  revalidatePath('/people');
+  revalidatePath('/accounts');
+  redirect(`/people/${c.counterparty_id}`);
+}
+
+/** Giving up on a claim. The spending was already counted when it happened, so
+ *  unlike forgiving a loan there is nothing further to record — the money was
+ *  never coming back into the books as anything. */
+export async function abandonClaim(_prev: Result | null, fd: FormData): Promise<Result> {
+  let actor;
+  try { actor = await mustWrite(); }
+  catch (e) { rethrowControlFlow(e); return { ok: false, error: (e as Error).message }; }
+  const claimId = String(fd.get('claimId') ?? '');
+  const done = await sql`
+    update claim set written_off_at = now()
+    where id = ${claimId} and household_id = ${actor.household_id} and written_off_at is null
+    returning counterparty_id`;
+  if (!done.length) return { ok: false, error: 'That claim is not one of yours.' };
+  revalidatePath('/people');
+  return { ok: true, message: 'Written off. The spending was already counted when it happened.' };
+}

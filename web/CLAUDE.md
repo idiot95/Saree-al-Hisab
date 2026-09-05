@@ -80,7 +80,7 @@ A repayment is `kind = 'claim_receipt'` — money in, but explicitly not income.
 ## Running it
 
     npm run migrate            # in filename order; --reset drops and rebuilds
-    npm run test:invariants    # 68 assertions against real Postgres
+    npm run test:invariants    # 78 assertions against real Postgres
     npm run test:lib           # money, password hashing and link tokens
     npm run tokens             # regenerate tokens.css from the canvas palette
 
@@ -92,7 +92,7 @@ because they are idempotent, so a changed view ships without a new file.
 ## Proven, not assumed
 
 `npm run test:invariants` tries to BREAK each rule and expects Postgres to
-refuse. 68 assertions currently pass, covering: a move can never look like
+refuse. 78 assertions currently pass, covering: a move can never look like
 spending, `spend_txn` is the only definition of spending, refunds net off in
 the month they land, a card purchase files itself into the right cycle, a
 payment method is a rail and not a balance, lending never touches the budget,
@@ -375,9 +375,29 @@ Proven end to end: lend ₹10,000, take ₹4,000 back, write off ₹6,000 — th
 balance goes to zero, ₹6,000 is recorded as spending, and cash is down ₹6,000.
 The money that never came back equals the money recorded as spent.
 
-`ledger_book` and `book_member` exist for grouping people into named loan and
-reimbursement books; the screens for them are not built yet, and neither are
-claims on ordinary expenses ("I paid, they owe me half").
+### Reimbursements are the fourth case, and not a loan
+
+"I paid, they owe me half" is not lending. Lending moves money into someone's
+account and never counts as spending. A reimbursement is spending that already
+happened and **stays counted** — what is outstanding is a claim against a
+person, not a balance in an account. That is why `claim` is its own table and
+`counterparty_claims` sits beside `counterparty_balance` rather than feeding
+into it. The person's screen says the two apart, because conflating them is
+what makes a khata stop being trusted.
+
+How much has come back is DERIVED in `claim_state` from the `claim_receipt`
+entries pointing at the claim, never stored — a counter is a number that can
+disagree with the entries beneath it. A `claim_receipt` carries a claim and
+nothing else does, enforced by a CHECK, and it is in neither `spend_txn` nor
+`income_txn`: money returning is not earning, and it does not reduce what the
+month cost.
+
+Proven end to end: a ₹2,000 dinner with ₹1,000 claimed, settled in two
+payments. Month spending stays ₹2,000 throughout, income never moves, and cash
+ends at −₹1,000 — what you actually bore.
+
+`ledger_book` and `book_member` exist for grouping people into named books; the
+screens for them are not built yet.
 
 ## The UX laws, and where each one shows up
 

@@ -199,6 +199,53 @@ ok(await spent() === beforeWriteOff + 600000,
 const [cleared] = await sql`select balance::bigint from counterparty_balance where name='Ahmed Raza'`;
 ok(Number(cleared.balance) === 0, 'and Ahmed now owes nothing');
 
+console.log('\nCLAIMS — a reimbursement is spending you expect back');
+const [dinner] = await txn({ kind: 'expense', account_id: spend, category_id: cat, amount: 200000 });
+const spentAfterDinner = await spent();
+const [cl] = await sql`insert into claim ${sql({ household_id: hh.id, counterparty_id:
+  (await sql`select id from counterparty where name='Ahmed Raza'`)[0].id,
+  txn_id: dinner.id, kind: 'reimbursement', expected_amount: 100000 })} returning id`;
+ok(await spent() === spentAfterDinner,
+  'claiming half of it back does NOT reduce what the month cost — you still spent it');
+
+await refuses('a claim_receipt with no claim is refused',
+  () => sql`insert into txn ${sql({ household_id: hh.id, created_by: user.id, kind: 'claim_receipt',
+    amount: 50000, occurred_on: '2026-09-04', account_id: spend })}`);
+await refuses('an expense carrying a claim id is refused',
+  () => sql`insert into txn ${sql({ household_id: hh.id, created_by: user.id, kind: 'expense',
+    amount: 50000, occurred_on: '2026-09-04', account_id: spend, category_id: cat, claim_id: cl.id })}`);
+
+const state = async () => (await sql`select received::bigint, outstanding::bigint, status
+  from claim_state where id = ${cl.id}`)[0];
+let st = await state();
+ok(Number(st.outstanding) === 100000 && st.status === 'open', 'the claim opens at ₹1,000 outstanding');
+
+await sql`insert into txn ${sql({ household_id: hh.id, created_by: user.id, kind: 'claim_receipt',
+  amount: 40000, occurred_on: '2026-09-05', account_id: spend, claim_id: cl.id })}`;
+st = await state();
+ok(Number(st.received) === 40000 && st.status === 'part_paid', 'a partial payment shows as part paid');
+ok(await spent() === spentAfterDinner, 'and money coming back is still not a reduction in spending');
+
+await sql`insert into txn ${sql({ household_id: hh.id, created_by: user.id, kind: 'claim_receipt',
+  amount: 60000, occurred_on: '2026-09-06', account_id: spend, claim_id: cl.id })}`;
+st = await state();
+ok(st.status === 'settled' && Number(st.outstanding) === 0, 'the rest settles it');
+
+/* Not "the household has no income" — it does, from an earlier section. The
+   property is narrower and exact: money arriving against a claim never shows
+   up as income, and never shows up as spending either. */
+const [{ n: asIncome }] = await sql`
+  select count(*)::int as n from income_txn where claim_id is not null`;
+ok(asIncome === 0, 'money arriving against a claim is never counted as income');
+const [{ n: asSpend }] = await sql`
+  select count(*)::int as n from spend_txn s
+  join txn t on t.id = s.id where t.claim_id is not null`;
+ok(asSpend === 0, 'nor as a reduction in spending');
+
+await sql`delete from txn where id = ${dinner.id}`;
+const [{ n: left }] = await sql`select count(*)::int as n from claim where id = ${cl.id}`;
+ok(left === 0, 'deleting the entry takes its claim with it — there is nothing left to be owed for');
+
 console.log('\nDUPLICATES — detected, never prevented');
 const [other] = await sql`insert into app_user ${sql({ phone: '+910000000002', name: 'F' })} returning id`;
 await sql`insert into member ${sql([{ household_id: hh.id, user_id: user.id, role: 'owner' },

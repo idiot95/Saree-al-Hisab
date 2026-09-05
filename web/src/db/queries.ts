@@ -425,3 +425,59 @@ export async function bookMembership(householdId: string) {
     where b.household_id = ${householdId}
   ` as Promise<{ book_id: string; counterparty_id: string }[]>;
 }
+
+/* ── claims: money owed for things you already paid for ─────────────────── */
+
+export type ClaimRow = {
+  id: string; counterparty_id: string; person: string; tint: string;
+  txn_id: string; expected_amount: string; received: string; outstanding: string;
+  status: 'open' | 'part_paid' | 'settled' | 'written_off';
+  note: string | null; merchant: string | null; category: string | null;
+  occurred_on: Date; txn_amount: string;
+};
+
+export async function claimsFor(householdId: string, counterpartyId?: string) {
+  return sql`
+    select cs.id, cs.counterparty_id, cp.name as person, cp.tint, cs.txn_id,
+           cs.expected_amount::text, cs.received::text, cs.outstanding::text, cs.status,
+           cs.note, t.merchant, c.name as category, t.occurred_on, t.amount::text as txn_amount
+    from claim_state cs
+    join counterparty cp on cp.id = cs.counterparty_id
+    join txn t on t.id = cs.txn_id and t.deleted_at is null
+    left join category c on c.id = t.category_id
+    where cs.household_id = ${householdId}
+      and (${counterpartyId ?? null}::uuid is null
+           or cs.counterparty_id = ${counterpartyId ?? null}::uuid)
+    order by case cs.status when 'open' then 0 when 'part_paid' then 1 else 2 end,
+             t.occurred_on desc
+  ` as Promise<ClaimRow[]>;
+}
+
+/** Claims attached to one entry, for the entry's own screen. */
+export async function claimsOnEntry(householdId: string, txnId: string) {
+  return sql`
+    select cs.id, cs.counterparty_id, cp.name as person, cp.tint,
+           cs.expected_amount::text, cs.received::text, cs.outstanding::text, cs.status, cs.note
+    from claim_state cs
+    join counterparty cp on cp.id = cs.counterparty_id
+    where cs.household_id = ${householdId} and cs.txn_id = ${txnId}
+    order by cp.name
+  ` as Promise<{ id: string; counterparty_id: string; person: string; tint: string;
+                 expected_amount: string; received: string; outstanding: string;
+                 status: string; note: string | null }[]>;
+}
+
+/** What each person owes, both ways, in one row. */
+export async function owedByPerson(householdId: string) {
+  return sql`
+    select cp.id, cp.name, cp.tint,
+           b.balance::text as lent,
+           cc.owed::text as claimed,
+           cc.open_claims
+    from counterparty cp
+    join counterparty_balance b on b.counterparty_id = cp.id
+    join counterparty_claims cc on cc.counterparty_id = cp.id
+    where cp.household_id = ${householdId} and cp.archived_at is null
+  ` as Promise<{ id: string; name: string; tint: string; lent: string;
+                 claimed: string; open_claims: number }[]>;
+}

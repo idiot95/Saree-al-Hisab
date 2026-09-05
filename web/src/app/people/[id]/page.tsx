@@ -1,11 +1,12 @@
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import {
-  actorOrNull, categoriesFor, methodsFor, personById, personLedger,
+  actorOrNull, categoriesFor, claimsFor, methodsFor, personById, personLedger,
 } from '@/db/queries';
 import { format } from '@/lib/money';
 import { HEADER_BG } from '../../auth-ui';
 import PersonActions from './PersonActions';
+import Claims from './Claims';
 
 export const metadata = { title: 'Person · Quiet Ledger' };
 export const dynamic = 'force-dynamic';
@@ -27,12 +28,16 @@ export default async function Person({ params }: { params: Promise<{ id: string 
   const person = await personById(actor.household_id, id);
   if (!person) notFound();
 
-  const [ledger, methods, cats] = await Promise.all([
+  const [ledger, methods, cats, claims] = await Promise.all([
     personLedger(actor.household_id, person.account_id),
     methodsFor(actor.household_id),
     categoriesFor(actor.household_id),
+    claimsFor(actor.household_id, person.id),
   ]);
   const balance = Number(person.balance);
+  const owedOnClaims = claims
+    .filter((c) => c.status === 'open' || c.status === 'part_paid')
+    .reduce((n, c) => n + Number(c.outstanding), 0);
   const canWrite = actor.role !== 'viewer';
 
   return (
@@ -54,13 +59,20 @@ export default async function Person({ params }: { params: Promise<{ id: string 
           {person.name}
         </h1>
         <span className="t" style={{ fontSize: 32, letterSpacing: '-.022em', marginTop: 2 }}>
-          {balance === 0 ? 'Settled up' : format(Math.abs(balance))}
+          {balance === 0 && owedOnClaims === 0
+            ? 'Settled up'
+            : format(Math.abs(balance) + owedOnClaims)}
         </span>
-        <p style={{ margin: 0, fontSize: 13.5, color: 'rgba(255,255,255,.82)' }}>
-          {balance > 0 ? `${person.name} owes you this`
-            : balance < 0 ? `You owe ${person.name} this`
-            : 'Nothing outstanding between you'}
-          {person.phone && ` · ${person.phone}`}
+        {/* Lending and shared costs are different debts and are said apart —
+            conflating them is what makes a khata stop being trusted. */}
+        <p style={{ margin: 0, fontSize: 13.5, lineHeight: 1.5, color: 'rgba(255,255,255,.82)' }}>
+          {balance === 0 && owedOnClaims === 0
+            ? `Nothing outstanding between you${person.phone ? ` · ${person.phone}` : ''}`
+            : [
+                balance > 0 ? `${format(balance)} lent` : null,
+                balance < 0 ? `${format(-balance)} you owe` : null,
+                owedOnClaims > 0 ? `${format(owedOnClaims)} for shared costs` : null,
+              ].filter(Boolean).join(' · ')}
         </p>
       </header>
 
@@ -71,6 +83,24 @@ export default async function Person({ params }: { params: Promise<{ id: string 
             methods={methods.map((m) => ({ id: m.id, name: m.name, funds: m.funds }))}
             categories={cats.map((c) => ({ id: c.id, name: c.name }))}
           />
+        )}
+
+        <Claims
+          claims={claims.map((c) => ({
+            id: c.id, txn_id: c.txn_id, expected_amount: c.expected_amount,
+            received: c.received, outstanding: c.outstanding, status: c.status,
+            note: c.note, merchant: c.merchant, category: c.category,
+            occurred_on: new Date(c.occurred_on).toISOString().slice(0, 10),
+          }))}
+          methods={methods.map((m) => ({ id: m.id, name: m.name, funds: m.funds }))}
+          canEdit={canWrite}
+        />
+
+        {ledger.length > 0 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0 20px 11px' }}>
+            <h2 style={{ margin: 0, fontSize: 16.5, fontWeight: 600 }}>Money lent and returned</h2>
+            <span style={{ flex: 1, height: 1, background: 'var(--c-border)' }} />
+          </div>
         )}
 
         {ledger.length === 0 ? (
