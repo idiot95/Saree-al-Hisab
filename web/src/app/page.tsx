@@ -1,8 +1,8 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { signOut } from '@/auth';
-import { actorOrNull, budgetFor, monthTotals, setupProgress } from '@/db/queries';
-import { monthKey } from '@/lib/money';
+import { actorOrNull, budgetFor, monthTotals, peopleFor, setupProgress } from '@/db/queries';
+import { format, monthKey } from '@/lib/money';
 import { HEADER_BG } from './auth-ui';
 import TabBar, { TAB_BAR_SPACE } from './TabBar';
 import GettingStarted from './GettingStarted';
@@ -19,11 +19,13 @@ export default async function Home() {
 
   const name = actor.household_name;
   const month = monthKey(new Date());
-  const [progress, totals, rows] = await Promise.all([
+  const [progress, totals, rows, people] = await Promise.all([
     setupProgress(actor.household_id),
     monthTotals(actor.household_id, month),
     budgetFor(actor.household_id, month),
+    peopleFor(actor.household_id),
   ]);
+  const lent = people.reduce((n, p) => n + Number(p.balance), 0);
   const budget = Number(totals.budget);
 
   return (
@@ -65,6 +67,31 @@ export default async function Home() {
             Household on every screen, so repeating them here is only more to
             read past. Home shows what only home can show, plus one quiet way
             back to the explanation. */}
+        <Link href="/people" className="el" style={{
+          minHeight: 58, borderRadius: 15, display: 'flex', alignItems: 'center', gap: 12,
+          padding: '0 16px', textDecoration: 'none', background: 'var(--c-card)',
+          border: '1px solid var(--c-border)', color: 'var(--c-ink)',
+        }}>
+          <span style={{
+            width: 34, height: 34, flex: 'none', borderRadius: 999, display: 'flex',
+            alignItems: 'center', justifyContent: 'center',
+            background: 'var(--c-sunk)', color: 'var(--c-meta)',
+          }}>
+            <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M7 9.5h10M7 14.5h6" /><rect x="3.5" y="4.5" width="17" height="15" rx="2.5" />
+            </svg>
+          </span>
+          <span style={{ flex: 1, fontSize: 15, fontWeight: 600 }}>Lending</span>
+          {lent !== 0 && (
+            <span style={{ fontSize: 12.5, color: 'var(--c-meta)' }}>
+              {format(Math.abs(lent))} {lent > 0 ? 'owed to you' : 'you owe'}
+            </span>
+          )}
+          <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="var(--c-off)"
+            strokeWidth={2} strokeLinecap="round" aria-hidden><path d="M9 5l7 7-7 7" /></svg>
+        </Link>
+
         <Link href="/household" className="el" style={{
           minHeight: 58, borderRadius: 15, display: 'flex', alignItems: 'center', gap: 12,
           padding: '0 16px', textDecoration: 'none', background: 'var(--c-card)',

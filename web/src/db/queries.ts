@@ -342,3 +342,86 @@ export async function entryById(householdId: string, id: string) {
   return (r ?? null) as null | (EntryRow & {
     payment_method_id: string | null; counter_account_id: string | null });
 }
+
+/* ── the khata: money lent, money owed ──────────────────────────────────── */
+
+export type PersonRow = {
+  id: string; name: string; relationship: string; tint: string;
+  account_id: string; balance: string; entries: number; last_on: Date | null;
+};
+
+/** Everyone the household has money between it and, with the running balance.
+ *  Positive means they owe you; negative means you owe them. */
+export async function peopleFor(householdId: string) {
+  return sql`
+    select c.id, c.name, c.relationship, c.tint, c.account_id,
+           b.balance::text,
+           (select count(*)::int from txn t
+             where (t.account_id = c.account_id or t.counter_account_id = c.account_id)
+               and t.deleted_at is null) as entries,
+           (select max(t.occurred_on) from txn t
+             where (t.account_id = c.account_id or t.counter_account_id = c.account_id)
+               and t.deleted_at is null) as last_on
+    from counterparty c
+    join counterparty_balance b on b.counterparty_id = c.id
+    where c.household_id = ${householdId} and c.archived_at is null
+    order by abs(b.balance) desc, c.name
+  ` as Promise<PersonRow[]>;
+}
+
+export async function personById(householdId: string, id: string) {
+  const [r] = await sql`
+    select c.id, c.name, c.relationship, c.tint, c.account_id, c.phone,
+           b.balance::text
+    from counterparty c
+    join counterparty_balance b on b.counterparty_id = c.id
+    where c.id = ${id} and c.household_id = ${householdId} and c.archived_at is null`;
+  return (r ?? null) as null | (PersonRow & { phone: string | null });
+}
+
+/** Everything that has moved between the household and one person. The sign is
+ *  from THEIR side: positive means the debt grew. */
+export async function personLedger(householdId: string, accountId: string) {
+  return sql`
+    select t.id, t.kind, t.occurred_on, t.merchant, t.note, t.amount::text,
+           case when t.counter_account_id = ${accountId} then 'lent'
+                when t.kind = 'expense' then 'written_off'
+                else 'back' end as direction,
+           coalesce(oa.name, ca.name) as other_side,
+           u.name as who, c.name as category
+    from txn t
+    left join account oa on oa.id = t.account_id and t.account_id <> ${accountId}
+    left join account ca on ca.id = t.counter_account_id and t.counter_account_id <> ${accountId}
+    left join category c on c.id = t.category_id
+    join app_user u on u.id = t.created_by
+    where t.household_id = ${householdId} and t.deleted_at is null
+      and (t.account_id = ${accountId} or t.counter_account_id = ${accountId})
+    order by t.occurred_on desc, t.created_at desc
+  ` as Promise<{ id: string; kind: string; occurred_on: Date; merchant: string | null;
+                 note: string | null; amount: string; direction: 'lent' | 'back' | 'written_off';
+                 other_side: string | null; who: string; category: string | null }[]>;
+}
+
+/** The books people are filed into, with what each one comes to. */
+export async function booksFor(householdId: string) {
+  return sql`
+    select b.id, b.kind, b.name, b.note, b.closed_at,
+           count(bm.counterparty_id)::int as people,
+           coalesce(sum(cb.balance), 0)::text as balance
+    from ledger_book b
+    left join book_member bm on bm.book_id = b.id
+    left join counterparty_balance cb on cb.counterparty_id = bm.counterparty_id
+    where b.household_id = ${householdId}
+    group by b.id
+    order by b.closed_at nulls first, b.name
+  ` as Promise<{ id: string; kind: 'loan' | 'reimbursement'; name: string; note: string | null;
+                 closed_at: Date | null; people: number; balance: string }[]>;
+}
+
+export async function bookMembership(householdId: string) {
+  return sql`
+    select bm.book_id, bm.counterparty_id
+    from book_member bm join ledger_book b on b.id = bm.book_id
+    where b.household_id = ${householdId}
+  ` as Promise<{ book_id: string; counterparty_id: string }[]>;
+}

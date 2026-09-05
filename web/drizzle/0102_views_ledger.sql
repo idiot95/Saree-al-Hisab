@@ -13,7 +13,13 @@ FROM txn t
 JOIN account a ON a.id = t.account_id
 WHERE t.deleted_at IS NULL
   AND t.kind IN ('expense', 'refund')
-  AND a.kind NOT IN ('savings', 'person');
+  AND a.kind <> 'savings';
+/* Person accounts are deliberately NOT excluded here, and the reason is worth
+   stating. Lending is a TRANSFER and transfers are excluded by kind, so money
+   lent still never counts as spending. The only thing that can put an expense
+   on a person's account is writing off what they owe — and that is exactly
+   when the money stops being a loan and becomes money you spent. Excluding
+   person accounts wholesale would have made forgiving a debt invisible. */
 
 -- Accounts the user actually holds. People are accounts underneath, but they
 -- must never appear in balances, pickers or the "feeds the budget" totals.

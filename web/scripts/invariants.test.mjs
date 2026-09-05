@@ -184,6 +184,21 @@ ok(Number(bal.balance) === 1000000, 'Ahmed owes ₹10,000 — his balance is jus
 await refuses('a payment method drawing on a person is refused',
   () => sql`insert into payment_method ${sql({ household_id: hh.id, name: 'Bad', kind: 'upi', funding_account_id: ahmed })}`);
 
+/* Forgiving a debt is spending, and it is the ONLY thing that can put an
+   expense on a person's account — a payment method cannot draw on one, and the
+   pickers never offer one. So the three cases have to come apart cleanly. */
+const beforeWriteOff = await spent();
+await txn({ kind: 'transfer', account_id: ahmed, counter_account_id: spend, amount: 400000 });
+ok(await spent() === beforeWriteOff, 'Ahmed paying ₹4,000 back is not spending either');
+const [owed] = await sql`select balance::bigint from counterparty_balance where name='Ahmed Raza'`;
+ok(Number(owed.balance) === 600000, 'and it leaves ₹6,000 still owed');
+
+await txn({ kind: 'expense', account_id: ahmed, category_id: cat, amount: 600000 });
+ok(await spent() === beforeWriteOff + 600000,
+  'writing off the remaining ₹6,000 IS spending, in the month it is forgiven');
+const [cleared] = await sql`select balance::bigint from counterparty_balance where name='Ahmed Raza'`;
+ok(Number(cleared.balance) === 0, 'and Ahmed now owes nothing');
+
 console.log('\nDUPLICATES — detected, never prevented');
 const [other] = await sql`insert into app_user ${sql({ phone: '+910000000002', name: 'F' })} returning id`;
 await sql`insert into member ${sql([{ household_id: hh.id, user_id: user.id, role: 'owner' },

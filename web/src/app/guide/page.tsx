@@ -69,6 +69,16 @@ const SECTIONS = [
     ],
   },
   {
+    title: 'Money you lend is not money you spent',
+    href: '/people', link: 'Open lending',
+    lines: [
+      'Add anyone you lend to or borrow from, and every rupee between you is tracked.',
+      'Lending moves money from your account into theirs. It never touches the monthly budget, because you have not spent it.',
+      'Money coming back is not income either — it was never spending in the first place.',
+      'Writing off what someone owes IS spending, counted in the month you forgive it. That is the moment the money is actually gone.',
+    ],
+  },
+  {
     title: 'Your household shares one set of books',
     href: '/household', link: 'Open household',
     lines: [
@@ -103,7 +113,7 @@ export default async function Guide() {
           How it works
         </h1>
         <p style={{ margin: 0, fontSize: 14, lineHeight: 1.5, color: 'rgba(255,255,255,.82)' }}>
-          Seven things worth knowing. Two minutes.
+          Eight things worth knowing. Three minutes.
         </p>
       </header>
 
