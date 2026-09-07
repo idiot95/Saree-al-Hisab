@@ -19,7 +19,12 @@ const inter = Inter({
   subsets: ['latin'],
   variable: '--font-ui-loaded',
   display: 'swap',
-  axes: ['opsz'],
+  /* No `axes: ['opsz']`. The optical-size axis is a genuinely nice thing to
+     have across an 11px label and a 38px balance, and it costs 25KB on the
+     one font file that blocks first paint — 73KB against 48KB. The type
+     scale already sets its own letter-spacing per step, which is the manual
+     version of most of what opsz was doing, so the axis was being paid for
+     twice. */
 });
 
 export const metadata: Metadata = {

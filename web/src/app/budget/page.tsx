@@ -48,7 +48,7 @@ export default async function Budget({ searchParams }: {
       <main style={{ minHeight: '100dvh', background: 'var(--c-bg)', paddingBottom: TAB_BAR_SPACE }}>
         <header className="el2" style={{
           background: headerBg('gold'), color: '#fff', borderRadius: '0 0 28px 28px',
-          padding: '18px 20px 26px', display: 'flex', flexDirection: 'column', gap: 14,
+          padding: '18px var(--gutter) 26px', display: 'flex', flexDirection: 'column', gap: 14,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
             <Link href="/" transitionTypes={['nav-back']} aria-label="Back" style={{
@@ -109,8 +109,8 @@ export default async function Budget({ searchParams }: {
 
         <div style={{ padding: '14px 0 0' }}>
           <Link transitionTypes={['nav-forward']} href="/categories" style={{
-            display: 'flex', alignItems: 'center', gap: 10, margin: '0 18px 14px',
-            minHeight: 50, padding: '0 15px', borderRadius: 14, textDecoration: 'none',
+            display: 'flex', alignItems: 'center', gap: 10, margin: '0 var(--gutter) 14px',
+            minHeight: 50, padding: '0 var(--gutter)', borderRadius: 14, textDecoration: 'none',
             background: 'var(--c-card)', border: '1px solid var(--c-border)', color: 'var(--c-ink)',
           }}>
             <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="var(--c-meta)"

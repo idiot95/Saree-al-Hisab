@@ -11,7 +11,7 @@ export default function CopyPrevious({ month, from, total, categories }: {
 
   return (
     <form action={act} className="el" style={{
-      margin: '0 18px 16px', background: 'var(--c-card)', borderRadius: 16, padding: 15,
+      margin: '0 var(--gutter) 16px', background: 'var(--c-card)', borderRadius: 16, padding: 15,
       display: 'flex', flexDirection: 'column', gap: 10,
     }}>
       <input type="hidden" name="month" value={month} />

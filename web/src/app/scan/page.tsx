@@ -21,7 +21,7 @@ export default async function Scan() {
       <main style={{ minHeight: '100dvh', background: 'var(--c-bg)', paddingBottom: 44 }}>
         <header className="el2" style={{
           background: HEADER_BG, color: '#fff', borderRadius: '0 0 26px 26px',
-          padding: '18px 20px 24px', display: 'flex', flexDirection: 'column', gap: 10,
+          padding: '18px var(--gutter) 24px', display: 'flex', flexDirection: 'column', gap: 10,
         }}>
           <Link href="/add" transitionTypes={['nav-back']} aria-label="Back" style={{
             width: 44, height: 44, marginLeft: -11, borderRadius: 999, display: 'flex',

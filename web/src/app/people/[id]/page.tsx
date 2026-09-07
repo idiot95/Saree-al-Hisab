@@ -48,7 +48,7 @@ export default async function Person({ params }: { params: Promise<{ id: string 
       <main style={{ minHeight: '100dvh', background: 'var(--c-bg)', paddingBottom: 44 }}>
         <header className="el2" style={{
           background: headerBg('purple'), color: '#fff', borderRadius: '0 0 28px 28px',
-          padding: '18px 20px 26px', display: 'flex', flexDirection: 'column', gap: 10,
+          padding: '18px var(--gutter) 26px', display: 'flex', flexDirection: 'column', gap: 10,
         }}>
           <Link href="/people" transitionTypes={['nav-back']} aria-label="Back" style={{
             width: 44, height: 44, marginLeft: -11, borderRadius: 999, display: 'flex',
@@ -101,7 +101,7 @@ export default async function Person({ params }: { params: Promise<{ id: string 
           />
 
           {ledger.length > 0 && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0 20px 11px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0 var(--gutter) 11px' }}>
               <h2 style={{ margin: 0, fontSize: 'var(--step-1)', fontWeight: 600 }}>Money lent and returned</h2>
               <span style={{ flex: 1, height: 1, background: 'var(--c-border)' }} />
             </div>
@@ -116,7 +116,7 @@ export default async function Person({ params }: { params: Promise<{ id: string 
             </p>
           ) : (
             <section className="el" style={{
-              margin: '0 18px', background: 'var(--c-card)', borderRadius: 18, padding: '0 16px',
+              margin: '0 var(--gutter)', background: 'var(--c-card)', borderRadius: 18, padding: '0 var(--pad)',
             }}>
               {ledger.map((e, i) => {
                 const [word, colour] = WORD[e.direction];

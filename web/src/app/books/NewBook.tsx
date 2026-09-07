@@ -16,8 +16,8 @@ export default function NewBook() {
   if (!open) {
     return (
       <button type="button" onClick={() => setOpen(true)} className="el" style={{
-        margin: '0 18px 22px', width: 'calc(100% - 36px)', minHeight: 56, borderRadius: 16,
-        display: 'flex', alignItems: 'center', gap: 11, padding: '0 16px',
+        margin: '0 var(--gutter) 22px', width: 'calc(100% - 36px)', minHeight: 56, borderRadius: 16,
+        display: 'flex', alignItems: 'center', gap: 11, padding: '0 var(--pad)',
         background: 'var(--c-card)', border: '1px dashed var(--c-dash)',
         color: 'var(--c-ink)', fontSize: 'var(--step-0)', fontWeight: 600,
       }}>
@@ -36,7 +36,7 @@ export default function NewBook() {
 
   return (
     <form action={act} className="el" style={{
-      margin: '0 18px 22px', background: 'var(--c-card)', borderRadius: 18, padding: 16,
+      margin: '0 var(--gutter) 22px', background: 'var(--c-card)', borderRadius: 18, padding: 16,
       display: 'flex', flexDirection: 'column', gap: 13,
     }}>
       <Field label="Name" name="name" required maxLength={60}

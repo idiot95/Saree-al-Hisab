@@ -47,7 +47,7 @@ export default async function Household() {
       <main style={{ minHeight: '100dvh', background: 'var(--c-bg)', paddingBottom: TAB_BAR_SPACE }}>
         <header className="el2" style={{
           background: headerBg('slate'),
-          color: '#fff', borderRadius: '0 0 28px 28px', padding: '18px 20px 26px',
+          color: '#fff', borderRadius: '0 0 28px 28px', padding: '18px var(--gutter) 26px',
           display: 'flex', flexDirection: 'column', gap: 12,
         }}>
           <Link href="/" transitionTypes={['nav-back']} aria-label="Back" style={{
@@ -68,7 +68,7 @@ export default async function Household() {
 
         <p style={{
           display: 'flex', alignItems: 'flex-start', gap: 10, margin: '18px 18px 22px',
-          padding: '13px 14px', borderRadius: 14, background: 'var(--cat-cyan)',
+          padding: '13px var(--gutter)', borderRadius: 14, background: 'var(--cat-cyan)',
           color: 'var(--cat-cyan-ink)', fontSize: 'var(--step--1)', lineHeight: 1.5,
         }}>
           <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -163,7 +163,7 @@ export default async function Household() {
 
         {!canManage && (
           <p style={{
-            margin: '0 20px', fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--c-meta)',
+            margin: '0 var(--gutter)', fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--c-meta)',
             textAlign: 'center',
           }}>
             Only an owner can invite or remove people.
@@ -181,7 +181,7 @@ function when(d: Date) {
 
 function Head({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '2px 20px 11px' }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '2px var(--gutter) 11px' }}>
       <h2 style={{ margin: 0, fontSize: 'var(--step-1)', fontWeight: 600, letterSpacing: '-.012em' }}>
         {children}
       </h2>
@@ -193,7 +193,7 @@ function Head({ children }: { children: React.ReactNode }) {
 function Card({ children, pad }: { children: React.ReactNode; pad: string }) {
   return (
     <section className="el" style={{
-      margin: '0 18px 22px', background: 'var(--c-card)', borderRadius: 18, padding: pad,
+      margin: '0 var(--gutter) 22px', background: 'var(--c-card)', borderRadius: 18, padding: pad,
     }}>{children}</section>
   );
 }

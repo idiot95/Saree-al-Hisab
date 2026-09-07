@@ -36,7 +36,7 @@ export default function Claims({ claims, methods, canEdit }: {
       </p>
 
       <section className="el" style={{
-        margin: '0 18px 22px', background: 'var(--c-card)', borderRadius: 18, padding: '0 16px',
+        margin: '0 var(--gutter) 22px', background: 'var(--c-card)', borderRadius: 18, padding: '0 var(--pad)',
       }}>
         {claims.map((c, i) => (
           <div key={c.id} style={{

@@ -43,6 +43,23 @@
 
     /* A line of prose stops being comfortable past about 66 characters. */
     --measure: 62ch;
+
+  /* ONE left edge for the whole app.
+
+     There were six. Every header inset its title by 20px, and the content
+     under it started at 0, 12, 14, 15, 16, 18 or 20 depending on the screen —
+     so a title never sat above the thing it titled, and moving between screens
+     shifted the content left and right under your thumb. Gestalt's whole point
+     is that a shared edge is what makes separate things read as one column;
+     six edges is six columns and no structure. */
+  --gutter: 18px;
+
+  /* And one inset INSIDE a card, so text lines up down the page and not just
+     card-edge to card-edge. 13 of 16 cards already used 16px; the three that
+     used 14 or 15 put their text one or two pixels off every other screen,
+     which is exactly the sort of thing that is never consciously noticed and
+     always read as sloppiness. */
+  --pad: 16px;
   }
 
   html {
@@ -179,6 +196,25 @@
       animation-duration: 1ms !important;
       animation-delay: 0ms !important;
     }
+  }
+
+  /* The shimmer on a loading block. Deliberately slow and low-contrast: a
+     placeholder that flashes is more distracting than the wait it covers. */
+  .shim {
+    background: linear-gradient(90deg, var(--c-track) 25%, var(--c-sunk) 37%, var(--c-track) 63%);
+    background-size: 400% 100%;
+    animation: shim 1.4s ease-in-out infinite;
+  }
+  @keyframes shim { from { background-position: 100% 50% } to { background-position: 0 50% } }
+
+  /* Visible to a screen reader, not to the eye. */
+  .sr-only {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .shim { animation: none; background: var(--c-track); }
   }
 
   .el  { box-shadow: var(--el); }

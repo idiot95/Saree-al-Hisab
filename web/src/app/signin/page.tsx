@@ -15,7 +15,7 @@ export default async function SignIn() {
       title={<>Every rupee,<br />where you left it.</>}
     >
       <div style={{
-        marginTop: 'auto', padding: '28px 20px 26px',
+        marginTop: 'auto', padding: '28px var(--gutter) 26px',
         display: 'flex', flexDirection: 'column', gap: 14,
       }}>
         <SignInForm />

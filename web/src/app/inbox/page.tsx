@@ -37,7 +37,7 @@ export default async function Inbox() {
       <main style={{ minHeight: '100dvh', background: 'var(--c-bg)', paddingBottom: TAB_BAR_SPACE }}>
         <header className="el2" style={{
           background: headerBg('pumpkin'), color: '#fff', borderRadius: '0 0 28px 28px',
-          padding: '18px 20px 26px', display: 'flex', flexDirection: 'column', gap: 10,
+          padding: '18px var(--gutter) 26px', display: 'flex', flexDirection: 'column', gap: 10,
         }}>
           <Link href="/" transitionTypes={['nav-back']} aria-label="Back" style={{
             width: 44, height: 44, marginLeft: -11, borderRadius: 999, display: 'flex',
@@ -79,7 +79,7 @@ export default async function Inbox() {
               <>
                 <Head>Due now</Head>
                 <section className="el" style={{
-                  margin: '0 18px 22px', background: 'var(--c-card)', borderRadius: 18, padding: '0 16px',
+                  margin: '0 var(--gutter) 22px', background: 'var(--c-card)', borderRadius: 18, padding: '0 var(--gutter)',
                 }}>
                   {dues.map((d) => {
                     const s = byId.get(d.scheduleId)!;
@@ -98,7 +98,7 @@ export default async function Inbox() {
               <>
                 <Head>Card bills</Head>
                 <section className="el" style={{
-                  margin: '0 18px 22px', background: 'var(--c-card)', borderRadius: 18, padding: '0 16px',
+                  margin: '0 var(--gutter) 22px', background: 'var(--c-card)', borderRadius: 18, padding: '0 var(--pad)',
                 }}>
                   {bills.map((b, i) => {
                     const soon = b.days_away <= 5;
@@ -168,7 +168,7 @@ export default async function Inbox() {
                 ))}
                 {!canWrite && (
                   <p style={{
-                    margin: '0 20px', fontSize: 'var(--step--1)', color: 'var(--c-meta)', textAlign: 'center',
+                    margin: '0 var(--gutter)', fontSize: 'var(--step--1)', color: 'var(--c-meta)', textAlign: 'center',
                   }}>
                     Only owners and contributing members can act on these.
                   </p>

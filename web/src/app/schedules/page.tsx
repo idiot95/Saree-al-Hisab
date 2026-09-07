@@ -36,7 +36,7 @@ export default async function Schedules() {
       <main style={{ minHeight: '100dvh', background: 'var(--c-bg)', paddingBottom: TAB_BAR_SPACE }}>
         <header className="el2" style={{
           background: headerBg('cyan'), color: '#fff', borderRadius: '0 0 28px 28px',
-          padding: '18px 20px 26px', display: 'flex', flexDirection: 'column', gap: 10,
+          padding: '18px var(--gutter) 26px', display: 'flex', flexDirection: 'column', gap: 10,
         }}>
           <Link href="/" transitionTypes={['nav-back']} aria-label="Back" style={{
             width: 44, height: 44, marginLeft: -11, borderRadius: 999, display: 'flex',
@@ -62,7 +62,7 @@ export default async function Schedules() {
             <>
               <Head>Due now</Head>
               <section className="el" style={{
-                margin: '0 18px 22px', background: 'var(--c-card)', borderRadius: 18, padding: '0 16px',
+                margin: '0 var(--gutter) 22px', background: 'var(--c-card)', borderRadius: 18, padding: '0 var(--gutter)',
               }}>
                 {dues.map((d) => {
                   const s = byId.get(d.scheduleId)!;
@@ -81,7 +81,7 @@ export default async function Schedules() {
             <>
               <Head>Every schedule</Head>
               <section className="el" style={{
-                margin: '0 18px 22px', background: 'var(--c-card)', borderRadius: 18, padding: '0 16px',
+                margin: '0 var(--gutter) 22px', background: 'var(--c-card)', borderRadius: 18, padding: '0 var(--pad)',
               }}>
                 {schedules.map((s, i) => (
                   <div key={s.id} style={{
@@ -111,7 +111,7 @@ export default async function Schedules() {
             />
           )}
 
-          <p style={{ margin: '0 20px', fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--c-meta)' }}>
+          <p style={{ margin: '0 var(--gutter)', fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--c-meta)' }}>
             Nothing is recorded until you say so. A schedule is a reminder with the details
             already filled in, not a standing instruction that writes entries behind your back.
           </p>

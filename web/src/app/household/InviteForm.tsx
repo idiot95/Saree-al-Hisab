@@ -15,7 +15,7 @@ export default function InviteForm({ origin }: { origin: string }) {
 
   return (
     <>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '4px 20px 12px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '4px var(--gutter) 12px' }}>
         <h2 style={{ margin: 0, fontSize: 'var(--step-1)', fontWeight: 600, letterSpacing: '-.012em' }}>
           Invite someone
         </h2>
@@ -23,7 +23,7 @@ export default function InviteForm({ origin }: { origin: string }) {
       </div>
 
       <section className="el" style={{
-        margin: '0 18px 22px', background: 'var(--c-card)', borderRadius: 18, padding: 16,
+        margin: '0 var(--gutter) 22px', background: 'var(--c-card)', borderRadius: 18, padding: 16,
       }}>
         <form action={act} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>

@@ -50,7 +50,7 @@ export default async function Trends() {
       <main style={{ minHeight: '100dvh', background: 'var(--c-bg)', paddingBottom: TAB_BAR_SPACE }}>
         <header className="el2" style={{
           background: headerBg('green'), color: '#fff', borderRadius: '0 0 28px 28px',
-          padding: '18px 20px 26px', display: 'flex', flexDirection: 'column', gap: 11,
+          padding: '18px var(--gutter) 26px', display: 'flex', flexDirection: 'column', gap: 11,
         }}>
           <Link href="/" transitionTypes={['nav-back']} aria-label="Back" style={{
             width: 44, height: 44, marginLeft: -11, borderRadius: 999, display: 'flex',
@@ -156,14 +156,14 @@ export default async function Trends() {
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0 20px 11px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0 var(--gutter) 11px' }}>
         <h2 style={{ margin: 0, fontSize: 'var(--step-1)', fontWeight: 600, letterSpacing: '-.012em' }}>
           {title}
         </h2>
         <span style={{ flex: 1, height: 1, background: 'var(--c-border)' }} />
       </div>
       <div className="el" style={{
-        margin: '0 18px', background: 'var(--c-card)', borderRadius: 18, padding: 16,
+        margin: '0 var(--gutter)', background: 'var(--c-card)', borderRadius: 18, padding: 16,
       }}>{children}</div>
     </section>
   );

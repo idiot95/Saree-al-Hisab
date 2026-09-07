@@ -23,7 +23,7 @@ export default function PersonActions({ personId, name, balance, methods, catego
 
   if (mode === null) {
     return (
-      <div style={{ display: 'flex', gap: 9, margin: '0 18px 20px' }}>
+      <div style={{ display: 'flex', gap: 9, margin: '0 var(--gutter) 20px' }}>
         <Btn onClick={() => setMode('lend')} primary>Lend money</Btn>
         <Btn onClick={() => setMode('back')}>Got money back</Btn>
       </div>
@@ -40,7 +40,7 @@ export default function PersonActions({ personId, name, balance, methods, catego
 
   return (
     <div className="el" style={{
-      margin: '0 18px 20px', background: 'var(--c-card)', borderRadius: 18, padding: 16,
+      margin: '0 var(--gutter) 20px', background: 'var(--c-card)', borderRadius: 18, padding: 16,
     }}>
       {mode === 'lend' && (
         <form action={lendAct} style={{ display: 'flex', flexDirection: 'column', gap: 13 }}>

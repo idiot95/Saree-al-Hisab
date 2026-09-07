@@ -33,7 +33,7 @@ export default async function Book({ params }: { params: Promise<{ id: string }>
       <main style={{ minHeight: '100dvh', background: 'var(--c-bg)', paddingBottom: 44 }}>
         <header className="el2" style={{
           background: headerBg('purple'), color: '#fff', borderRadius: '0 0 28px 28px',
-          padding: '18px 20px 26px', display: 'flex', flexDirection: 'column', gap: 10,
+          padding: '18px var(--gutter) 26px', display: 'flex', flexDirection: 'column', gap: 10,
         }}>
           <Link href="/people" transitionTypes={['nav-back']} aria-label="Back" style={{
             width: 44, height: 44, marginLeft: -11, borderRadius: 999, display: 'flex',

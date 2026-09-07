@@ -92,7 +92,7 @@ export default function AddEntry({
           background: HEADER_BG,
           color: '#fff',
           borderRadius: '0 0 26px 26px',
-          padding: '18px 20px 22px',
+          padding: '18px var(--gutter) 22px',
           display: 'flex',
           flexDirection: 'column',
           gap: 16,
@@ -231,7 +231,7 @@ export default function AddEntry({
 
       {dupe && (
         <div style={{
-          display: 'flex', alignItems: 'flex-start', gap: 10, margin: '0 18px 12px',
+          display: 'flex', alignItems: 'flex-start', gap: 10, margin: '0 var(--gutter) 12px',
           padding: '13px 15px', borderRadius: 14, background: 'var(--c-pollen)', color: 'var(--c-on-fill)',
         }}>
           <Glyph d="M12 7.5v5.5 M12 16.6v.1 M20.5 12a8.5 8.5 0 1 1-17 0 8.5 8.5 0 0 1 17 0" size={17} w={1.9} />
@@ -245,7 +245,7 @@ export default function AddEntry({
 
       {error && (
         <div role="alert" style={{
-          display: 'flex', alignItems: 'center', gap: 10, margin: '0 18px 12px',
+          display: 'flex', alignItems: 'center', gap: 10, margin: '0 var(--gutter) 12px',
           padding: '13px 15px', borderRadius: 14, background: 'var(--c-danger-tint)', color: 'var(--c-danger)',
           fontSize: 'var(--step--1)', fontWeight: 600,
         }}>
@@ -257,7 +257,7 @@ export default function AddEntry({
       <button
         onClick={() => setShared((s) => !s)}
         style={{
-          display: 'flex', alignItems: 'center', gap: 12, margin: '0 18px 12px',
+          display: 'flex', alignItems: 'center', gap: 12, margin: '0 var(--gutter) 12px',
           minHeight: 56, padding: '0 16px', borderRadius: 16,
           background: 'var(--c-card)', border: '1px solid var(--c-border)',
         }}

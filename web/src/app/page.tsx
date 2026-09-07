@@ -49,7 +49,7 @@ export default async function Home() {
       <main style={{ minHeight: '100dvh', background: 'var(--c-bg)', paddingBottom: TAB_BAR_SPACE }}>
         <header className="el2" style={{
           background: headerBg('teal'), color: '#fff', borderRadius: '0 0 26px 26px',
-          padding: '18px 20px 22px', display: 'flex', alignItems: 'center', gap: 12,
+          padding: '18px var(--gutter) 22px', display: 'flex', alignItems: 'center', gap: 12,
         }}>
           <span style={{
             width: 38, height: 38, flex: 'none', borderRadius: 999, display: 'flex',
@@ -80,7 +80,7 @@ export default async function Home() {
           </form>
         </header>
 
-        <div style={{ padding: '18px 18px 0', display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div style={{ padding: '18px var(--gutter) 0', display: 'flex', flexDirection: 'column', gap: 14 }}>
           {/* The answer first. */}
           {budget > 0
             ? <MonthSoFar month={month} rows={rows} budget={budget} spent={spent} />
@@ -90,7 +90,7 @@ export default async function Home() {
           {needsYou > 0 && (
             <Link transitionTypes={['nav-forward']} href="/inbox" className="el" style={{
               minHeight: 62, borderRadius: 15, display: 'flex', alignItems: 'center', gap: 12,
-              padding: '0 15px', textDecoration: 'none', background: 'var(--c-warn-tint)',
+              padding: '0 var(--pad)', textDecoration: 'none', background: 'var(--c-warn-tint)',
               border: '1px solid var(--c-warn-fill)', color: 'var(--c-ink)',
             }}>
               <span style={{

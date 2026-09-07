@@ -73,7 +73,7 @@ export default function BudgetForm({ month, rows, canEdit }: {
       </div>
 
       <div className="el" style={{
-        margin: '0 18px 14px', background: 'var(--c-card)', borderRadius: 18, padding: '0 16px',
+        margin: '0 var(--gutter) 14px', background: 'var(--c-card)', borderRadius: 18, padding: '0 var(--pad)',
       }}>
         {rows.map((r, i) => {
           const spent = Number(r.spent);
@@ -151,11 +151,11 @@ export default function BudgetForm({ month, rows, canEdit }: {
       </div>
 
       {state && !state.ok && (
-        <div style={{ margin: '0 18px 12px' }}><ErrorNote>{state.error}</ErrorNote></div>
+        <div style={{ margin: '0 var(--gutter) 12px' }}><ErrorNote>{state.error}</ErrorNote></div>
       )}
       {state?.ok && !changed && (
         <p role="status" style={{
-          margin: '0 18px 12px', padding: '11px 13px', borderRadius: 12,
+          margin: '0 var(--gutter) 12px', padding: '11px 13px', borderRadius: 12,
           background: 'var(--c-ok-tint)', color: 'var(--c-ok)', fontSize: 'var(--step--1)', fontWeight: 600,
         }}>{state.message}</p>
       )}

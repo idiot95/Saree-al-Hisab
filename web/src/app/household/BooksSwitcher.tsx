@@ -17,7 +17,7 @@ export default function BooksSwitcher({ books, canRename }: { books: Book[]; can
 
   return (
     <section className="el" style={{
-      margin: '0 18px 22px', background: 'var(--c-card)', borderRadius: 18, padding: '0 16px',
+      margin: '0 var(--gutter) 22px', background: 'var(--c-card)', borderRadius: 18, padding: '0 var(--pad)',
     }}>
       {books.map((b, i) => (
         <div key={b.id} style={{
@@ -111,7 +111,7 @@ const row: React.CSSProperties = {
   textAlign: 'left', fontSize: 'var(--step-0)', fontWeight: 600, color: 'var(--c-ink)',
 };
 const ghost: React.CSSProperties = {
-  minHeight: 46, padding: '0 15px', borderRadius: 11, fontSize: 'var(--step--1)',
+  minHeight: 46, padding: '0 var(--pad)', borderRadius: 11, fontSize: 'var(--step--1)',
   fontWeight: 600, background: 'var(--c-sunk)', color: 'var(--c-meta)',
 };
 const solid: React.CSSProperties = {

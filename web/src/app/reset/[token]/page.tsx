@@ -27,7 +27,7 @@ export default async function Reset({ params }: { params: Promise<{ token: strin
 
   return (
     <AuthShell kicker={`For ${reset.name}`} title="Set a new password">
-      <div style={{ padding: '24px 20px 30px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div style={{ padding: '24px var(--gutter) 30px', display: 'flex', flexDirection: 'column', gap: 14 }}>
         <ResetForm token={token} />
         <p style={{ margin: '2px 4px 0', fontSize: 'var(--step--2)', lineHeight: 1.5, color: 'var(--c-meta)' }}>
           This signs you in and cancels the link.

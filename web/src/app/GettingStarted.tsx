@@ -56,7 +56,7 @@ export default function GettingStarted({ progress }: {
 
   return (
     <Link href={next.href} className="el" style={{
-      display: 'flex', alignItems: 'center', gap: 12, minHeight: 62, padding: '0 14px',
+      display: 'flex', alignItems: 'center', gap: 12, minHeight: 62, padding: '0 var(--pad)',
       borderRadius: 15, textDecoration: 'none', background: 'var(--c-card)',
       border: '1px solid var(--c-border)', color: 'var(--c-ink)',
     }}>

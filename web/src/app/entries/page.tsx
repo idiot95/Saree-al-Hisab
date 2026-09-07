@@ -69,7 +69,7 @@ export default async function Entries({ searchParams }: {
       <main style={{ minHeight: '100dvh', background: 'var(--c-bg)', paddingBottom: TAB_BAR_SPACE }}>
         <header className="el2" style={{
           background: headerBg('indigo'), color: '#fff', borderRadius: '0 0 28px 28px',
-          padding: '18px 20px 24px', display: 'flex', flexDirection: 'column', gap: 12,
+          padding: '18px var(--gutter) 24px', display: 'flex', flexDirection: 'column', gap: 12,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
             <Link href="/" transitionTypes={['nav-back']} aria-label="Back" style={iconLink}>
@@ -130,11 +130,11 @@ export default async function Entries({ searchParams }: {
             {days.map((d) => (
               <section key={d.on} style={{ marginBottom: 18 }}>
                 <h2 style={{
-                  margin: '0 20px 8px', fontSize: 'var(--step--1)', fontWeight: 700, letterSpacing: '.03em',
+                  margin: '0 var(--gutter) 8px', fontSize: 'var(--step--1)', fontWeight: 700, letterSpacing: '.03em',
                   color: 'var(--c-meta)',
                 }}>{dayLabel(d.on)}</h2>
                 <div className="el" style={{
-                  margin: '0 18px', background: 'var(--c-card)', borderRadius: 16, padding: '0 14px',
+                  margin: '0 var(--gutter)', background: 'var(--c-card)', borderRadius: 16, padding: '0 var(--gutter)',
                 }}>
                   {d.rows.map((e, i) => {
                     const move = MOVES.has(e.kind);

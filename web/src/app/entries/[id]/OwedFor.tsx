@@ -32,7 +32,7 @@ export default function OwedFor({ txnId, entryAmount, people, claims, canEdit }:
 
   return (
     <section className="el" style={{
-      margin: '0 18px 16px', background: 'var(--c-card)', borderRadius: 18, padding: 16,
+      margin: '0 var(--gutter) 16px', background: 'var(--c-card)', borderRadius: 18, padding: 16,
       display: 'flex', flexDirection: 'column', gap: 12,
     }}>
       <h2 style={{ margin: 0, fontSize: 'var(--step-0)', fontWeight: 600 }}>Owed back to you</h2>

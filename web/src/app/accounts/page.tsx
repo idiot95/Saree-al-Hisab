@@ -62,7 +62,7 @@ export default async function Accounts() {
       <main style={{ minHeight: '100dvh', background: 'var(--c-bg)', paddingBottom: TAB_BAR_SPACE }}>
         <header className="el2" style={{
           background: headerBg('blue'), color: '#fff', borderRadius: '0 0 28px 28px',
-          padding: '18px 20px 30px', display: 'flex', flexDirection: 'column', gap: 12,
+          padding: '18px var(--gutter) 30px', display: 'flex', flexDirection: 'column', gap: 12,
         }}>
           <Link href="/" transitionTypes={['nav-back']} aria-label="Back" style={{
             width: 44, height: 44, marginLeft: -11, borderRadius: 999, display: 'flex',
@@ -230,7 +230,7 @@ export default async function Accounts() {
 
         {!canWrite && (
           <p style={{
-            margin: '0 20px', fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--c-meta)', textAlign: 'center',
+            margin: '0 var(--gutter)', fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--c-meta)', textAlign: 'center',
           }}>
             Only owners and contributing members can change accounts.
           </p>
@@ -243,7 +243,7 @@ export default async function Accounts() {
 
 function Head({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '18px 20px 11px' }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '18px var(--gutter) 11px' }}>
       <h2 style={{ margin: 0, fontSize: 'var(--step-1)', fontWeight: 600, letterSpacing: '-.012em' }}>{children}</h2>
       <span style={{ flex: 1, height: 1, background: 'var(--c-border)' }} />
     </div>
@@ -253,7 +253,7 @@ function Head({ children }: { children: React.ReactNode }) {
 function Card({ children }: { children: React.ReactNode }) {
   return (
     <section className="el" style={{
-      margin: '0 18px 6px', background: 'var(--c-card)', borderRadius: 18, padding: '0 16px',
+      margin: '0 var(--gutter) 6px', background: 'var(--c-card)', borderRadius: 18, padding: '0 var(--gutter)',
     }}>{children}</section>
   );
 }

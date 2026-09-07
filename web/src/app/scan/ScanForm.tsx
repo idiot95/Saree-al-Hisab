@@ -143,6 +143,6 @@ function Line({ label, value }: { label: string; value: string | null }) {
 }
 
 const card: React.CSSProperties = {
-  margin: '0 18px', background: 'var(--c-card)', borderRadius: 18, padding: 16,
+  margin: '0 var(--gutter)', background: 'var(--c-card)', borderRadius: 18, padding: 16,
   display: 'flex', flexDirection: 'column', gap: 14,
 };

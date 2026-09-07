@@ -49,7 +49,7 @@ export default async function People() {
       <main style={{ minHeight: '100dvh', background: 'var(--c-bg)', paddingBottom: TAB_BAR_SPACE }}>
         <header className="el2" style={{
           background: headerBg('purple'), color: '#fff', borderRadius: '0 0 28px 28px',
-          padding: '18px 20px 26px', display: 'flex', flexDirection: 'column', gap: 12,
+          padding: '18px var(--gutter) 26px', display: 'flex', flexDirection: 'column', gap: 12,
         }}>
           <Link href="/" transitionTypes={['nav-back']} aria-label="Back" style={{
             width: 44, height: 44, marginLeft: -11, borderRadius: 999, display: 'flex',
@@ -114,7 +114,7 @@ export default async function People() {
               </p>
               {books.length > 0 && (
                 <section className="el" style={{
-                  margin: '0 18px 16px', background: 'var(--c-card)', borderRadius: 18, padding: '0 16px',
+                  margin: '0 var(--gutter) 16px', background: 'var(--c-card)', borderRadius: 18, padding: '0 var(--gutter)',
                 }}>
                   {books.map((b, i) => {
                     const t = Number(b.lent) + Number(b.claimed);
@@ -184,7 +184,7 @@ function List({ people, claimed }: {
 }) {
   return (
     <section className="el" style={{
-      margin: '0 18px 22px', background: 'var(--c-card)', borderRadius: 18, padding: '0 16px',
+      margin: '0 var(--gutter) 22px', background: 'var(--c-card)', borderRadius: 18, padding: '0 var(--pad)',
     }}>
       {people.map((p, i) => {
         const bal = Number(p.balance);

@@ -40,7 +40,7 @@ export default function EditEntry({ entry, categories, methods, canEdit }: {
   return (
     <>
       <form action={act} className="el" style={{
-        margin: '0 18px 16px', background: 'var(--c-card)', borderRadius: 18, padding: 16,
+        margin: '0 var(--gutter) 16px', background: 'var(--c-card)', borderRadius: 18, padding: 16,
         display: 'flex', flexDirection: 'column', gap: 14,
       }}>
         <input type="hidden" name="id" value={entry.id} />
@@ -144,7 +144,7 @@ export default function EditEntry({ entry, categories, methods, canEdit }: {
       </form>
 
       {canEdit && (
-        <div style={{ margin: '0 18px' }}>
+        <div style={{ margin: '0 var(--gutter)' }}>
           {!confirming ? (
             <button type="button" onClick={() => setConfirming(true)} style={{
               width: '100%', minHeight: 50, borderRadius: 13, fontSize: 'var(--step-0)', fontWeight: 600,

@@ -59,7 +59,7 @@ export default async function Join({ params, searchParams }: {
       kicker={invite.invited_by ? `${invite.invited_by} invited you to join` : 'You have been invited to join'}
       title={invite.household}
     >
-      <div style={{ padding: '22px 20px 30px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div style={{ padding: '22px var(--gutter) 30px', display: 'flex', flexDirection: 'column', gap: 14 }}>
         <div className="el" style={{
           background: 'var(--c-card)', borderRadius: 16, padding: 16,
           display: 'flex', flexDirection: 'column', gap: 9,

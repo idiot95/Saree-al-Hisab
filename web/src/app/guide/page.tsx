@@ -164,7 +164,7 @@ export default async function Guide() {
       <main style={{ minHeight: '100dvh', background: 'var(--c-bg)', paddingBottom: TAB_BAR_SPACE }}>
         <header className="el2" style={{
           background: headerBg('slate'), color: '#fff', borderRadius: '0 0 28px 28px',
-          padding: '18px 20px 28px', display: 'flex', flexDirection: 'column', gap: 11,
+          padding: '18px var(--gutter) 28px', display: 'flex', flexDirection: 'column', gap: 11,
         }}>
           <Link href="/" transitionTypes={['nav-back']} aria-label="Back" style={{
             width: 44, height: 44, marginLeft: -11, borderRadius: 999, display: 'flex',
@@ -183,7 +183,7 @@ export default async function Guide() {
           </p>
         </header>
 
-        <ol style={{ margin: 0, padding: '20px 18px 0', listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <ol style={{ margin: 0, padding: '20px var(--gutter) 0', listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 14 }}>
           {SECTIONS.map((s, i) => (
             <li key={s.title} className="el" style={{
               background: 'var(--c-card)', borderRadius: 18, padding: 16,

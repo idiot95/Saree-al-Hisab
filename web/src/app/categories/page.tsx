@@ -23,7 +23,7 @@ export default async function Categories() {
       <main style={{ minHeight: '100dvh', background: 'var(--c-bg)', paddingBottom: 44 }}>
         <header className="el2" style={{
           background: headerBg('gold'), color: '#fff', borderRadius: '0 0 28px 28px',
-          padding: '18px 20px 26px', display: 'flex', flexDirection: 'column', gap: 10,
+          padding: '18px var(--gutter) 26px', display: 'flex', flexDirection: 'column', gap: 10,
         }}>
           <Link href="/budget" transitionTypes={['nav-back']} aria-label="Back" style={{
             width: 44, height: 44, marginLeft: -11, borderRadius: 999, display: 'flex',
@@ -45,7 +45,7 @@ export default async function Categories() {
 
         <div style={{ paddingTop: 20 }}>
           <CategoryEditor categories={categories} canEdit={actor.role !== 'viewer'} />
-          <p style={{ margin: '0 20px', fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--c-meta)' }}>
+          <p style={{ margin: '0 var(--gutter)', fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--c-meta)' }}>
             Renaming is safe: every entry points at the category itself, so they all follow the
             new name and no month changes value.
           </p>

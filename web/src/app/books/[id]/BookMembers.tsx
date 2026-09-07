@@ -78,7 +78,7 @@ export default function BookMembers({ bookId, people, closed, canEdit }: {
         </section>
       ) : (
         <button type="button" onClick={() => setAdding(true)} className="el" style={{
-          margin: '0 18px 22px', width: 'calc(100% - 36px)', minHeight: 54, borderRadius: 15,
+          margin: '0 var(--gutter) 22px', width: 'calc(100% - 36px)', minHeight: 54, borderRadius: 15,
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 9,
           background: 'var(--c-card)', border: '1px dashed var(--c-dash)',
           color: 'var(--c-ink)', fontSize: 'var(--step-0)', fontWeight: 600,
@@ -179,7 +179,7 @@ function Head({ children }: { children: React.ReactNode }) {
 }
 
 const card: React.CSSProperties = {
-  margin: '0 18px 22px', background: 'var(--c-card)', borderRadius: 18, padding: '0 16px',
+  margin: '0 var(--gutter) 22px', background: 'var(--c-card)', borderRadius: 18, padding: '0 16px',
 };
 const quiet: React.CSSProperties = {
   minHeight: 44, padding: '0 10px', fontSize: 'var(--step--1)', fontWeight: 600,

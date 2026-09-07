@@ -24,7 +24,7 @@ export default function DuplicateCard({ low, high, reason }: {
 
   return (
     <section className="el" style={{
-      margin: '0 18px 14px', background: 'var(--c-card)', borderRadius: 18, padding: 16,
+      margin: '0 var(--gutter) 14px', background: 'var(--c-card)', borderRadius: 18, padding: 16,
       display: 'flex', flexDirection: 'column', gap: 12,
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>

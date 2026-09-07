@@ -11,7 +11,7 @@ export default function PasswordCard() {
 
   return (
     <section className="el" style={{
-      margin: '0 18px 22px', background: 'var(--c-card)', borderRadius: 18, padding: 16,
+      margin: '0 var(--gutter) 22px', background: 'var(--c-card)', borderRadius: 18, padding: 16,
       display: 'flex', flexDirection: 'column', gap: 12,
     }}>
       {!open ? (

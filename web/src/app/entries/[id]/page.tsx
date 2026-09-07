@@ -43,7 +43,7 @@ export default async function Entry({ params }: { params: Promise<{ id: string }
       <main style={{ minHeight: '100dvh', background: 'var(--c-bg)', paddingBottom: 44 }}>
         <header className="el2" style={{
           background: headerBg('indigo'), color: '#fff', borderRadius: '0 0 26px 26px',
-          padding: '18px 20px 22px', display: 'flex', flexDirection: 'column', gap: 10,
+          padding: '18px var(--gutter) 22px', display: 'flex', flexDirection: 'column', gap: 10,
         }}>
           <Link transitionTypes={['nav-back']} href="/entries" aria-label="Back to entries" style={{
             width: 44, height: 44, marginLeft: -11, borderRadius: 999, display: 'flex',

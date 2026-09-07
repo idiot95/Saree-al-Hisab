@@ -18,7 +18,7 @@ export default async function SignUp() {
       title="Start your household"
       blurb="Set a budget for the month, and everything you record reports against it."
     >
-      <div style={{ padding: '26px 20px 30px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div style={{ padding: '26px var(--gutter) 30px', display: 'flex', flexDirection: 'column', gap: 14 }}>
         <SignUpForm />
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '2px 0' }}>
