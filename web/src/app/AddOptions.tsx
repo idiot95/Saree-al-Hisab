@@ -5,29 +5,41 @@ import { useRouter } from 'next/navigation';
 import { Icon } from './Icon';
 import { haptic } from './haptics';
 import { scan } from './scan/actions';
+import { TAB_BAR_SPACE } from './tabs';
 
-/* The sheet behind the plus button: type it in, photograph a receipt, or pick
-   a photo already on the phone. The two file choices go straight to the
-   scanner from here — no screen in between — and the result lands on Add
-   Entry as a draft with every field still editable, which is the rule for
-   scans: nothing is ever posted from a photo, only suggested. */
-export default function AddSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
+/* The choices behind the plus button: type it in, photograph a receipt, or
+   pick a photo already on the phone. They float above the plus over the
+   screen blurred, not in a drawer that covers it — what you were reading
+   stays where it was, and the option you take is within reach of the thumb
+   that opened them. The two file choices go straight to the scanner from
+   here, and the result lands on Add Entry as a draft with every field still
+   editable, which is the rule for scans: nothing is ever posted from a
+   photo, only suggested. */
+export default function AddOptions({ open, onClose }: { open: boolean; onClose: () => void }) {
   const router = useRouter();
   const [state, act, pending] = useActionState(scan, null);
   const formRef = useRef<HTMLFormElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
   const filesRef = useRef<HTMLInputElement>(null);
+  const firstRef = useRef<HTMLButtonElement>(null);
   // The last result acted on, so an effect re-run does not push twice.
   const handled = useRef<typeof state>(null);
 
-  // Escape closes it, and the page under it stops scrolling while it is up.
+  /* Escape closes it, the page under it stops scrolling while it is up, and
+     the keyboard lands on the first choice — then goes back where it was. */
   useEffect(() => {
     if (!open) return;
+    const from = document.activeElement as HTMLElement | null;
+    firstRef.current?.focus({ preventScroll: true });
     const key = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     document.addEventListener('keydown', key);
     const was = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
-    return () => { document.removeEventListener('keydown', key); document.body.style.overflow = was; };
+    return () => {
+      document.removeEventListener('keydown', key);
+      document.body.style.overflow = was;
+      from?.focus?.({ preventScroll: true });
+    };
   }, [open, onClose]);
 
   /* A readable receipt goes to Add Entry at once, seeded the same way the
@@ -65,20 +77,17 @@ export default function AddSheet({ open, onClose }: { open: boolean; onClose: ()
   };
 
   return (
-    <div role="presentation" onClick={onClose} style={{
-      position: 'fixed', inset: 0, zIndex: 60, background: 'rgba(13,23,30,.42)',
-      display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
-    }}>
-      <div role="dialog" aria-modal="true" aria-label="Add" className="snack el2"
-        onClick={(e) => e.stopPropagation()} style={{
-          width: '100%', maxWidth: 520, background: 'var(--c-card)', color: 'var(--c-ink)',
-          borderRadius: '24px 24px 0 0', padding: '10px var(--gutter) calc(18px + env(safe-area-inset-bottom, 0px))',
-          display: 'flex', flexDirection: 'column', gap: 8,
-        }}>
-        <span aria-hidden style={{
-          width: 38, height: 4, borderRadius: 999, background: 'var(--c-border)', alignSelf: 'center', marginBottom: 6,
-        }} />
+    <>
+      {/* The veil sits under the tab bar (z 35 against its 40), so the bar
+          stays sharp and the plus — now a cross — is still the thing to tap. */}
+      <div className="veil" role="presentation" onClick={onClose} />
 
+      <div role="dialog" aria-modal="true" aria-label="Add" style={{
+        position: 'fixed', left: 0, right: 0, zIndex: 36,
+        bottom: `calc(${TAB_BAR_SPACE} + 16px)`,
+        display: 'flex', flexDirection: 'column-reverse', alignItems: 'center', gap: 10,
+        padding: '0 var(--gutter)', pointerEvents: 'none',
+      }}>
         <form ref={formRef} action={act} style={{ display: 'contents' }}>
           <input ref={cameraRef} type="file" name="receipt" hidden
             accept="image/png,image/jpeg,image/webp" capture="environment" onChange={picked} />
@@ -88,31 +97,29 @@ export default function AddSheet({ open, onClose }: { open: boolean; onClose: ()
             accept="image/png,image/jpeg,image/webp,application/pdf" onChange={picked} />
         </form>
 
-        <Choice icon="pencil" tint="teal" title="Type it in" note="Amount, category, save — three taps"
-          disabled={pending}
+        {/* Nearest the thumb first: the column is reversed, so the first
+            choice in the source is the lowest on the screen and the first
+            to arrive. */}
+        <Ghost i={0} ref={firstRef} icon="pencil" tint="teal" title="Type it in"
+          note="Amount, category, save — three taps" disabled={pending}
           onPick={() => { haptic('select'); onClose(); router.push('/add', { transitionTypes: ['nav-forward'] }); }} />
-        <Choice icon="camera" tint="pumpkin" title={pending ? 'Reading the receipt…' : 'Scan a receipt'}
-          note="Photograph it; the total, date and shop are read for you"
-          disabled={pending}
+        <Ghost i={1} icon="camera" tint="pumpkin"
+          title={pending ? 'Reading the receipt…' : 'Scan a receipt'}
+          note="The total, date and shop are read for you" disabled={pending}
           onPick={() => { haptic('select'); filesRef.current!.value = ''; cameraRef.current?.click(); }} />
-        <Choice icon="upload" tint="purple" title="Upload a photo or PDF"
-          note="A screenshot or a bill already on the phone"
-          disabled={pending}
+        <Ghost i={2} icon="upload" tint="purple" title="Upload a photo or PDF"
+          note="A screenshot or a bill already on the phone" disabled={pending}
           onPick={() => { haptic('select'); cameraRef.current!.value = ''; filesRef.current?.click(); }} />
 
         {problem && (
-          <p role="alert" style={{
-            margin: '4px 0 0', padding: '12px 14px', borderRadius: 13, fontSize: 'var(--step--1)',
-            lineHeight: 1.5, background: 'var(--c-warn-tint)', color: 'var(--c-warn)', fontWeight: 600,
-          }}>{problem}</p>
+          <p role="alert" className="ghost" style={{
+            '--i': 3, margin: 0, width: 'min(100%, 360px)', pointerEvents: 'auto',
+            padding: '12px 16px', borderRadius: 18, fontSize: 'var(--step--1)',
+            lineHeight: 1.5, color: 'var(--c-warn)', fontWeight: 600,
+          } as React.CSSProperties}>{problem}</p>
         )}
-
-        <button type="button" className="cta" onClick={onClose} style={{
-          marginTop: 4, minHeight: 48, borderRadius: 13, fontSize: 'var(--step-0)', fontWeight: 600,
-          background: 'var(--c-sunk)', color: 'var(--c-meta)',
-        }}>Cancel</button>
       </div>
-    </div>
+    </>
   );
 }
 
@@ -122,18 +129,19 @@ const TINTS: Record<string, [string, string]> = {
   purple: ['var(--cat-purple)', 'var(--cat-purple-ink)'],
 };
 
-function Choice({ icon, tint, title, note, onPick, disabled }: {
-  icon: string; tint: string; title: string; note: string; onPick: () => void; disabled: boolean;
+function Ghost({ i, icon, tint, title, note, onPick, disabled, ref }: {
+  i: number; icon: string; tint: string; title: string; note: string;
+  onPick: () => void; disabled: boolean; ref?: React.Ref<HTMLButtonElement>;
 }) {
   const [bg, ink] = TINTS[tint];
   return (
-    <button type="button" onClick={onPick} disabled={disabled} className="el" style={{
-      minHeight: 66, borderRadius: 16, padding: '0 14px', display: 'flex', alignItems: 'center', gap: 13,
-      textAlign: 'left', background: 'var(--c-sunk2)', border: '1px solid var(--c-border)',
-      color: 'var(--c-ink)', opacity: disabled ? 0.6 : 1,
-    }}>
+    <button ref={ref} type="button" onClick={onPick} disabled={disabled} className="ghost" style={{
+      '--i': i, width: 'min(100%, 360px)', minHeight: 62, borderRadius: 999,
+      padding: '0 20px 0 9px', display: 'flex', alignItems: 'center', gap: 13,
+      textAlign: 'left', color: 'var(--c-ink)', opacity: disabled ? 0.6 : 1, pointerEvents: 'auto',
+    } as React.CSSProperties}>
       <span style={{
-        width: 42, height: 42, flex: 'none', borderRadius: 12, display: 'flex',
+        width: 44, height: 44, flex: 'none', borderRadius: 999, display: 'flex',
         alignItems: 'center', justifyContent: 'center', background: bg, color: ink,
       }}>
         <Icon name={icon} size={21} strokeWidth={1.9} />

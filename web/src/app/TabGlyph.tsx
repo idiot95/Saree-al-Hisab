@@ -3,8 +3,10 @@ import type { TABS } from './tabs';
 /* The inside of one tab: the rule across the top, the glyph in its pill,
    the label. No handlers and no state, so the loading skeleton can draw it
    as a still without a line of client JavaScript. */
-export function TabGlyph({ t, on, here, add }: {
+export function TabGlyph({ t, on, here, add, open = false }: {
   t: (typeof TABS)[number]; on: boolean; here: boolean; add: boolean;
+  /** The plus with its options fanned out: the same glyph, turned to a cross. */
+  open?: boolean;
 }) {
   return (
     <>
@@ -27,6 +29,10 @@ export function TabGlyph({ t, on, here, add }: {
         color: 'var(--c-on-pumpkin)',
         background: 'var(--g-pumpkin)',
         boxShadow: 'inset 0 1px 0 rgba(255,255,255,.35), 0 6px 16px -4px rgba(254,127,45,.55)',
+        /* A quarter turn less one eighth: the plus IS the cross, so opening
+           and closing is one glyph turning rather than two swapping. */
+        transform: open ? 'rotate(45deg)' : 'none',
+        transition: 'transform .22s cubic-bezier(.2,.8,.2,1)',
       } : {
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         height: 26, minWidth: 44, borderRadius: 999,
@@ -43,7 +49,7 @@ export function TabGlyph({ t, on, here, add }: {
       </span>
       <span style={{
         fontSize: 'var(--step--2)', fontWeight: on ? 700 : 500, letterSpacing: '.01em',
-      }}>{t.label}</span>
+      }}>{add && open ? 'Close' : t.label}</span>
     </>
   );
 }

@@ -863,11 +863,21 @@ glyph in `TabGlyph.tsx` — both plain modules — so the still and the live bar
 are one drawing. Re-check with the crawl: every `<script>` on every dynamic
 route carries the response's nonce.
 
-**The plus button opens a sheet** (`AddSheet.tsx`): type it in, scan a
-receipt with the camera, or upload a photo or PDF already on the phone. The
+**The plus button fans out its options** (`AddOptions.tsx`): type it in,
+scan a receipt with the camera, or upload a photo or PDF already on the
+phone. They float above the plus as see-through pills over the screen
+blurred (`.veil`, `backdrop-filter`, a near-solid scrim where the browser
+cannot blur), not in a drawer that covers it — what you were reading stays
+put, and the choice is within reach of the thumb that asked for it. The veil
+sits *under* the tab bar (z 35 against its 40), so the bar stays sharp, the
+plus turns into the cross that closes it, and the other four tabs still
+work: the open state remembers the path it was opened on, so leaving the
+screen closes it without an effect. Cross, veil, Escape, or any choice
+closes it; focus lands on the first choice and goes back where it was. The
 two file choices post straight to the existing `scan` action and land on
-`/add` prefilled only when nothing is missing; otherwise the reason stays on
-the sheet. Without JavaScript the button is still a link to `/add`.
+`/add` prefilled only when nothing is missing; otherwise the reason floats
+as a fourth pill. Without JavaScript the button is still a link to `/add`.
+The offline page carries the bar, so this bumped the worker to v6.
 
 **Light and dark live in a cookie**, `ql.theme`, read in the root layout and
 stamped as `data-theme` on `<html>`; absent means follow the phone.
