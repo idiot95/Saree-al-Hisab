@@ -759,3 +759,18 @@ export async function worthSeries(householdId: string, months = 6) {
     order by s.month
   ` as Promise<{ month: string; held: string }[]>;
 }
+
+/** Whether this household can scan, without handing the key to the caller. */
+export async function scanningState(householdId: string) {
+  const [r] = await sql`
+    select gemini_key is not null as has_key,
+           to_char(gemini_key_set_at, 'FMDD Mon YYYY') as set_on
+    from household where id = ${householdId}`;
+  return r as unknown as { has_key: boolean; set_on: string | null };
+}
+
+/** The sealed key itself. Only ever called on the server, by the scan action. */
+export async function geminiKeyFor(householdId: string) {
+  const [r] = await sql`select gemini_key from household where id = ${householdId}`;
+  return (r?.gemini_key as string | null) ?? null;
+}

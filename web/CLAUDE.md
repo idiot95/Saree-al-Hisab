@@ -479,6 +479,38 @@ headline, but what was claimed and unsettled on a date months ago is not
 something this app keeps. Drawing it into the line would imply a precision that
 is not there.
 
+## Scanning receipts
+
+`/scan` sends a photo to Gemini and gets back a draft. Four things hold it up.
+
+**The key belongs to the household, not the app.** Signing up is open, so one
+shared key would let anyone who found the URL spend somebody else's quota. It
+is sealed with AES-256-GCM under a key derived from `AUTH_SECRET`
+(`src/lib/secretbox.ts`), so a copy of the database is not also a copy of
+everybody's API keys. It is tried against Google before it is stored, so a typo
+is caught then rather than at the first receipt.
+
+**Nothing is written to the ledger by a scan.** The result is a draft carried
+to Add Entry in the URL, where a person checks and saves it as they would any
+entry. A wrong figure posted silently is worse than no figure.
+
+**The model's answer is untrusted input.** `src/lib/receipt.ts` re-parses
+everything: an amount must be a positive number in range, a date must be real
+and this century, a category must match one the household already has, and the
+KIND must be expense or income or it is `unknown`. Anything failing comes back
+blank rather than coerced — and an unknown kind blocks the save outright,
+because income booked as an expense is wrong in both directions at once. The
+draft is re-validated again in `/add`, since by then it has been through a URL.
+
+**503 is normal.** The very first real receipt this app scanned came back "this
+model is experiencing high demand". It clears in seconds, so it is retried
+three times with backoff before the person is told anything.
+
+`gemini-flash-latest` on purpose: a pinned version disappears — the first key
+test returned "models/gemini-2.0-flash is no longer available" — and a scanner
+that stops working because a model was retired is worse than one whose wording
+drifts.
+
 ## The UX laws, and where each one shows up
 
 - **Jakob** — a bottom tab bar, because every finance app people already use has

@@ -8,6 +8,8 @@ import { currentActor } from '@/db/queries';
 import { createHousehold, revokeSessions, switchHousehold } from '@/db/membership';
 import { newLinkToken } from '@/lib/link-token';
 import { hashPassword, passwordProblem, verifyPassword } from '@/lib/password';
+import { seal, hint } from '@/lib/secretbox';
+import { testKey } from '@/db/gemini';
 
 /* Every one of these is reachable by direct POST, so each re-establishes who
    is asking and what they are allowed to do. Hiding a button is presentation;
@@ -231,4 +233,47 @@ export async function signOutEverywhere(_prev: Result | null): Promise<Result> {
   const actor = await currentActor();
   await revokeSessions(actor.user_id);
   redirect('/signin');
+}
+
+/* ── the household's own scanning key ───────────────────────────────────── */
+
+/** Stored sealed, per household. Per household and not one for the app,
+ *  because signing up is open: a single shared key would let anyone who found
+ *  the URL spend somebody else's quota. */
+export async function saveGeminiKey(_prev: Result | null, formData: FormData): Promise<Result> {
+  let actor;
+  try { actor = await mustManage(); }
+  catch (e) { rethrowControlFlow(e); return { ok: false, error: (e as Error).message }; }
+
+  const key = String(formData.get('key') ?? '').trim();
+  if (key.length < 20 || /\s/.test(key)) {
+    return { ok: false, error: 'That does not look like an API key.' };
+  }
+
+  // Proved against Google before it is stored, so a typo is caught here rather
+  // than the first time somebody photographs a receipt.
+  const test = await testKey(key);
+  if (!test.ok) return { ok: false, error: test.error };
+
+  const secret = process.env.AUTH_SECRET;
+  if (!secret) return { ok: false, error: 'The server cannot store secrets right now.' };
+
+  await sql`
+    update household set gemini_key = ${seal(key, secret)}, gemini_key_set_at = now()
+    where id = ${actor.household_id}`;
+  revalidatePath('/household');
+  revalidatePath('/scan');
+  return { ok: true, message: `Key saved and working (${hint(key)}).` };
+}
+
+export async function removeGeminiKey(_prev: Result | null): Promise<Result> {
+  let actor;
+  try { actor = await mustManage(); }
+  catch (e) { rethrowControlFlow(e); return { ok: false, error: (e as Error).message }; }
+  await sql`
+    update household set gemini_key = null, gemini_key_set_at = null
+    where id = ${actor.household_id}`;
+  revalidatePath('/household');
+  revalidatePath('/scan');
+  return { ok: true, message: 'Removed. Scanning is off.' };
 }

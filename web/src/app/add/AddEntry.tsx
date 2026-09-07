@@ -28,16 +28,28 @@ export type Account = { id: string; name: string; kind: string };
 const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '00', '0', '.'];
 
 export default function AddEntry({
-  categories, methods, accounts, today,
-}: { categories: Category[]; methods: Method[]; accounts: Account[]; today: string }) {
+  categories, methods, accounts, today, draft,
+}: {
+  categories: Category[]; methods: Method[]; accounts: Account[]; today: string;
+  draft?: {
+    amountMinor: number | null; occurredOn: string | null; merchant: string | null;
+    kind: 'expense' | 'income' | null; categoryId: string | null;
+  };
+}) {
   const router = useRouter();
   const [pending, start] = useTransition();
-  const [kind, setKind] = useState<Kind>('expense');
-  const [keys, setKeys] = useState('');
-  const [categoryId, setCategoryId] = useState<string | null>(null);
+  /* A scan hands its draft over here rather than saving anything itself. The
+     keypad is seeded with the amount so it stays the same control, correctable
+     the same way — a scanned figure is a suggestion, not a fact. */
+  const [kind, setKind] = useState<Kind>(draft?.kind ?? 'expense');
+  const [keys, setKeys] = useState(
+    draft?.amountMinor ? String(draft.amountMinor / 100) : '');
+  const [categoryId, setCategoryId] = useState<string | null>(draft?.categoryId ?? null);
   const [methodId, setMethodId] = useState(methods[0]?.id ?? '');
   const [counterId, setCounterId] = useState<string | null>(null);
   const [shared, setShared] = useState(true);
+  const [occurredOn, setOccurredOn] = useState(draft?.occurredOn ?? today);
+  const [merchant, setMerchant] = useState(draft?.merchant ?? '');
   const [error, setError] = useState<string | null>(null);
   const [dupe, setDupe] = useState<Awaited<ReturnType<typeof checkDuplicate>>>(null);
 
@@ -50,16 +62,16 @@ export default function AddEntry({
      would otherwise be a round trip. */
   useEffect(() => {
     if (minor <= 0) { setDupe(null); return; }
-    const t = setTimeout(() => { checkDuplicate(minor, today).then(setDupe).catch(() => {}); }, 450);
+    const t = setTimeout(() => { checkDuplicate(minor, occurredOn).then(setDupe).catch(() => {}); }, 450);
     return () => clearTimeout(t);
-  }, [minor, today]);
+  }, [minor, occurredOn]);
 
   function save() {
     setError(null);
     start(async () => {
       const r = await saveEntry({
         kind, amountMinor: minor, categoryId, methodId,
-        counterAccountId: counterId, merchant: '', occurredOn: today, isShared: shared,
+        counterAccountId: counterId, merchant, occurredOn, isShared: shared,
       });
       if (r.ok) { setKeys(''); setCategoryId(null); setDupe(null); router.push('/'); }
       else setError(r.error);
@@ -90,7 +102,16 @@ export default function AddEntry({
             <Glyph d="M6 6l12 12M18 6L6 18" />
           </button>
           <h1 className="t" style={{ margin: 0, fontSize: 19 }}>New entry</h1>
-          <span style={{ width: 44, height: 44 }} />
+          <a href="/scan" aria-label="Scan a receipt" style={{
+            width: 44, height: 44, borderRadius: 999, display: 'flex',
+            alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,.92)',
+          }}>
+            <svg width={21} height={21} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M4.5 8.5 6 6h4l1-1.5h2L14 6h4l1.5 2.5v9a1.5 1.5 0 0 1-1.5 1.5H6a1.5 1.5 0 0 1-1.5-1.5z" />
+              <circle cx="12" cy="12.5" r="3.4" />
+            </svg>
+          </a>
         </div>
 
         <div role="tablist" aria-label="Kind of entry" style={{ display: 'flex', gap: 3, padding: 3, background: 'rgba(0,0,0,.22)', borderRadius: 999 }}>
@@ -149,9 +170,37 @@ export default function AddEntry({
             last
           />
         ) : (
-          <Row label="Date" value={friendly(today)} last />
+          <label style={{
+            display: 'flex', alignItems: 'center', gap: 12, width: '100%', minHeight: 56,
+          }}>
+            <span style={{
+              width: 92, flex: 'none', fontSize: 13.5, fontWeight: 600, color: 'var(--c-meta)',
+            }}>Date</span>
+            <input
+              type="date" value={occurredOn} max={today}
+              onChange={(e) => setOccurredOn(e.target.value || today)}
+              style={{
+                flex: 1, minHeight: 48, border: 0, background: 'transparent',
+                color: 'var(--c-ink)', fontSize: 15.5, fontWeight: 600,
+              }}
+            />
+          </label>
         )}
       </div>
+
+      {wantsCategory && (
+        <div style={{ padding: '0 18px 12px' }}>
+          <input
+            value={merchant} onChange={(e) => setMerchant(e.target.value.slice(0, 60))}
+            placeholder="Where was it" maxLength={60}
+            style={{
+              width: '100%', minHeight: 50, borderRadius: 13, padding: '0 14px',
+              border: '1px solid var(--c-border)', background: 'var(--c-card)',
+              color: 'var(--c-ink)', fontSize: 15.5,
+            }}
+          />
+        </div>
+      )}
 
       {wantsCategory && (
         <div style={{ display: 'flex', gap: 8, padding: '0 18px 10px', overflowX: 'auto', scrollbarWidth: 'none' }}>

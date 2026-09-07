@@ -1,12 +1,13 @@
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { actorOrNull, membersOf, openInvitesOf } from '@/db/queries';
+import { actorOrNull, membersOf, openInvitesOf, scanningState } from '@/db/queries';
 import { householdsOf } from '@/db/membership';
 import InviteForm from './InviteForm';
 import MemberRow from './MemberRow';
 import RevokeButton from './RevokeButton';
 import TabBar, { TAB_BAR_SPACE } from '../TabBar';
 import PasswordCard from './PasswordCard';
+import ScanKey from './ScanKey';
 import { HEADER_BG } from '../auth-ui';
 import BooksSwitcher from './BooksSwitcher';
 
@@ -26,10 +27,11 @@ export default async function Household() {
   if (!actor.household_id) redirect('/no-household');
 
   const name = actor.household_name;
-  const [members, invites, books] = await Promise.all([
+  const [members, invites, books, scanning] = await Promise.all([
     membersOf(actor.household_id),
     openInvitesOf(actor.household_id),
     householdsOf(actor.user_id),
+    scanningState(actor.household_id),
   ]);
   const canManage = actor.role === 'owner';
   const h = await headers();
@@ -128,6 +130,13 @@ export default async function Household() {
               </div>
             ))}
           </Card>
+        </>
+      )}
+
+      {canManage && (
+        <>
+          <Head>Scanning receipts</Head>
+          <ScanKey hasKey={scanning.has_key} setOn={scanning.set_on} />
         </>
       )}
 

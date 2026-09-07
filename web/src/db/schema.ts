@@ -35,6 +35,12 @@ export const household = pgTable('household', {
   name: text('name').notNull(),
   baseCurrency: text('base_currency').notNull().default('INR'),
   monthStartsOn: integer('month_starts_on').notNull().default(1),
+  /* A household's OWN Gemini key, sealed with AUTH_SECRET (src/lib/secretbox).
+     Per household rather than one for the app, because signing up is open: a
+     single shared key would let anyone who found the URL spend somebody
+     else's quota. */
+  geminiKey: text('gemini_key'),
+  geminiKeySetAt: timestamp('gemini_key_set_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [
   check('month_start_valid', sql`${t.monthStartsOn} between 1 and 28`),

@@ -99,6 +99,13 @@
       "when": 1788773176839,
       "tag": "0013_schedule_created_at",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1788775523930,
+      "tag": "0014_household_gemini_key",
+      "breakpoints": true
     }
   ]
 }

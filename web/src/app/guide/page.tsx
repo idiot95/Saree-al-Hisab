@@ -50,6 +50,16 @@ const SECTIONS = [
     ],
   },
   {
+    title: 'Scanning a receipt',
+    href: '/scan', link: 'Open scanning',
+    lines: [
+      'Photograph a receipt and the total, date and shop are read off it.',
+      'Nothing is ever recorded for you. What comes back is a draft you check and save yourself — a figure guessed from a blurred receipt is worse than one you typed.',
+      'If the amount, the date or whether money went out cannot be read, it says so and hands you a blank entry instead of guessing.',
+      'It needs a free Google AI key, added once under Household. The key is yours, stored encrypted, and every scan is billed to your own quota.',
+    ],
+  },
+  {
     title: 'Recording an entry',
     href: '/add', link: 'New entry',
     lines: [
@@ -155,7 +165,7 @@ export default async function Guide() {
           How it works
         </h1>
         <p style={{ margin: 0, fontSize: 14, lineHeight: 1.5, color: 'rgba(255,255,255,.82)' }}>
-          Twelve things worth knowing. Four minutes.
+          Thirteen things worth knowing. Four minutes.
         </p>
       </header>
 
