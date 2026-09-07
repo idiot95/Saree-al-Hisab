@@ -195,6 +195,12 @@ export const counterparty = pgTable('counterparty', {
 export const ledgerBook = pgTable('ledger_book', {
   id: uuid('id').primaryKey().defaultRandom(),
   householdId: uuid('household_id').notNull().references(() => household.id, { onDelete: 'cascade' }),
+  /* What costs on this tab usually are. An office tab is things you bought and
+     used and will be paid back for, so they count; a tab for money fronted to
+     family is not your spending at all. Set once here, overridable on the
+     entry, because the answer is a property of the arrangement far more often
+     than of the individual receipt. */
+  countsAsSpending: boolean('counts_as_spending').notNull().default(true),
   name: text('name').notNull(),
   note: text('note'),
   closedAt: timestamp('closed_at', { withTimezone: true }),
@@ -284,6 +290,13 @@ export const txn = pgTable('txn', {
   merchant: text('merchant'),
   note: text('note'),
   isShared: boolean('is_shared').notNull().default(false),
+  /* Whether this is money you BORE. Almost always yes — it is only ever false
+     for a cost you laid out for somebody else, where the money left your
+     account but was never yours to spend. spend_txn reads it, so the budget
+     and every chart follow. Separate from whether it is owed back: petrol you
+     burn for work is your spending AND reimbursed, and money you front for a
+     cousin's rent is neither. */
+  countsAsSpend: boolean('counts_as_spend').notNull().default(true),
   source: txnSource('source').notNull().default('manual'),
   createdBy: uuid('created_by').notNull().references(() => appUser.id),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
@@ -297,10 +310,6 @@ export const txn = pgTable('txn', {
      method only prefills it and answers "how much goes through UPI". */
   paymentMethodId: uuid('payment_method_id'),
   cardCycleId: uuid('card_cycle_id'),
-  /* One real-world payment written as several rows: a cost put on a tab
-     becomes one loan per person on it. They share a group_ref so the ledger
-     can show them as the one thing that actually happened. */
-  groupRef: uuid('group_ref'),
   /* Minted on the phone the moment an entry is saved without signal. When
      the queue drains it is sent with the entry, and the partial unique index
      below makes a second delivery of the same entry a no-op instead of a
@@ -311,7 +320,6 @@ export const txn = pgTable('txn', {
   uniqueIndex('txn_client_ref').on(t.householdId, t.clientRef)
     .where(sql`${t.clientRef} IS NOT NULL`),
   index('txn_book').on(t.bookId),
-  index('txn_group').on(t.groupRef),
   index('txn_cycle').on(t.cardCycleId),
   index('txn_ledger').on(t.householdId, t.occurredOn),
   index('txn_category_month').on(t.categoryId, t.occurredOn),

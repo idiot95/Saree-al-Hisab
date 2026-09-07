@@ -33,7 +33,7 @@ export default async function Tab({ params }: { params: Promise<{ id: string }> 
 
   const members = people.filter((p) => p.on_tab);
   const owed = people.reduce((n, p) => n + Number(p.owed), 0);
-  const out = people.reduce((n, p) => n + Number(p.lent), 0);
+  const claimed = people.reduce((n, p) => n + Number(p.owed_in_all), 0);
   const back = people.reduce((n, p) => n + Number(p.back), 0);
   const costs = entries.filter((e) => !e.incoming);
   const canEdit = actor.role !== 'viewer';
@@ -74,7 +74,7 @@ export default async function Tab({ params }: { params: Promise<{ id: string }> 
             {owed > 0 ? 'still to come back · ' : ''}
             {costs.length === 0
               ? 'Nothing on it yet'
-              : `${format(out)} laid out across ${costs.length} ${costs.length === 1 ? 'cost' : 'costs'}`}
+              : `${format(claimed)} claimed across ${costs.length} ${costs.length === 1 ? 'cost' : 'costs'}`}
             {back > 0 ? ` · ${format(back)} back` : ''}
           </p>
           {tab.note && (
@@ -97,7 +97,7 @@ export default async function Tab({ params }: { params: Promise<{ id: string }> 
 
           <TabPeople
             tabId={tab.id} tabName={tab.name} note={tab.note}
-            people={people} closed={!!tab.closed_at} canEdit={canEdit}
+            countsAsSpending={tab.counts_as_spending} people={people} closed={!!tab.closed_at} canEdit={canEdit}
             methods={methods.map((m) => ({ id: m.id, name: m.name, funds: m.funds }))}
             today={today}
           />
@@ -129,16 +129,18 @@ export default async function Tab({ params }: { params: Promise<{ id: string }> 
                       <span style={{ fontSize: 'var(--step--2)', color: 'var(--c-meta)' }}>
                         {new Date(e.occurred_on).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
                         {' · '}{e.who}
-                        {!e.incoming && e.people ? ` · lent to ${e.people}` : ''}
-                        {!e.incoming && Number(e.lent) < Number(e.amount)
-                          ? ` · of ${format(Number(e.amount))}` : ''}
+                        {!e.incoming && e.people ? ` · ${e.people}` : ''}
+                        {!e.incoming && Number(e.outstanding) > 0
+                          ? ` · ${format(Number(e.outstanding))} still owed`
+                          : !e.incoming ? ' · settled' : ''}
+                        {!e.incoming && !e.counts_as_spend ? ' · not your spending' : ''}
                       </span>
                     </span>
                     <span className="t" style={{
                       fontSize: 'var(--step-0)',
                       color: e.incoming ? 'var(--c-seagrass)' : undefined,
                     }}>
-                      {e.incoming ? '+' : ''}{format(Number(e.incoming ? e.amount : e.lent))}
+                      {e.incoming ? '+' : ''}{format(Number(e.amount))}
                     </span>
                   </div>
                 ))}
@@ -149,11 +151,14 @@ export default async function Tab({ params }: { params: Promise<{ id: string }> 
           <p style={{
             margin: '4px 20px 0', fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--c-meta)',
           }}>
-            A cost put on this tab is owed back in full, divided equally among the
-            people on it, and is lent to them the moment it is saved. It is not counted
-            as your spending and it never touches your budget &mdash; you laid the money
-            out, you did not spend it. Taking money back here brings it into whichever
-            of your accounts it actually arrived in.
+            A cost put on this tab is owed back in full unless you say otherwise, divided
+            equally among the people on it, and each share becomes a claim the moment it is
+            saved. Whether the cost was <em>your</em> spending is a separate question:
+            {' '}{tab.counts_as_spending
+              ? 'these are counted, because you bought and used the thing and are simply being paid back for it.'
+              : 'these are not counted, because the money left your account but was never yours to spend.'}
+            {' '}Either way, taking money back here brings it into whichever of your accounts
+            it actually arrived in.
           </p>
         </div>
       </main>

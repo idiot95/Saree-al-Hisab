@@ -315,82 +315,95 @@ await sql`delete from txn where id = ${dinner.id}`;
 const [{ n: left }] = await sql`select count(*)::int as n from claim where id = ${cl.id}`;
 ok(left === 0, 'deleting the entry takes its claim with it — there is nothing left to be owed for');
 
-console.log('\nTABS — money laid out for people, not money spent');
-/* A tab is a lending group. A cost put on it is owed back in full, divided
-   equally among the people on it, and each share is a loan into that person's
-   account — so it is never spending, never in the budget, and the khata and
-   the tab are the same arithmetic seen through different windows. */
+console.log('\nTABS — owed back, and separately, whether it was yours to spend');
+/* A tab raises one claim per person for their share of a cost put on it. What
+   is owed back and what counted as your spending are different questions: the
+   petrol you burn for work is both, the rent you front for a cousin is
+   neither, and the app has to be able to say so. */
 const ahmedCp = (await sql`select id, account_id from counterparty where name='Ahmed Raza' and household_id = ${hh.id}`)[0];
 const zainAcc = await mk('Zain', 'person');
 const [zainCp] = await sql`insert into counterparty ${sql({ household_id: hh.id, name: 'Zain', account_id: zainAcc })} returning id, account_id`;
-const [trip] = await sql`insert into ledger_book ${sql({ household_id: hh.id, name: 'Goa' })} returning id`;
-await sql`insert into book_member ${sql([{ book_id: trip.id, counterparty_id: ahmedCp.id }, { book_id: trip.id, counterparty_id: zainCp.id }])}`;
+const [office] = await sql`insert into ledger_book ${sql({ household_id: hh.id, name: 'Office', counts_as_spending: true })} returning id, counts_as_spending`;
+const [family] = await sql`insert into ledger_book ${sql({ household_id: hh.id, name: 'Family', counts_as_spending: false })} returning id`;
+ok(office.counts_as_spending === true, 'a tab says whether costs on it are your own spending');
+await sql`insert into book_member ${sql([{ book_id: office.id, counterparty_id: ahmedCp.id },
+                                          { book_id: family.id, counterparty_id: zainCp.id }])}`;
 
-// ₹1,000.01 laid out for two people: the odd paisa goes to one of them.
+/* Petrol on the office tab: you burned it, so it counts — and it is owed back. */
 const spentBefore = await spent();
-const group = crypto.randomUUID();
-const lay = (cp, amt) => sql`insert into txn ${sql({
-  household_id: hh.id, created_by: user.id, kind: 'transfer', amount: amt,
-  occurred_on: '2026-09-01', account_id: spend, counter_account_id: cp.account_id,
-  category_id: cat, book_id: trip.id, group_ref: group, currency: 'INR' })} returning id`;
-const [taxiA] = await lay(ahmedCp, 50001);
-await lay(zainCp, 50000);
+const [petrol] = await txn({ kind: 'expense', account_id: card, category_id: cat,
+  amount: 300000, book_id: office.id, occurred_on: '2026-09-02' });
+await sql`insert into claim ${sql({ household_id: hh.id, counterparty_id: ahmedCp.id,
+  txn_id: petrol.id, kind: 'reimbursement', expected_amount: 300000 })}`;
+ok(await spent() === spentBefore + 300000,
+  'a cost you bore and expect back still counts as your spending');
+const [{ card_cycle_id: filed }] = await sql`select card_cycle_id from txn where id = ${petrol.id}`;
+ok(filed !== null, 'and paid on a card it reaches that card’s bill like any purchase');
 
-ok(await spent() === spentBefore,
-  'a cost laid out for people on a tab is not your spending — the budget never sees it');
-const [{ total: laid }] = await sql`select sum(amount)::bigint as total from txn where group_ref = ${group}`;
-ok(Number(laid) === 100001, 'the shares add back up to the whole cost, to the paisa');
+/* Rent fronted for family: the money left, but it was never yours to spend. */
+const [rent] = await txn({ kind: 'expense', account_id: spend, category_id: cat,
+  amount: 500000, book_id: family.id, counts_as_spend: false, occurred_on: '2026-09-03' });
+await sql`insert into claim ${sql({ household_id: hh.id, counterparty_id: zainCp.id,
+  txn_id: rent.id, kind: 'reimbursement', expected_amount: 500000 })}`;
+ok(await spent() === spentBefore + 300000,
+  'a cost carried for somebody else is NOT your spending, though the money did leave');
+const [{ balance: cashAfter }] = await sql`
+  select balance::text from account_balance where id = ${spend}`;
+const [{ balance: cashBeforeRent }] = await sql`
+  select (balance + 500000)::text as balance from account_balance where id = ${spend}`;
+ok(Number(cashBeforeRent) - Number(cashAfter) === 500000,
+  'and the account it left is ₹5,000 lighter — a balance is the entries beneath it, whatever they count as');
+const [{ n: inSpend }] = await sql`
+  select count(*)::int as n from spend_txn where id = ${rent.id}`;
+ok(inSpend === 0, 'spend_txn is still the only definition of spending, and it excludes it');
 
-/* A transfer may say what it was for, but only one that means something:
-   money laid out for a person. A category on a sweep between your own
-   accounts would read like spending it is not. */
-await refuses('a category on a move between your own accounts is refused',
-  () => sql`insert into txn ${sql({ household_id: hh.id, created_by: user.id, kind: 'transfer',
-    amount: 100, occurred_on: '2026-09-01', account_id: spend, counter_account_id: cash,
-    category_id: cat, currency: 'INR' })}`);
-const [{ n: said }] = await sql`select count(*)::int as n from txn where group_ref = ${group} and category_id = ${cat}`;
-ok(said === 2, 'but money laid out for a person keeps the category, so what it was for is on record');
+/* Shares divide what comes back, to the paisa, and only among the people. */
+const [dinner2] = await txn({ kind: 'expense', account_id: spend, category_id: cat,
+  amount: 100001, book_id: office.id, occurred_on: '2026-09-04' });
+await sql`insert into claim ${sql([
+  { household_id: hh.id, counterparty_id: ahmedCp.id, txn_id: dinner2.id, kind: 'reimbursement', expected_amount: 50001 },
+  { household_id: hh.id, counterparty_id: zainCp.id, txn_id: dinner2.id, kind: 'reimbursement', expected_amount: 50000 },
+])}`;
+const [{ total: claimed2 }] = await sql`select sum(expected_amount)::bigint as total from claim where txn_id = ${dinner2.id}`;
+ok(Number(claimed2) === 100001, 'the shares add back up to what is claimed, to the paisa');
+await refuses('a second share for the same person on the same entry is refused',
+  () => sql`insert into claim ${sql({ household_id: hh.id, counterparty_id: ahmedCp.id, txn_id: dinner2.id, kind: 'reimbursement', expected_amount: 1 })}`);
+await refuses('a share of nothing is refused',
+  () => sql`insert into claim ${sql({ household_id: hh.id, counterparty_id: zainCp.id, txn_id: petrol.id, kind: 'reimbursement', expected_amount: 0 })}`);
 
-/* What is outstanding on a tab is money out under it less money back under
-   it — the khata's arithmetic, confined to the tab. */
+/* Only PART of a cost need come back. */
+const [bill] = await txn({ kind: 'expense', account_id: spend, category_id: cat,
+  amount: 1000000, book_id: office.id, occurred_on: '2026-09-05' });
+await sql`insert into claim ${sql({ household_id: hh.id, counterparty_id: ahmedCp.id,
+  txn_id: bill.id, kind: 'reimbursement', expected_amount: 800000 })}`;
 const owedOn = async (cp) => Number((await sql`
   select coalesce(outstanding, 0)::bigint as n from tab_balance
-  where book_id = ${trip.id} and counterparty_id = ${cp.id}`)[0]?.n ?? 0);
-ok(await owedOn(ahmedCp) === 50001 && await owedOn(zainCp) === 50000,
-  'what a person owes on a tab is what went out to them under it');
+  where book_id = ${office.id} and counterparty_id = ${cp.id}`)[0]?.n ?? 0);
+ok(await owedOn(ahmedCp) === 1150001,
+  'what a person owes on a tab is their open shares under it — ₹3,000 + ₹500.01 + ₹8,000');
 
-await sql`insert into txn ${sql({ household_id: hh.id, created_by: user.id, kind: 'transfer',
-  amount: 20001, occurred_on: '2026-09-07', account_id: ahmedCp.account_id,
-  counter_account_id: spend, book_id: trip.id, currency: 'INR' })}`;
-ok(await owedOn(ahmedCp) === 30000 && await owedOn(zainCp) === 50000,
-  'money back from one person brings only that person down');
-ok(await spent() === spentBefore, 'and money coming back is not income and not a reduction in spending');
+/* Money back is a receipt against a claim: not earning, and it does not
+   reduce what the month cost. */
+const oldest = (await sql`select cs.id from claim_state cs join txn t on t.id = cs.txn_id
+  where cs.counterparty_id = ${ahmedCp.id} and t.book_id = ${office.id}
+  order by t.occurred_on limit 1`)[0];
+const spentNow = await spent();
+await sql`insert into txn ${sql({ household_id: hh.id, created_by: user.id, kind: 'claim_receipt',
+  amount: 300000, occurred_on: '2026-09-10', account_id: spend, claim_id: oldest.id, currency: 'INR' })}`;
+ok(await owedOn(ahmedCp) === 850001, 'money back brings down exactly the claim it was paid against');
+ok(await spent() === spentNow, 'and being paid back does not unspend what the month cost');
 const [{ n: asIncome2 }] = await sql`
-  select count(*)::int as n from income_txn where household_id = ${hh.id} and occurred_on = '2026-09-07'`;
-ok(asIncome2 === 0, 'a repayment on a tab is never counted as earning');
+  select count(*)::int as n from income_txn where household_id = ${hh.id} and occurred_on = '2026-09-10'`;
+ok(asIncome2 === 0, 'a repayment is never counted as earning');
 
-/* A card is how most of this is actually paid. A cost laid out on a credit
-   card is a charge on that card like any purchase — it has to reach the
-   statement, or the card says you owe it and the bill does not ask for it. */
-const [petrol] = await sql`insert into txn ${sql({
-  household_id: hh.id, created_by: user.id, kind: 'transfer', amount: 300000,
-  occurred_on: '2026-09-10', account_id: card, counter_account_id: ahmedCp.account_id,
-  category_id: cat, currency: 'INR' })} returning id, card_cycle_id`;
-ok(petrol.card_cycle_id !== null,
-  'money laid out on a credit card files itself onto that card’s bill');
-
-/* Leaving the tab does not bring back what was laid out, and deleting the
-   tab takes only the tab. */
-await sql`delete from book_member where book_id = ${trip.id} and counterparty_id = ${zainCp.id}`;
-ok(await owedOn(zainCp) === 50000, 'leaving the tab leaves what they owe for earlier costs standing');
-await sql`delete from ledger_book where id = ${trip.id}`;
-const [taxiAfter] = await sql`select book_id, deleted_at, amount::text from txn where id = ${taxiA.id}`;
-ok(taxiAfter.book_id === null && taxiAfter.deleted_at === null && taxiAfter.amount === '50001',
-  'deleting the tab takes only the tab — the loans stay, and so does what is owed');
-const [{ balance: ahmedLeft }] = await sql`
-  select balance::text from counterparty_balance where counterparty_id = ${ahmedCp.id}`;
-ok(ahmedLeft === '330000',
-  'and the khata still knows: ₹5,000.01 out, ₹200.01 back, ₹3,000 on the card');
+/* Leaving the tab, and deleting it. */
+await sql`delete from book_member where book_id = ${office.id} and counterparty_id = ${ahmedCp.id}`;
+ok(await owedOn(ahmedCp) === 850001, 'leaving the tab leaves what they owe for earlier costs standing');
+await sql`delete from ledger_book where id = ${office.id}`;
+const [petrolAfter] = await sql`select book_id, deleted_at from txn where id = ${petrol.id}`;
+const [{ n: sharesLeft }] = await sql`select count(*)::int as n from claim where txn_id = ${petrol.id}`;
+ok(petrolAfter.book_id === null && petrolAfter.deleted_at === null && sharesLeft === 1,
+  'deleting the tab takes only the tab — the entry and what is owed for it stay');
 
 console.log('\nSCHEDULES — a salary comes round the way rent does');
 await allows('a schedule can be income',

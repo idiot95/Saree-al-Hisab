@@ -64,6 +64,20 @@ const done = new Set((await sql`select file from _migration`).map((r) => r.file)
 const dir = join(root, 'drizzle');
 const files = readdirSync(dir).filter((f) => f.endsWith('.sql')).sort();
 
+/* Postgres will not ALTER or DROP a column that a view reads, and a generated
+   00xx migration has no way to know which views those are. Every view here is
+   defined in the 01xx files and rebuilt further down this same run, so when
+   there is generated schema work pending the views come down first. Without
+   this, adding a column beside one a view selects fails with "cannot drop
+   column ... because other objects depend on it" and the fix is always the
+   same three lines pasted into a migration by hand. */
+const pending = files.filter((f) => f.startsWith('00') && !done.has(f));
+if (pending.length) {
+  const live = await sql`select table_name from information_schema.views where table_schema = 'public'`;
+  for (const v of live) await sql.unsafe(`drop view if exists "${v.table_name}" cascade`);
+  if (live.length) console.log(`  ${live.length} views dropped, rebuilt below\n`);
+}
+
 for (const f of files) {
   // The 01xx views and triggers are idempotent by construction and are
   // re-applied every run, so a changed view ships without a new file.
@@ -71,16 +85,29 @@ for (const f of files) {
   if (done.has(f) && !idempotent) { console.log(`  ${f} … already applied`); continue; }
   const body = readFileSync(join(dir, f), 'utf8');
   const stmts = statements(body);
+  /* A file applies as one transaction, so a failure part way through leaves
+     nothing behind. A half-applied migration is the worst thing a runner can
+     do: the file is not recorded, so it runs again, and now its first
+     statements fail because they already happened.
+
+     One exception, and it is the reason this ran statement by statement in the
+     first place: Postgres refuses to USE an enum value in the transaction that
+     ADDed it. Those files apply one statement at a time and have to be safe to
+     re-run on their own. */
+  const atomic = !/ALTER\s+TYPE[\s\S]*?ADD\s+VALUE/i.test(body);
   process.stdout.write(`  ${f} … ${String(stmts.length).padStart(2)} stmt `);
-  for (const [n, stmt] of stmts.entries()) {
-    try {
-      await sql.unsafe(stmt);
-    } catch (e) {
-      console.log('FAILED');
-      console.error(`\n  statement ${n + 1} of ${f}:\n  ${stmt.slice(0, 200)}\n\n  ${e.message}\n`);
-      await sql.end();
-      process.exit(1);
+  let n = 0;
+  try {
+    if (atomic) {
+      await sql.begin(async (tx) => { for (const stmt of stmts) { n++; await tx.unsafe(stmt); } });
+    } else {
+      for (const stmt of stmts) { n++; await sql.unsafe(stmt); }
     }
+  } catch (e) {
+    console.log('FAILED');
+    console.error(`\n  statement ${n} of ${f}${atomic ? ' (rolled back)' : ''}:\n  ${stmts[n - 1]?.slice(0, 200)}\n\n  ${e.message}\n`);
+    await sql.end();
+    process.exit(1);
   }
   await sql`insert into _migration ${sql({ file: f })} on conflict (file) do nothing`;
   console.log('ok');

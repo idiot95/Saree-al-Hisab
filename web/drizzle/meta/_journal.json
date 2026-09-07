@@ -134,6 +134,13 @@
       "when": 1788799615384,
       "tag": "0018_tab_loans",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1788803005272,
+      "tag": "0019_counts_as_spend",
+      "breakpoints": true
     }
   ]
 }

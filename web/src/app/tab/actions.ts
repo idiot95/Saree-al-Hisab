@@ -20,12 +20,13 @@ async function mustWrite() {
   return actor;
 }
 
-/* A tab is a few people you cover costs for — the flat, a trip, the office
-   petrol, the medical bills somebody else reimburses. A cost put on it is
-   lent to them the moment it is saved, one loan per person, and the tab's
-   screen adds those up and takes the money back. Every action here re-checks
-   that the tab and the person belong to the household asking, because a
-   hidden button is not a rule. */
+/* A tab is a few people who owe you back — the flat, a trip, the office
+   petrol, the medical bills an insurer reimburses. A cost put on it raises one
+   claim per person the moment it is saved, and the tab's screen adds those up
+   and records the money coming back. Whether the cost was YOUR spending is a
+   separate question the tab answers by default and the entry can override.
+   Every action here re-checks that the tab and the person belong to the
+   household asking, because a hidden button is not a rule. */
 export async function createTab(_prev: Result | null, fd: FormData): Promise<Result> {
   let actor;
   try { actor = await mustWrite(); }
@@ -33,6 +34,7 @@ export async function createTab(_prev: Result | null, fd: FormData): Promise<Res
 
   const name = String(fd.get('name') ?? '').trim();
   const note = String(fd.get('note') ?? '').trim() || null;
+  const counts = fd.get('countsAsSpending') === 'yes';
 
   if (name.length < 2) return { ok: false, error: 'Give the tab a name.' };
   if (name.length > 60) return { ok: false, error: 'Names are 60 characters at most.' };
@@ -52,8 +54,8 @@ export async function createTab(_prev: Result | null, fd: FormData): Promise<Res
 
   const [b] = await sql.begin(async (tx) => {
     const [row] = await tx`
-      insert into ledger_book (household_id, name, note)
-      values (${actor.household_id}, ${name}, ${note}) returning id`;
+      insert into ledger_book (household_id, name, note, counts_as_spending)
+      values (${actor.household_id}, ${name}, ${note}, ${counts}) returning id`;
     for (const p of people) {
       await tx`insert into book_member (book_id, counterparty_id) values (${row.id}, ${p.id})`;
     }
@@ -76,13 +78,15 @@ export async function renameTab(_prev: Result | null, fd: FormData): Promise<Res
     return { ok: false, error: 'Use between 2 and 60 characters.' };
   }
   const done = await sql`
-    update ledger_book set name = ${name}, note = ${note}
+    update ledger_book
+    set name = ${name}, note = ${note},
+        counts_as_spending = ${fd.get('countsAsSpending') === 'yes'}
     where id = ${id} and household_id = ${actor.household_id} returning id`;
   if (!done.length) return { ok: false, error: 'That tab is not one of yours.' };
   revalidatePath(`/tab/${id}`);
   revalidatePath('/people');
   revalidatePath('/add');
-  return { ok: true, message: 'Saved.' };
+  return { ok: true, message: 'Saved. Entries already recorded keep what they say.' };
 }
 
 export async function addToTab(_prev: Result | null, fd: FormData): Promise<Result> {
@@ -109,8 +113,8 @@ export async function addToTab(_prev: Result | null, fd: FormData): Promise<Resu
 }
 
 /** Taking someone off a tab stops them being included in what is put on it
- *  from now on. What they already owe stays owed — the money was really laid
- *  out for them, and leaving the tab does not bring it back. */
+ *  from now on. What they already owe stays owed — the money was really spent
+ *  on their behalf, and leaving the tab does not unspend it. */
 export async function removeFromTab(_prev: Result | null, fd: FormData): Promise<Result> {
   let actor;
   try { actor = await mustWrite(); }
@@ -165,11 +169,14 @@ export async function deleteTab(_prev: Result | null, fd: FormData): Promise<Res
 
 /* Settling up: money coming back from one person on this tab.
 
-   It is recorded the way every repayment is — a transfer OUT of that person's
-   account and INTO one of yours — because that is what happened. Not income:
-   it was never spending, so recovering it is not earning. Carrying the tab's
-   id is what lets the tab say what is still outstanding under it without
-   guessing which of a person's debts a payment was meant for. */
+   Recorded the way every reimbursement is — a claim_receipt per claim, which
+   is what claim_state derives "received" from. A single amount is spread
+   across that person's open claims on this tab oldest first, so a part payment
+   clears the oldest entries whole and leaves the newest partly owed, and every
+   receipt is written in one transaction: either the whole settlement is in the
+   books or none of it is. Money arriving against a claim is in neither
+   spend_txn nor income_txn — it is not earning, and it does not reduce what
+   the month cost. */
 export async function settleTab(_prev: Result | null, fd: FormData): Promise<Result> {
   let actor;
   try { actor = await mustWrite(); }
@@ -181,10 +188,6 @@ export async function settleTab(_prev: Result | null, fd: FormData): Promise<Res
     where id = ${tabId} and household_id = ${actor.household_id}`;
   if (!b) return { ok: false, error: 'That tab is not one of yours.' };
 
-  const [person] = await sql`select id, account_id from counterparty
-    where id = ${personId} and household_id = ${actor.household_id} and archived_at is null`;
-  if (!person) return { ok: false, error: 'That person is not one of yours.' };
-
   const on = String(fd.get('occurred_on') ?? '');
   if (!/^\d{4}-\d{2}-\d{2}$/.test(on)) return { ok: false, error: 'That date is not valid.' };
 
@@ -194,10 +197,14 @@ export async function settleTab(_prev: Result | null, fd: FormData): Promise<Res
       and archived_at is null`;
   if (!m) return { ok: false, error: 'Choose where the money went.' };
 
-  const [bal] = await sql`
-    select coalesce(outstanding, 0)::bigint as outstanding from tab_balance
-    where book_id = ${b.id} and counterparty_id = ${person.id}`;
-  const owed = Number(bal?.outstanding ?? 0);
+  const open = await sql`
+    select cs.id, cs.outstanding::bigint
+    from claim_state cs
+    join txn t on t.id = cs.txn_id and t.deleted_at is null
+    where cs.household_id = ${actor.household_id} and cs.counterparty_id = ${personId}
+      and t.book_id = ${b.id} and cs.status in ('open', 'part_paid')
+    order by t.occurred_on, t.created_at`;
+  const owed = open.reduce((n, c) => n + Number(c.outstanding), 0);
   if (owed <= 0) return { ok: false, error: 'They owe nothing on this tab.' };
 
   // Blank means "all of it": the common case should not need typing.
@@ -207,11 +214,19 @@ export async function settleTab(_prev: Result | null, fd: FormData): Promise<Res
   if (minor > owed) return { ok: false, error: 'That is more than they owe on this tab.' };
 
   try {
-    await sql`
-      insert into txn (household_id, created_by, kind, amount, occurred_on,
-                       account_id, counter_account_id, book_id, source)
-      values (${actor.household_id}, ${actor.user_id}, 'transfer', ${minor}, ${on}::date,
-              ${person.account_id}, ${m.funding_account_id}, ${b.id}, 'manual')`;
+    await sql.begin(async (tx) => {
+      let left = minor;
+      for (const c of open) {
+        if (left <= 0) break;
+        const part = Math.min(left, Number(c.outstanding));
+        await tx`
+          insert into txn (household_id, created_by, kind, amount, occurred_on,
+                           account_id, claim_id, source)
+          values (${actor.household_id}, ${actor.user_id}, 'claim_receipt', ${part}, ${on}::date,
+                  ${m.funding_account_id}, ${c.id}, 'manual')`;
+        left -= part;
+      }
+    });
   } catch (e) {
     const pg = e as { code?: string; constraint_name?: string };
     console.error('settleTab refused:', pg.code ?? 'unknown', pg.constraint_name ?? '');

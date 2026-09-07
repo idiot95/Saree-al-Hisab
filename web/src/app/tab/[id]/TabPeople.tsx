@@ -9,17 +9,18 @@ import {
   addToTab, removeFromTab, renameTab, toggleTabClosed, deleteTab, settleTab,
 } from '../actions';
 import { format } from '@/lib/money';
+import CountsChoice from '../CountsChoice';
 
 type Person = {
   id: string; name: string; tint: string; on_tab: boolean;
-  lent: string; back: string; owed: string;
+  owed_in_all: string; back: string; owed: string;
 };
 type Method = { id: string; name: string; funds: string };
 
 export default function TabPeople({
-  tabId, tabName, note, people, closed, canEdit, methods, today,
+  tabId, tabName, note, countsAsSpending, people, closed, canEdit, methods, today,
 }: {
-  tabId: string; tabName: string; note: string | null;
+  tabId: string; tabName: string; note: string | null; countsAsSpending: boolean;
   people: Person[]; closed: boolean; canEdit: boolean; methods: Method[]; today: string;
 }) {
   const [, add] = useActionState(addToTab, null);
@@ -103,14 +104,15 @@ export default function TabPeople({
       {canEdit && (
         <div style={{ margin: '4px 18px 0', display: 'flex', flexDirection: 'column', gap: 10 }}>
           {editing ? (
-            <EditTab tabId={tabId} name={tabName} note={note} onDone={() => setEditing(false)} />
+            <EditTab tabId={tabId} name={tabName} note={note} counts={countsAsSpending}
+              onDone={() => setEditing(false)} />
           ) : (
             <button className="cta" type="button" onClick={() => setEditing(true)} style={{
               width: '100%', minHeight: 50, borderRadius: 13, fontSize: 'var(--step-0)', fontWeight: 600,
               background: 'var(--c-sunk)', color: 'var(--c-ink)',
             }}>
               <Icon name="pencil" size={17} strokeWidth={2} />
-              Rename this tab
+              Rename or change how it counts
             </button>
           )}
 
@@ -169,7 +171,7 @@ function Member({ p, last, left, tabId, methods, today, canEdit, open, onOpen, c
   canEdit: boolean; open: boolean; onOpen: () => void; children?: React.ReactNode;
 }) {
   const owed = Number(p.owed);
-  const lent = Number(p.lent);
+  const all = Number(p.owed_in_all);
   const back = Number(p.back);
   const [state, act, pending] = useActionState(settleTab, null);
   useEffect(() => { if (state?.ok) onOpen(); }, [state]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -189,10 +191,10 @@ function Member({ p, last, left, tabId, methods, today, canEdit, open, onOpen, c
             {p.name}{left && <span style={{ fontWeight: 500, color: 'var(--c-meta)' }}> · left the tab</span>}
           </span>
           <span style={{ fontSize: 'var(--step--2)', color: 'var(--c-meta)' }}>
-            {lent === 0 ? 'nothing on the tab yet'
-              : owed === 0 ? `settled up · ${format(lent)} in all`
-              : back > 0 ? `${format(back)} of ${format(lent)} back`
-              : `${format(lent)} laid out, none back yet`}
+            {all === 0 ? 'nothing on the tab yet'
+              : owed === 0 ? `settled up · ${format(all)} in all`
+              : back > 0 ? `${format(back)} of ${format(all)} back`
+              : `owes ${format(all)}, none back yet`}
           </span>
         </Link>
         {owed > 0 && (
@@ -243,8 +245,8 @@ function Member({ p, last, left, tabId, methods, today, canEdit, open, onOpen, c
   );
 }
 
-function EditTab({ tabId, name, note, onDone }: {
-  tabId: string; name: string; note: string | null; onDone: () => void;
+function EditTab({ tabId, name, note, counts, onDone }: {
+  tabId: string; name: string; note: string | null; counts: boolean; onDone: () => void;
 }) {
   const [state, act, pending] = useActionState(renameTab, null);
   useEffect(() => { if (state?.ok) onDone(); }, [state]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -255,6 +257,7 @@ function EditTab({ tabId, name, note, onDone }: {
     }}>
       <input type="hidden" name="tabId" value={tabId} />
       <Field label="Name" name="name" defaultValue={name} required maxLength={60} autoFocus />
+      <CountsChoice value={counts} />
       <Field label="Note (optional)" name="note" defaultValue={note ?? ''} maxLength={200} />
       {state && !state.ok && <ErrorNote>{state.error}</ErrorNote>}
       <div style={{ display: 'flex', gap: 9 }}>

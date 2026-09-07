@@ -37,6 +37,7 @@ export default async function Page({ searchParams }: {
     // Arrived from a tab's own screen: only an open tab of this household's is honoured.
     tabId: tabs.some((t) => t.id === q.tab) ? q.tab! : null,
     tabCoveredMinor: null,
+    countsAsSpend: null,
   };
 
   return (

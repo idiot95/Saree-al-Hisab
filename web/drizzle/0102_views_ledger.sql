@@ -1,7 +1,13 @@
 -- DECISION 1 — spend now nets refunds off, in the month the refund lands.
 -- Lending never appears here at all, because it is a transfer to a person's
 -- account and invariant 2 already excludes transfers.
--- A reimbursable expense DOES appear: it was genuinely your spending.
+-- A reimbursable expense DOES appear: it was genuinely your spending, and
+-- being paid back for it later does not unspend it.
+-- DECISION 5 — what you laid out for someone else does NOT appear. That is the
+-- one case where money leaves your account and was never yours to spend, and
+-- counts_as_spend is how an entry says so. It is deliberately separate from
+-- whether the money is owed back: petrol burnt for work is your spending AND
+-- reimbursed; rent fronted for a cousin is neither.
 -- Supersedes the spend_txn defined in 0100: fewer columns, and refunds
 -- netted off. CREATE OR REPLACE cannot narrow a view, so it is dropped first.
 DROP VIEW IF EXISTS spend_txn CASCADE;
@@ -13,6 +19,7 @@ FROM txn t
 JOIN account a ON a.id = t.account_id
 WHERE t.deleted_at IS NULL
   AND t.kind IN ('expense', 'refund')
+  AND t.counts_as_spend
   AND a.kind <> 'savings';
 /* Person accounts are deliberately NOT excluded here, and the reason is worth
    stating. Lending is a TRANSFER and transfers are excluded by kind, so money

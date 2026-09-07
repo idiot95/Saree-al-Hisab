@@ -311,16 +311,15 @@ export type EntryRow = {
   icon: string | null;
   method: string | null; account: string; counter_account: string | null;
   who: string; created_at: Date;
-  /* One payment laid out for people on a tab is several rows in the ledger.
-     They are read back as one, and these two say so: who it went to, and how
-     many rows it really is. Null on an ordinary entry. */
-  people: string | null; rows: number; book_id: string | null;
-  /* Which way the money went, so a repayment is never read as a loan.
-     to_person: laid out for someone. from_person: come back from them. */
-  to_person: boolean; from_person: boolean;
-  /** How much of the payment was laid out for someone. Less than `amount`
-   *  when part of the cost was genuinely yours. */
-  lent: string;
+  /* The counterparty on either side of the entry, if there is one, and which
+     side they are on — so lending never reads back as a repayment. */
+  people: string | null; to_person: boolean; from_person: boolean;
+  /** Money arriving against a claim: somebody paying you back. */
+  settles: boolean;
+  /** False on a cost you laid out for someone: it left your account but was
+   *  never yours to spend, so no chart counts it. */
+  counts_as_spend: boolean;
+  book_id: string | null;
 };
 
 /** A month of entries, newest first, optionally narrowed to one category —
@@ -328,33 +327,22 @@ export type EntryRow = {
 export async function entriesFor(
   householdId: string, month: string, categoryId?: string | null,
 ) {
-  /* A cost put on a tab is one payment written as several loans, so the month
-     is read back grouped: rows sharing a group_ref collapse into the one thing
-     that actually happened, and everything else groups as itself. Summing
-     inside the group is what keeps "₹1,000 dinner" from arriving as two ₹500
-     lines nobody recognises. */
   return sql`
-    select min(t.id::text)::uuid as id,
-           max(t.book_id::text)::uuid as book_id,
-           min(t.kind::text) as kind,
-           sum(t.amount)::text as amount,
-           max(t.occurred_on) as occurred_on,
-           max(t.merchant) as merchant, max(t.note) as note,
-           bool_or(t.is_shared) as is_shared,
-           max(t.category_id::text)::uuid as category_id,
-           max(c.name) as category, max(c.tint) as tint, max(c.icon) as icon,
-           max(m.name) as method, max(a.name) as account,
-           max(ca.name) as counter_account, max(u.name) as who,
-           max(t.created_at) as created_at,
-           string_agg(distinct cp.name, ', ') as people,
-           bool_or(ca.kind = 'person') as to_person,
-           bool_or(a.kind = 'person') as from_person,
-           sum(case when ca.kind = 'person' then t.amount else 0 end)::text as lent,
-           count(*)::int as rows
+    select t.id, t.kind, t.amount::text, t.occurred_on, t.merchant, t.note, t.is_shared,
+           t.counts_as_spend, t.book_id, t.category_id,
+           c.name as category, c.tint, c.icon,
+           m.name as method, a.name as account, ca.name as counter_account,
+           coalesce(cp.name, rcp.name) as people,
+           (ca.kind = 'person') as to_person,
+           (a.kind = 'person') as from_person,
+           (t.claim_id is not null) as settles,
+           u.name as who, t.created_at
     from txn t
     join account a on a.id = t.account_id
     left join account ca on ca.id = t.counter_account_id
     left join counterparty cp on cp.account_id in (t.counter_account_id, t.account_id)
+    left join claim cl on cl.id = t.claim_id
+    left join counterparty rcp on rcp.id = cl.counterparty_id
     left join category c on c.id = t.category_id
     left join payment_method m on m.id = t.payment_method_id
     join app_user u on u.id = t.created_by
@@ -363,8 +351,7 @@ export async function entriesFor(
       and t.occurred_on >= ${month}::date
       and t.occurred_on <  (${month}::date + interval '1 month')
       and (${categoryId ?? null}::uuid is null or t.category_id = ${categoryId ?? null}::uuid)
-    group by coalesce(t.group_ref, t.id)
-    order by max(t.occurred_on) desc, max(t.created_at) desc
+    order by t.occurred_on desc, t.created_at desc
   ` as Promise<EntryRow[]>;
 }
 
@@ -503,7 +490,7 @@ export async function owedByPerson(householdId: string) {
 /* ── tabs: people you cover costs for ───────────────────────────────────── */
 
 export type TabRow = {
-  id: string; name: string; note: string | null;
+  id: string; name: string; note: string | null; counts_as_spending: boolean;
   closed_at: Date | null; people: number; entries: number; outstanding: string;
 };
 
@@ -513,9 +500,9 @@ export type TabRow = {
  *  khata, which is the same arithmetic without the tab in the way. */
 export async function tabList(householdId: string) {
   return sql`
-    select b.id, b.name, b.note, b.closed_at,
+    select b.id, b.name, b.note, b.closed_at, b.counts_as_spending,
            (select count(*)::int from book_member bm where bm.book_id = b.id) as people,
-           (select count(distinct coalesce(t.group_ref, t.id))::int from txn t
+           (select count(*)::int from txn t
              where t.book_id = b.id and t.deleted_at is null) as entries,
            coalesce((select sum(tb.outstanding) from tab_balance tb
                       where tb.book_id = b.id), 0)::text as outstanding
@@ -527,23 +514,24 @@ export async function tabList(householdId: string) {
 
 export async function tabById(householdId: string, id: string) {
   const [b] = await sql`
-    select id, name, note, closed_at from ledger_book
+    select id, name, note, closed_at, counts_as_spending from ledger_book
     where id = ${id} and household_id = ${householdId}`;
   return (b ?? null) as null | {
-    id: string; name: string; note: string | null; closed_at: Date | null };
+    id: string; name: string; note: string | null;
+    counts_as_spending: boolean; closed_at: Date | null };
 }
 
 /** The open tabs a cost can be put on — only those with someone on them,
  *  because money laid out for nobody is not laid out. */
 export async function tabsForEntry(householdId: string) {
   return sql`
-    select b.id, b.name,
+    select b.id, b.name, b.counts_as_spending,
            (select count(*)::int from book_member bm where bm.book_id = b.id) as people
     from ledger_book b
     where b.household_id = ${householdId} and b.closed_at is null
       and exists (select 1 from book_member bm where bm.book_id = b.id)
     order by b.name
-  ` as Promise<{ id: string; name: string; people: number }[]>;
+  ` as Promise<{ id: string; name: string; people: number; counts_as_spending: boolean }[]>;
 }
 
 /** Everyone in the household, flagged for whether they are on this tab, with
@@ -554,7 +542,7 @@ export async function peopleForTab(householdId: string, tabId: string) {
   return sql`
     select cp.id, cp.name, cp.tint,
            (bm.book_id is not null) as on_tab,
-           coalesce(tb.lent, 0)::text as lent,
+           coalesce(tb.owed_in_all, 0)::text as owed_in_all,
            coalesce(tb.back, 0)::text as back,
            coalesce(tb.outstanding, 0)::text as owed
     from counterparty cp
@@ -563,34 +551,47 @@ export async function peopleForTab(householdId: string, tabId: string) {
     where cp.household_id = ${householdId} and cp.archived_at is null
     order by (bm.book_id is null), cp.name
   ` as Promise<{ id: string; name: string; tint: string; on_tab: boolean;
-                 lent: string; back: string; owed: string }[]>;
+                 owed_in_all: string; back: string; owed: string }[]>;
 }
 
-/** What has been put on a tab and what has come back, newest first. One
- *  payment laid out for several people is several rows underneath and one
- *  line here, which is what it was. */
+/** What has been put on a tab and what has come back, newest first. Costs are
+ *  the entries filed under it; receipts are the money that has come back
+ *  against their claims, which reaches the tab through the claim rather than
+ *  a column of its own. */
 export async function tabEntries(householdId: string, tabId: string) {
   return sql`
-    select coalesce(t.group_ref, t.id)::text as id,
-           max(t.occurred_on) as occurred_on,
-           max(t.merchant) as merchant,
-           sum(t.amount)::text as amount,
-           sum(case when t.kind = 'transfer' then t.amount else 0 end)::text as lent,
-           max(u.name) as who,
-           max(c.name) as category, max(c.icon) as icon, max(c.tint) as tint,
-           bool_or(pa.kind = 'person') as incoming,
-           string_agg(distinct cp.name, ', ') as people
+    select t.id::text as id, t.occurred_on, t.merchant, t.amount::text as amount,
+           t.counts_as_spend, false as incoming,
+           coalesce((select sum(cs.expected_amount) from claim_state cs
+                      where cs.txn_id = t.id and cs.written_off_at is null), 0)::text as owed_in_all,
+           coalesce((select sum(cs.outstanding) from claim_state cs
+                      where cs.txn_id = t.id and cs.written_off_at is null), 0)::text as outstanding,
+           u.name as who, c.name as category, c.icon, c.tint,
+           (select string_agg(distinct cp.name, ', ') from claim cl
+             join counterparty cp on cp.id = cl.counterparty_id
+             where cl.txn_id = t.id) as people
     from txn t
     join app_user u on u.id = t.created_by
     left join category c on c.id = t.category_id
-    left join account pa on pa.id = t.account_id and pa.kind = 'person'
-    left join counterparty cp on cp.account_id in (t.counter_account_id, t.account_id)
     where t.household_id = ${householdId} and t.book_id = ${tabId} and t.deleted_at is null
-    group by coalesce(t.group_ref, t.id)
-    order by max(t.occurred_on) desc, max(t.created_at) desc
+
+    union all
+
+    select r.id::text, r.occurred_on, null, r.amount::text,
+           false, true, '0', '0',
+           u.name, null, null, null, cp.name
+    from txn r
+    join claim cl on cl.id = r.claim_id
+    join txn t on t.id = cl.txn_id and t.book_id = ${tabId} and t.deleted_at is null
+    join counterparty cp on cp.id = cl.counterparty_id
+    join app_user u on u.id = r.created_by
+    where r.household_id = ${householdId} and r.kind = 'claim_receipt' and r.deleted_at is null
+
+    order by occurred_on desc
   ` as Promise<{ id: string; occurred_on: Date; merchant: string | null; amount: string;
-                 lent: string; who: string; category: string | null; icon: string | null;
-                 tint: string | null; incoming: boolean; people: string | null }[]>;
+                 counts_as_spend: boolean; incoming: boolean; owed_in_all: string;
+                 outstanding: string; who: string; category: string | null;
+                 icon: string | null; tint: string | null; people: string | null }[]>;
 }
 
 /* ── trends ─────────────────────────────────────────────────────────────── */

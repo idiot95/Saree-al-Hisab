@@ -4,6 +4,7 @@ import { useActionState, useState } from 'react';
 import { Field, ErrorNote } from '../auth-ui';
 import { Icon } from '../Icon';
 import { createTab } from './actions';
+import CountsChoice from './CountsChoice';
 
 type Person = { id: string; name: string; tint: string };
 
@@ -75,6 +76,7 @@ export default function NewTab({ people }: { people: Person[] }) {
         </p>
       </fieldset>
 
+      <CountsChoice value />
       <Field label="Note (optional)" name="note" maxLength={200} />
       {state && !state.ok && <ErrorNote>{state.error}</ErrorNote>}
       <div style={{ display: 'flex', gap: 9 }}>

@@ -1,23 +1,19 @@
--- A tab is a lending group: costs put on it are owed back in full, divided
--- among the people on it. What is outstanding on a tab is therefore the same
--- arithmetic as the khata — money out to a person, less money back from them —
--- but confined to the entries filed under that tab.
+-- What a tab is owed. A cost put on a tab raises one claim per person on it
+-- for their share, and a claim's outstanding amount is derived in claim_state
+-- from the receipts pointing at it — so this view never stores a figure that
+-- could disagree with the entries beneath it. Confined to entries filed under
+-- the tab, which is what lets the tab answer "where do we stand on this"
+-- without guessing which of a person's debts a payment was meant for.
 DROP VIEW IF EXISTS tab_balance CASCADE;
 CREATE VIEW tab_balance AS
-SELECT t.book_id, t.household_id, cp.id AS counterparty_id,
-       COALESCE(SUM(CASE WHEN t.counter_account_id = cp.account_id THEN t.amount
-                         ELSE 0 END), 0) AS lent,
-       COALESCE(SUM(CASE WHEN t.account_id = cp.account_id THEN t.amount
-                         ELSE 0 END), 0) AS back,
-       COALESCE(SUM(CASE WHEN t.counter_account_id = cp.account_id THEN  t.amount
-                         WHEN t.account_id         = cp.account_id THEN -t.amount
-                         ELSE 0 END), 0) AS outstanding
-FROM txn t
-JOIN counterparty cp
-  ON cp.household_id = t.household_id
- AND (cp.account_id = t.counter_account_id OR cp.account_id = t.account_id)
-WHERE t.book_id IS NOT NULL AND t.deleted_at IS NULL
-GROUP BY t.book_id, t.household_id, cp.id;
+SELECT t.book_id, cs.household_id, cs.counterparty_id,
+       COALESCE(SUM(cs.expected_amount), 0) AS owed_in_all,
+       COALESCE(SUM(cs.received), 0)        AS back,
+       COALESCE(SUM(cs.outstanding), 0)     AS outstanding
+FROM claim_state cs
+JOIN txn t ON t.id = cs.txn_id AND t.deleted_at IS NULL
+WHERE t.book_id IS NOT NULL AND cs.written_off_at IS NULL
+GROUP BY t.book_id, cs.household_id, cs.counterparty_id;
 
 /* A transfer may carry a category, but only one that means something: money
    laid out for a person. "₹3,000 of petrol, on the office tab" is a fact worth

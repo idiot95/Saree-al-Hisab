@@ -8,7 +8,7 @@ import { keysDisplay, pushKey, popKey, fromKeys, symbolOf, format } from '@/lib/
 import { saveEntry, checkDuplicate } from './actions';
 import { haptic } from '../haptics';
 import { enqueue, writePickers, type Queued } from './queue';
-import { breakdown } from '../tab/splits';
+import { shares } from '../tab/splits';
 
 /* Add Entry — the screen the whole product rests on.
    With no bank feed and no SMS, this is how nearly everything gets in, so it
@@ -28,7 +28,7 @@ const KINDS: { id: Kind; label: string }[] = [
 export type Category = { id: string; name: string; tint: string; icon: string };
 export type Method = { id: string; name: string; funds: string };
 export type Account = { id: string; name: string; kind: string };
-export type Tab = { id: string; name: string; people: number };
+export type Tab = { id: string; name: string; people: number; counts_as_spending: boolean };
 
 const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '00', '0', '.'];
 
@@ -40,7 +40,7 @@ export default function AddEntry({
   draft?: {
     amountMinor: number | null; occurredOn: string | null; merchant: string | null;
     kind: 'expense' | 'income' | null; categoryId: string | null; tabId?: string | null;
-    tabCoveredMinor?: number | null;
+    tabCoveredMinor?: number | null; countsAsSpend?: boolean | null;
   };
   /* On the offline screen nothing is sent from here at all: every save goes
      to the phone's queue, and the layout sends the queue when signal is back. */
@@ -69,8 +69,10 @@ export default function AddEntry({
   const [categoryId, setCategoryId] = useState<string | null>(draft?.categoryId ?? null);
   const [tabId, setTabId] = useState<string | null>(draft?.tabId ?? null);
   /* Blank means all of it comes back, which is the ordinary case. A figure
-     here is the part that does, leaving the rest as genuinely yours. */
+     here is the part that does, leaving the rest owed by nobody. */
   const [coveredKeys, setCoveredKeys] = useState('');
+  /* Null follows the tab's own answer; a value is this receipt overriding it. */
+  const [counts, setCounts] = useState<boolean | null>(draft?.countsAsSpend ?? null);
   const [methodId, setMethodId] = useState(methods[0]?.id ?? '');
   const [counterId, setCounterId] = useState<string | null>(null);
   const [shared, setShared] = useState(true);
@@ -110,6 +112,7 @@ export default function AddEntry({
       counterAccountId: counterId, merchant, occurredOn, isShared: shared,
       tabId: kind === 'expense' ? tabId : null,
       tabCoveredMinor: kind === 'expense' && tabId && coveredKeys ? fromKeys(coveredKeys) : null,
+      countsAsSpend: kind === 'expense' && tabId ? counts : null,
     };
     const clear = () => { setKeys(''); setCategoryId(null); setMerchant(''); setDupe(null); };
     /* Kept on the phone: the same tick as a save, because from where the
@@ -327,8 +330,19 @@ export default function AddEntry({
                   }}
                 />
               </label>
+              <label style={{
+                display: 'flex', alignItems: 'center', gap: 10, minHeight: 44, padding: '0 2px',
+                cursor: 'pointer',
+              }}>
+                <input type="checkbox" checked={counts ?? tab.counts_as_spending}
+                  onChange={(e) => { haptic('select'); setCounts(e.target.checked); }}
+                  style={{ width: 20, height: 20, margin: 0, flex: 'none', accentColor: 'var(--c-seagrass)' }} />
+                <span style={{ fontSize: 'var(--step--1)', fontWeight: 600 }}>
+                  Counts as my spending
+                </span>
+              </label>
               <p style={{ margin: 0, fontSize: 'var(--step--2)', lineHeight: 1.45, color: 'var(--c-meta)' }}>
-                {loanNote(tab, minor, coveredKeys ? fromKeys(coveredKeys) : minor)}
+                {tabNote(tab, minor, coveredKeys ? fromKeys(coveredKeys) : minor, counts ?? tab.counts_as_spending)}
               </p>
             </>
           )}
@@ -474,18 +488,20 @@ function Glyph({ d, size = 21, w = 2, colour }: { d: string; size?: number; w?: 
 }
 
 /** What putting this amount on the tab will do, in one line, before Save. */
-function loanNote(tab: Tab, minor: number, covered: number): string {
+function tabNote(tab: Tab, minor: number, covered: number, counts: boolean): string {
   const who = `${tab.people} ${tab.people === 1 ? 'person' : 'people'}`;
+  const mine = counts ? 'Counts as your spending' : 'Not your spending';
   if (minor <= 0) {
     return tab.people === 1
-      ? 'Lent to them in full, and not counted as your spending.'
-      : `Lent in full, divided equally among ${who}, and not counted as your spending.`;
+      ? `${mine} · they owe all of it back.`
+      : `${mine} · owed back, divided equally among ${who}.`;
   }
   if (covered > minor) return 'That is more than the amount itself.';
-  const { shares: each, mine } = breakdown(minor, covered, tab.people);
+  const each = shares(covered, tab.people);
   const top = each.length ? Math.max(...each) : 0;
-  const owes = tab.people === 1 ? `They owe ${format(top)}` : `${who} owe ${format(top)} each`;
-  return mine > 0
-    ? `${owes} · ${format(mine)} is yours and counts`
-    : `${owes} · none of it is your spending`;
+  const owes = tab.people === 1 ? `they owe ${format(top)}` : `${who} owe ${format(top)} each`;
+  const rest = minor - covered;
+  return rest > 0
+    ? `${mine} · ${owes} · ${format(rest)} comes back from nobody`
+    : `${mine} · ${owes}`;
 }

@@ -30,7 +30,7 @@ export type Pickers = {
   methods: { id: string; name: string; funds: string }[];
   accounts: { id: string; name: string; kind: string }[];
   /** Absent on a device that last opened Add Entry before tabs existed. */
-  tabs?: { id: string; name: string; people: number }[];
+  tabs?: { id: string; name: string; people: number; counts_as_spending: boolean }[];
   savedAt: string;
 };
 

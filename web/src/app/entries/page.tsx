@@ -47,8 +47,8 @@ export default async function Entries({ searchParams }: {
       id: e.id, kind: e.kind, amount: e.amount, merchant: e.merchant, category: e.category,
       method: e.method, account: e.account, counter_account: e.counter_account,
       icon: e.icon, tint: e.tint, is_shared: e.is_shared,
-      rows: e.rows, people: e.people, book_id: e.book_id,
-      to_person: e.to_person, from_person: e.from_person, lent: e.lent,
+      people: e.people, to_person: e.to_person, from_person: e.from_person, settles: e.settles,
+      counts_as_spend: e.counts_as_spend, book_id: e.book_id,
     };
     const last = days[days.length - 1];
     if (last && last.on === key) last.rows.push(row);

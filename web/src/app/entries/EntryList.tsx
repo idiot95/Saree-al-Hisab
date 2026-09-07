@@ -17,8 +17,8 @@ export type Row = {
      and one line here. `rows` says how many, `people` who it went to. Such a
      line opens its tab rather than a single row of it, and is not swipeable:
      editing one loan of three would leave the payment adding up to nothing. */
-  rows: number; people: string | null; book_id: string | null;
-  to_person: boolean; from_person: boolean; lent: string;
+  people: string | null; to_person: boolean; from_person: boolean;
+  settles: boolean; counts_as_spend: boolean; book_id: string | null;
 };
 
 const MOVES = new Set(['transfer', 'card_payment']);
@@ -72,7 +72,7 @@ export default function EntryList({ days, canEdit }: {
               padding: '0 var(--pad)', overflow: 'hidden',
             }}>
               {rows.map((e, i) => (
-                <SwipeRow key={e.id} actions={canEdit && e.rows === 1 ? [
+                <SwipeRow key={e.id} actions={canEdit ? [
                   { label: 'Edit', tone: 'primary', icon: <Pen />,
                     act: () => router.push(`/entries/${e.id}`, { transitionTypes: ['nav-forward'] }) },
                   { label: 'Delete', tone: 'danger', icon: <Bin />, act: () => del(e) },
@@ -92,12 +92,12 @@ export default function EntryList({ days, canEdit }: {
 function Entry({ e, last }: { e: Row; last: boolean }) {
   const move = MOVES.has(e.kind);
   const incoming = INCOMING.has(e.kind);
-  const lent = e.to_person;
-  const cameBack = e.from_person && !e.to_person;
-  const part = Number(e.lent) < Number(e.amount);
-  const href = e.rows > 1 && e.book_id ? `/tab/${e.book_id}` : `/entries/${e.id}`;
+  const lent = move && e.to_person;
+  const cameBack = (move && e.from_person) || e.settles;
+  // A cost carried for somebody else: it left the account and no chart counts it.
+  const carried = !move && !e.counts_as_spend;
   return (
-    <Link href={href} transitionTypes={['nav-forward']} draggable={false} style={{
+    <Link href={`/entries/${e.id}`} transitionTypes={['nav-forward']} draggable={false} style={{
       display: 'flex', alignItems: 'center', gap: 12, minHeight: 68,
       textDecoration: 'none', color: 'var(--c-ink)',
       borderBottom: last ? undefined : '1px solid var(--c-rule)',
@@ -130,14 +130,14 @@ function Entry({ e, last }: { e: Row; last: boolean }) {
           textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         }}>
           {lent
-            ? `${part ? `${format(Number(e.lent))} of it ` : ''}lent to ${e.people ?? 'them'}`
-              + (e.category ? ` · ${e.category}` : '')
+            ? `lent to ${e.people ?? 'them'}`
             : cameBack
-              ? `into ${e.counter_account ?? e.account}`
+              ? `into ${(move ? e.counter_account : e.account) ?? e.account}`
             : move && e.counter_account
               ? `${e.account} → ${e.counter_account}`
               : [e.category, e.method].filter(Boolean).join(' · ')}
-          {e.is_shared && !lent && ' · shared'}
+          {carried && ' · not your spending'}
+          {e.is_shared && !carried && ' · shared'}
         </span>
       </span>
       <span className="t amt" style={{

@@ -111,9 +111,10 @@ export default async function People() {
               <p style={{
                 margin: '-4px 20px 12px', fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--c-meta)',
               }}>
-                People you cover costs for — the flat, a trip, office petrol, medical bills
-                somebody reimburses. A cost put on a tab is lent to them the moment you save
-                it, so it never counts as your spending.
+                People who owe you back — the flat, a trip, office petrol, medical bills an
+                insurer refunds. A cost put on a tab is claimed from them the moment you save
+                it, and the tab says whether costs on it were your spending or money you
+                fronted.
               </p>
               {tabs.length > 0 && (
                 <section className="el card" style={{
