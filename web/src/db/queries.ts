@@ -669,3 +669,35 @@ export async function inboxCount(householdId: string) {
           and c.due_on <= current_date + 21) as bills`;
   return r as unknown as { duplicates: number; bills: number };
 }
+
+/* ── scheduled payments ─────────────────────────────────────────────────── */
+
+export type ScheduleRow = {
+  id: string; name: string; amount: string | null; amount_from_statement: boolean;
+  rrule: string | null; account_id: string; account: string; since: string;
+  category_id: string | null; category: string | null; tint: string | null;
+  settled: string[];
+};
+
+/* Nothing is materialised ahead of time. Upcoming dates are worked out from
+   the rule when they are asked for, and an `occurrence` row is written only
+   when something HAPPENS to one — paid, or skipped. There is no scheduler to
+   run, nothing to backfill, and a schedule created today is immediately right
+   about next month without a job having visited it. */
+export async function schedulesFor(householdId: string) {
+  return sql`
+    select s.id, s.name, s.amount::text, s.amount_from_statement, s.rrule,
+           s.account_id, a.name as account, to_char(s.created_at, 'YYYY-MM-DD') as since,
+           s.category_id, c.name as category, c.tint,
+           coalesce(array_agg(to_char(o.due_on, 'YYYY-MM-DD'))
+                    filter (where o.id is not null), '{}') as settled
+    from schedule s
+    join account a on a.id = s.account_id
+    left join category c on c.id = s.category_id
+    left join occurrence o on o.schedule_id = s.id
+                          and o.due_on >= current_date - 400
+    where s.household_id = ${householdId} and s.archived_at is null
+    group by s.id, a.name, c.name, c.tint
+    order by s.name
+  ` as Promise<ScheduleRow[]>;
+}

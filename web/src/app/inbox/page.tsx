@@ -1,10 +1,12 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { actorOrNull, billsDue, duplicatesFor } from '@/db/queries';
+import { actorOrNull, billsDue, duplicatesFor, schedulesFor } from '@/db/queries';
+import { outstandingDues } from '@/lib/recur';
 import { format } from '@/lib/money';
 import { HEADER_BG } from '../auth-ui';
 import TabBar, { TAB_BAR_SPACE } from '../TabBar';
 import DuplicateCard from './DuplicateCard';
+import DueRow from '../schedules/DueRow';
 
 export const metadata = { title: 'Inbox · Quiet Ledger' };
 export const dynamic = 'force-dynamic';
@@ -17,12 +19,15 @@ export default async function Inbox() {
   if (!actor) redirect('/signin');
   if (!actor.household_id) redirect('/no-household');
 
-  const [dupes, bills] = await Promise.all([
+  const [dupes, bills, schedules] = await Promise.all([
     duplicatesFor(actor.household_id),
     billsDue(actor.household_id),
+    schedulesFor(actor.household_id),
   ]);
   const canWrite = actor.role !== 'viewer';
-  const count = dupes.length + bills.length;
+  const dues = outstandingDues(schedules, new Date(), 7);
+  const byId = new Map(schedules.map((x) => [x.id, x]));
+  const count = dupes.length + bills.length + dues.length;
 
   return (
     <main style={{ minHeight: '100dvh', background: 'var(--c-bg)', paddingBottom: TAB_BAR_SPACE }}>
@@ -60,12 +65,30 @@ export default async function Inbox() {
             </svg>
           </span>
           <p style={{ margin: 0, fontSize: 14.5, lineHeight: 1.55, color: 'var(--c-meta)', maxWidth: '30ch' }}>
-            No possible duplicates and no bills due. This fills itself when
-            something wants deciding.
+            Nothing due, no bills coming up and no possible duplicates. This fills
+            itself when something wants deciding.
           </p>
         </div>
       ) : (
         <div style={{ paddingTop: 20 }}>
+          {dues.length > 0 && (
+            <>
+              <Head>Due now</Head>
+              <section className="el" style={{
+                margin: '0 18px 22px', background: 'var(--c-card)', borderRadius: 18, padding: '0 16px',
+              }}>
+                {dues.map((d) => {
+                  const s = byId.get(d.scheduleId)!;
+                  return (
+                    <DueRow key={`${d.scheduleId}:${d.dueOn}`}
+                      scheduleId={d.scheduleId} name={s.name} dueOn={d.dueOn}
+                      daysAway={d.daysAway} amount={Number(s.amount ?? 0)} category={s.category} />
+                  );
+                })}
+              </section>
+            </>
+          )}
+
           {bills.length > 0 && (
             <>
               <Head>Card bills</Head>

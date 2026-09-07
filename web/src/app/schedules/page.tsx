@@ -1,0 +1,131 @@
+import Link from 'next/link';
+import { redirect } from 'next/navigation';
+import { actorOrNull, categoriesFor, methodsFor, schedulesFor } from '@/db/queries';
+import { format } from '@/lib/money';
+import { describeRule, nextUnsettled, outstandingDues } from '@/lib/recur';
+import { HEADER_BG } from '../auth-ui';
+import TabBar, { TAB_BAR_SPACE } from '../TabBar';
+import NewSchedule from './NewSchedule';
+import DueRow, { StopSchedule } from './DueRow';
+
+export const metadata = { title: 'Scheduled · Quiet Ledger' };
+export const dynamic = 'force-dynamic';
+
+export default async function Schedules() {
+  const actor = await actorOrNull();
+  if (!actor) redirect('/signin');
+  if (!actor.household_id) redirect('/no-household');
+
+  const [schedules, methods, cats] = await Promise.all([
+    schedulesFor(actor.household_id),
+    methodsFor(actor.household_id),
+    categoriesFor(actor.household_id),
+  ]);
+  const canWrite = actor.role !== 'viewer';
+  const dues = outstandingDues(schedules, new Date(), 14);
+  const byId = new Map(schedules.map((s) => [s.id, s]));
+  const monthly = schedules
+    .filter((s) => s.rrule?.includes('MONTHLY'))
+    .reduce((n, s) => n + Number(s.amount ?? 0), 0);
+
+  return (
+    <main style={{ minHeight: '100dvh', background: 'var(--c-bg)', paddingBottom: TAB_BAR_SPACE }}>
+      <header className="el2" style={{
+        background: HEADER_BG, color: '#fff', borderRadius: '0 0 28px 28px',
+        padding: '18px 20px 26px', display: 'flex', flexDirection: 'column', gap: 10,
+      }}>
+        <Link href="/" aria-label="Back" style={{
+          width: 44, height: 44, marginLeft: -11, borderRadius: 999, display: 'flex',
+          alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,.92)',
+        }}>
+          <svg width={21} height={21} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <path d="M15 5l-7 7 7 7" />
+          </svg>
+        </Link>
+        <h1 className="t" style={{ margin: 0, fontSize: 27, letterSpacing: '-.018em' }}>
+          Scheduled
+        </h1>
+        <p style={{ margin: 0, fontSize: 13.5, color: 'rgba(255,255,255,.84)' }}>
+          {schedules.length === 0
+            ? 'Rent, fees, an EMI — the things that come round whether you look or not.'
+            : `${format(monthly)} a month across ${schedules.length} ${schedules.length === 1 ? 'schedule' : 'schedules'}`}
+        </p>
+      </header>
+
+      <div style={{ paddingTop: 20 }}>
+        {dues.length > 0 && (
+          <>
+            <Head>Due now</Head>
+            <section className="el" style={{
+              margin: '0 18px 22px', background: 'var(--c-card)', borderRadius: 18, padding: '0 16px',
+            }}>
+              {dues.map((d) => {
+                const s = byId.get(d.scheduleId)!;
+                return (
+                  <DueRow key={`${d.scheduleId}:${d.dueOn}`}
+                    scheduleId={d.scheduleId} name={s.name} dueOn={d.dueOn}
+                    daysAway={d.daysAway} amount={Number(s.amount ?? 0)} category={s.category} />
+                );
+              })}
+            </section>
+          </>
+        )}
+
+        {schedules.length > 0 && (
+          <>
+            <Head>Every schedule</Head>
+            <section className="el" style={{
+              margin: '0 18px 22px', background: 'var(--c-card)', borderRadius: 18, padding: '0 16px',
+            }}>
+              {schedules.map((s, i) => (
+                <div key={s.id} style={{
+                  display: 'flex', alignItems: 'center', gap: 12, minHeight: 74,
+                  borderBottom: i === schedules.length - 1 ? undefined : '1px solid var(--c-rule)',
+                }}>
+                  <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
+                    <span style={{ fontSize: 15, fontWeight: 600 }}>{s.name}</span>
+                    <span style={{ fontSize: 12.5, color: 'var(--c-meta)' }}>
+                      {s.rrule ? describeRule(s.rrule) : 'no schedule'}
+                      {s.rrule && ` · next ${friendly(nextUnsettled(s.rrule, s.settled, new Date()) ?? undefined)}`}
+                    </span>
+                  </span>
+                  <span className="t" style={{ fontSize: 16 }}>{format(Number(s.amount ?? 0))}</span>
+                  {canWrite && <StopSchedule scheduleId={s.id} name={s.name} />}
+                </div>
+              ))}
+            </section>
+          </>
+        )}
+
+        {canWrite && (
+          <NewSchedule
+            startOpen={schedules.length === 0}
+            methods={methods.map((m) => ({ id: m.id, name: m.name, funds: m.funds }))}
+            categories={cats.map((c) => ({ id: c.id, name: c.name }))}
+          />
+        )}
+
+        <p style={{ margin: '0 20px', fontSize: 12.5, lineHeight: 1.5, color: 'var(--c-meta)' }}>
+          Nothing is recorded until you say so. A schedule is a reminder with the details
+          already filled in, not a standing instruction that writes entries behind your back.
+        </p>
+      </div>
+      <TabBar current="/schedules" />
+    </main>
+  );
+}
+
+function friendly(iso?: string) {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+}
+
+function Head({ children }: { children: React.ReactNode }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0 20px 11px' }}>
+      <h2 style={{ margin: 0, fontSize: 16.5, fontWeight: 600 }}>{children}</h2>
+      <span style={{ flex: 1, height: 1, background: 'var(--c-border)' }} />
+    </div>
+  );
+}

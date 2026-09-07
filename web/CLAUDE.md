@@ -437,6 +437,34 @@ goes over every unpaid cycle instead. Three assertions hold the two apart.
 
 The home screen shows the count only when there is something in it.
 
+## Scheduled payments, without a scheduler
+
+`/schedules` holds the things that come round anyway — rent, fees, an EMI.
+
+**Nothing is materialised ahead of time.** Upcoming dates are computed from the
+rule when they are asked for, and an `occurrence` row is written only when
+something HAPPENS to one: paid, or skipped. So there is no cron to run, nothing
+to backfill, and a schedule created today is immediately right about next month
+without a job having visited it.
+
+Rules are a narrow but genuine subset of RFC 5545 —
+`FREQ=MONTHLY;BYMONTHDAY=5` — so the column means what it says. `src/lib/recur.ts`
+parses only the subset it writes and refuses everything else rather than
+half-understanding it. Days cap at 28: the 31st silently becomes the 28th for
+four months of the year, and a rent reminder that moves is worse than none.
+
+**Nothing is recorded until you say so.** A schedule is a reminder with the
+details filled in, not a standing instruction writing entries behind your back.
+Recording writes the entry and the occurrence in one transaction, so a schedule
+cannot show as paid with nothing in the ledger to show for it — `paid_has_txn`
+refuses it. The amount can be overridden for a month that differed.
+
+Two things testing caught. `schedule.created_at` exists because without it a
+schedule added today would immediately claim you had missed last month's rent —
+dues before the schedule existed are history the app was not present for, not
+failures. And "next" respects what has already been settled, or paying today's
+rent leaves the screen still offering today.
+
 ## The UX laws, and where each one shows up
 
 - **Jakob** — a bottom tab bar, because every finance app people already use has

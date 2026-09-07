@@ -59,6 +59,16 @@ const SECTIONS = [
     ],
   },
   {
+    title: 'Things that come round every month',
+    href: '/schedules', link: 'Open scheduled',
+    lines: [
+      'Rent, school fees, an EMI — set the amount, the day and how it is paid, once.',
+      'Nothing is recorded until you say so. A schedule is a reminder with the details already filled in, not a standing instruction writing entries behind your back.',
+      'When it is due it appears here and in the inbox, and one tap records it. The amount can be changed if this month differed.',
+      'Days go up to 28, because every month has one — a reminder that moves is worse than none.',
+    ],
+  },
+  {
     title: 'The inbox catches what slips',
     href: '/inbox', link: 'Open inbox',
     lines: [
@@ -135,7 +145,7 @@ export default async function Guide() {
           How it works
         </h1>
         <p style={{ margin: 0, fontSize: 14, lineHeight: 1.5, color: 'rgba(255,255,255,.82)' }}>
-          Ten things worth knowing. Three minutes.
+          Eleven things worth knowing. Four minutes.
         </p>
       </header>
 

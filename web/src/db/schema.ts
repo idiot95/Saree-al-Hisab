@@ -368,6 +368,10 @@ export const schedule = pgTable('schedule', {
   categoryId: uuid('category_id').references(() => category.id, { onDelete: 'set null' }),
   rrule: text('rrule'),
   hijriRule: text('hijri_rule'),
+  /* Dues before this are not missed payments, they are history the app was
+     not present for. Without it, a schedule added today would immediately
+     claim you had failed to pay last month's rent. */
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   archivedAt: timestamp('archived_at', { withTimezone: true }),
 }, (t) => [
   // Either you know the amount or it comes off a statement — never neither.
