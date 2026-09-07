@@ -688,6 +688,41 @@ Payment rails are tinted per rail, and budget rows carry a bar in their own
 category's colour, so the row about to go over is visible without reading a
 figure.
 
+### Money has a direction, and the contrast is measured
+
+`--c-in` and `--c-out` colour every signed figure — green for money arriving,
+red for money leaving, and neither for a move between your own accounts, which
+is the same money in a different pocket. They are deliberately NOT the status
+triad: over-budget red is an alarm and an ordinary expense is not, so these are
+quieter than `--c-danger` and `--c-ok`. Both live in `globals.css`, not the
+generated `tokens.css`.
+
+**`npm run test:contrast` measures all 82 pairs in both themes** rather than
+taking anyone's word for it, and it found four real faults on its first run.
+The primary button was dark ink on the brand green at **3.56:1**, so the ground
+went darker and its label went white (`--c-on-primary`). The raised Add button
+was a white glyph on pumpkin at 2.97:1 — darkening the orange enough for white
+turned it brown, and Pumpkin Spice *is* the add button, so the glyph went dark
+instead and measures 7:1. The Delete action in a swipe row and the inbox badge
+both used the generated `--c-on-fill`, which is dark ink: right on pollen in
+light, unreadable on the dark theme's deep red and amber, so both took an ink
+that flips with the scheme. The sheen is part of the measurement — a highlight
+that lifts a ground also eats the contrast under it — so the test composites
+the lit corner and checks that too.
+
+### Three surface weights, not one card repeated
+
+A screen built from one card repeated has no foreground: everything asks for
+attention equally, so nothing gets it. `.hero` is the one answer a screen
+exists to give — its own ground washed towards the brand teal, a wider radius,
+the deeper shadow. `.card` is the ordinary raised surface and the default.
+`.quiet` is supporting material, recessed rather than raised. A screen should
+rarely need more than two at once.
+
+The month card on Home is the `.hero`, and it lost its Trends and Budget links:
+Budget is a tab and Trends is a tile four inches below, so two more ways to
+leave were competing with the one thing that card exists to say.
+
 ## Categories are editable
 
 `/categories` renames, recolours, re-icons, reorders, adds and retires them,
