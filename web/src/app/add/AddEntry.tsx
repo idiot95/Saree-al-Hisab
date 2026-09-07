@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useTransition, useEffect } from 'react';
-import { Icon } from '../Icon';
+import { Icon, RAIL_ICON, RAIL_TINT, ACCOUNT_ICON, ACCOUNT_TINT, tintOf } from '../Icon';
 import { HEADER_BG } from '../auth-ui';
 import { useRouter } from 'next/navigation';
 import { keysDisplay, pushKey, popKey, fromKeys, symbolOf, format } from '@/lib/money';
@@ -26,7 +26,7 @@ const KINDS: { id: Kind; label: string }[] = [
 ];
 
 export type Category = { id: string; name: string; tint: string; icon: string };
-export type Method = { id: string; name: string; funds: string };
+export type Method = { id: string; name: string; funds: string; kind: string; funds_id: string };
 export type Account = { id: string; name: string; kind: string };
 export type Tab = { id: string; name: string; people: number; counts_as_spending: boolean };
 
@@ -208,42 +208,96 @@ export default function AddEntry({
         </div>
       </header>
 
-      <div className="el card" style={{ margin: '-18px 18px 12px', background: 'var(--c-card)', borderRadius: 18, padding: '2px 16px' }}>
-        <Row
-          label={kind === 'transfer' ? 'From' : 'Paid with'}
-          value={method?.name ?? '—'}
-          hint={method && method.funds !== method.name ? `leaves ${method.funds}` : undefined}
-          onClick={() => setMethodId(methods[(methods.findIndex((m) => m.id === methodId) + 1) % methods.length].id)}
-        />
-        {kind === 'transfer' ? (
-          <Row
-            label="Into"
-            value={accounts.find((a) => a.id === counterId)?.name ?? 'Choose an account'}
-            muted={!counterId}
-            onClick={() => {
-              const pick = accounts.filter((a) => a.id !== undefined);
-              const i = pick.findIndex((a) => a.id === counterId);
-              setCounterId(pick[(i + 1) % pick.length].id);
-            }}
-            last
-          />
-        ) : (
-          <label style={{
-            display: 'flex', alignItems: 'center', gap: 12, width: '100%', minHeight: 56,
-          }}>
-            <span style={{
-              width: 92, flex: 'none', fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)',
-            }}>Date</span>
-            <input
-              type="date" value={occurredOn} max={today}
-              onChange={(e) => setOccurredOn(e.target.value || today)}
-              style={{
-                flex: 1, minHeight: 48, border: 0, background: 'transparent',
-                color: 'var(--c-ink)', fontSize: 'var(--step-0)', fontWeight: 600,
-              }}
-            />
-          </label>
+      {/* Every way to pay, at once. This was a row that advanced to the next
+          method on each tap, which meant a household with five of them could
+          only find the fifth by tapping four times past the others — and could
+          not see that it had five at all. */}
+      <div style={{ padding: '6px 18px 10px', display: 'flex', flexDirection: 'column', gap: 7 }}>
+        <span style={{ fontSize: 'var(--step--2)', fontWeight: 600, color: 'var(--c-meta)' }}>
+          {kind === 'transfer' ? 'Out of' : 'Paid with'}
+        </span>
+        <div style={{ display: 'flex', gap: 8, overflowX: 'auto', scrollbarWidth: 'none' }}>
+          {methods.map((m) => {
+            const on = m.id === methodId;
+            const [bg, ink] = tintOf(RAIL_TINT[m.kind]);
+            return (
+              <button
+                key={m.id}
+                onClick={() => { haptic('select'); setMethodId(m.id); }}
+                aria-pressed={on}
+                title={m.funds === m.name ? m.name : `${m.name} — leaves ${m.funds}`}
+                style={{
+                  minHeight: 44, padding: '0 13px 0 9px', display: 'flex', alignItems: 'center', gap: 8,
+                  borderRadius: 999, flex: 'none', whiteSpace: 'nowrap',
+                  fontSize: 'var(--step--1)', fontWeight: 600,
+                  background: on ? ink : bg,
+                  color: on ? '#fff' : ink,
+                  border: `1px solid ${on ? ink : 'transparent'}`,
+                  transition: 'background .15s, color .15s',
+                }}
+              >
+                <Icon name={RAIL_ICON[m.kind] ?? 'wallet'} size={17} strokeWidth={1.9} />
+                {m.name}
+              </button>
+            );
+          })}
+        </div>
+        {method && method.funds !== method.name && (
+          <span style={{ fontSize: 'var(--step--2)', color: 'var(--c-meta)' }}>
+            Leaves {method.funds}
+          </span>
         )}
+      </div>
+
+      {/* Where a transfer lands, on the same terms: every account visible.
+          The date used to be REPLACED by this row, so a transfer could only
+          ever be recorded as happening today. */}
+      {kind === 'transfer' && (
+        <div style={{ padding: '0 18px 10px', display: 'flex', flexDirection: 'column', gap: 7 }}>
+          <span style={{ fontSize: 'var(--step--2)', fontWeight: 600, color: 'var(--c-meta)' }}>Into</span>
+          <div style={{ display: 'flex', gap: 8, overflowX: 'auto', scrollbarWidth: 'none' }}>
+            {accounts.filter((a) => a.id !== method?.funds_id).map((a) => {
+              const on = a.id === counterId;
+              const [bg, ink] = tintOf(ACCOUNT_TINT[a.kind]);
+              return (
+                <button
+                  key={a.id}
+                  onClick={() => { haptic('select'); setCounterId(a.id); }}
+                  aria-pressed={on}
+                  style={{
+                    minHeight: 44, padding: '0 13px 0 9px', display: 'flex', alignItems: 'center', gap: 8,
+                    borderRadius: 999, flex: 'none', whiteSpace: 'nowrap',
+                    fontSize: 'var(--step--1)', fontWeight: 600,
+                    background: on ? ink : bg, color: on ? '#fff' : ink,
+                    border: `1px solid ${on ? ink : 'transparent'}`,
+                    transition: 'background .15s, color .15s',
+                  }}
+                >
+                  <Icon name={ACCOUNT_ICON[a.kind] ?? 'bank'} size={17} strokeWidth={1.9} />
+                  {a.name}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      <div className="el card" style={{ margin: '0 18px 12px', background: 'var(--c-card)', borderRadius: 18, padding: '2px 16px' }}>
+        <label style={{
+          display: 'flex', alignItems: 'center', gap: 12, width: '100%', minHeight: 56,
+        }}>
+          <span style={{
+            width: 92, flex: 'none', fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)',
+          }}>Date</span>
+          <input
+            type="date" value={occurredOn} max={today}
+            onChange={(e) => setOccurredOn(e.target.value || today)}
+            style={{
+              flex: 1, minHeight: 48, border: 0, background: 'transparent',
+              color: 'var(--c-ink)', fontSize: 'var(--step-0)', fontWeight: 600,
+            }}
+          />
+        </label>
       </div>
 
       {wantsCategory && (

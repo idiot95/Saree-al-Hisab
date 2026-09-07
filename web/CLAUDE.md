@@ -124,7 +124,16 @@ ones, and an entry delivered twice under one `client_ref` is one row.
 ## Where the slice reaches
 
 `/add` is wired end to end: real categories, ways to pay and accounts come out
-of Postgres, and Save writes a row through `saveEntry`. Paying by GPay leaves
+of Postgres, and Save writes a row through `saveEntry`.
+
+**Every way to pay is on screen at once**, as a strip of chips tinted and
+iconed per rail. It used to be a row that advanced to the NEXT method on each
+tap, which meant a household with six of them could only reach the sixth by
+tapping five times past the others — and could not see that it had six at all.
+The same row also swapped itself for "Into" on a transfer, so a transfer could
+only ever be recorded as happening today; the date is its own row now and the
+destination account is a strip of its own, minus the account the chosen method
+already empties, since an account cannot transfer to itself. Paying by GPay leaves
 HDFC Savings, because the METHOD decides the account — the client never names
 one. Before Save, a debounced `checkDuplicate` shows what a household member
 already recorded within ±1% and ±2 days, which is the prevention half of the

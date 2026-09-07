@@ -47,7 +47,9 @@ export default async function Page({ searchParams }: {
         categories={categories.map((c) => ({
           id: c.id, name: c.name, tint: c.tint, icon: c.icon,
         }))}
-        methods={methods.map((m) => ({ id: m.id, name: m.name, funds: m.funds }))}
+        methods={methods.map((m) => ({
+          id: m.id, name: m.name, funds: m.funds, kind: m.kind, funds_id: m.funds_id,
+        }))}
         accounts={accounts}
         tabs={tabs}
         today={today}

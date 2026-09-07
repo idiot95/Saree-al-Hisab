@@ -62,12 +62,14 @@ export async function categoriesFor(householdId: string) {
 
 export async function methodsFor(householdId: string) {
   return sql`
-    select m.id, m.name, m.kind, m.handle, a.name as funds, a.kind as funds_kind
+    select m.id, m.name, m.kind, m.handle, m.funding_account_id as funds_id,
+           a.name as funds, a.kind as funds_kind
     from payment_method m
     join account a on a.id = m.funding_account_id
     where m.household_id = ${householdId} and m.archived_at is null
     order by m.sort_order` as Promise<
-      { id: string; name: string; kind: string; handle: string | null; funds: string; funds_kind: string }[]>;
+      { id: string; name: string; kind: string; handle: string | null;
+        funds_id: string; funds: string; funds_kind: string }[]>;
 }
 
 export async function accountsFor(householdId: string) {

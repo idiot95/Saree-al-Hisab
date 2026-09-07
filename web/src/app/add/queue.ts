@@ -27,7 +27,7 @@ export type Queued = Draft & {
 export type Pickers = {
   householdId: string;
   categories: { id: string; name: string; tint: string; icon: string }[];
-  methods: { id: string; name: string; funds: string }[];
+  methods: { id: string; name: string; funds: string; kind: string; funds_id: string }[];
   accounts: { id: string; name: string; kind: string }[];
   /** Absent on a device that last opened Add Entry before tabs existed. */
   tabs?: { id: string; name: string; people: number; counts_as_spending: boolean }[];

@@ -5,6 +5,7 @@ import { setTheme } from './actions';
 import { Icon } from '../Icon';
 import { haptic } from '../haptics';
 import type { Theme } from '@/lib/theme';
+import { applyTheme } from './apply-theme';
 
 const OPTIONS: { id: Theme; icon: string; label: string }[] = [
   { id: 'system', icon: 'phone', label: 'Phone' },
@@ -21,16 +22,10 @@ export default function ThemePicker({ current }: { current: Theme }) {
   const [state, act, pending] = useActionState(setTheme, null);
   const [chosen, setChosen] = useState<Theme>(current);
 
-  /* Stamp the choice on the document at once, from the click, so the page
-     changes under the thumb rather than after the round trip. It lives here
-     rather than in lib/ because lib/ is compiled without DOM types — it is
-     the half of the codebase that must run anywhere. */
   function pick(t: Theme) {
     haptic('select');
     setChosen(t);
-    const root = document.documentElement;
-    if (t === 'system') { delete root.dataset.theme; root.style.colorScheme = ''; }
-    else { root.dataset.theme = t; root.style.colorScheme = t; }
+    applyTheme(t);
   }
 
   return (
