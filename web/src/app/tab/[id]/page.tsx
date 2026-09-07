@@ -6,7 +6,8 @@ import { headerBg } from '../../auth-ui';
 import { Chip, Icon } from '../../Icon';
 import TabPeople from './TabPeople';
 import Screen from '../../Screen';
-import SwipeBack from '../../SwipeBack';
+import Back from '../../Back';
+import { BACK_SPACE } from '../../tabs';
 import Swipeable from '../../Swipeable';
 
 export const metadata = { title: 'Tab · Saree al-Hisab' };
@@ -43,8 +44,8 @@ export default async function Tab({ params }: { params: Promise<{ id: string }> 
 
   return (
     <Screen>
-      <SwipeBack to="/people" />
-      <main style={{ minHeight: '100dvh', background: 'var(--c-bg)', paddingBottom: 44 }}>
+      <Back to="/people" />
+      <main style={{ minHeight: '100dvh', background: 'var(--c-bg)', paddingBottom: BACK_SPACE }}>
         <header className="el2" style={{
           background: headerBg('purple'), color: '#fff', borderRadius: '0 0 28px 28px',
           padding: '18px var(--gutter) 24px', display: 'flex', flexDirection: 'column', gap: 10,

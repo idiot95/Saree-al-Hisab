@@ -9,7 +9,7 @@ import { TAB_BAR_SPACE } from '../tabs';
 import DuplicateCard from './DuplicateCard';
 import DueRow from '../schedules/DueRow';
 import Screen from '../Screen';
-import SwipeBack from '../SwipeBack';
+import Back from '../Back';
 import Swipeable from '../Swipeable';
 
 export const metadata = { title: 'Inbox · Saree al-Hisab' };
@@ -35,7 +35,7 @@ export default async function Inbox() {
 
   return (
     <Screen>
-      <SwipeBack to="/" />
+      <Back to="/" />
       <main style={{ minHeight: '100dvh', background: 'var(--c-bg)', paddingBottom: TAB_BAR_SPACE }}>
         <header className="el2" style={{
           background: headerBg('pumpkin'), color: '#fff', borderRadius: '0 0 28px 28px',

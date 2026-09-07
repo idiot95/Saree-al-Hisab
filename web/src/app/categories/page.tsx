@@ -4,7 +4,8 @@ import { actorOrNull, allCategories } from '@/db/queries';
 import { headerBg } from '../auth-ui';
 import CategoryEditor from './CategoryEditor';
 import Screen from '../Screen';
-import SwipeBack from '../SwipeBack';
+import Back from '../Back';
+import { BACK_SPACE } from '../tabs';
 
 export const metadata = { title: 'Categories · Saree al-Hisab' };
 export const dynamic = 'force-dynamic';
@@ -19,8 +20,8 @@ export default async function Categories() {
 
   return (
     <Screen>
-      <SwipeBack to="/budget" />
-      <main style={{ minHeight: '100dvh', background: 'var(--c-bg)', paddingBottom: 44 }}>
+      <Back to="/budget" />
+      <main style={{ minHeight: '100dvh', background: 'var(--c-bg)', paddingBottom: BACK_SPACE }}>
         <header className="el2" style={{
           background: headerBg('gold'), color: '#fff', borderRadius: '0 0 28px 28px',
           padding: '18px var(--gutter) 26px', display: 'flex', flexDirection: 'column', gap: 10,

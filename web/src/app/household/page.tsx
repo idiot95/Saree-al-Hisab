@@ -16,7 +16,7 @@ import { forcedTheme, THEME_COOKIE } from '@/lib/theme';
 import { headerBg } from '../auth-ui';
 import BooksSwitcher from './BooksSwitcher';
 import Screen from '../Screen';
-import SwipeBack from '../SwipeBack';
+import Back from '../Back';
 
 export const metadata = { title: 'Household · Saree al-Hisab' };
 export const dynamic = 'force-dynamic';
@@ -49,7 +49,7 @@ export default async function Household() {
 
   return (
     <Screen>
-      <SwipeBack to="/" />
+      <Back to="/" />
       <main style={{ minHeight: '100dvh', background: 'var(--c-bg)', paddingBottom: TAB_BAR_SPACE }}>
         <header className="el2" style={{
           background: headerBg('slate'),

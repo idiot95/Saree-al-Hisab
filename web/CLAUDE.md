@@ -873,6 +873,17 @@ Safari 18+ ticks natively. Both need a user gesture, so a haptic is only ever
 called from a pointer or click handler — never from an effect that could fire
 on load.
 
+**Going back** (`src/app/Back.tsx`, one `<Back to="…">` on every screen with a
+header arrow): a swipe from the left edge, and a Back pill that floats in at
+the bottom-left the moment the header's arrow scrolls out of view and leaves
+when it returns — never two Backs on screen at once. Installed, there is no
+browser chrome and no system back gesture, so without these the only way out
+of a scrolled screen was the far top-left. The pill is fixed at z 34, under
+the veil (35) and the tab bar (40), above the bar where there is one;
+visibility is set from an IntersectionObserver, never in an effect body, so
+the first paint carries no pill on either side. `to` is always our own
+literal and is still checked (absolute, same-origin) before use.
+
 **Swipe rows** (`src/app/SwipeRow.tsx`): drag a row left for its actions,
 all the way across to fire the last one. Pointer Events with `touch-action:
 pan-y` and an 8px axis lock, so a vertical scroll that starts on a row is a

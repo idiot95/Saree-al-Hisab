@@ -4,7 +4,8 @@ import { actorOrNull, scanningState } from '@/db/queries';
 import { HEADER_BG } from '../auth-ui';
 import ScanForm from './ScanForm';
 import Screen from '../Screen';
-import SwipeBack from '../SwipeBack';
+import Back from '../Back';
+import { BACK_SPACE } from '../tabs';
 
 export const metadata = { title: 'Scan a receipt · Saree al-Hisab' };
 export const dynamic = 'force-dynamic';
@@ -17,8 +18,8 @@ export default async function Scan() {
 
   return (
     <Screen>
-      <SwipeBack to="/add" />
-      <main style={{ minHeight: '100dvh', background: 'var(--c-bg)', paddingBottom: 44 }}>
+      <Back to="/add" />
+      <main style={{ minHeight: '100dvh', background: 'var(--c-bg)', paddingBottom: BACK_SPACE }}>
         <header className="el2" style={{
           background: HEADER_BG, color: '#fff', borderRadius: '0 0 26px 26px',
           padding: '18px var(--gutter) 24px', display: 'flex', flexDirection: 'column', gap: 10,

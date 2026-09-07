@@ -5,7 +5,7 @@ import TabBar from '../TabBar';
 import { TAB_BAR_SPACE } from '../tabs';
 import { headerBg } from '../auth-ui';
 import Screen from '../Screen';
-import SwipeBack from '../SwipeBack';
+import Back from '../Back';
 
 export const metadata = { title: 'How it works · Saree al-Hisab' };
 export const dynamic = 'force-dynamic';
@@ -161,7 +161,7 @@ export default async function Guide() {
 
   return (
     <Screen>
-      <SwipeBack to="/" />
+      <Back to="/" />
       <main style={{ minHeight: '100dvh', background: 'var(--c-bg)', paddingBottom: TAB_BAR_SPACE }}>
         <header className="el2" style={{
           background: headerBg('slate'), color: '#fff', borderRadius: '0 0 28px 28px',

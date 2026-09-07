@@ -2,7 +2,8 @@ import Link from 'next/link';
 import { actorOrNull } from '@/db/queries';
 import { headerBg } from '../auth-ui';
 import Screen from '../Screen';
-import SwipeBack from '../SwipeBack';
+import Back from '../Back';
+import { BACK_SPACE } from '../tabs';
 
 export const metadata = { title: 'Terms · Saree al-Hisab' };
 export const dynamic = 'force-dynamic';
@@ -82,8 +83,8 @@ export default async function Terms() {
 
   return (
     <Screen>
-      <SwipeBack to={back} />
-      <main style={{ minHeight: '100dvh', background: 'var(--c-bg)', paddingBottom: 44 }}>
+      <Back to={back} />
+      <main style={{ minHeight: '100dvh', background: 'var(--c-bg)', paddingBottom: BACK_SPACE }}>
         <header className="el2" style={{
           background: headerBg('slate'), color: '#fff', borderRadius: '0 0 28px 28px',
           padding: '18px var(--gutter) 28px', display: 'flex', flexDirection: 'column', gap: 11,

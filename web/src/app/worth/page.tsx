@@ -7,7 +7,7 @@ import { headerBg } from '../auth-ui';
 import TabBar from '../TabBar';
 import { TAB_BAR_SPACE } from '../tabs';
 import Screen from '../Screen';
-import SwipeBack from '../SwipeBack';
+import Back from '../Back';
 
 export const metadata = { title: 'Net worth · Saree al-Hisab' };
 export const dynamic = 'force-dynamic';
@@ -57,7 +57,7 @@ export default async function Worth() {
 
   return (
     <Screen>
-      <SwipeBack to="/" />
+      <Back to="/" />
       <main style={{ minHeight: '100dvh', background: 'var(--c-bg)', paddingBottom: TAB_BAR_SPACE }}>
         <header className="el2" style={{
           background: headerBg('green'), color: '#fff', borderRadius: '0 0 28px 28px',

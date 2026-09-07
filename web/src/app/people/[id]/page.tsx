@@ -8,7 +8,8 @@ import { headerBg } from '../../auth-ui';
 import PersonActions from './PersonActions';
 import Claims from './Claims';
 import Screen from '../../Screen';
-import SwipeBack from '../../SwipeBack';
+import Back from '../../Back';
+import { BACK_SPACE } from '../../tabs';
 
 export const metadata = { title: 'Person · Saree al-Hisab' };
 export const dynamic = 'force-dynamic';
@@ -44,8 +45,8 @@ export default async function Person({ params }: { params: Promise<{ id: string 
 
   return (
     <Screen>
-      <SwipeBack to="/people" />
-      <main style={{ minHeight: '100dvh', background: 'var(--c-bg)', paddingBottom: 44 }}>
+      <Back to="/people" />
+      <main style={{ minHeight: '100dvh', background: 'var(--c-bg)', paddingBottom: BACK_SPACE }}>
         <header className="el2" style={{
           background: headerBg('purple'), color: '#fff', borderRadius: '0 0 28px 28px',
           padding: '18px var(--gutter) 26px', display: 'flex', flexDirection: 'column', gap: 10,

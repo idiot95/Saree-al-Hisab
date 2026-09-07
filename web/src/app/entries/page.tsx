@@ -6,7 +6,7 @@ import { headerBg } from '../auth-ui';
 import TabBar from '../TabBar';
 import { TAB_BAR_SPACE } from '../tabs';
 import Screen from '../Screen';
-import SwipeBack from '../SwipeBack';
+import Back from '../Back';
 import EntryList, { type Row } from './EntryList';
 
 export const metadata = { title: 'Entries · Saree al-Hisab' };
@@ -62,7 +62,7 @@ export default async function Entries({ searchParams }: {
 
   return (
     <Screen>
-      <SwipeBack to="/" />
+      <Back to="/" />
       <main style={{ minHeight: '100dvh', background: 'var(--c-bg)', paddingBottom: TAB_BAR_SPACE }}>
         <header className="el2" style={{
           background: headerBg('indigo'), color: '#fff', borderRadius: '0 0 28px 28px',

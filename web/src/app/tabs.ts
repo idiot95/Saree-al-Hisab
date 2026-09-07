@@ -30,6 +30,10 @@ export const OWNED_BY: Record<string, string> = {
 /** Height of the bar, so pages can leave room for it. */
 export const TAB_BAR_SPACE = 'calc(76px + env(safe-area-inset-bottom, 0px))';
 
+/** Room at the foot of a screen WITHOUT the bar for the floating Back pill
+ *  (Back.tsx), which sits 18px above the safe area and is 44px tall. */
+export const BACK_SPACE = 'calc(80px + env(safe-area-inset-bottom, 0px))';
+
 /* Everything about how one tab looks, shared by the live bar and its still
    copy so the two are the same to the pixel and the swap between them is
    invisible. */
