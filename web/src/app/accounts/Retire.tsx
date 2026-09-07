@@ -1,45 +1,7 @@
 'use client';
 
 import { useActionState, useState } from 'react';
-import { archiveAccount, archiveMethod, makeDefaultMethod } from './actions';
-
-/* Archive, never delete. Entries keep pointing at it, so the months it appears
-   in still add up — which is the entire reason archived_at exists. */
-export function RetireAccount({ id, name, blocked }: { id: string; name: string; blocked: number }) {
-  const [state, act, pending] = useActionState(archiveAccount, null);
-  const [sure, setSure] = useState(false);
-
-  if (!sure) {
-    return (
-      <button type="button" onClick={() => setSure(true)} style={link}>
-        Archive
-      </button>
-    );
-  }
-  return (
-    <span style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-end' }}>
-      <span style={{ display: 'flex', gap: 8 }}>
-        <button type="button" onClick={() => setSure(false)} style={link}>Cancel</button>
-        <form action={act}>
-          <input type="hidden" name="id" value={id} />
-          <button type="submit" disabled={pending} style={{ ...link, color: 'var(--c-danger)' }}>
-            {pending ? 'Archiving…' : `Archive ${name}`}
-          </button>
-        </form>
-      </span>
-      {blocked > 0 && (
-        <span style={{ fontSize: 'var(--step--2)', color: 'var(--c-meta)', textAlign: 'right', maxWidth: 210 }}>
-          {blocked === 1 ? '1 payment method draws' : `${blocked} payment methods draw`} on this.
-        </span>
-      )}
-      {state && !state.ok && (
-        <span role="alert" style={{ fontSize: 'var(--step--2)', color: 'var(--c-danger)', textAlign: 'right', maxWidth: 210 }}>
-          {state.error}
-        </span>
-      )}
-    </span>
-  );
-}
+import { archiveMethod, makeDefaultMethod } from './actions';
 
 export function MethodControls({ id, isDefault }: { id: string; isDefault: boolean }) {
   const [retireState, retire, retiring] = useActionState(archiveMethod, null);

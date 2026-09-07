@@ -12,7 +12,11 @@ import { haptic } from './haptics';
    Undo protects the one, and costs the hundred nothing. Six seconds, sitting
    just above the tab bar where the thumb already is. */
 
-export type SnackState = { text: string; undo?: () => void; tone?: 'ok' | 'error' } | null;
+export type SnackState = {
+  text: string; undo?: () => void; tone?: 'ok' | 'error';
+  /** A named action in Undo's place, for a snack that offers something else. */
+  action?: { label: string; run: () => void };
+} | null;
 
 export default function Snack({ snack, onClose, ttl = 6000 }: {
   snack: SnackState; onClose: () => void; ttl?: number;
@@ -37,11 +41,13 @@ export default function Snack({ snack, onClose, ttl = 6000 }: {
       <span style={{ flex: 1, fontSize: 'var(--step--1)', fontWeight: 600, lineHeight: 1.35 }}>
         {snack.text}
       </span>
-      {snack.undo && (
-        <button type="button" onClick={() => { haptic('select'); snack.undo?.(); onClose(); }} style={{
+      {(snack.undo || snack.action) && (
+        <button type="button" style={{
           minHeight: 44, padding: '0 14px', borderRadius: 10, fontSize: 'var(--step--1)',
-          fontWeight: 700, color: 'var(--c-pollen)', letterSpacing: '.01em',
-        }}>Undo</button>
+          fontWeight: 700, color: 'var(--c-pollen)', letterSpacing: '.01em', flex: 'none',
+        }} onClick={() => { haptic('select'); (snack.undo ?? snack.action?.run)?.(); onClose(); }}>
+          {snack.undo ? 'Undo' : snack.action?.label}
+        </button>
       )}
     </div>
   );

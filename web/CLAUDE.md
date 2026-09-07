@@ -92,7 +92,7 @@ because they are idempotent, so a changed view ships without a new file.
 ## Proven, not assumed
 
 `npm run test:invariants` tries to BREAK each rule and expects Postgres to
-refuse. 85 assertions currently pass, covering: a move can never look like
+refuse. 94 assertions currently pass, covering: a move can never look like
 spending, `spend_txn` is the only definition of spending, refunds net off in
 the month they land, a card purchase files itself into the right cycle, a
 payment method is a rail and not a balance, lending never touches the budget,
@@ -102,7 +102,9 @@ plaintext is nowhere in the database, a password cannot exist without an
 address to use it with, and an account that has recorded entries cannot be
 deleted at all — the ledger holds it in place — and one person can keep
 several sets of books without either set knowing about the other, and a
-balance is only ever the sum of the entries beneath it.
+balance is only ever the sum of the entries beneath it, a card due before its
+statement day still takes a purchase and moving the days re-files the unpaid
+ones, and an entry delivered twice under one `client_ref` is one row.
 
     npm run seed you@example.com   # fills YOUR books with the designs' data
 
@@ -221,7 +223,23 @@ words, because being told off after the fact teaches the rule the hard way.
 **A card's statement day is what does the work.** Punch it in and every
 purchase files itself into the right billing cycle through `txn_apply_method()`.
 Days 1–28 only: the 31st silently becomes the 28th for four months of the year
-and nobody notices until the bill is late.
+and nobody notices until the bill is late. The due day is turned into a date by
+`cycle_due(statement_day, due_day, period_end)` (0103): a due day *after* the
+statement day falls in the statement's month, one *before* it falls in the
+next — a card that statements on the 25th and is due on the 10th could not
+take a single purchase before this, because the trigger computed a due date
+earlier than the statement and `due_after_statement` refused the cycle.
+
+**An account is edited in place — same id, same kind.** Tap it on `/accounts`
+and `EditAccount` opens: name, last four, the balance before the first entry,
+and for a card its limit, statement day and due day (`editAccount`). The kind
+is not editable, because the entries beneath it were recorded on the rails of
+that kind. Moving a card's days re-files every purchase on an *unpaid* bill —
+`update txn set occurred_on = occurred_on` is enough, since the filing trigger
+runs on any UPDATE and reads the days fresh — then re-dates the unpaid cycles
+and deletes any left empty. A **paid** bill keeps exactly what it had: the bank
+has already been paid for those purchases. Archive lives in the same panel,
+behind a second tap.
 
 Accounts and ways to pay are **archived, never deleted** — entries keep
 pointing at them, so the months they appear in still add up. An account with a
@@ -530,12 +548,56 @@ separately.
 **The service worker does not cache pages, on purpose.** Every screen is
 server-rendered from a household's books, so a cached page is somebody's
 finances sitting on disk for whoever picks the phone up next. Navigations go to
-the network every time and fall back to a static `/offline` page. Content-hashed
-assets are cached, which is what makes a return visit instant.
+the network every time and fall back to `/offline`. Content-hashed assets are
+cached, which is what makes a return visit instant.
 
-Recording while offline would need a queue on the device and a sync afterwards.
-That is a real feature and this is not it — claiming it and losing somebody's
-receipt would be worse than not offering it.
+### Recording without signal
+
+`/offline` is the one page the worker keeps, and it is kept precisely because
+it holds nothing: it is Add Entry with the pickers filled from the phone's own
+storage after it opens. The design, in the order the pieces matter:
+
+- **The device store** (`src/app/add/queue.ts`) is two localStorage keys:
+  `ql.queue.v1`, the entries typed without signal, and `ql.pickers.v1`, the
+  names needed to type them (categories, ways to pay, accounts), rewritten
+  every time Add Entry is opened online. Reads and writes are wrapped —
+  private browsing and a full disk are not worth a crash on a finance screen.
+  `ForgetDevice` on `/signin` wipes both, so a shared handset carries nothing
+  past a sign-out. The trade-off is stated: entries still waiting at the
+  moment someone reaches `/signin` are lost with it.
+- **Every queued entry carries a `clientRef`** — a UUID minted on the phone —
+  and the household it was typed under. `txn.client_ref` (0015) is unique per
+  household where set, and `saveEntry` selects before it inserts, inserts with
+  `on conflict … do nothing`, and selects again if nothing came back. Sending
+  the same entry twice — a retry after a reply that never arrived — yields one
+  row and the same id, which is what makes it safe to try again on every
+  reconnect without asking "did it go?". A `householdId` that is not the
+  signed-in household is refused outright: an entry typed under one sign-in
+  never lands in another's books.
+- **`SyncQueue`** in the root layout drains the queue on mount and on
+  `online`, single-flight, and never on the auth or offline screens. A
+  network failure stops the drain and keeps everything; a server refusal
+  ("that category was retired") marks the entry *stuck* with the reason, and
+  it stays on the phone — surfaced as a snack with **Discard** — until the
+  person decides. Stuck entries are never retried on their own.
+- **`/offline` is `force-dynamic`** though it reads nothing, because every
+  script tag carries the request's CSP nonce and a prerendered page ships
+  with none. The worker (`public/sw.js`, `VERSION = 'v2'`) fetches it once at
+  install, `credentials: 'omit'`, together with every `/_next/static/` script
+  and stylesheet the markup names, so the cached copy is a self-consistent
+  snapshot: the nonce in its cached headers is the nonce in its cached
+  markup. **Bump `VERSION` whenever the offline screen changes**, or phones
+  keep the old snapshot.
+- `AddEntry` itself takes `offline`: it queues instead of posting, and also
+  queues when `navigator.onLine` is false or the action throws mid-save, so
+  a tunnel between tap and reply loses nothing.
+
+What is proven: idempotent delivery, the household check, the malformed
+reference refusal (invariants + a call-level test), and the queue's drain
+semantics (single flight, stop on network error, skip stuck) under a faked
+localStorage. What is *not*: the worker's install-and-serve path on a real
+phone with the radio off. Test that on a device before trusting it in a
+tunnel.
 
 ## The icon set and the colour
 

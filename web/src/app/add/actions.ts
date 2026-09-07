@@ -19,7 +19,14 @@ export type Draft = {
   merchant: string;
   occurredOn: string;
   isShared: boolean;
+  /* Only on an entry that waited on the phone for signal. The reference makes
+     a second delivery of the same entry harmless; the household id lets the
+     server refuse an entry typed under one sign-in and sent under another. */
+  clientRef?: string;
+  householdId?: string;
 };
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export type SaveResult =
   | { ok: true; id: string }
@@ -53,6 +60,19 @@ export async function saveEntry(d: Draft): Promise<SaveResult> {
   }
   if (!/^\d{4}-\d{2}-\d{2}$/.test(d.occurredOn)) {
     return { ok: false, error: 'That date is not valid.' };
+  }
+  if (d.clientRef !== undefined && !UUID.test(d.clientRef)) {
+    return { ok: false, error: 'That entry could not be read.' };
+  }
+  if (d.householdId !== undefined && d.householdId !== household_id) {
+    return { ok: false, error: 'This entry was recorded under a different sign-in.' };
+  }
+  const clientRef = d.clientRef ?? null;
+  if (clientRef) {
+    // Already here from an earlier delivery: say so, and say which row.
+    const [dup] = await sql`
+      select id from txn where household_id = ${household_id} and client_ref = ${clientRef}`;
+    if (dup) return { ok: true, id: dup.id };
   }
 
   // The method decides the account, so the client never names one. This is
@@ -97,12 +117,20 @@ export async function saveEntry(d: Draft): Promise<SaveResult> {
       counter_account_id: counter,
       category_id: categoryId,
       payment_method_id: method.id,
-      merchant: d.merchant.trim() || null,
+      merchant: String(d.merchant ?? '').trim() || null,
       is_shared: d.isShared,
       source: 'manual',
-    })} returning id`;
+      client_ref: clientRef,
+    })} on conflict (household_id, client_ref) where client_ref is not null do nothing
+       returning id`;
     revalidatePath('/');
-    return { ok: true, id: row.id };
+    if (row) return { ok: true, id: row.id };
+    /* Lost the race with our own retry: the other delivery landed between
+       the check above and this insert. The unique index kept it to one row;
+       hand back that row. */
+    const [won] = await sql`
+      select id from txn where household_id = ${household_id} and client_ref = ${clientRef}`;
+    return won ? { ok: true, id: won.id } : { ok: false, error: 'That could not be saved. Try again.' };
   } catch (e) {
     /* A constraint fired. Log what rule was broken, never the row — a
        Postgres error carries the offending values in `detail`, which here

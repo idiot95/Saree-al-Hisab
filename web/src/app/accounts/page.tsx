@@ -10,7 +10,8 @@ import TabBar from '../TabBar';
 import { TAB_BAR_SPACE } from '../tabs';
 import AddAccount from './AddAccount';
 import AddMethod from './AddMethod';
-import { RetireAccount, MethodControls } from './Retire';
+import EditAccount, { type Editable } from './EditAccount';
+import { MethodControls } from './Retire';
 import Screen from '../Screen';
 import SwipeBack from '../SwipeBack';
 
@@ -20,11 +21,6 @@ export const dynamic = 'force-dynamic';
 const KIND_LABEL = {
   spending: 'Bank', cash: 'Cash', savings: 'Savings', credit: 'Credit card',
 } as const;
-
-const RAIL_LABEL: Record<string, string> = {
-  upi: 'UPI', card: 'Card', netbanking: 'Net banking', cash: 'Cash',
-  cheque: 'Cheque', wallet: 'Wallet', autodebit: 'Auto-debit',
-};
 
 const nth = (d: number) => {
   const s = ['th', 'st', 'nd', 'rd'][(d % 100 - 20) % 10] ?? ['th', 'st', 'nd', 'rd'][d % 100] ?? 'th';
@@ -56,6 +52,11 @@ export default async function Accounts() {
      account but no way to pay from it. */
   const needsAccounts = accounts.length <= 1;
   const needsMethods = accounts.length > 1 && methods.length <= 1;
+  const editable = (a: (typeof accounts)[number]): Editable => ({
+    id: a.id, name: a.name, kind: a.kind, last4: a.last4,
+    opening: Number(a.opening_balance), limit: a.credit_limit ? Number(a.credit_limit) : null,
+    statement_day: a.statement_day, due_day: a.due_day, methods: a.methods,
+  });
 
   return (
     <Screen>
@@ -101,10 +102,7 @@ export default async function Accounts() {
         <Head>Bank and cash</Head>
         <Card>
           {holdings.map((a, i) => (
-            <div key={a.id} style={{
-              display: 'flex', alignItems: 'center', gap: 12, minHeight: 76,
-              borderBottom: i === holdings.length - 1 ? undefined : '1px solid var(--c-rule)',
-            }}>
+            <EditAccount key={a.id} account={editable(a)} canWrite={canWrite} last={i === holdings.length - 1}>
               <Chip icon={ACCOUNT_ICON[a.kind]} tint={ACCOUNT_TINT[a.kind]} />
               <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
                 <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>{a.name}</span>
@@ -118,9 +116,8 @@ export default async function Accounts() {
                   fontSize: 'var(--step-1)', letterSpacing: '-.01em',
                   color: Number(a.balance) < 0 ? 'var(--c-danger)' : 'var(--c-ink)',
                 }}>{format(Number(a.balance))}</span>
-                {canWrite && <RetireAccount id={a.id} name={a.name} blocked={a.methods} />}
               </span>
-            </div>
+            </EditAccount>
           ))}
           {holdings.length === 0 && <Empty>No accounts yet.</Empty>}
         </Card>
@@ -134,10 +131,7 @@ export default async function Accounts() {
                 const used = Math.abs(Number(a.balance));
                 const limit = a.credit_limit ? Number(a.credit_limit) : null;
                 return (
-                  <div key={a.id} style={{
-                    display: 'flex', flexDirection: 'column', gap: 10, padding: '15px 0',
-                    borderBottom: i === cards.length - 1 ? undefined : '1px solid var(--c-rule)',
-                  }}>
+                  <EditAccount key={a.id} account={editable(a)} canWrite={canWrite} last={i === cards.length - 1} block>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                       <Chip icon={ACCOUNT_ICON.credit} tint={ACCOUNT_TINT.credit} />
                       <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
@@ -186,19 +180,18 @@ export default async function Accounts() {
                         <>Nothing on this cycle yet.</>
                       )}
                     </span>
-
-                    {canWrite && (
-                      <span style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                        <RetireAccount id={a.id} name={a.name} blocked={a.methods} />
-                      </span>
-                    )}
-                  </div>
+                  </EditAccount>
                 );
               })}
             </Card>
           </>
         )}
 
+        {canWrite && (
+          <p style={{ margin: '-2px var(--gutter) 16px', fontSize: 'var(--step--2)', lineHeight: 1.5, color: 'var(--c-meta)' }}>
+            Tap an account to rename it, correct its starting balance, or archive it.
+          </p>
+        )}
         {canWrite && <AddAccount startOpen={needsAccounts} />}
 
         <Head>Payment methods</Head>

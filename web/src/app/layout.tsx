@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import RegisterSW from './RegisterSW';
+import SyncQueue from './SyncQueue';
 import { Inter } from 'next/font/google';
 import './globals.css';
 
@@ -60,6 +61,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className={inter.variable}>
       <body>
         {children}
+        <SyncQueue />
         <RegisterSW />
       </body>
     </html>

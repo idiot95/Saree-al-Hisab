@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { keysDisplay, pushKey, popKey, fromKeys, symbolOf, format } from '@/lib/money';
 import { saveEntry, checkDuplicate } from './actions';
 import { haptic } from '../haptics';
+import { enqueue, writePickers, type Queued } from './queue';
 
 /* Add Entry — the screen the whole product rests on.
    With no bank feed and no SMS, this is how nearly everything gets in, so it
@@ -30,16 +31,32 @@ export type Account = { id: string; name: string; kind: string };
 const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '00', '0', '.'];
 
 export default function AddEntry({
-  categories, methods, accounts, today, draft,
+  categories, methods, accounts, today, householdId, draft, offline = false, onQueued, children,
 }: {
   categories: Category[]; methods: Method[]; accounts: Account[]; today: string;
+  householdId: string;
   draft?: {
     amountMinor: number | null; occurredOn: string | null; merchant: string | null;
     kind: 'expense' | 'income' | null; categoryId: string | null;
   };
+  /* On the offline screen nothing is sent from here at all: every save goes
+     to the phone's queue, and the layout sends the queue when signal is back. */
+  offline?: boolean;
+  onQueued?: (q: Queued) => void;
+  /** Drawn between the form and the keypad — the offline screen's pending list. */
+  children?: React.ReactNode;
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
+  const [kept, setKept] = useState<string | null>(null);
+
+  /* Opened with signal, so remember what the pickers hold. This is what lets
+     the offline screen offer the same categories and ways of paying — names
+     only, no amounts, no entries — and it is replaced on every visit. */
+  useEffect(() => {
+    if (offline) return;
+    writePickers({ householdId, categories, methods, accounts, savedAt: new Date().toISOString() });
+  }, [offline, householdId, categories, methods, accounts]);
   /* A scan hands its draft over here rather than saving anything itself. The
      keypad is seeded with the amount so it stays the same control, correctable
      the same way — a scanned figure is a suggestion, not a fact. */
@@ -53,7 +70,11 @@ export default function AddEntry({
   const [occurredOn, setOccurredOn] = useState(draft?.occurredOn ?? today);
   const [merchant, setMerchant] = useState(draft?.merchant ?? '');
   const [error, setError] = useState<string | null>(null);
-  const [dupe, setDupe] = useState<Awaited<ReturnType<typeof checkDuplicate>>>(null);
+  /* Kept with the amount and date it was asked about, so a stale answer is
+     never shown against a figure that has since changed. */
+  const [dupe, setDupe] = useState<{
+    minor: number; on: string; hit: Awaited<ReturnType<typeof checkDuplicate>>;
+  } | null>(null);
 
   const minor = fromKeys(keys);
   const method = methods.find((m) => m.id === methodId) ?? methods[0];
@@ -63,19 +84,40 @@ export default function AddEntry({
      than as cleanup in the Inbox later. Debounced, because every keypress
      would otherwise be a round trip. */
   useEffect(() => {
-    if (minor <= 0) { setDupe(null); return; }
-    const t = setTimeout(() => { checkDuplicate(minor, occurredOn).then(setDupe).catch(() => {}); }, 450);
+    if (minor <= 0 || offline) return;
+    const t = setTimeout(() => {
+      checkDuplicate(minor, occurredOn)
+        .then((hit) => setDupe({ minor, on: occurredOn, hit }))
+        .catch(() => {});
+    }, 450);
     return () => clearTimeout(t);
-  }, [minor, occurredOn]);
+  }, [minor, occurredOn, offline]);
+  const shownDupe = dupe && dupe.minor === minor && dupe.on === occurredOn ? dupe.hit : null;
 
   function save() {
     setError(null);
+    setKept(null);
+    const draft = {
+      kind, amountMinor: minor, categoryId, methodId,
+      counterAccountId: counterId, merchant, occurredOn, isShared: shared,
+    };
+    const clear = () => { setKeys(''); setCategoryId(null); setMerchant(''); setDupe(null); };
+    /* Kept on the phone: the same tick as a save, because from where the
+       thumb is it IS a save — the entry exists and will not be lost. The
+       words underneath say where it is. */
+    const keep = () => {
+      const q = enqueue(draft, householdId);
+      haptic('success');
+      clear();
+      setKept(`${format(q.amountMinor)} kept on this phone. It goes into the books the moment there is signal.`);
+      onQueued?.(q);
+    };
+    if (offline || !navigator.onLine) { keep(); return; }
     start(async () => {
-      const r = await saveEntry({
-        kind, amountMinor: minor, categoryId, methodId,
-        counterAccountId: counterId, merchant, occurredOn, isShared: shared,
-      });
-      if (r.ok) { haptic('success'); setKeys(''); setCategoryId(null); setDupe(null); router.push('/'); }
+      let r;
+      try { r = await saveEntry(draft); }
+      catch { keep(); return; }  // the request itself failed: no signal, or it dropped mid-way
+      if (r.ok) { haptic('success'); clear(); router.push('/'); }
       else { haptic('warn'); setError(r.error); }
     });
   }
@@ -100,7 +142,8 @@ export default function AddEntry({
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-          <button aria-label="Close" style={iconBtn}>
+          <button aria-label="Close" style={iconBtn}
+            onClick={() => { haptic('select'); router.push('/', { transitionTypes: ['nav-back'] }); }}>
             <Glyph d="M6 6l12 12M18 6L6 18" />
           </button>
           <h1 className="t" style={{ margin: 0, fontSize: 'var(--step-2)' }}>New entry</h1>
@@ -230,17 +273,28 @@ export default function AddEntry({
         </div>
       )}
 
-      {dupe && (
+      {shownDupe && (
         <div style={{
           display: 'flex', alignItems: 'flex-start', gap: 10, margin: '0 var(--gutter) 12px',
           padding: '13px 15px', borderRadius: 14, background: 'var(--c-pollen)', color: 'var(--c-on-fill)',
         }}>
           <Glyph d="M12 7.5v5.5 M12 16.6v.1 M20.5 12a8.5 8.5 0 1 1-17 0 8.5 8.5 0 0 1 17 0" size={17} w={1.9} />
           <span style={{ flex: 1, fontSize: 'var(--step--1)', lineHeight: 1.45 }}>
-            <b>{dupe.who}</b> already recorded {format(dupe.amountMinor)}
-            {dupe.merchant ? ` at ${dupe.merchant}` : ''} on {friendly(dupe.on)}, from {dupe.account}.
+            <b>{shownDupe.who}</b> already recorded {format(shownDupe.amountMinor)}
+            {shownDupe.merchant ? ` at ${shownDupe.merchant}` : ''} on {friendly(shownDupe.on)}, from {shownDupe.account}.
             Is this the same thing?
           </span>
+        </div>
+      )}
+
+      {kept && (
+        <div role="status" style={{
+          display: 'flex', alignItems: 'center', gap: 10, margin: '0 var(--gutter) 12px',
+          padding: '13px 15px', borderRadius: 14, background: 'var(--c-teal-l)', color: 'var(--c-ink)',
+          fontSize: 'var(--step--1)', fontWeight: 600, lineHeight: 1.4,
+        }}>
+          <Glyph d="M12 3a9 9 0 1 0 9 9 M12 8v4l3 2" size={17} w={2} />
+          {kept}
         </div>
       )}
 
@@ -272,6 +326,8 @@ export default function AddEntry({
           <span style={{ width: 24, height: 24, borderRadius: 999, background: '#fff' }} />
         </span>
       </button>
+
+      {children}
 
       <div style={{ marginTop: 'auto', padding: '10px 14px 18px', background: 'var(--c-card)', borderTop: '1px solid var(--c-border)', display: 'flex', gap: 9 }}>
         <div style={{ flex: 1, display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0,1fr))', gap: 9 }}>

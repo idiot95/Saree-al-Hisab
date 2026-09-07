@@ -13,6 +13,20 @@ RETURNS TABLE (period_start date, period_end date) AS $$
     END;
 $$ LANGUAGE sql IMMUTABLE;
 
+-- When the bill for a cycle falls due. Most cards are due in the month AFTER
+-- the statement — statement on the 25th, due on the 10th — so the due day
+-- being numerically smaller than the statement day is the common case, not an
+-- error. Read it as "the next 10th after the statement". A due day equal to
+-- the statement day is read the same way: nobody's bill is due the day it is
+-- issued.
+CREATE OR REPLACE FUNCTION cycle_due(statement_day int, due_day int, period_end date)
+RETURNS date AS $$
+  SELECT CASE
+    WHEN due_day > statement_day THEN period_end + (due_day - statement_day)
+    ELSE (date_trunc('month', period_end) + interval '1 month')::date + (due_day - 1)
+  END;
+$$ LANGUAGE sql IMMUTABLE;
+
 -- What is actually on each cycle, and whether the bill has cleared it.
 -- The purchases are expenses and were counted on the day they happened.
 -- The payment is a card_payment, which invariant 1 keeps out of spending —
@@ -77,7 +91,7 @@ CREATE TRIGGER method_funding_check
 -- On write, stamp the account from the method and file the purchase into the
 -- right cycle. This is the auto-offset: nothing is remembered by hand.
 CREATE OR REPLACE FUNCTION txn_apply_method() RETURNS trigger AS $$
-DECLARE acct uuid; sday int; ps date; pe date; cyc uuid;
+DECLARE acct uuid; sday int; dday int; ps date; pe date; cyc uuid;
 BEGIN
   /* The method decides the account. On insert that fills a blank; on update it
      OVERRIDES, because correcting "paid by GPay" to "paid by the card" has to
@@ -95,14 +109,14 @@ BEGIN
      moves OFF a card. Leaving a stale cycle behind would keep a card bill
      charging for a purchase that is no longer on that card. */
   NEW.card_cycle_id := NULL;
-  SELECT statement_day INTO sday FROM account WHERE id = NEW.account_id AND kind = 'credit';
+  SELECT statement_day, due_day INTO sday, dday
+    FROM account WHERE id = NEW.account_id AND kind = 'credit';
   IF sday IS NOT NULL AND NEW.kind IN ('expense','refund') THEN
     SELECT period_start, period_end INTO ps, pe FROM cycle_bounds(sday, NEW.occurred_on);
     SELECT id INTO cyc FROM card_cycle WHERE account_id = NEW.account_id AND period_start = ps;
     IF cyc IS NULL THEN
       INSERT INTO card_cycle (account_id, period_start, period_end, statement_on, due_on)
-      SELECT NEW.account_id, ps, pe, pe,
-             pe + COALESCE((SELECT due_day - statement_day FROM account WHERE id = NEW.account_id), 7)
+      VALUES (NEW.account_id, ps, pe, pe, cycle_due(sday, COALESCE(dday, sday + 7), pe))
       RETURNING id INTO cyc;
     END IF;
     NEW.card_cycle_id := cyc;

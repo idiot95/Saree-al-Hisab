@@ -108,6 +108,29 @@ ok(iso(cyc[0]?.period_start) === '2026-08-06' && iso(cyc[0]?.period_end) === '20
 ok(iso(cyc[0]?.due_on) === '2026-09-12', 'the bill is due on the 12th, seven days after the statement');
 ok(Number(cyc[0]?.charged) === 450000, 'the cycle holds exactly the card purchase');
 
+/* Most cards are due in the month AFTER the statement — statement on the
+   25th, bill due on the 10th. The due day being the smaller number is the
+   common case, and it once made every purchase on such a card unsaveable:
+   due_on landed before statement_on and the check refused the cycle. */
+const late = await mk('Amex Platinum', 'credit', { statement_day: 25, due_day: 10 });
+await allows('a purchase on a card whose due day is earlier in the month than its statement day',
+  () => txn({ kind: 'expense', account_id: late, category_id: cat, amount: 99900, occurred_on: '2026-09-20' }));
+const [lateCyc] = await sql`select period_end, due_on from card_cycle where account_id = ${late}`;
+ok(iso(lateCyc?.period_end) === '2026-09-25' && iso(lateCyc?.due_on) === '2026-10-10',
+  `its bill closes 25 Sep and is due 10 Oct (got ${iso(lateCyc?.period_end)} → ${iso(lateCyc?.due_on)})`);
+
+/* Editing the card's days re-files what is on unpaid bills. The app does it
+   by touching each entry, so the trigger reads the new days; the test does
+   the same by hand and checks the filing moved. */
+await sql`update account set statement_day = 15, due_day = 5 where id = ${late}`;
+await sql`update txn set occurred_on = occurred_on where account_id = ${late}`;
+await sql`delete from card_cycle c where c.account_id = ${late} and c.status <> 'paid'
+  and not exists (select 1 from txn t where t.card_cycle_id = c.id)`;
+const refiled = await sql`select period_start, period_end, due_on from card_cycle where account_id = ${late}`;
+ok(refiled.length === 1 && iso(refiled[0].period_start) === '2026-09-16' && iso(refiled[0].period_end) === '2026-10-15',
+  `after the statement day moves to the 15th, a 20 Sep purchase sits on the 16 Sep – 15 Oct bill (got ${refiled.map((r) => `${iso(r.period_start)} – ${iso(r.period_end)}`).join(', ')})`);
+ok(refiled[0] && iso(refiled[0].due_on) === '2026-11-05', 'and that bill is due on 5 Nov');
+
 console.log('\nBALANCES — derived from the entries, never written down');
 const balanceOf = async (id) =>
   Number((await sql`select balance::bigint from account_balance where id = ${id}`)[0].balance);
@@ -291,6 +314,27 @@ ok(asSpend === 0, 'nor as a reduction in spending');
 await sql`delete from txn where id = ${dinner.id}`;
 const [{ n: left }] = await sql`select count(*)::int as n from claim where id = ${cl.id}`;
 ok(left === 0, 'deleting the entry takes its claim with it — there is nothing left to be owed for');
+
+console.log('\nOFFLINE — an entry that waited for signal lands once');
+/* An entry recorded without signal carries a reference minted on the phone.
+   Sending it twice — a retry after a reply that never arrived — must leave
+   one row. The reference is scoped to the household, so two households
+   minting the same one (they cannot, but the index should not care) do not
+   collide either. */
+const ref = '4d5b3e5c-8f1a-4a2c-9c3d-1e2f3a4b5c6d';
+await allows('an entry with a client reference is accepted',
+  () => txn({ kind: 'expense', account_id: spend, category_id: cat, amount: 12300, client_ref: ref }));
+await refuses('the same reference for the same household is refused',
+  () => txn({ kind: 'expense', account_id: spend, category_id: cat, amount: 12300, client_ref: ref }));
+const [{ n: refRows }] = await sql`select count(*)::int as n from txn where household_id = ${hh.id} and client_ref = ${ref}`;
+ok(refRows === 1, 'so exactly one row carries it');
+const dupRef = await sql`insert into txn ${sql({
+  household_id: hh.id, created_by: user.id, occurred_on: '2026-09-01', currency: 'INR', source: 'manual',
+  kind: 'expense', account_id: spend, category_id: cat, amount: 12300, client_ref: ref,
+})} on conflict (household_id, client_ref) where client_ref is not null do nothing returning id`;
+ok(dupRef.length === 0, 'and the write the app makes on a retry is a silent no-op, not an error');
+await allows('while entries without a reference are unlimited',
+  () => txn({ kind: 'expense', account_id: spend, category_id: cat, amount: 12300 }));
 
 console.log('\nDUPLICATES — detected, never prevented');
 const [other] = await sql`insert into app_user ${sql({ phone: '+910000000002', name: 'F' })} returning id`;

@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { actorOrNull } from '@/db/queries';
 import { AuthShell, quietBtn } from '../auth-ui';
 import SignInForm from './SignInForm';
+import ForgetDevice from './ForgetDevice';
 
 export const metadata = { title: 'Sign in · Quiet Ledger' };
 export const dynamic = 'force-dynamic';
@@ -18,6 +19,7 @@ export default async function SignIn() {
         marginTop: 'auto', padding: '28px var(--gutter) 26px',
         display: 'flex', flexDirection: 'column', gap: 14,
       }}>
+        <ForgetDevice />
         <SignInForm />
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '2px 0' }}>

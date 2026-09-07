@@ -45,6 +45,7 @@ export default async function Page({ searchParams }: {
         methods={methods.map((m) => ({ id: m.id, name: m.name, funds: m.funds }))}
         accounts={accounts}
         today={today}
+        householdId={household_id}
       />
     </Screen>
   );

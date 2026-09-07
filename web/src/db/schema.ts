@@ -291,8 +291,15 @@ export const txn = pgTable('txn', {
      method only prefills it and answers "how much goes through UPI". */
   paymentMethodId: uuid('payment_method_id'),
   cardCycleId: uuid('card_cycle_id'),
+  /* Minted on the phone the moment an entry is saved without signal. When
+     the queue drains it is sent with the entry, and the partial unique index
+     below makes a second delivery of the same entry a no-op instead of a
+     second row. Entries saved online never carry one. */
+  clientRef: uuid('client_ref'),
   deletedAt: timestamp('deleted_at', { withTimezone: true }),
 }, (t) => [
+  uniqueIndex('txn_client_ref').on(t.householdId, t.clientRef)
+    .where(sql`${t.clientRef} IS NOT NULL`),
   index('txn_book').on(t.bookId),
   index('txn_cycle').on(t.cardCycleId),
   index('txn_ledger').on(t.householdId, t.occurredOn),
