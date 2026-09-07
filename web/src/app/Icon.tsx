@@ -7,6 +7,7 @@ import {
   IconDeviceLaptop, IconWallet, IconRepeat, IconReceipt, IconSettings,
   IconSunHigh, IconMoon, IconChartAreaLine, IconArrowDownLeft, IconUsersGroup,
   IconPlus, IconCamera, IconUpload, IconPencil, IconCheck,
+  IconTrash, IconPlayerSkipForward, IconPlayerStop, IconArrowsRightLeft,
   type Icon as TablerIcon,
 } from '@tabler/icons-react';
 
@@ -79,6 +80,11 @@ const SET: Record<string, TablerIcon> = {
   upload: IconUpload,
   pencil: IconPencil,
   check: IconCheck,
+  // What a swipe reveals: delete, skip this one, stop for good, move money.
+  trash: IconTrash,
+  skip: IconPlayerSkipForward,
+  stop: IconPlayerStop,
+  move: IconArrowsRightLeft,
 };
 
 export function Icon({ name, size = 19, strokeWidth = 1.8, ...rest }: {

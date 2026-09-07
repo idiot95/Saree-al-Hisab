@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic';
 
 export default async function Page({ searchParams }: {
   searchParams: Promise<{ amount?: string; on?: string; merchant?: string;
-                          kind?: string; category?: string; tab?: string }>;
+                          kind?: string; category?: string; tab?: string; to?: string; from?: string }>;
 }) {
   const actor = await actorOrNull();
   if (!actor) redirect('/signin');
@@ -34,13 +34,16 @@ export default async function Page({ searchParams }: {
     amountMinor: Number.isSafeInteger(amount) && amount > 0 && amount < 1e11 ? amount : null,
     occurredOn: q.on && /^\d{4}-\d{2}-\d{2}$/.test(q.on) ? q.on : null,
     merchant: typeof q.merchant === 'string' ? q.merchant.slice(0, 60) : null,
-    kind: (q.kind === 'expense' || q.kind === 'income' ? q.kind : null) as
-      'expense' | 'income' | null,
+    kind: (q.kind === 'expense' || q.kind === 'income' || q.kind === 'transfer' ? q.kind : null) as
+      'expense' | 'income' | 'transfer' | null,
     categoryId: categories.some((c) => c.id === q.category) ? q.category! : null,
     // Arrived from a tab's own screen: only an open tab of this household's is honoured.
     tabId: tabs.some((t) => t.id === q.tab) ? q.tab! : null,
     tabCoveredMinor: null,
     countsAsSpend: null,
+    // A card bill from the inbox, or a swipe on an account: only this household's.
+    toAccountId: accounts.some((a) => a.id === q.to) ? q.to! : null,
+    fromAccountId: methods.some((m) => m.funds_id === q.from) ? q.from! : null,
   };
 
   return (

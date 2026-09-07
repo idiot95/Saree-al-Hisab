@@ -821,11 +821,31 @@ on load.
 **Swipe rows** (`src/app/SwipeRow.tsx`): drag a row left for its actions,
 all the way across to fire the last one. Pointer Events with `touch-action:
 pan-y` and an 8px axis lock, so a vertical scroll that starts on a row is a
-scroll. One row open at a time, a tap outside closes it, and a drag never
-turns into the row's tap. Entries: Edit, Delete. Categories: Edit, Retire,
-plus a grip to drag the order. **Nothing is gesture-only**: every row still
-opens on tap, and the edit panel offers Move up / Move down / Retire as
+scroll. One row open at a time, and a drag never turns into the row's tap.
+**Closing is easier than opening**: a tap outside, a tap on the row, a
+scroll, Escape, or an 18px nudge back to the right all close it, and a flick
+(over 0.5 px/ms) decides by direction alone however short — an open row never
+has to be dragged the whole way home. **Nothing is gesture-only**: every row
+still opens on tap, and the edit panel offers Move up / Move down / Retire as
 buttons, because a gesture nobody discovers is a feature nobody has.
+
+Where they live. Entries: Edit, Delete. Categories: Edit, Retire, plus a grip
+to drag the order. Schedules: a due row swipes to Skip or Record (Came in for
+income), an every-month row to Stop — with `commit` off, so a long swipe
+cannot silence rent by accident. Inbox: a card bill swipes to Pay, which opens
+Add Entry as a transfer into that card for the charged amount. Lending: a tab
+swipes to Add cost; an entry on a tab to Edit. Accounts: Edit, and Move (a
+bank account) or Pay it (a card), both landing on Add Entry with the transfer
+already pointed the right way — `/add` reads `kind=transfer`, `to=<account>`
+and `from=<account>` and checks each against the household before using it.
+
+**Server pages offer swipes through `Swipeable.tsx`**, which takes
+serialisable actions only — an `href`, or a server action plus the `fields`
+to post to it and the `done` line for the snack — and does the client work of
+building the FormData, showing the error or the confirmation, and refreshing.
+A card holding swipe rows uses `padding: 0 var(--pad)` with `overflow:
+hidden`, because the row slides out past the card's own padding and the
+revealed actions must stop at its rounded corner.
 
 **Undo instead of "Are you sure"** (`src/app/Snack.tsx`): delete and retire
 happen at once and can be taken back for fifteen minutes — `removeEntry` sets

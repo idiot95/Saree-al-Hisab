@@ -247,7 +247,7 @@ function Head({ children }: { children: React.ReactNode }) {
 function Card({ children }: { children: React.ReactNode }) {
   return (
     <section className="el card" style={{
-      margin: '0 var(--gutter) 6px', background: 'var(--c-card)', borderRadius: 18, padding: '0 var(--gutter)',
+      margin: '0 var(--gutter) 6px', background: 'var(--c-card)', borderRadius: 18, padding: '0 var(--pad)', overflow: 'hidden',
     }}>{children}</section>
   );
 }

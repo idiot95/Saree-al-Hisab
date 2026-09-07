@@ -7,6 +7,7 @@ import { Chip, Icon } from '../../Icon';
 import TabPeople from './TabPeople';
 import Screen from '../../Screen';
 import SwipeBack from '../../SwipeBack';
+import Swipeable from '../../Swipeable';
 
 export const metadata = { title: 'Tab · Saree al-Hisab' };
 export const dynamic = 'force-dynamic';
@@ -112,11 +113,15 @@ export default async function Tab({ params }: { params: Promise<{ id: string }> 
               <Head>What went on it</Head>
               <section className="el card" style={{
                 margin: '0 var(--gutter) 22px', background: 'var(--c-card)', borderRadius: 18,
-                padding: '0 var(--pad)',
+                padding: '0 var(--pad)', overflow: 'hidden',
               }}>
                 {entries.map((e, i) => (
-                  <div key={e.id} style={{
+                  <Swipeable key={e.id} actions={canEdit ? [
+                    { label: 'Edit', icon: 'pencil', tone: 'primary', href: `/entries/${e.id}` },
+                  ] : []}>
+                  <Link href={`/entries/${e.id}`} transitionTypes={['nav-forward']} draggable={false} style={{
                     display: 'flex', alignItems: 'center', gap: 12, minHeight: 66,
+                    textDecoration: 'none', color: 'var(--c-ink)',
                     borderBottom: i === entries.length - 1 ? undefined : '1px solid var(--c-rule)',
                   }}>
                     {e.incoming
@@ -147,7 +152,8 @@ export default async function Tab({ params }: { params: Promise<{ id: string }> 
                     }}>
                       {e.incoming ? '+' : ''}{format(Number(e.amount))}
                     </span>
-                  </div>
+                  </Link>
+                  </Swipeable>
                 ))}
               </section>
             </>

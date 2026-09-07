@@ -1,8 +1,11 @@
 'use client';
 
 import { useActionState, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Field, ErrorNote } from '../auth-ui';
 import { haptic } from '../haptics';
+import { Icon } from '../Icon';
+import SwipeRow from '../SwipeRow';
 import { editAccount, archiveAccount } from './actions';
 
 /* Tap the row and it becomes its own form; save and it becomes a row again.
@@ -27,6 +30,7 @@ export default function EditAccount({ account, canWrite, last, block = false, ch
   account: Editable; canWrite: boolean; last: boolean; block?: boolean; children: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
+  const router = useRouter();
   const shape: React.CSSProperties = block
     ? { display: 'flex', flexDirection: 'column', gap: 10, padding: '15px 0' }
     : { display: 'flex', alignItems: 'center', gap: 12, minHeight: 76 };
@@ -35,12 +39,23 @@ export default function EditAccount({ account, canWrite, last, block = false, ch
   if (!canWrite) return <div style={{ ...shape, borderBottom: rule }}>{children}</div>;
 
   if (!open) {
+    /* A swipe offers the two things done to an account: move money in or
+       out of it (a card gets paid, a bank pays), and change its details. */
+    const credit = account.kind === 'credit';
+    const move = credit ? `/add?kind=transfer&to=${account.id}` : `/add?kind=transfer&from=${account.id}`;
     return (
-      <button type="button" onClick={() => { haptic('select'); setOpen(true); }}
-        aria-label={`Edit ${account.name}`}
-        style={{ ...shape, width: '100%', textAlign: 'left', borderBottom: rule, color: 'inherit' }}>
-        {children}
-      </button>
+      <SwipeRow actions={[
+        { label: 'Edit', icon: <Icon name="pencil" size={20} strokeWidth={2} />, act: () => setOpen(true) },
+        { label: credit ? 'Pay it' : 'Move', tone: 'primary',
+          icon: <Icon name="move" size={20} strokeWidth={2} />,
+          act: () => router.push(move, { transitionTypes: ['nav-forward'] }) },
+      ]}>
+        <button type="button" onClick={() => { haptic('select'); setOpen(true); }}
+          aria-label={`Edit ${account.name}`}
+          style={{ ...shape, width: '100%', textAlign: 'left', borderBottom: rule, color: 'inherit' }}>
+          {children}
+        </button>
+      </SwipeRow>
     );
   }
   return <Panel account={account} last={last} onDone={() => setOpen(false)} />;

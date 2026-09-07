@@ -8,8 +8,10 @@ import TabBar from '../TabBar';
 import { TAB_BAR_SPACE } from '../tabs';
 import NewSchedule from './NewSchedule';
 import DueRow, { StopSchedule } from './DueRow';
+import { archiveSchedule } from './actions';
 import Screen from '../Screen';
 import SwipeBack from '../SwipeBack';
+import Swipeable from '../Swipeable';
 
 export const metadata = { title: 'Scheduled · Saree al-Hisab' };
 export const dynamic = 'force-dynamic';
@@ -68,7 +70,7 @@ export default async function Schedules() {
             <>
               <Head>Due now</Head>
               <section className="el card" style={{
-                margin: '0 var(--gutter) 22px', background: 'var(--c-card)', borderRadius: 18, padding: '0 var(--gutter)',
+                margin: '0 var(--gutter) 22px', background: 'var(--c-card)', borderRadius: 18, padding: '0 var(--pad)', overflow: 'hidden',
               }}>
                 {dues.map((d) => {
                   const s = byId.get(d.scheduleId)!;
@@ -87,10 +89,14 @@ export default async function Schedules() {
             <>
               <Head>Every schedule</Head>
               <section className="el card" style={{
-                margin: '0 var(--gutter) 22px', background: 'var(--c-card)', borderRadius: 18, padding: '0 var(--pad)',
+                margin: '0 var(--gutter) 22px', background: 'var(--c-card)', borderRadius: 18, padding: '0 var(--pad)', overflow: 'hidden',
               }}>
                 {schedules.map((s, i) => (
-                  <div key={s.id} style={{
+                  <Swipeable key={s.id} commit={false} actions={canWrite ? [
+                    { label: 'Stop', icon: 'stop', tone: 'danger', act: archiveSchedule,
+                      fields: { scheduleId: s.id }, done: `${s.name} stopped.` },
+                  ] : []}>
+                  <div style={{
                     display: 'flex', alignItems: 'center', gap: 12, minHeight: 74,
                     borderBottom: i === schedules.length - 1 ? undefined : '1px solid var(--c-rule)',
                   }}>
@@ -106,6 +112,7 @@ export default async function Schedules() {
                     }}>{s.kind === 'income' ? '+' : ''}{format(Number(s.amount ?? 0))}</span>
                     {canWrite && <StopSchedule scheduleId={s.id} name={s.name} />}
                   </div>
+                  </Swipeable>
                 ))}
               </section>
             </>

@@ -1,7 +1,8 @@
 'use client';
 
-import { useActionState, useState } from 'react';
+import { useActionState, useState, useTransition } from 'react';
 import { Icon } from '../Icon';
+import SwipeRow from '../SwipeRow';
 import { recordDue, skipDue, archiveSchedule } from './actions';
 import { format } from '@/lib/money';
 
@@ -15,14 +16,28 @@ export default function DueRow({
   const [recState, record, recording] = useActionState(recordDue, null);
   const [, skip] = useActionState(skipDue, null);
   const [open, setOpen] = useState(false);
+  const [, start] = useTransition();
   const overdue = daysAway < 0;
+
+  /* The row's two buttons, reachable by a swipe as well: a short one shows
+     both, all the way across opens the amount to record it. */
+  const skipNow = () => start(() => {
+    const fd = new FormData();
+    fd.append('scheduleId', scheduleId); fd.append('dueOn', dueOn);
+    skip(fd);
+  });
 
   return (
     <div style={{
       display: 'flex', flexDirection: 'column', gap: 10, padding: '14px 0',
       borderBottom: '1px solid var(--c-rule)',
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+      <SwipeRow actions={open ? [] : [
+        { label: 'Skip', icon: <Icon name="skip" size={20} strokeWidth={2} />, act: skipNow },
+        { label: income ? 'Came in' : 'Record', tone: 'primary',
+          icon: <Icon name="check" size={20} strokeWidth={2} />, act: () => setOpen(true) },
+      ]}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, minHeight: 44 }}>
         <span style={{
           width: 40, height: 40, flex: 'none', borderRadius: 11, display: 'flex',
           alignItems: 'center', justifyContent: 'center',
@@ -44,6 +59,7 @@ export default function DueRow({
           {income ? '+' : ''}{format(amount)}
         </span>
       </div>
+      </SwipeRow>
 
       {!open ? (
         <div style={{ display: 'flex', gap: 8 }}>

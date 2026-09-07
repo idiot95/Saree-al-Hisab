@@ -10,6 +10,7 @@ import NewTab from '../tab/NewTab';
 import { Chip } from '../Icon';
 import Screen from '../Screen';
 import SwipeBack from '../SwipeBack';
+import Swipeable from '../Swipeable';
 
 export const metadata = { title: 'People · Saree al-Hisab' };
 export const dynamic = 'force-dynamic';
@@ -118,12 +119,15 @@ export default async function People() {
               </p>
               {tabs.length > 0 && (
                 <section className="el card" style={{
-                  margin: '0 var(--gutter) 16px', background: 'var(--c-card)', borderRadius: 18, padding: '0 var(--gutter)',
+                  margin: '0 var(--gutter) 16px', background: 'var(--c-card)', borderRadius: 18, padding: '0 var(--pad)', overflow: 'hidden',
                 }}>
                   {tabs.map((b, i) => {
                     const t = Number(b.outstanding);
                     return (
-                      <Link key={b.id} href={`/tab/${b.id}`} transitionTypes={['nav-forward']} style={{
+                      <Swipeable key={b.id} actions={canWrite && !b.closed_at ? [
+                        { label: 'Add cost', icon: 'plus', tone: 'primary', href: `/add?tab=${b.id}` },
+                      ] : []}>
+                      <Link href={`/tab/${b.id}`} transitionTypes={['nav-forward']} draggable={false} style={{
                         display: 'flex', alignItems: 'center', gap: 12, minHeight: 72,
                         textDecoration: 'none', color: 'var(--c-ink)',
                         opacity: b.closed_at ? 0.55 : 1,
@@ -142,6 +146,7 @@ export default async function People() {
                           {t === 0 ? (b.entries > 0 ? 'settled' : '—') : format(t)}
                         </span>
                       </Link>
+                      </Swipeable>
                     );
                   })}
                 </section>

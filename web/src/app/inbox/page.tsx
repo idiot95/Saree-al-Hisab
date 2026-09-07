@@ -10,6 +10,7 @@ import DuplicateCard from './DuplicateCard';
 import DueRow from '../schedules/DueRow';
 import Screen from '../Screen';
 import SwipeBack from '../SwipeBack';
+import Swipeable from '../Swipeable';
 
 export const metadata = { title: 'Inbox · Saree al-Hisab' };
 export const dynamic = 'force-dynamic';
@@ -80,7 +81,7 @@ export default async function Inbox() {
               <>
                 <Head>Due now</Head>
                 <section className="el card" style={{
-                  margin: '0 var(--gutter) 22px', background: 'var(--c-card)', borderRadius: 18, padding: '0 var(--gutter)',
+                  margin: '0 var(--gutter) 22px', background: 'var(--c-card)', borderRadius: 18, padding: '0 var(--pad)', overflow: 'hidden',
                 }}>
                   {dues.map((d) => {
                     const s = byId.get(d.scheduleId)!;
@@ -99,12 +100,16 @@ export default async function Inbox() {
               <>
                 <Head>Card bills</Head>
                 <section className="el card" style={{
-                  margin: '0 var(--gutter) 22px', background: 'var(--c-card)', borderRadius: 18, padding: '0 var(--pad)',
+                  margin: '0 var(--gutter) 22px', background: 'var(--c-card)', borderRadius: 18, padding: '0 var(--pad)', overflow: 'hidden',
                 }}>
                   {bills.map((b, i) => {
                     const soon = b.days_away <= 5;
                     return (
-                      <div key={b.account_id} style={{
+                      <Swipeable key={b.account_id} actions={canWrite ? [
+                        { label: 'Pay', icon: 'move', tone: 'primary',
+                          href: `/add?kind=transfer&to=${b.account_id}&amount=${Number(b.charged)}` },
+                      ] : []}>
+                      <div style={{
                         display: 'flex', alignItems: 'center', gap: 12, minHeight: 78,
                         borderBottom: i === bills.length - 1 ? undefined : '1px solid var(--c-rule)',
                       }}>
@@ -134,6 +139,7 @@ export default async function Inbox() {
                         </span>
                         <span className="t amt" style={{ fontSize: 'var(--step-1)' }}>{format(Number(b.charged))}</span>
                       </div>
+                      </Swipeable>
                     );
                   })}
                 </section>

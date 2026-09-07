@@ -44,8 +44,10 @@ export default function AddEntry({
   householdId: string;
   draft?: {
     amountMinor: number | null; occurredOn: string | null; merchant: string | null;
-    kind: 'expense' | 'income' | null; categoryId: string | null; tabId?: string | null;
+    kind: Kind | null; categoryId: string | null; tabId?: string | null;
     tabCoveredMinor?: number | null; countsAsSpend?: boolean | null;
+    /** A transfer arriving with its ends already known — a card bill, an account. */
+    toAccountId?: string | null; fromAccountId?: string | null;
   };
   /* On the offline screen nothing is sent from here at all: every save goes
      to the phone's queue, and the layout sends the queue when signal is back. */
@@ -84,8 +86,9 @@ export default function AddEntry({
      never on the offline screen — they are amounts, and the phone keeps only
      names — so a settlement waits for signal. */
   const [settleIds, setSettleIds] = useState<Set<string>>(() => new Set());
-  const [methodId, setMethodId] = useState(methods[0]?.id ?? '');
-  const [counterId, setCounterId] = useState<string | null>(null);
+  const [methodId, setMethodId] = useState(
+    methods.find((m) => m.funds_id === draft?.fromAccountId)?.id ?? methods[0]?.id ?? '');
+  const [counterId, setCounterId] = useState<string | null>(draft?.toAccountId ?? null);
   const [shared, setShared] = useState(true);
   const [occurredOn, setOccurredOn] = useState(draft?.occurredOn ?? today);
   const [merchant, setMerchant] = useState(draft?.merchant ?? '');
