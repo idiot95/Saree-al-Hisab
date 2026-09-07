@@ -9,7 +9,7 @@ import { TAB_BAR_SPACE } from '../tabs';
 import Screen from '../Screen';
 import SwipeBack from '../SwipeBack';
 
-export const metadata = { title: 'Net worth · Quiet Ledger' };
+export const metadata = { title: 'Net worth · Saree al-Hisab' };
 export const dynamic = 'force-dynamic';
 
 const GROUP = {

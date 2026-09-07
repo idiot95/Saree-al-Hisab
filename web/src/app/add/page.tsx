@@ -3,7 +3,7 @@ import AddEntry from './AddEntry';
 import { actorOrNull, categoriesFor, methodsFor, accountsFor, tabsForEntry } from '@/db/queries';
 import Screen from '../Screen';
 
-export const metadata = { title: 'New entry · Quiet Ledger' };
+export const metadata = { title: 'New entry · Saree al-Hisab' };
 export const dynamic = 'force-dynamic';
 
 export default async function Page({ searchParams }: {

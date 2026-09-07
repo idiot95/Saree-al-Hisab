@@ -6,7 +6,7 @@ import { AuthShell, DeadEnd, ErrorNote, maskEmail, primaryBtn, quietBtn } from '
 import { acceptInvitation } from '../actions';
 import JoinForm from './JoinForm';
 
-export const metadata = { title: 'Join a household · Quiet Ledger' };
+export const metadata = { title: 'Join a household · Saree al-Hisab' };
 export const dynamic = 'force-dynamic';
 
 /* Be honest about what this link is. With a password login there is no outside

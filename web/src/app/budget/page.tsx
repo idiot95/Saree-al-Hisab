@@ -10,7 +10,7 @@ import CopyPrevious from './CopyPrevious';
 import Screen from '../Screen';
 import SwipeBack from '../SwipeBack';
 
-export const metadata = { title: 'Budget · Quiet Ledger' };
+export const metadata = { title: 'Budget · Saree al-Hisab' };
 export const dynamic = 'force-dynamic';
 
 const MONTH = /^\d{4}-\d{2}-01$/;

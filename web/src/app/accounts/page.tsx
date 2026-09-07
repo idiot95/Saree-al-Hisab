@@ -15,7 +15,7 @@ import { MethodControls } from './Retire';
 import Screen from '../Screen';
 import SwipeBack from '../SwipeBack';
 
-export const metadata = { title: 'Accounts · Quiet Ledger' };
+export const metadata = { title: 'Accounts · Saree al-Hisab' };
 export const dynamic = 'force-dynamic';
 
 const KIND_LABEL = {

@@ -3,7 +3,7 @@ import { actorOrNull } from '@/db/queries';
 import { AuthShell, quietBtn } from '../auth-ui';
 import SignUpForm from './SignUpForm';
 
-export const metadata = { title: 'Start your books · Quiet Ledger' };
+export const metadata = { title: 'Start your books · Saree al-Hisab' };
 export const dynamic = 'force-dynamic';
 
 /* Open to anyone, and safely so: signing up gets you your own empty household

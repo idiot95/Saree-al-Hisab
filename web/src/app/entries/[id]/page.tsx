@@ -8,7 +8,7 @@ import EditEntry from './EditEntry';
 import OwedFor from './OwedFor';
 import Screen from '../../Screen';
 
-export const metadata = { title: 'Entry · Quiet Ledger' };
+export const metadata = { title: 'Entry · Saree al-Hisab' };
 export const dynamic = 'force-dynamic';
 
 const KIND = {

@@ -2,7 +2,7 @@ import { resetByToken } from '@/db/queries';
 import { AuthShell, DeadEnd } from '../../auth-ui';
 import ResetForm from './ResetForm';
 
-export const metadata = { title: 'Set a new password · Quiet Ledger' };
+export const metadata = { title: 'Set a new password · Saree al-Hisab' };
 export const dynamic = 'force-dynamic';
 
 export default async function Reset({ params }: { params: Promise<{ token: string }> }) {

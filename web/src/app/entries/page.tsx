@@ -9,7 +9,7 @@ import Screen from '../Screen';
 import SwipeBack from '../SwipeBack';
 import EntryList, { type Row } from './EntryList';
 
-export const metadata = { title: 'Entries · Quiet Ledger' };
+export const metadata = { title: 'Entries · Saree al-Hisab' };
 export const dynamic = 'force-dynamic';
 
 const MONTH = /^\d{4}-\d{2}-01$/;

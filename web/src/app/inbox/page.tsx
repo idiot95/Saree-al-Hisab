@@ -11,7 +11,7 @@ import DueRow from '../schedules/DueRow';
 import Screen from '../Screen';
 import SwipeBack from '../SwipeBack';
 
-export const metadata = { title: 'Inbox · Quiet Ledger' };
+export const metadata = { title: 'Inbox · Saree al-Hisab' };
 export const dynamic = 'force-dynamic';
 
 /* Things that want a decision, and nothing that does not. An inbox which

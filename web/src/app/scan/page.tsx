@@ -6,7 +6,7 @@ import ScanForm from './ScanForm';
 import Screen from '../Screen';
 import SwipeBack from '../SwipeBack';
 
-export const metadata = { title: 'Scan a receipt · Quiet Ledger' };
+export const metadata = { title: 'Scan a receipt · Saree al-Hisab' };
 export const dynamic = 'force-dynamic';
 
 export default async function Scan() {

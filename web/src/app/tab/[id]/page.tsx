@@ -8,7 +8,7 @@ import TabPeople from './TabPeople';
 import Screen from '../../Screen';
 import SwipeBack from '../../SwipeBack';
 
-export const metadata = { title: 'Tab · Quiet Ledger' };
+export const metadata = { title: 'Tab · Saree al-Hisab' };
 export const dynamic = 'force-dynamic';
 
 /* A tab's screen answers one question — where do we stand on this — and then

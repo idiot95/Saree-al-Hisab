@@ -11,7 +11,7 @@ import { Chip } from '../Icon';
 import Screen from '../Screen';
 import SwipeBack from '../SwipeBack';
 
-export const metadata = { title: 'People · Quiet Ledger' };
+export const metadata = { title: 'People · Saree al-Hisab' };
 export const dynamic = 'force-dynamic';
 
 const TINT: Record<string, [string, string]> = {

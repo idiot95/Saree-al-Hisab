@@ -2,8 +2,8 @@ import type { MetadataRoute } from 'next';
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'Quiet Ledger',
-    short_name: 'Ledger',
+    name: 'Saree al-Hisab',
+    short_name: 'Hisab',
     description: 'One set of books for your household. Budget a month, and everything reports against it.',
     start_url: '/',
     scope: '/',

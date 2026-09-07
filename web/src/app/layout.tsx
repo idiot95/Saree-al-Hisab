@@ -31,9 +31,12 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: 'Quiet Ledger',
+  title: 'Saree al-Hisab',
   description: 'One set of books for your household.',
-  appleWebApp: { capable: true, title: 'Ledger', statusBarStyle: 'default' },
+  /* The home-screen name, which iOS truncates at about a dozen characters.
+     "Saree al-Hisab" is the app; "Hisab" is what fits under the icon and is
+     what anyone would say out loud anyway. */
+  appleWebApp: { capable: true, title: 'Hisab', statusBarStyle: 'default' },
   /* iOS ignores the manifest's icons for the home screen and uses this one,
      so it has to be declared separately or an installed app gets a screenshot
      of the page as its icon. */

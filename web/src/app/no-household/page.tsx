@@ -4,7 +4,7 @@ import { actorOrNull } from '@/db/queries';
 import StartOwn from './StartOwn';
 import Screen from '../Screen';
 
-export const metadata = { title: 'No household · Quiet Ledger' };
+export const metadata = { title: 'No household · Saree al-Hisab' };
 export const dynamic = 'force-dynamic';
 
 /* Signed in and in nobody's books — almost always because they were removed.

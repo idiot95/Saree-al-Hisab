@@ -11,7 +11,7 @@ import DueRow, { StopSchedule } from './DueRow';
 import Screen from '../Screen';
 import SwipeBack from '../SwipeBack';
 
-export const metadata = { title: 'Scheduled · Quiet Ledger' };
+export const metadata = { title: 'Scheduled · Saree al-Hisab' };
 export const dynamic = 'force-dynamic';
 
 export default async function Schedules() {

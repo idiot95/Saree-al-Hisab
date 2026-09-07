@@ -4,7 +4,7 @@ import { AuthShell, quietBtn } from '../auth-ui';
 import SignInForm from './SignInForm';
 import ForgetDevice from './ForgetDevice';
 
-export const metadata = { title: 'Sign in · Quiet Ledger' };
+export const metadata = { title: 'Sign in · Saree al-Hisab' };
 export const dynamic = 'force-dynamic';
 
 export default async function SignIn() {

@@ -7,7 +7,7 @@ import { headerBg } from '../auth-ui';
 import Screen from '../Screen';
 import SwipeBack from '../SwipeBack';
 
-export const metadata = { title: 'How it works · Quiet Ledger' };
+export const metadata = { title: 'How it works · Saree al-Hisab' };
 export const dynamic = 'force-dynamic';
 
 /* The short version of how the app is meant to be used. Reachable from the

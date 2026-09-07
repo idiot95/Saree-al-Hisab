@@ -10,7 +10,7 @@ import Claims from './Claims';
 import Screen from '../../Screen';
 import SwipeBack from '../../SwipeBack';
 
-export const metadata = { title: 'Person · Quiet Ledger' };
+export const metadata = { title: 'Person · Saree al-Hisab' };
 export const dynamic = 'force-dynamic';
 
 const WORD = {

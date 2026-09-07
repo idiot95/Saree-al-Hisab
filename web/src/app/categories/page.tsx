@@ -6,7 +6,7 @@ import CategoryEditor from './CategoryEditor';
 import Screen from '../Screen';
 import SwipeBack from '../SwipeBack';
 
-export const metadata = { title: 'Categories · Quiet Ledger' };
+export const metadata = { title: 'Categories · Saree al-Hisab' };
 export const dynamic = 'force-dynamic';
 
 export default async function Categories() {

@@ -18,7 +18,7 @@ import BooksSwitcher from './BooksSwitcher';
 import Screen from '../Screen';
 import SwipeBack from '../SwipeBack';
 
-export const metadata = { title: 'Household · Quiet Ledger' };
+export const metadata = { title: 'Household · Saree al-Hisab' };
 export const dynamic = 'force-dynamic';
 
 const LABEL = { owner: 'Owner', adult: 'Contributing member', viewer: 'Viewer' } as const;

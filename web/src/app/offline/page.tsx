@@ -1,7 +1,7 @@
 import Screen from '../Screen';
 import OfflineScreen from './OfflineScreen';
 
-export const metadata = { title: 'No connection · Quiet Ledger' };
+export const metadata = { title: 'No connection · Saree al-Hisab' };
 /* Dynamic, though it reads nothing: every script on a page carries the
    request's CSP nonce, and a prerendered page would ship with none. The
    service worker fetches this once at install and keeps the copy — headers

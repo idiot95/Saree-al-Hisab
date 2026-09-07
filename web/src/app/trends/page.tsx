@@ -10,7 +10,7 @@ import { MonthBars, CategoryDonut } from './charts';
 import Screen from '../Screen';
 import SwipeBack from '../SwipeBack';
 
-export const metadata = { title: 'Trends · Quiet Ledger' };
+export const metadata = { title: 'Trends · Saree al-Hisab' };
 export const dynamic = 'force-dynamic';
 
 export default async function Trends() {
