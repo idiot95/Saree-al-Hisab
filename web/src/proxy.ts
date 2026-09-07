@@ -24,7 +24,7 @@ import { auth } from '@/auth';
    an unauthenticated request there to /signin would break signing in, which is
    the one thing it exists to do. The rest are the doors someone has to be able
    to open before they have a session at all. */
-const NO_REDIRECT = /^\/(api|signin|signup|join|reset)(\/|$)/;
+const NO_REDIRECT = /^\/(api|signin|signup|join|reset|offline)(\/|$)/;
 
 function policy(nonce: string, dev: boolean) {
   return [
@@ -72,7 +72,10 @@ export default async function proxy(req: NextRequest) {
 
 export const config = {
   matcher: [
-    // Everything except static assets, which need no policy and no session.
-    '/((?!_next/static|_next/image|icons|favicon.ico).*)',
+    /* Everything except static assets, which need no policy and no session.
+       The manifest and the icons MUST be in this list: a browser fetches them
+       while deciding whether the app can be installed, and an HTML redirect
+       where JSON was expected means it simply cannot be. */
+    '/((?!_next/static|_next/image|icons|manifest.webmanifest|favicon.ico|sw.js).*)',
   ],
 };

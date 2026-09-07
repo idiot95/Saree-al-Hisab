@@ -11,7 +11,8 @@
     "tokens": "node scripts/gen-tokens.mjs",
     "test:invariants": "node scripts/invariants.test.mjs",
     "seed": "node scripts/seed.mjs",
-    "test:lib": "node scripts/lib.test.mjs"
+    "test:lib": "node scripts/lib.test.mjs",
+    "icons": "node scripts/make-icons.mjs"
   },
   "dependencies": {
     "drizzle-orm": "^0.45.2",
