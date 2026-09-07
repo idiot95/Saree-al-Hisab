@@ -59,6 +59,16 @@ const SECTIONS = [
     ],
   },
   {
+    title: 'What it all adds up to',
+    href: '/worth', link: 'Open net worth',
+    lines: [
+      'Everything you hold, less everything you owe, in one figure.',
+      'Money you have lent counts as yours, because it is — and money you owe someone counts against you.',
+      'Savings are called out separately: they sit outside the monthly budget, so moving money there is not spending it.',
+      'The line shows what was held in accounts month by month.',
+    ],
+  },
+  {
     title: 'Things that come round every month',
     href: '/schedules', link: 'Open scheduled',
     lines: [
@@ -145,7 +155,7 @@ export default async function Guide() {
           How it works
         </h1>
         <p style={{ margin: 0, fontSize: 14, lineHeight: 1.5, color: 'rgba(255,255,255,.82)' }}>
-          Eleven things worth knowing. Four minutes.
+          Twelve things worth knowing. Four minutes.
         </p>
       </header>
 

@@ -701,3 +701,61 @@ export async function schedulesFor(householdId: string) {
     order by s.name
   ` as Promise<ScheduleRow[]>;
 }
+
+/* ── what the household is actually worth ───────────────────────────────── */
+
+export type WorthRow = {
+  id: string; name: string; kind: string; last4: string | null; balance: string;
+};
+
+/** Every account with its balance, people included. A person's account IS the
+ *  khata, so someone owing you is an asset and you owing them is a liability,
+ *  computed the same way as everything else rather than tallied separately. */
+export async function allBalances(householdId: string) {
+  return sql`
+    select b.id, b.name, b.kind, b.last4, b.balance::text
+    from account_balance b
+    where b.household_id = ${householdId} and b.archived_at is null
+    order by case b.kind when 'spending' then 0 when 'cash' then 1 when 'savings' then 2
+                         when 'person' then 3 else 4 end, b.name
+  ` as Promise<WorthRow[]>;
+}
+
+/* What was held in accounts at the end of each of the last N months.
+ *
+ * Deliberately accounts only. An outstanding claim is money owed to you today
+ * and is in the headline figure, but reconstructing what was claimed and
+ * unsettled on a date months ago would need a history this app does not keep —
+ * so the series says "held in accounts" and means it, rather than implying a
+ * precision it cannot support. */
+export async function worthSeries(householdId: string, months = 6) {
+  return sql`
+    with span as (
+      select generate_series(
+        date_trunc('month', current_date) - make_interval(months => ${months - 1}),
+        date_trunc('month', current_date),
+        interval '1 month')::date as month
+    )
+    select to_char(s.month, 'YYYY-MM-DD') as month,
+           (
+             coalesce((select sum(a.opening_balance) from account a
+                       where a.household_id = ${householdId} and a.archived_at is null), 0)
+             + coalesce((
+                 select sum(case
+                   when t.account_id = a.id
+                        and t.kind in ('expense','transfer','card_payment') then -t.amount
+                   when t.account_id = a.id
+                        and t.kind in ('income','claim_receipt','refund')   then  t.amount
+                   when t.counter_account_id = a.id                          then  t.amount
+                   else 0 end)
+                 from txn t
+                 join account a on a.id = t.account_id or a.id = t.counter_account_id
+                 where t.household_id = ${householdId}
+                   and t.deleted_at is null
+                   and a.archived_at is null
+                   and t.occurred_on < (s.month + interval '1 month')), 0)
+           )::text as held
+    from span s
+    order by s.month
+  ` as Promise<{ month: string; held: string }[]>;
+}

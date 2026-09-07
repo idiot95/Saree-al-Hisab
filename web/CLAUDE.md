@@ -465,6 +465,20 @@ dues before the schedule existed are history the app was not present for, not
 failures. And "next" respects what has already been settled, or paying today's
 rent leaves the screen still offering today.
 
+## Net worth
+
+`/worth` is everything held less everything owed, in one figure. Money lent to
+someone counts as yours because it is — a person's account is in the sum like
+any other — and money you owe them counts against you. Savings are called out
+separately, because they sit outside the monthly budget and "can I check my
+savings" is a different question from "how am I doing this month".
+
+The line is labelled **"held in accounts"** rather than net worth, and that is
+deliberate. An outstanding claim is money owed to you today and is in the
+headline, but what was claimed and unsettled on a date months ago is not
+something this app keeps. Drawing it into the line would imply a precision that
+is not there.
+
 ## The UX laws, and where each one shows up
 
 - **Jakob** — a bottom tab bar, because every finance app people already use has

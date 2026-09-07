@@ -110,6 +110,26 @@ export default async function Home() {
           </Link>
         )}
 
+        <Link href="/worth" className="el" style={{
+          minHeight: 58, borderRadius: 15, display: 'flex', alignItems: 'center', gap: 12,
+          padding: '0 16px', textDecoration: 'none', background: 'var(--c-card)',
+          border: '1px solid var(--c-border)', color: 'var(--c-ink)',
+        }}>
+          <span style={{
+            width: 34, height: 34, flex: 'none', borderRadius: 999, display: 'flex',
+            alignItems: 'center', justifyContent: 'center',
+            background: 'var(--c-sunk)', color: 'var(--c-meta)',
+          }}>
+            <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M12 3.5 20 8v8l-8 4.5L4 16V8z" /><path d="M4 8l8 4.5L20 8M12 12.5v8" />
+            </svg>
+          </span>
+          <span style={{ flex: 1, fontSize: 15, fontWeight: 600 }}>Net worth</span>
+          <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="var(--c-off)"
+            strokeWidth={2} strokeLinecap="round" aria-hidden><path d="M9 5l7 7-7 7" /></svg>
+        </Link>
+
         <Link href="/schedules" className="el" style={{
           minHeight: 58, borderRadius: 15, display: 'flex', alignItems: 'center', gap: 12,
           padding: '0 16px', textDecoration: 'none', background: 'var(--c-card)',
