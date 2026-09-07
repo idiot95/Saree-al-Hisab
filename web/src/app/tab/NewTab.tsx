@@ -4,7 +4,6 @@ import { useActionState, useState } from 'react';
 import { Field, ErrorNote } from '../auth-ui';
 import { Icon } from '../Icon';
 import { createTab } from './actions';
-import { SPLITS } from './splits';
 
 type Person = { id: string; name: string; tint: string };
 
@@ -40,11 +39,11 @@ export default function NewTab({ people }: { people: Person[] }) {
       display: 'flex', flexDirection: 'column', gap: 13,
     }}>
       <Field label="Name" name="name" required maxLength={60}
-        placeholder="The Pune flat" autoFocus />
+        placeholder="Office expenses" autoFocus />
 
       <fieldset style={{ border: 0, padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
         <legend style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)', padding: 0, marginBottom: 8 }}>
-          Who is on it
+          Who owes it back
         </legend>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
           {people.map((p) => {
@@ -71,29 +70,9 @@ export default function NewTab({ people }: { people: Person[] }) {
         </div>
         <p style={{ margin: 0, fontSize: 'var(--step--2)', lineHeight: 1.45, color: 'var(--c-meta)' }}>
           {ticked.size === 0
-            ? 'Tick the people who share this. You can add more later.'
-            : `${ticked.size} ${ticked.size === 1 ? 'person' : 'people'}, and the household.`}
+            ? 'Tick who this tab is for. You can add more later.'
+            : `A cost on this tab is owed back by ${ticked.size === 1 ? 'them' : `these ${ticked.size}, in equal shares`}.`}
         </p>
-      </fieldset>
-
-      <fieldset style={{ border: 0, padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
-        <legend style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)', padding: 0, marginBottom: 8 }}>
-          How a cost on it is shared
-        </legend>
-        {SPLITS.map((k, i) => (
-          <label key={k.id} style={{
-            display: 'flex', alignItems: 'flex-start', gap: 11, minHeight: 44, padding: '11px 13px',
-            borderRadius: 13, background: 'var(--c-sunk2)', border: '1px solid var(--c-border)',
-            cursor: 'pointer',
-          }}>
-            <input type="radio" name="split" value={k.id} defaultChecked={i === 0}
-              style={{ width: 18, height: 18, marginTop: 1, accentColor: 'var(--c-seagrass)', flex: 'none' }} />
-            <span style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-              <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>{k.label}</span>
-              <span style={{ fontSize: 'var(--step--1)', lineHeight: 1.45, color: 'var(--c-meta)' }}>{k.what}</span>
-            </span>
-          </label>
-        ))}
       </fieldset>
 
       <Field label="Note (optional)" name="note" maxLength={200} />

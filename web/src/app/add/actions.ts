@@ -1,9 +1,10 @@
 'use server';
 
+import { randomUUID } from 'node:crypto';
 import { revalidatePath } from 'next/cache';
 import { sql } from '@/db/client';
 import { currentActor, possibleDuplicate } from '@/db/queries';
-import { shares, type Split } from '../tab/splits';
+import { breakdown } from '../tab/splits';
 
 /* A Server Action is reachable by direct POST, not only through the UI, so
    every value the client sends is treated as untrusted: the household and the
@@ -20,9 +21,13 @@ export type Draft = {
   merchant: string;
   occurredOn: string;
   isShared: boolean;
-  /** The tab this expense goes on, if any. Its people are each given a claim
-      for their share the moment the entry is saved. */
+  /** The tab this cost is put on, if any: the people on it are lent their
+      share of it the moment the entry is saved. */
   tabId?: string | null;
+  /** How much of the amount is being laid out for them. Absent means all of
+      it, which is the ordinary case; less than the amount leaves the rest as
+      genuinely yours, categorised and counted. */
+  tabCoveredMinor?: number | null;
   /* Only on an entry that waited on the phone for signal. The reference makes
      a second delivery of the same entry harmless; the household id lets the
      server refuse an entry typed under one sign-in and sent under another. */
@@ -96,24 +101,35 @@ export async function saveEntry(d: Draft): Promise<SaveResult> {
     categoryId = cat.id;
   }
 
-  /* An expense on a tab is split among the people on it as it is saved, so
-     the tab is checked the way everything else is: this household's, still
-     open, and with someone on it — a cost split among nobody is not a split. */
-  let tab: { id: string; split: Split; members: string[] } | null = null;
+  /* A cost put on a tab is laid out for the people on it: their shares become
+     loans into their own accounts, so it is never your spending and never
+     reaches your budget. The tab is checked the way everything else is —
+     this household's, still open, and with someone on it, because money laid
+     out for nobody is not laid out. */
+  let tab: { id: string; members: { id: string; account_id: string }[] } | null = null;
+  let covered = 0;
   if (d.tabId) {
-    if (d.kind !== 'expense') return { ok: false, error: 'Only an expense can go on a tab.' };
+    if (d.kind !== 'expense') return { ok: false, error: 'Only a cost can be put on a tab.' };
     if (!UUID.test(d.tabId)) return { ok: false, error: 'That tab could not be read.' };
     const [b] = await sql`
-      select id, split, closed_at from ledger_book
+      select id, closed_at from ledger_book
       where id = ${d.tabId} and household_id = ${household_id}`;
     if (!b) return { ok: false, error: 'That tab is not one of yours.' };
     if (b.closed_at) return { ok: false, error: 'That tab is closed. Reopen it under Lending first.' };
     const members = await sql`
-      select bm.counterparty_id from book_member bm
+      select cp.id, cp.account_id from book_member bm
       join counterparty cp on cp.id = bm.counterparty_id and cp.archived_at is null
-      where bm.book_id = ${b.id} order by bm.counterparty_id`;
+      where bm.book_id = ${b.id} order by cp.id`;
     if (members.length === 0) return { ok: false, error: 'Nobody is on that tab yet.' };
-    tab = { id: b.id, split: b.split, members: members.map((m) => m.counterparty_id) };
+
+    covered = d.tabCoveredMinor ?? d.amountMinor;
+    if (!Number.isSafeInteger(covered) || covered <= 0) {
+      return { ok: false, error: 'Enter how much of it comes back.' };
+    }
+    if (covered > d.amountMinor) {
+      return { ok: false, error: 'That is more than the amount itself.' };
+    }
+    tab = { id: b.id, members: members.map((m) => ({ id: m.id, account_id: m.account_id })) };
   }
 
   let counter: string | null = null;
@@ -131,37 +147,73 @@ export async function saveEntry(d: Draft): Promise<SaveResult> {
 
   try {
     const row = await sql.begin(async (tx) => {
-      const [row] = await tx`insert into txn ${sql({
+      const common = {
         household_id,
         created_by: user_id,
-        kind: d.kind,
-        amount: d.amountMinor,
         currency: 'INR',
         occurred_on: d.occurredOn,
-        account_id: method.funding_account_id,
-        counter_account_id: counter,
-        category_id: categoryId,
         payment_method_id: method.id,
         merchant: String(d.merchant ?? '').trim() || null,
         is_shared: d.isShared,
-        source: 'manual',
-        client_ref: clientRef,
+        source: 'manual' as const,
         book_id: tab?.id ?? null,
-      })} on conflict (household_id, client_ref) where client_ref is not null do nothing
-         returning id`;
-      /* The entry and its shares land together or not at all: an expense on a
-         tab with nobody down as owing for it would be a split that never
-         happened. A share of zero paise is nothing owed and is not written. */
-      if (row && tab) {
-        const each = shares(d.amountMinor, tab.split, tab.members.length);
-        for (let i = 0; i < tab.members.length; i++) {
-          if (each[i] <= 0) continue;
-          await tx`
-            insert into claim (household_id, counterparty_id, txn_id, kind, expected_amount)
-            values (${household_id}, ${tab.members[i]}, ${row.id}, 'reimbursement', ${each[i]})`;
-        }
+      };
+      /* Nothing on a tab, and it is the one entry it looks like. */
+      if (!tab) {
+        const [only] = await tx`insert into txn ${sql({
+          ...common,
+          kind: d.kind,
+          amount: d.amountMinor,
+          account_id: method.funding_account_id,
+          counter_account_id: counter,
+          category_id: categoryId,
+          client_ref: clientRef,
+        })} on conflict (household_id, client_ref) where client_ref is not null do nothing
+           returning id`;
+        return only;
       }
-      return row;
+
+      /* On a tab, one payment becomes several rows: what you bore, if any,
+         and one loan per person for their share of what comes back. They
+         carry the same group_ref, because they are one thing that happened
+         and the ledger should say so. The first row written carries the
+         offline reference, so a second delivery finds it and stops — the
+         whole group landed with it or none of it did. */
+      const { shares: each, mine } = breakdown(d.amountMinor, covered, tab.members.length);
+      const groupRef = randomUUID();
+      let first: { id: string } | undefined;
+      if (mine > 0) {
+        const [ours] = await tx`insert into txn ${sql({
+          ...common,
+          kind: 'expense',
+          amount: mine,
+          account_id: method.funding_account_id,
+          category_id: categoryId,
+          group_ref: groupRef,
+          client_ref: clientRef,
+        })} on conflict (household_id, client_ref) where client_ref is not null do nothing
+           returning id`;
+        if (!ours) return undefined;
+        first = { id: ours.id as string };
+      }
+
+      for (let i = 0; i < tab.members.length; i++) {
+        if (each[i] <= 0) continue;
+        const [lent] = await tx`insert into txn ${sql({
+          ...common,
+          kind: 'transfer',
+          amount: each[i],
+          account_id: method.funding_account_id,
+          counter_account_id: tab.members[i].account_id,
+          category_id: categoryId,
+          group_ref: groupRef,
+          client_ref: first ? null : clientRef,
+        })} on conflict (household_id, client_ref) where client_ref is not null do nothing
+           returning id`;
+        if (!lent && !first) return undefined;
+        if (lent) first ??= { id: lent.id as string };
+      }
+      return first;
     });
     if (tab) { revalidatePath(`/tab/${tab.id}`); revalidatePath('/people'); revalidatePath('/worth'); }
     revalidatePath('/');

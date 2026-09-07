@@ -111,7 +111,14 @@ BEGIN
   NEW.card_cycle_id := NULL;
   SELECT statement_day, due_day INTO sday, dday
     FROM account WHERE id = NEW.account_id AND kind = 'credit';
-  IF sday IS NOT NULL AND NEW.kind IN ('expense','refund') THEN
+  /* A TRANSFER out of a credit account is a charge on that card too — money
+     laid out for someone else on the card, or a cash advance, is on the bill
+     exactly like a purchase. Only expenses were filed before, so a reimbursable
+     petrol bill put on the card raised the balance and never reached the
+     statement: the card said you owed it and the bill did not ask for it.
+     Money moving INTO a card is a card_payment, which is not a charge and is
+     excluded by kind. */
+  IF sday IS NOT NULL AND NEW.kind IN ('expense','refund','transfer') THEN
     SELECT period_start, period_end INTO ps, pe FROM cycle_bounds(sday, NEW.occurred_on);
     SELECT id INTO cyc FROM card_cycle WHERE account_id = NEW.account_id AND period_start = ps;
     IF cyc IS NULL THEN

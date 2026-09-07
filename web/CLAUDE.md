@@ -92,7 +92,7 @@ because they are idempotent, so a changed view ships without a new file.
 ## Proven, not assumed
 
 `npm run test:invariants` tries to BREAK each rule and expects Postgres to
-refuse. 106 assertions currently pass, covering: a move can never look like
+refuse. 108 assertions currently pass, covering: a move can never look like
 spending, `spend_txn` is the only definition of spending, refunds net off in
 the month they land, a card purchase files itself into the right cycle, a
 payment method is a rail and not a balance, lending never touches the budget,
@@ -102,8 +102,9 @@ plaintext is nowhere in the database, a password cannot exist without an
 address to use it with, and an account that has recorded entries cannot be
 deleted at all — the ledger holds it in place — and one person can keep
 several sets of books without either set knowing about the other, and a
-balance is only ever the sum of the entries beneath it, a cost on a tab splits
-into shares that add back up to the paisa and outlive the tab, a card due before its
+balance is only ever the sum of the entries beneath it, money laid out for
+someone on a tab is never counted as spending and its shares add back up to the
+paisa, a cost laid out on a credit card still reaches that card's bill, a card due before its
 statement day still takes a purchase and moving the days re-files the unpaid
 ones, and an entry delivered twice under one `client_ref` is one row.
 
@@ -374,7 +375,7 @@ the bank": computed from the same entries by the same view, rather than tallied
 separately and left to drift. Person accounts never appear in a picker
 (`real_account` excludes them) and no payment method may draw on one.
 
-Three operations, deliberately distinct, because conflating them is how a
+Four operations, deliberately distinct, because conflating them is how a
 household ends up thinking it overspent:
 
 1. **Lending** is a `transfer`. Money moved from your account into theirs. It
@@ -383,6 +384,9 @@ household ends up thinking it overspent:
    spending, so recovering it is not earning.
 3. **Writing it off** is an `expense` on the person's account, and it **does**
    count, in the month you forgive it. That is when the money is actually gone.
+4. **Paying for something on their behalf** is lending with a category on it —
+   the tab case below. Money out, never spending, category kept so you can see
+   what it was for.
 
 The third one required changing `spend_txn`: it excluded person accounts
 wholesale, which would have made forgiving a debt invisible. Lending is still
@@ -415,30 +419,59 @@ Proven end to end: a ₹2,000 dinner with ₹1,000 claimed, settled in two
 payments. Month spending stays ₹2,000 throughout, income never moves, and cash
 ends at −₹1,000 — what you actually bore.
 
-### Tabs split a cost the moment it is saved
+### Tabs are lending groups, not a bill splitter
 
-`/tab/[id]` is a **tab**: a few people who share costs — the flat, a trip,
-office lunches. It replaced "books", which were folders that only summed
-figures already there. A tab does work: pick it on Add Entry (`?tab=` from the
-tab's own screen preselects it) and `saveEntry` writes the expense with
-`book_id` and **one `claim` per person on the tab, in the same transaction** —
-the entry and its shares land together or not at all. Only an expense can go
-on a tab, only an open tab is offered, and a tab with nobody on it refuses.
+`/tab/[id]` is a **tab**: a few people you cover costs for — the flat, a trip,
+the office petrol, the medical bills an insurer reimburses. A cost put on it is
+**owed back in full**, divided equally among the people on it, and each share is
+written as a `transfer` into that person's account the moment it is saved. So it
+is never your spending, never in `spend_txn`, and never in the budget: you laid
+the money out, you did not spend it. It is in the khata and in net worth, because
+it is your money in someone else's pocket.
 
-Two splits, in `src/app/tab/splits.ts` and nowhere else: **equal** divides
-among the people and the household (n+1 shares, ours is not owed, the payer
-absorbs the odd paisa) and **full** divides the whole cost among the people,
-the first few carrying the odd paisa so the shares add back up exactly.
-Never a fraction, proven to the paisa.
+**The reimbursement source is just a counterparty.** "Office" and "Insurer" are
+people as far as the ledger is concerned, so petrol reimbursed by work is the
+same shape as money lent to a cousin: one tab, one counterparty, money out and
+money back. Nothing about it needed new machinery.
 
-The tab's screen adds up what each person still owes on it from `claim_state`
-and lets you **settle up** in place: one amount, blank meaning all of it,
-spread across that person's open shares on this tab **oldest first**, each
-receipt a `claim_receipt` in one transaction. So a part payment clears the
-oldest entries whole and leaves the newest partly owed, and month spending
-never moves. Taking someone off the tab leaves what they already owe standing;
-closing is filing, not settling; deleting takes only the tab (`txn.book_id`
-goes null, the shares stay). Eleven assertions cover it.
+**Part of a cost can be yours.** `tabCoveredMinor` says how much comes back;
+absent means all of it, which is the ordinary case. A ₹10,000 medical bill with
+₹8,000 covered writes ₹8,000 as a loan and ₹2,000 as a categorised expense that
+counts and is budgeted — and the budget is right at the moment of entry and
+never moves afterwards. That is the whole reason the split happens on the way
+in rather than being netted out on the way back: a month's spending that
+changes when somebody repays you is the retroactive drift the v1 audit was
+about.
+
+**One payment, several rows, one line.** The rows share a `group_ref`, and
+`entriesFor` groups on `coalesce(group_ref, id)` so the ledger shows the payment
+that happened rather than three loans nobody recognises. A grouped row opens its
+tab and is not swipeable — editing one loan of three would leave the payment
+adding up to nothing. `to_person` / `from_person` say which way the money went,
+so a repayment is never read back as a loan.
+
+**A transfer may carry a category, but only into a person.** "₹3,000 of petrol,
+on the office tab" is worth keeping, and a category can never make a transfer
+count as spending because `spend_txn` selects on kind. Held by the
+`txn_category_shape` trigger rather than a CHECK, because a CHECK cannot see
+another table. A category on a sweep between your own accounts is refused.
+
+**A charge on a card is a charge whoever bears it.** `txn_apply_method` filed
+only expenses into a billing cycle, so petrol laid out on a credit card raised
+the card's balance and never reached the statement — the card said you owed it
+and the bill did not ask for it. Transfers out of a credit account are filed too
+now; money *into* one is a `card_payment` and still excluded.
+
+Settling is the money coming back: a transfer out of their account into yours,
+carrying the tab's id so `tab_balance` can say what is outstanding **under this
+tab** without guessing which of a person's debts a payment was meant for.
+Closing is filing, not settling; deleting takes only the tab, and the loans and
+what is owed stay exactly where they were. Twelve assertions cover it.
+
+**Claims are still the other case, and still count.** "I paid, they owe me
+half" of a cost *you also bore* is a claim on the person's own screen, and the
+spending stays counted, because you did bear it. A tab is for money that was
+never yours to spend.
 
 ## The inbox
 

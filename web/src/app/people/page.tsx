@@ -111,8 +111,9 @@ export default async function People() {
               <p style={{
                 margin: '-4px 20px 12px', fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--c-meta)',
               }}>
-                A few people who share costs — the flat, a trip, office lunches. Put an expense on
-                a tab and it is split among them the moment you save it.
+                People you cover costs for — the flat, a trip, office petrol, medical bills
+                somebody reimburses. A cost put on a tab is lent to them the moment you save
+                it, so it never counts as your spending.
               </p>
               {tabs.length > 0 && (
                 <section className="el card" style={{
@@ -127,7 +128,7 @@ export default async function People() {
                         opacity: b.closed_at ? 0.55 : 1,
                         borderBottom: i === tabs.length - 1 ? undefined : '1px solid var(--c-rule)',
                       }}>
-                        <Chip icon="tab" tint={b.split === 'full' ? 'indigo' : 'cyan'} />
+                        <Chip icon="tab" tint="indigo" />
                         <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
                           <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>{b.name}</span>
                           <span style={{ fontSize: 'var(--step--2)', color: 'var(--c-meta)' }}>

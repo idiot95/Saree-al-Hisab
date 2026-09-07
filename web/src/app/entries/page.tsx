@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { actorOrNull, budgetFor, entriesFor } from '@/db/queries';
+import { actorOrNull, budgetFor, entriesFor, monthTotals } from '@/db/queries';
 import { format, monthKey } from '@/lib/money';
 import { headerBg } from '../auth-ui';
 import TabBar from '../TabBar';
@@ -20,8 +20,6 @@ const shift = (m: string, by: number) => {
   return monthKey(new Date(d.getFullYear(), d.getMonth() + by, 1));
 };
 
-const MOVES = new Set(['transfer', 'card_payment']);
-const INCOMING = new Set(['income', 'claim_receipt', 'refund']);
 
 export default async function Entries({ searchParams }: {
   searchParams: Promise<{ m?: string; c?: string }>;
@@ -34,9 +32,10 @@ export default async function Entries({ searchParams }: {
   const month = m && MONTH.test(m) ? m : monthKey(new Date());
   const categoryId = c && /^[0-9a-f-]{36}$/.test(c) ? c : null;
 
-  const [entries, categories] = await Promise.all([
+  const [entries, categories, totals] = await Promise.all([
     entriesFor(actor.household_id, month, categoryId),
     budgetFor(actor.household_id, month),
+    monthTotals(actor.household_id, month),
   ]);
   const filtered = categories.find((x) => x.category_id === categoryId);
 
@@ -48,15 +47,18 @@ export default async function Entries({ searchParams }: {
       id: e.id, kind: e.kind, amount: e.amount, merchant: e.merchant, category: e.category,
       method: e.method, account: e.account, counter_account: e.counter_account,
       icon: e.icon, tint: e.tint, is_shared: e.is_shared,
+      rows: e.rows, people: e.people, book_id: e.book_id,
+      to_person: e.to_person, from_person: e.from_person, lent: e.lent,
     };
     const last = days[days.length - 1];
     if (last && last.on === key) last.rows.push(row);
     else days.push({ on: key, label: dayLabel(key), rows: [row] });
   }
 
-  const spent = entries
-    .filter((e) => !MOVES.has(e.kind))
-    .reduce((n, e) => n + (INCOMING.has(e.kind) ? -Number(e.amount) : Number(e.amount)), 0);
+  /* What the month cost comes from spend_txn, never from adding up the rows
+     on screen. A cost laid out for someone shows here as the payment that
+     happened, and none of it is spending — summing the list would count it. */
+  const spent = filtered ? Number(filtered.spent) : Number(totals.spent);
 
   return (
     <Screen>

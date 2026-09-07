@@ -7,15 +7,14 @@ import { Chip, Icon } from '../../Icon';
 import TabPeople from './TabPeople';
 import Screen from '../../Screen';
 import SwipeBack from '../../SwipeBack';
-import { SPLITS } from '../splits';
 
 export const metadata = { title: 'Tab · Quiet Ledger' };
 export const dynamic = 'force-dynamic';
 
 /* A tab's screen answers one question — where do we stand on this — and then
-   lets you act on the answer: settle up with whoever owes, put more on it,
-   change who is on it. The figures come from the same claims the person's
-   own screen shows, only filtered to this tab, so the two can never disagree. */
+   lets you act on the answer: take money back from whoever owes, put more on
+   it, change who is on it. The figures come from the same arithmetic as the
+   khata, only filtered to this tab, so the two can never disagree. */
 export default async function Tab({ params }: { params: Promise<{ id: string }> }) {
   const actor = await actorOrNull();
   if (!actor) redirect('/signin');
@@ -34,8 +33,9 @@ export default async function Tab({ params }: { params: Promise<{ id: string }> 
 
   const members = people.filter((p) => p.on_tab);
   const owed = people.reduce((n, p) => n + Number(p.owed), 0);
-  const spent = entries.reduce((n, e) => n + Number(e.amount), 0);
-  const split = SPLITS.find((s) => s.id === tab.split) ?? SPLITS[0];
+  const out = people.reduce((n, p) => n + Number(p.lent), 0);
+  const back = people.reduce((n, p) => n + Number(p.back), 0);
+  const costs = entries.filter((e) => !e.incoming);
   const canEdit = actor.role !== 'viewer';
   const today = new Date().toISOString().slice(0, 10);
 
@@ -71,11 +71,11 @@ export default async function Tab({ params }: { params: Promise<{ id: string }> 
             {owed === 0 ? 'Settled up' : format(owed)}
           </span>
           <p style={{ margin: 0, fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'rgba(255,255,255,.82)' }}>
-            {owed > 0 ? 'still owed to you · ' : ''}
-            {entries.length === 0
+            {owed > 0 ? 'still to come back · ' : ''}
+            {costs.length === 0
               ? 'Nothing on it yet'
-              : `${format(spent)} across ${entries.length} ${entries.length === 1 ? 'entry' : 'entries'}`}
-            {' · '}{split.label}
+              : `${format(out)} laid out across ${costs.length} ${costs.length === 1 ? 'cost' : 'costs'}`}
+            {back > 0 ? ` · ${format(back)} back` : ''}
           </p>
           {tab.note && (
             <p style={{ margin: 0, fontSize: 'var(--step--1)', color: 'rgba(255,255,255,.7)' }}>{tab.note}</p>
@@ -91,12 +91,12 @@ export default async function Tab({ params }: { params: Promise<{ id: string }> 
               opacity: members.length === 0 ? 0.5 : 1, pointerEvents: members.length === 0 ? 'none' : undefined,
             }}>
               <Icon name="plus" size={18} strokeWidth={2.2} />
-              Put an expense on this tab
+              Put a cost on this tab
             </Link>
           )}
 
           <TabPeople
-            tabId={tab.id} tabName={tab.name} note={tab.note} split={tab.split}
+            tabId={tab.id} tabName={tab.name} note={tab.note}
             people={people} closed={!!tab.closed_at} canEdit={canEdit}
             methods={methods.map((m) => ({ id: m.id, name: m.name, funds: m.funds }))}
             today={today}
@@ -104,35 +104,44 @@ export default async function Tab({ params }: { params: Promise<{ id: string }> 
 
           {entries.length > 0 && (
             <>
-              <Head>On this tab</Head>
+              <Head>What went on it</Head>
               <section className="el card" style={{
                 margin: '0 var(--gutter) 22px', background: 'var(--c-card)', borderRadius: 18,
                 padding: '0 var(--pad)',
               }}>
-                {entries.map((e, i) => {
-                  const left = Number(e.outstanding);
-                  return (
-                    <Link key={e.id} href={`/entries/${e.id}`} transitionTypes={['nav-forward']} style={{
-                      display: 'flex', alignItems: 'center', gap: 12, minHeight: 66,
-                      textDecoration: 'none', color: 'var(--c-ink)',
-                      borderBottom: i === entries.length - 1 ? undefined : '1px solid var(--c-rule)',
-                    }}>
-                      <Chip icon={e.icon} tint={e.tint} />
-                      <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
-                        <span style={{
-                          fontSize: 'var(--step-0)', fontWeight: 600, overflow: 'hidden',
-                          textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                        }}>{e.merchant || e.category || 'Entry'}</span>
-                        <span style={{ fontSize: 'var(--step--2)', color: 'var(--c-meta)' }}>
-                          {new Date(e.occurred_on).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
-                          {' · '}{e.who}
-                          {left > 0 ? ` · ${format(left)} still owed` : ' · settled'}
-                        </span>
+                {entries.map((e, i) => (
+                  <div key={e.id} style={{
+                    display: 'flex', alignItems: 'center', gap: 12, minHeight: 66,
+                    borderBottom: i === entries.length - 1 ? undefined : '1px solid var(--c-rule)',
+                  }}>
+                    {e.incoming
+                      ? <Chip icon="receivable" tint="green" />
+                      : <Chip icon={e.icon} tint={e.tint} />}
+                    <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                      <span style={{
+                        fontSize: 'var(--step-0)', fontWeight: 600, overflow: 'hidden',
+                        textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                      }}>
+                        {e.incoming
+                          ? `Came back from ${e.people ?? 'them'}`
+                          : e.merchant || e.category || 'Cost'}
                       </span>
-                      <span className="t" style={{ fontSize: 'var(--step-0)' }}>{format(Number(e.amount))}</span>
-                    </Link>
-                  );
-                })}
+                      <span style={{ fontSize: 'var(--step--2)', color: 'var(--c-meta)' }}>
+                        {new Date(e.occurred_on).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                        {' · '}{e.who}
+                        {!e.incoming && e.people ? ` · lent to ${e.people}` : ''}
+                        {!e.incoming && Number(e.lent) < Number(e.amount)
+                          ? ` · of ${format(Number(e.amount))}` : ''}
+                      </span>
+                    </span>
+                    <span className="t" style={{
+                      fontSize: 'var(--step-0)',
+                      color: e.incoming ? 'var(--c-seagrass)' : undefined,
+                    }}>
+                      {e.incoming ? '+' : ''}{format(Number(e.incoming ? e.amount : e.lent))}
+                    </span>
+                  </div>
+                ))}
               </section>
             </>
           )}
@@ -140,9 +149,11 @@ export default async function Tab({ params }: { params: Promise<{ id: string }> 
           <p style={{
             margin: '4px 20px 0', fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--c-meta)',
           }}>
-            An expense put on this tab is split the moment it is saved. {split.what}
-            {' '}Each person&rsquo;s share is a claim against them, the same as any shared cost,
-            and settling up here records the money coming back into your account.
+            A cost put on this tab is owed back in full, divided equally among the
+            people on it, and is lent to them the moment it is saved. It is not counted
+            as your spending and it never touches your budget &mdash; you laid the money
+            out, you did not spend it. Taking money back here brings it into whichever
+            of your accounts it actually arrived in.
           </p>
         </div>
       </main>

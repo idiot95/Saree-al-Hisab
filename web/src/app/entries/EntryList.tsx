@@ -13,6 +13,12 @@ export type Row = {
   id: string; kind: string; amount: string; merchant: string | null;
   category: string | null; method: string | null; account: string;
   counter_account: string | null; icon: string | null; tint: string | null; is_shared: boolean;
+  /* A cost laid out for several people on a tab is several loans underneath
+     and one line here. `rows` says how many, `people` who it went to. Such a
+     line opens its tab rather than a single row of it, and is not swipeable:
+     editing one loan of three would leave the payment adding up to nothing. */
+  rows: number; people: string | null; book_id: string | null;
+  to_person: boolean; from_person: boolean; lent: string;
 };
 
 const MOVES = new Set(['transfer', 'card_payment']);
@@ -66,7 +72,7 @@ export default function EntryList({ days, canEdit }: {
               padding: '0 var(--pad)', overflow: 'hidden',
             }}>
               {rows.map((e, i) => (
-                <SwipeRow key={e.id} actions={canEdit ? [
+                <SwipeRow key={e.id} actions={canEdit && e.rows === 1 ? [
                   { label: 'Edit', tone: 'primary', icon: <Pen />,
                     act: () => router.push(`/entries/${e.id}`, { transitionTypes: ['nav-forward'] }) },
                   { label: 'Delete', tone: 'danger', icon: <Bin />, act: () => del(e) },
@@ -86,13 +92,17 @@ export default function EntryList({ days, canEdit }: {
 function Entry({ e, last }: { e: Row; last: boolean }) {
   const move = MOVES.has(e.kind);
   const incoming = INCOMING.has(e.kind);
+  const lent = e.to_person;
+  const cameBack = e.from_person && !e.to_person;
+  const part = Number(e.lent) < Number(e.amount);
+  const href = e.rows > 1 && e.book_id ? `/tab/${e.book_id}` : `/entries/${e.id}`;
   return (
-    <Link href={`/entries/${e.id}`} transitionTypes={['nav-forward']} draggable={false} style={{
+    <Link href={href} transitionTypes={['nav-forward']} draggable={false} style={{
       display: 'flex', alignItems: 'center', gap: 12, minHeight: 68,
       textDecoration: 'none', color: 'var(--c-ink)',
       borderBottom: last ? undefined : '1px solid var(--c-rule)',
     }}>
-      {move ? (
+      {move && !lent ? (
         <span style={{
           width: 38, height: 38, flex: 'none', borderRadius: 11, display: 'flex',
           alignItems: 'center', justifyContent: 'center',
@@ -111,23 +121,31 @@ function Entry({ e, last }: { e: Row; last: boolean }) {
           fontSize: 'var(--step-0)', fontWeight: 600, overflow: 'hidden',
           textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         }}>
-          {e.merchant || e.category || (move ? 'Transfer' : 'Entry')}
+          {cameBack
+            ? `Came back from ${e.people ?? 'them'}`
+            : e.merchant || e.category || (lent ? 'Laid out' : move ? 'Transfer' : 'Entry')}
         </span>
         <span style={{
           fontSize: 'var(--step--2)', color: 'var(--c-meta)', overflow: 'hidden',
           textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         }}>
-          {move && e.counter_account
-            ? `${e.account} → ${e.counter_account}`
-            : [e.category, e.method].filter(Boolean).join(' · ')}
-          {e.is_shared && ' · shared'}
+          {lent
+            ? `${part ? `${format(Number(e.lent))} of it ` : ''}lent to ${e.people ?? 'them'}`
+              + (e.category ? ` · ${e.category}` : '')
+            : cameBack
+              ? `into ${e.counter_account ?? e.account}`
+            : move && e.counter_account
+              ? `${e.account} → ${e.counter_account}`
+              : [e.category, e.method].filter(Boolean).join(' · ')}
+          {e.is_shared && !lent && ' · shared'}
         </span>
       </span>
       <span className="t amt" style={{
         fontSize: 'var(--step-0)', letterSpacing: '-.01em',
-        color: incoming ? 'var(--c-ok)' : move ? 'var(--c-meta)' : 'var(--c-ink)',
+        color: incoming || cameBack ? 'var(--c-ok)'
+          : move && !lent ? 'var(--c-meta)' : 'var(--c-ink)',
       }}>
-        {incoming ? '+' : ''}{format(Number(e.amount))}
+        {incoming || cameBack ? '+' : ''}{format(Number(e.amount))}
       </span>
     </Link>
   );

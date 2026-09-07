@@ -127,6 +127,13 @@
       "when": 1788795835398,
       "tag": "0017_tab_split",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1788799615384,
+      "tag": "0018_tab_loans",
+      "breakpoints": true
     }
   ]
 }

@@ -8,18 +8,18 @@ import { haptic } from '../../haptics';
 import {
   addToTab, removeFromTab, renameTab, toggleTabClosed, deleteTab, settleTab,
 } from '../actions';
-import { SPLITS } from '../splits';
 import { format } from '@/lib/money';
 
 type Person = {
-  id: string; name: string; tint: string; on_tab: boolean; owed: string; share: string;
+  id: string; name: string; tint: string; on_tab: boolean;
+  lent: string; back: string; owed: string;
 };
 type Method = { id: string; name: string; funds: string };
 
 export default function TabPeople({
-  tabId, tabName, note, split, people, closed, canEdit, methods, today,
+  tabId, tabName, note, people, closed, canEdit, methods, today,
 }: {
-  tabId: string; tabName: string; note: string | null; split: 'equal' | 'full';
+  tabId: string; tabName: string; note: string | null;
   people: Person[]; closed: boolean; canEdit: boolean; methods: Method[]; today: string;
 }) {
   const [, add] = useActionState(addToTab, null);
@@ -103,14 +103,14 @@ export default function TabPeople({
       {canEdit && (
         <div style={{ margin: '4px 18px 0', display: 'flex', flexDirection: 'column', gap: 10 }}>
           {editing ? (
-            <EditTab tabId={tabId} name={tabName} note={note} split={split} onDone={() => setEditing(false)} />
+            <EditTab tabId={tabId} name={tabName} note={note} onDone={() => setEditing(false)} />
           ) : (
             <button className="cta" type="button" onClick={() => setEditing(true)} style={{
               width: '100%', minHeight: 50, borderRadius: 13, fontSize: 'var(--step-0)', fontWeight: 600,
               background: 'var(--c-sunk)', color: 'var(--c-ink)',
             }}>
               <Icon name="pencil" size={17} strokeWidth={2} />
-              Rename or change the split
+              Rename this tab
             </button>
           )}
 
@@ -161,15 +161,16 @@ export default function TabPeople({
   );
 }
 
-/* One person's row: what they still owe on this tab, and a Settle up that
-   opens the form in place. The amount is left blank on purpose — blank is
-   "all of it", which is what settling up usually means. */
+/* One person's row: what is still to come back from them on this tab, and a
+   Settle up that opens the form in place. The amount is left blank on purpose
+   — blank is "all of it", which is what settling up usually means. */
 function Member({ p, last, left, tabId, methods, today, canEdit, open, onOpen, children }: {
   p: Person; last: boolean; left?: boolean; tabId: string; methods: Method[]; today: string;
   canEdit: boolean; open: boolean; onOpen: () => void; children?: React.ReactNode;
 }) {
   const owed = Number(p.owed);
-  const share = Number(p.share);
+  const lent = Number(p.lent);
+  const back = Number(p.back);
   const [state, act, pending] = useActionState(settleTab, null);
   useEffect(() => { if (state?.ok) onOpen(); }, [state]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -188,10 +189,10 @@ function Member({ p, last, left, tabId, methods, today, canEdit, open, onOpen, c
             {p.name}{left && <span style={{ fontWeight: 500, color: 'var(--c-meta)' }}> · left the tab</span>}
           </span>
           <span style={{ fontSize: 'var(--step--2)', color: 'var(--c-meta)' }}>
-            {share === 0 ? 'nothing on the tab yet'
-              : owed === 0 ? `settled up · ${format(share)} in all`
-              : owed < share ? `${format(share - owed)} of ${format(share)} paid back`
-              : 'owes for the whole share'}
+            {lent === 0 ? 'nothing on the tab yet'
+              : owed === 0 ? `settled up · ${format(lent)} in all`
+              : back > 0 ? `${format(back)} of ${format(lent)} back`
+              : `${format(lent)} laid out, none back yet`}
           </span>
         </Link>
         {owed > 0 && (
@@ -242,8 +243,8 @@ function Member({ p, last, left, tabId, methods, today, canEdit, open, onOpen, c
   );
 }
 
-function EditTab({ tabId, name, note, split, onDone }: {
-  tabId: string; name: string; note: string | null; split: 'equal' | 'full'; onDone: () => void;
+function EditTab({ tabId, name, note, onDone }: {
+  tabId: string; name: string; note: string | null; onDone: () => void;
 }) {
   const [state, act, pending] = useActionState(renameTab, null);
   useEffect(() => { if (state?.ok) onDone(); }, [state]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -254,29 +255,7 @@ function EditTab({ tabId, name, note, split, onDone }: {
     }}>
       <input type="hidden" name="tabId" value={tabId} />
       <Field label="Name" name="name" defaultValue={name} required maxLength={60} autoFocus />
-      <fieldset style={{ border: 0, padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
-        <legend style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)', padding: 0, marginBottom: 8 }}>
-          How a cost on it is shared
-        </legend>
-        {SPLITS.map((k) => (
-          <label key={k.id} style={{
-            display: 'flex', alignItems: 'flex-start', gap: 11, minHeight: 44, padding: '11px 13px',
-            borderRadius: 13, background: 'var(--c-sunk2)', border: '1px solid var(--c-border)', cursor: 'pointer',
-          }}>
-            <input type="radio" name="split" value={k.id} defaultChecked={k.id === split}
-              style={{ width: 18, height: 18, marginTop: 1, accentColor: 'var(--c-seagrass)', flex: 'none' }} />
-            <span style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-              <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>{k.label}</span>
-              <span style={{ fontSize: 'var(--step--1)', lineHeight: 1.45, color: 'var(--c-meta)' }}>{k.what}</span>
-            </span>
-          </label>
-        ))}
-      </fieldset>
       <Field label="Note (optional)" name="note" defaultValue={note ?? ''} maxLength={200} />
-      <p style={{ margin: 0, fontSize: 'var(--step--2)', lineHeight: 1.45, color: 'var(--c-meta)' }}>
-        Changing the split applies to what is put on the tab from now on. Entries already
-        split keep their shares.
-      </p>
       {state && !state.ok && <ErrorNote>{state.error}</ErrorNote>}
       <div style={{ display: 'flex', gap: 9 }}>
         <button className="cta" type="button" onClick={onDone} style={{

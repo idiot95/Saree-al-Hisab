@@ -8,7 +8,7 @@ import { keysDisplay, pushKey, popKey, fromKeys, symbolOf, format } from '@/lib/
 import { saveEntry, checkDuplicate } from './actions';
 import { haptic } from '../haptics';
 import { enqueue, writePickers, type Queued } from './queue';
-import { shares, type Split } from '../tab/splits';
+import { breakdown } from '../tab/splits';
 
 /* Add Entry — the screen the whole product rests on.
    With no bank feed and no SMS, this is how nearly everything gets in, so it
@@ -28,7 +28,7 @@ const KINDS: { id: Kind; label: string }[] = [
 export type Category = { id: string; name: string; tint: string; icon: string };
 export type Method = { id: string; name: string; funds: string };
 export type Account = { id: string; name: string; kind: string };
-export type Tab = { id: string; name: string; split: Split; people: number };
+export type Tab = { id: string; name: string; people: number };
 
 const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '00', '0', '.'];
 
@@ -40,6 +40,7 @@ export default function AddEntry({
   draft?: {
     amountMinor: number | null; occurredOn: string | null; merchant: string | null;
     kind: 'expense' | 'income' | null; categoryId: string | null; tabId?: string | null;
+    tabCoveredMinor?: number | null;
   };
   /* On the offline screen nothing is sent from here at all: every save goes
      to the phone's queue, and the layout sends the queue when signal is back. */
@@ -67,6 +68,9 @@ export default function AddEntry({
     draft?.amountMinor ? String(draft.amountMinor / 100) : '');
   const [categoryId, setCategoryId] = useState<string | null>(draft?.categoryId ?? null);
   const [tabId, setTabId] = useState<string | null>(draft?.tabId ?? null);
+  /* Blank means all of it comes back, which is the ordinary case. A figure
+     here is the part that does, leaving the rest as genuinely yours. */
+  const [coveredKeys, setCoveredKeys] = useState('');
   const [methodId, setMethodId] = useState(methods[0]?.id ?? '');
   const [counterId, setCounterId] = useState<string | null>(null);
   const [shared, setShared] = useState(true);
@@ -105,6 +109,7 @@ export default function AddEntry({
       kind, amountMinor: minor, categoryId, methodId,
       counterAccountId: counterId, merchant, occurredOn, isShared: shared,
       tabId: kind === 'expense' ? tabId : null,
+      tabCoveredMinor: kind === 'expense' && tabId && coveredKeys ? fromKeys(coveredKeys) : null,
     };
     const clear = () => { setKeys(''); setCategoryId(null); setMerchant(''); setDupe(null); };
     /* Kept on the phone: the same tick as a save, because from where the
@@ -304,9 +309,28 @@ export default function AddEntry({
             })}
           </div>
           {tab && (
-            <p style={{ margin: 0, fontSize: 'var(--step--2)', lineHeight: 1.45, color: 'var(--c-meta)' }}>
-              {splitNote(tab, minor)}
-            </p>
+            <>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+                <span style={{ fontSize: 'var(--step--2)', fontWeight: 600, color: 'var(--c-meta)' }}>
+                  Comes back
+                </span>
+                <input
+                  value={coveredKeys}
+                  onChange={(e) => setCoveredKeys(e.target.value.replace(/[^0-9.]/g, ''))}
+                  inputMode="decimal"
+                  placeholder={minor > 0 ? `all of it — ${format(minor)}` : 'all of it'}
+                  aria-label="How much of this comes back"
+                  style={{
+                    flex: 1, minWidth: 0, minHeight: 40, padding: '0 12px', borderRadius: 11,
+                    background: 'var(--c-card)', border: '1px solid var(--c-border)',
+                    color: 'var(--c-ink)', fontSize: 'var(--step--1)',
+                  }}
+                />
+              </label>
+              <p style={{ margin: 0, fontSize: 'var(--step--2)', lineHeight: 1.45, color: 'var(--c-meta)' }}>
+                {loanNote(tab, minor, coveredKeys ? fromKeys(coveredKeys) : minor)}
+              </p>
+            </>
           )}
         </div>
       )}
@@ -450,17 +474,18 @@ function Glyph({ d, size = 21, w = 2, colour }: { d: string; size?: number; w?: 
 }
 
 /** What putting this amount on the tab will do, in one line, before Save. */
-function splitNote(tab: Tab, minor: number): string {
+function loanNote(tab: Tab, minor: number, covered: number): string {
   const who = `${tab.people} ${tab.people === 1 ? 'person' : 'people'}`;
   if (minor <= 0) {
-    return tab.split === 'equal'
-      ? `Split equally among ${who} and you.`
-      : `They owe all of it, divided among ${who}.`;
+    return tab.people === 1
+      ? 'Lent to them in full, and not counted as your spending.'
+      : `Lent in full, divided equally among ${who}, and not counted as your spending.`;
   }
-  const each = shares(minor, tab.split, tab.people);
-  const top = Math.max(...each);
-  const ours = minor - each.reduce((n, x) => n + x, 0);
-  return tab.split === 'equal'
-    ? `Split ${tab.people + 1} ways · each owes ${format(top)} · your share ${format(ours)}`
-    : `${who} owe ${format(top)} each · nothing of it is yours`;
+  if (covered > minor) return 'That is more than the amount itself.';
+  const { shares: each, mine } = breakdown(minor, covered, tab.people);
+  const top = each.length ? Math.max(...each) : 0;
+  const owes = tab.people === 1 ? `They owe ${format(top)}` : `${who} owe ${format(top)} each`;
+  return mine > 0
+    ? `${owes} · ${format(mine)} is yours and counts`
+    : `${owes} · none of it is your spending`;
 }

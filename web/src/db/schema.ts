@@ -28,7 +28,6 @@ export const scheduleKind = pgEnum('schedule_kind', ['expense', 'income']);
 export const inboxKind = pgEnum('inbox_kind', ['expected_income', 'recurring', 'duplicate']);
 export const inboxStatus = pgEnum('inbox_status', ['open', 'accepted', 'dismissed']);
 export const methodKind = pgEnum('method_kind', ['upi', 'card', 'netbanking', 'cash', 'cheque', 'wallet', 'autodebit']);
-export const splitRule = pgEnum('split_rule', ['equal', 'full']);
 export const cycleStatus = pgEnum('cycle_status', ['open', 'statemented', 'paid']);
 
 export const household = pgTable('household', {
@@ -182,20 +181,20 @@ export const counterparty = pgTable('counterparty', {
   uniqueIndex('counterparty_account').on(t.accountId),
 ]);
 
-/* A tab: a few people who share costs — the flat, a trip, the Ashara
-   kitchen. An expense put on a tab is split among its members the moment it
-   is saved, one claim per member, and settling up clears those claims
-   person by person. Money simply lent is not a tab; that is the person's own
-   khata. (Superseded the earlier "grouping only, no splits" decision: a tab
-   that does not split is a label, and a label is not what anyone asked for.) */
+/* A tab: a few people you cover costs for — the flat, a trip, the Ashara
+   kitchen. It is a LENDING group, not a bill splitter. A cost put on a tab is
+   owed back in full, divided equally among the people on it, and each share is
+   written as a loan into that person's account the moment it is saved. So it
+   never counts as your spending and never touches your budget: you did not
+   spend that money, you laid it out. Settling is the money coming back, which
+   is the same transfer in the other direction.
+
+   A tab for one person is simply that person's khata with a name on it. What
+   a tab is NOT is a way to share a cost you also bore — that is a claim
+   against a person, which lives on their own screen and stays counted. */
 export const ledgerBook = pgTable('ledger_book', {
   id: uuid('id').primaryKey().defaultRandom(),
   householdId: uuid('household_id').notNull().references(() => household.id, { onDelete: 'cascade' }),
-  /* equal: the household is one of the sharers, so a cost is divided by the
-     members plus one and the household keeps its own share. full: the
-     household paid on the members' behalf and they owe all of it between
-     them. */
-  split: splitRule('split').notNull().default('equal'),
   name: text('name').notNull(),
   note: text('note'),
   closedAt: timestamp('closed_at', { withTimezone: true }),
@@ -298,6 +297,10 @@ export const txn = pgTable('txn', {
      method only prefills it and answers "how much goes through UPI". */
   paymentMethodId: uuid('payment_method_id'),
   cardCycleId: uuid('card_cycle_id'),
+  /* One real-world payment written as several rows: a cost put on a tab
+     becomes one loan per person on it. They share a group_ref so the ledger
+     can show them as the one thing that actually happened. */
+  groupRef: uuid('group_ref'),
   /* Minted on the phone the moment an entry is saved without signal. When
      the queue drains it is sent with the entry, and the partial unique index
      below makes a second delivery of the same entry a no-op instead of a
@@ -308,6 +311,7 @@ export const txn = pgTable('txn', {
   uniqueIndex('txn_client_ref').on(t.householdId, t.clientRef)
     .where(sql`${t.clientRef} IS NOT NULL`),
   index('txn_book').on(t.bookId),
+  index('txn_group').on(t.groupRef),
   index('txn_cycle').on(t.cardCycleId),
   index('txn_ledger').on(t.householdId, t.occurredOn),
   index('txn_category_month').on(t.categoryId, t.occurredOn),
@@ -324,8 +328,15 @@ export const txn = pgTable('txn', {
   check('moves_have_two_sides', sql`
     (${t.kind} IN ('transfer','card_payment'))
       = (${t.counterAccountId} IS NOT NULL)`),
+  /* A card payment and a claim receipt still carry no category — neither is
+     about anything, they are money moving. A TRANSFER may, because money laid
+     out for someone is about something ("₹2,000 of groceries for Ahmed") and
+     the category is the only place that can be recorded. It never counts as
+     spending: spend_txn selects on kind, so a transfer is excluded whatever
+     category it wears. The txn_category_shape trigger holds it to transfers
+     into a person's account, which is the only case that means anything. */
   check('moves_carry_no_category', sql`
-    ${t.kind} NOT IN ('transfer','card_payment','claim_receipt') OR ${t.categoryId} IS NULL`),
+    ${t.kind} NOT IN ('card_payment','claim_receipt') OR ${t.categoryId} IS NULL`),
   check('no_self_transfer', sql`
     ${t.counterAccountId} IS NULL OR ${t.counterAccountId} <> ${t.accountId}`),
   check('fx_rate_with_foreign_currency', sql`
