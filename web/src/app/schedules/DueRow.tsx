@@ -1,12 +1,15 @@
 'use client';
 
 import { useActionState, useState } from 'react';
+import { Icon } from '../Icon';
 import { recordDue, skipDue, archiveSchedule } from './actions';
 import { format } from '@/lib/money';
 
-export default function DueRow({ scheduleId, name, dueOn, daysAway, amount, category }: {
+export default function DueRow({
+  scheduleId, name, dueOn, daysAway, amount, category, icon, tint,
+}: {
   scheduleId: string; name: string; dueOn: string; daysAway: number;
-  amount: number; category: string | null;
+  amount: number; category: string | null; icon?: string | null; tint?: string | null;
 }) {
   const [recState, record, recording] = useActionState(recordDue, null);
   const [, skip] = useActionState(skipDue, null);
@@ -25,11 +28,7 @@ export default function DueRow({ scheduleId, name, dueOn, daysAway, amount, cate
           background: overdue ? 'var(--c-danger-tint)' : 'var(--c-warn-tint)',
           color: overdue ? 'var(--c-danger)' : 'var(--c-warn)',
         }}>
-          <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-            strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-            <rect x="3.5" y="5" width="17" height="15" rx="2.4" />
-            <path d="M3.5 9.5h17M8 3.5v3M16 3.5v3" />
-          </svg>
+          <Icon name={icon ?? 'autodebit'} size={19} strokeWidth={1.9} />
         </span>
         <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
           <span style={{ fontSize: 15, fontWeight: 600 }}>{name}</span>

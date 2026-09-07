@@ -1,6 +1,7 @@
 'use client';
 
 import { useActionState, useState } from 'react';
+import { Icon, RAIL_ICON } from '../Icon';
 import { Field, ErrorNote } from '../auth-ui';
 import { addMethod } from './actions';
 
@@ -84,6 +85,7 @@ export default function AddMethod({ accounts, startOpen = false }: { accounts: A
             }}>
               <input type="radio" name="kind" value={r.id} defaultChecked={i === 0}
                 style={{ width: 17, height: 17, accentColor: 'var(--c-seagrass)' }} />
+              <Icon name={RAIL_ICON[r.id]} size={17} strokeWidth={1.8} />
               <span style={{ display: 'flex', flexDirection: 'column' }}>
                 <span style={{ fontSize: 14, fontWeight: 600 }}>{r.label}</span>
                 <span style={{ fontSize: 11.5, color: 'var(--c-meta)' }}>{r.hint}</span>

@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { Chip } from '../Icon';
 import { redirect } from 'next/navigation';
 import { actorOrNull, categoryTrend, monthlySeries } from '@/db/queries';
 import { format, monthKey } from '@/lib/money';
@@ -29,7 +30,7 @@ export default async function Trends() {
 
   const slices = cats
     .filter((c) => Number(c.now) > 0)
-    .map((c) => ({ id: c.id, name: c.name, amount: Number(c.now), tint: c.tint }))
+    .map((c) => ({ id: c.id, name: c.name, amount: Number(c.now), tint: c.tint, icon: c.icon }))
     .sort((a, b) => b.amount - a.amount);
   const sliceTotal = slices.reduce((n, s) => n + s.amount, 0);
 
@@ -115,6 +116,7 @@ export default async function Trends() {
                     display: 'flex', alignItems: 'center', gap: 12, minHeight: 56,
                     borderBottom: i === movers.length - 1 ? undefined : '1px solid var(--c-rule)',
                   }}>
+                    <Chip icon={m.icon} tint={m.tint} size={34} radius={9} iconSize={17} />
                     <Link href={`/entries?c=${m.id}`} style={{
                       flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2,
                       textDecoration: 'none', color: 'var(--c-ink)',

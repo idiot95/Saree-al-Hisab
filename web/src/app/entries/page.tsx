@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { Chip } from '../Icon';
 import { redirect } from 'next/navigation';
 import { actorOrNull, budgetFor, entriesFor } from '@/db/queries';
 import { format, monthKey } from '@/lib/money';
@@ -132,7 +133,6 @@ export default async function Entries({ searchParams }: {
                 margin: '0 18px', background: 'var(--c-card)', borderRadius: 16, padding: '0 14px',
               }}>
                 {d.rows.map((e, i) => {
-                  const [bg, ink] = TINT[e.tint ?? ''] ?? ['var(--cat-neutral)', 'var(--cat-neutral-ink)'];
                   const move = MOVES.has(e.kind);
                   const incoming = INCOMING.has(e.kind);
                   return (
@@ -141,19 +141,20 @@ export default async function Entries({ searchParams }: {
                       textDecoration: 'none', color: 'var(--c-ink)',
                       borderBottom: i === d.rows.length - 1 ? undefined : '1px solid var(--c-rule)',
                     }}>
-                      <span style={{
-                        width: 38, height: 38, flex: 'none', borderRadius: 11, display: 'flex',
-                        alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700,
-                        background: move ? 'var(--c-sunk)' : bg,
-                        color: move ? 'var(--c-meta)' : ink,
-                      }}>
-                        {move ? (
+                      {move ? (
+                        <span style={{
+                          width: 38, height: 38, flex: 'none', borderRadius: 11, display: 'flex',
+                          alignItems: 'center', justifyContent: 'center',
+                          background: 'var(--c-sunk)', color: 'var(--c-meta)',
+                        }}>
                           <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="currentColor"
                             strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
                             <path d="M7 8h13l-3-3M17 16H4l3 3" />
                           </svg>
-                        ) : (e.category ?? '··').slice(0, 2).toUpperCase()}
-                      </span>
+                        </span>
+                      ) : (
+                        <Chip icon={e.icon} tint={e.tint} size={38} />
+                      )}
                       <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
                         <span style={{
                           fontSize: 15, fontWeight: 600, overflow: 'hidden',

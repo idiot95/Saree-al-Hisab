@@ -297,6 +297,7 @@ export type EntryRow = {
   id: string; kind: string; amount: string; occurred_on: Date;
   merchant: string | null; note: string | null; is_shared: boolean;
   category_id: string | null; category: string | null; tint: string | null;
+  icon: string | null;
   method: string | null; account: string; counter_account: string | null;
   who: string; created_at: Date;
 };
@@ -308,7 +309,7 @@ export async function entriesFor(
 ) {
   return sql`
     select t.id, t.kind, t.amount::text, t.occurred_on, t.merchant, t.note, t.is_shared,
-           t.category_id, c.name as category, c.tint,
+           t.category_id, c.name as category, c.tint, c.icon,
            m.name as method, a.name as account, ca.name as counter_account,
            u.name as who, t.created_at
     from txn t
@@ -576,7 +577,7 @@ export async function monthlySeries(householdId: string, months = 6) {
  *  before — the comparison is the point, so both are fetched together. */
 export async function categoryTrend(householdId: string, month: string) {
   return sql`
-    select c.id, c.name, c.tint,
+    select c.id, c.name, c.tint, c.icon,
            coalesce((select sum(s.amount) from spend_txn s
                      where s.category_id = c.id
                        and s.occurred_on >= ${month}::date
@@ -590,7 +591,7 @@ export async function categoryTrend(householdId: string, month: string) {
     from category c
     where c.household_id = ${householdId} and c.archived_at is null
     order by c.sort_order
-  ` as Promise<{ id: string; name: string; tint: string;
+  ` as Promise<{ id: string; name: string; tint: string; icon: string;
                  now: string; before: string; budget: string }[]>;
 }
 
@@ -676,6 +677,7 @@ export type ScheduleRow = {
   id: string; name: string; amount: string | null; amount_from_statement: boolean;
   rrule: string | null; account_id: string; account: string; since: string;
   category_id: string | null; category: string | null; tint: string | null;
+  icon: string | null;
   settled: string[];
 };
 
@@ -688,7 +690,7 @@ export async function schedulesFor(householdId: string) {
   return sql`
     select s.id, s.name, s.amount::text, s.amount_from_statement, s.rrule,
            s.account_id, a.name as account, to_char(s.created_at, 'YYYY-MM-DD') as since,
-           s.category_id, c.name as category, c.tint,
+           s.category_id, c.name as category, c.tint, c.icon,
            coalesce(array_agg(to_char(o.due_on, 'YYYY-MM-DD'))
                     filter (where o.id is not null), '{}') as settled
     from schedule s
@@ -697,7 +699,7 @@ export async function schedulesFor(householdId: string) {
     left join occurrence o on o.schedule_id = s.id
                           and o.due_on >= current_date - 400
     where s.household_id = ${householdId} and s.archived_at is null
-    group by s.id, a.name, c.name, c.tint
+    group by s.id, a.name, c.name, c.tint, c.icon
     order by s.name
   ` as Promise<ScheduleRow[]>;
 }

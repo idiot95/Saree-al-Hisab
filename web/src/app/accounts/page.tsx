@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation';
+import { Chip, RAIL_ICON, ACCOUNT_ICON, ACCOUNT_TINT } from '../Icon';
 import {
   actorOrNull, accountsWithBalances, methodsWithFunding, openCyclesFor,
 } from '@/db/queries';
@@ -18,7 +19,7 @@ const KIND_LABEL = {
 
 const RAIL_LABEL: Record<string, string> = {
   upi: 'UPI', card: 'Card', netbanking: 'Net banking', cash: 'Cash',
-  cheque: 'Cheque', wallet: 'Wallet', autodebit: 'Standing instruction',
+  cheque: 'Cheque', wallet: 'Wallet', autodebit: 'Auto-debit',
 };
 
 const nth = (d: number) => {
@@ -98,7 +99,7 @@ export default async function Accounts() {
             display: 'flex', alignItems: 'center', gap: 12, minHeight: 76,
             borderBottom: i === holdings.length - 1 ? undefined : '1px solid var(--c-rule)',
           }}>
-            <Pill kind={a.kind} />
+            <Chip icon={ACCOUNT_ICON[a.kind]} tint={ACCOUNT_TINT[a.kind]} />
             <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
               <span style={{ fontSize: 15.5, fontWeight: 600 }}>{a.name}</span>
               <span style={{ fontSize: 12.5, color: 'var(--c-meta)' }}>
@@ -132,7 +133,7 @@ export default async function Accounts() {
                   borderBottom: i === cards.length - 1 ? undefined : '1px solid var(--c-rule)',
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <Pill kind="credit" />
+                    <Chip icon={ACCOUNT_ICON.credit} tint={ACCOUNT_TINT.credit} />
                     <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
                       <span style={{ fontSize: 15.5, fontWeight: 600 }}>{a.name}</span>
                       <span style={{ fontSize: 12.5, color: 'var(--c-meta)' }}>
@@ -206,11 +207,7 @@ export default async function Accounts() {
             display: 'flex', alignItems: 'center', gap: 12, minHeight: 76,
             borderBottom: i === methods.length - 1 ? undefined : '1px solid var(--c-rule)',
           }}>
-            <span style={{
-              width: 40, height: 40, flex: 'none', borderRadius: 11, display: 'flex',
-              alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700,
-              background: 'var(--cat-indigo)', color: 'var(--cat-indigo-ink)',
-            }}>{RAIL_LABEL[m.kind]?.slice(0, 3).toUpperCase() ?? '···'}</span>
+            <Chip icon={RAIL_ICON[m.kind] ?? 'tag'} tint="indigo" size={40} />
             <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
               <span style={{ fontSize: 15.5, fontWeight: 600 }}>{m.name}</span>
               <span style={{ fontSize: 12.5, color: 'var(--c-meta)' }}>
@@ -263,28 +260,3 @@ function Empty({ children }: { children: React.ReactNode }) {
   );
 }
 
-function Pill({ kind }: { kind: 'spending' | 'savings' | 'credit' | 'cash' }) {
-  const tint = {
-    spending: ['var(--cat-blue)', 'var(--cat-blue-ink)'],
-    cash: ['var(--cat-green)', 'var(--cat-green-ink)'],
-    savings: ['var(--cat-cyan)', 'var(--cat-cyan-ink)'],
-    credit: ['var(--cat-orange)', 'var(--cat-orange-ink)'],
-  }[kind];
-  const d = {
-    spending: 'M3.5 9.5h17M4.5 6.5h15a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1h-15a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1z',
-    cash: 'M3.5 7.5h17v9h-17zM12 9.8a2.2 2.2 0 1 0 0 4.4 2.2 2.2 0 0 0 0-4.4z',
-    savings: 'M12 3.5 20 8v8l-8 4.5L4 16V8z',
-    credit: 'M3.5 9.5h17M4.5 6.5h15a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1h-15a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1zM6.5 14h3',
-  }[kind];
-  return (
-    <span style={{
-      width: 40, height: 40, flex: 'none', borderRadius: 11, display: 'flex',
-      alignItems: 'center', justifyContent: 'center', background: tint[0], color: tint[1],
-    }}>
-      <svg width={19} height={19} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-        strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-        <path d={d} />
-      </svg>
-    </span>
-  );
-}

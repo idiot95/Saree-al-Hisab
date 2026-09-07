@@ -69,7 +69,9 @@ export default async function Entry({ params }: { params: Promise<{ id: string }
             merchant: entry.merchant, note: entry.note, is_shared: entry.is_shared,
             category_id: entry.category_id, payment_method_id: entry.payment_method_id,
           }}
-          categories={cats.map((c) => ({ category_id: c.id, name: c.name, tint: c.tint }))}
+          categories={cats.map((c) => ({
+            category_id: c.id, name: c.name, tint: c.tint, icon: c.icon,
+          }))}
           methods={methods.map((m) => ({ id: m.id, name: m.name, funds: m.funds }))}
           canEdit={actor.role !== 'viewer'}
         />

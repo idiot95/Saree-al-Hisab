@@ -1,7 +1,11 @@
 import Link from 'next/link';
+import { Chip } from './Icon';
 import { format } from '@/lib/money';
 
-type Row = { category_id: string; name: string; tint: string; budget: string; spent: string };
+type Row = {
+  category_id: string; name: string; tint: string; icon: string;
+  budget: string; spent: string;
+};
 
 const TINT: Record<string, string> = {
   green: 'var(--cat-green-ink)', orange: 'var(--cat-orange-ink)', blue: 'var(--cat-blue-ink)',
@@ -108,8 +112,9 @@ export default function MonthSoFar({ month, rows, budget, spent }: {
                   display: 'flex', alignItems: 'center', gap: 10, minHeight: 30,
                   textDecoration: 'none',
                 }}>
+                <Chip icon={r.icon} tint={r.tint} size={24} radius={7} iconSize={13} />
                 <span style={{
-                  fontSize: 12.5, width: 92, overflow: 'hidden', textOverflow: 'ellipsis',
+                  fontSize: 12.5, width: 74, overflow: 'hidden', textOverflow: 'ellipsis',
                   whiteSpace: 'nowrap', color: 'var(--c-meta)',
                 }}>{r.name}</span>
                 <span style={{

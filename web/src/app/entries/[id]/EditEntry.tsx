@@ -1,11 +1,12 @@
 'use client';
 
 import { useActionState, useState } from 'react';
+import { Icon } from '../../Icon';
 import { Field, ErrorNote } from '../../auth-ui';
 import { updateEntry, deleteEntry } from '../actions';
 import { format } from '@/lib/money';
 
-type Cat = { category_id: string; name: string; tint: string };
+type Cat = { category_id: string; name: string; tint: string; icon: string };
 type Method = { id: string; name: string; funds: string };
 
 const TINT: Record<string, [string, string]> = {
@@ -87,7 +88,10 @@ export default function EditEntry({ entry, categories, methods, canEdit }: {
                       fontWeight: 600, background: on ? bg : 'var(--c-sunk2)',
                       color: on ? ink : 'var(--c-meta)',
                       border: `1px solid ${on ? ink : 'var(--c-border)'}`,
-                    }}>{c.name}</button>
+                      display: 'flex', alignItems: 'center', gap: 6,
+                    }}>
+                    <Icon name={c.icon} size={15} strokeWidth={1.9} />
+                    {c.name}</button>
                 );
               })}
             </div>

@@ -1,6 +1,7 @@
 'use client';
 
 import { useActionState, useState } from 'react';
+import { Chip, ACCOUNT_ICON, ACCOUNT_TINT } from '../Icon';
 import { Field, ErrorNote } from '../auth-ui';
 import { addAccount } from './actions';
 
@@ -51,6 +52,7 @@ export default function AddAccount({ startOpen = false }: { startOpen?: boolean 
             <input type="radio" name="kind" value={k.id} checked={kind === k.id}
               onChange={() => setKind(k.id)}
               style={{ width: 18, height: 18, marginTop: 1, accentColor: 'var(--c-seagrass)', flex: 'none' }} />
+            <Chip icon={ACCOUNT_ICON[k.id]} tint={ACCOUNT_TINT[k.id]} size={34} radius={9} iconSize={17} />
             <span style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
               <span style={{ fontSize: 14.5, fontWeight: 600 }}>{k.label}</span>
               <span style={{ fontSize: 12.5, lineHeight: 1.45, color: 'var(--c-meta)' }}>{k.what}</span>

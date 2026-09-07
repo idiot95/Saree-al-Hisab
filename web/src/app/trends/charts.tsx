@@ -1,4 +1,5 @@
 import { format } from '@/lib/money';
+import { Chip } from '../Icon';
 
 /* Plain SVG, rendered on the server. No chart library: nothing to download,
    nothing to execute, and the Content-Security-Policy stays closed. It also
@@ -70,7 +71,8 @@ export function MonthBars({ points }: {
 /* ── this month, as a ring ──────────────────────────────────────────────── */
 
 export function CategoryDonut({ slices, total }: {
-  slices: { id: string; name: string; amount: number; tint: string }[]; total: number;
+  slices: { id: string; name: string; amount: number; tint: string; icon: string }[];
+  total: number;
 }) {
   const S = 150, R = 62, T = 22, C = S / 2;
   let angle = -Math.PI / 2;
@@ -109,10 +111,7 @@ export function CategoryDonut({ slices, total }: {
       }}>
         {slices.map((s, i) => (
           <li key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5 }}>
-            <span style={{
-              width: 9, height: 9, borderRadius: 3, flex: 'none',
-              background: TINT[s.tint] ?? SERIES[i % 6],
-            }} />
+            <Chip icon={s.icon} tint={s.tint} size={22} radius={6} iconSize={12} />
             <span style={{
               flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
             }}>{s.name}</span>

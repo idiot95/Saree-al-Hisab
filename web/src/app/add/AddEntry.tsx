@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useTransition, useEffect } from 'react';
+import { Icon } from '../Icon';
 import { HEADER_BG } from '../auth-ui';
 import { useRouter } from 'next/navigation';
 import { keysDisplay, pushKey, popKey, fromKeys, symbolOf, format } from '@/lib/money';
@@ -21,7 +22,7 @@ const KINDS: { id: Kind; label: string }[] = [
   { id: 'transfer', label: 'Transfer' },
 ];
 
-export type Category = { id: string; name: string; tint: string };
+export type Category = { id: string; name: string; tint: string; icon: string };
 export type Method = { id: string; name: string; funds: string };
 export type Account = { id: string; name: string; kind: string };
 
@@ -215,10 +216,12 @@ export default function AddEntry({
                   minHeight: 44, padding: '0 14px', display: 'flex', alignItems: 'center',
                   borderRadius: 999, flex: 'none', whiteSpace: 'nowrap', fontSize: 13.5, fontWeight: 600,
                   scrollSnapAlign: 'start',
+                  gap: 7,
                   background: on ? `var(--cat-${c.tint}-ink)` : `var(--cat-${c.tint})`,
                   color: on ? '#fff' : `var(--cat-${c.tint}-ink)`,
                 }}
               >
+                <Icon name={c.icon} size={16} strokeWidth={1.9} />
                 {c.name}
               </button>
             );

@@ -82,7 +82,8 @@ export default async function Inbox() {
                   return (
                     <DueRow key={`${d.scheduleId}:${d.dueOn}`}
                       scheduleId={d.scheduleId} name={s.name} dueOn={d.dueOn}
-                      daysAway={d.daysAway} amount={Number(s.amount ?? 0)} category={s.category} />
+                      daysAway={d.daysAway} amount={Number(s.amount ?? 0)} category={s.category}
+                      icon={s.icon} tint={s.tint} />
                   );
                 })}
               </section>

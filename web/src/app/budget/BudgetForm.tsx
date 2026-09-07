@@ -1,12 +1,16 @@
 'use client';
 
 import Link from 'next/link';
+import { Chip } from '../Icon';
 import { useActionState, useState } from 'react';
 import { ErrorNote } from '../auth-ui';
 import { saveBudget } from './actions';
 import { format } from '@/lib/money';
 
-type Row = { category_id: string; name: string; tint: string; budget: string; spent: string };
+type Row = {
+  category_id: string; name: string; tint: string; icon: string;
+  budget: string; spent: string;
+};
 
 const TINT: Record<string, [string, string]> = {
   green: ['var(--cat-green)', 'var(--cat-green-ink)'],
@@ -72,7 +76,6 @@ export default function BudgetForm({ month, rows, canEdit }: {
         margin: '0 18px 14px', background: 'var(--c-card)', borderRadius: 18, padding: '0 16px',
       }}>
         {rows.map((r, i) => {
-          const [bg, ink] = TINT[r.tint] ?? ['var(--cat-neutral)', 'var(--cat-neutral-ink)'];
           const spent = Number(r.spent);
           const budget = Math.round((Number(draft[r.category_id]) || 0) * 100);
           const over = budget > 0 && spent > budget;
@@ -81,11 +84,7 @@ export default function BudgetForm({ month, rows, canEdit }: {
               display: 'flex', alignItems: 'center', gap: 12, minHeight: 74,
               borderBottom: i === rows.length - 1 ? undefined : '1px solid var(--c-rule)',
             }}>
-              <span style={{
-                width: 38, height: 38, flex: 'none', borderRadius: 11, display: 'flex',
-                alignItems: 'center', justifyContent: 'center', background: bg, color: ink,
-                fontSize: 13, fontWeight: 700,
-              }}>{r.name.slice(0, 2).toUpperCase()}</span>
+              <Chip icon={r.icon} tint={r.tint} size={38} />
 
               <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
                 <span style={{ fontSize: 15, fontWeight: 600 }}>{r.name}</span>
