@@ -946,6 +946,17 @@ as a fourth pill. Without JavaScript the button is still a link to `/add`.
 The offline page carries the bar, so this bumped the worker to v6; the keypad
 losing its hardcoded INR chip took it to v7.
 
+**A field is never under 16px** (`--field` in `globals.css`, and the rule on
+`input, select, textarea`). iOS Safari zooms the whole page in when a field
+smaller than that takes focus and never zooms it back out, so every screen
+with a form ended a size too big and had to be pinched — reported as "zoom
+out is possible". The scale puts body text at 14–15px on a phone, under the
+line, so fields get their own floor; buttons keep the scale, the amount
+fields set a larger size of their own. Measured with a probe over every form
+at 390px rather than assumed. Pinch-to-zoom itself is deliberately left
+alone — `maximum-scale` would hide the symptom and fail anyone who needs it.
+`/add` changed, so this took the worker to v8.
+
 **Light and dark live in a cookie**, `ql.theme`, read in the root layout and
 stamped as `data-theme` on `<html>`; absent means follow the phone.
 `tokens.css` already carries both palettes. The picker on `/household`

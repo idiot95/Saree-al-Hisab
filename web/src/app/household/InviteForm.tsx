@@ -41,7 +41,7 @@ export default function InviteForm({ origin, household, inviter }: {
               value={email} onChange={(e) => setEmail(e.target.value)}
               style={{
                 minHeight: 50, borderRadius: 13, border: '1px solid var(--c-border)',
-                background: 'var(--c-sunk2)', color: 'var(--c-ink)', fontSize: 'var(--step-0)',
+                background: 'var(--c-sunk2)', color: 'var(--c-ink)', fontSize: 'var(--field)',
                 padding: '0 14px', width: '100%',
               }}
             />

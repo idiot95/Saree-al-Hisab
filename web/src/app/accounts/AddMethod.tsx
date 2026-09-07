@@ -62,7 +62,7 @@ export default function AddMethod({ accounts, startOpen = false }: { accounts: A
           onChange={(e) => setAccountId(e.target.value)}
           style={{
             minHeight: 52, borderRadius: 13, border: '1px solid var(--c-border)',
-            background: 'var(--c-card)', color: 'var(--c-ink)', fontSize: 'var(--step-0)',
+            background: 'var(--c-card)', color: 'var(--c-ink)', fontSize: 'var(--field)',
             fontWeight: 600, padding: '0 12px',
           }}>
           {accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}

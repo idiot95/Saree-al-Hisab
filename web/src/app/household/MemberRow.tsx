@@ -91,7 +91,7 @@ export default function MemberRow({ member, canManage, isSelf, last, origin }: {
                 name="role" value={role} onChange={(e) => setRole(e.target.value as Role)}
                 style={{
                   flex: 1, minHeight: 46, borderRadius: 11, border: '1px solid var(--c-border)',
-                  background: 'var(--c-card)', color: 'var(--c-ink)', fontSize: 'var(--step-0)',
+                  background: 'var(--c-card)', color: 'var(--c-ink)', fontSize: 'var(--field)',
                   fontWeight: 600, padding: '0 10px',
                 }}
               >

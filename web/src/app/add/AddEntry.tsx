@@ -322,7 +322,7 @@ export default function AddEntry({
             onChange={(e) => setOccurredOn(e.target.value || today)}
             style={{
               flex: 1, minHeight: 48, border: 0, background: 'transparent',
-              color: 'var(--c-ink)', fontSize: 'var(--step-0)', fontWeight: 600,
+              color: 'var(--c-ink)', fontSize: 'var(--field)', fontWeight: 600,
             }}
           />
         </label>
@@ -336,7 +336,7 @@ export default function AddEntry({
             style={{
               width: '100%', minHeight: 50, borderRadius: 13, padding: '0 14px',
               border: '1px solid var(--c-border)', background: 'var(--c-card)',
-              color: 'var(--c-ink)', fontSize: 'var(--step-0)',
+              color: 'var(--c-ink)', fontSize: 'var(--field)',
             }}
           />
         </div>
@@ -483,7 +483,7 @@ export default function AddEntry({
                   style={{
                     flex: 1, minWidth: 0, minHeight: 40, padding: '0 12px', borderRadius: 11,
                     background: 'var(--c-card)', border: '1px solid var(--c-border)',
-                    color: 'var(--c-ink)', fontSize: 'var(--step--1)',
+                    color: 'var(--c-ink)', fontSize: 'var(--field)',
                   }}
                 />
               </label>

@@ -113,7 +113,7 @@ export default function NewPeople({ known = [] }: { known?: string[] }) {
           style={{
             flex: 1, minWidth: 0, minHeight: 48, padding: '0 14px', borderRadius: 13,
             background: 'var(--c-card)', border: '1px solid var(--c-border)',
-            color: 'var(--c-ink)', fontSize: 'var(--step-0)',
+            color: 'var(--c-ink)', fontSize: 'var(--field)',
           }}
         />
         <button type="button" onClick={addTyped} disabled={typed.trim().length < 2} className="cta" style={{

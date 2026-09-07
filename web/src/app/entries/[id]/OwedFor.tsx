@@ -83,7 +83,7 @@ export default function OwedFor({ txnId, entryAmount, people, claims, canEdit }:
             <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)' }}>Who owes you</span>
             <select name="counterpartyId" required style={{
               minHeight: 52, borderRadius: 13, border: '1px solid var(--c-border)',
-              background: 'var(--c-card)', color: 'var(--c-ink)', fontSize: 'var(--step-0)',
+              background: 'var(--c-card)', color: 'var(--c-ink)', fontSize: 'var(--field)',
               fontWeight: 600, padding: '0 12px',
             }}>
               {people.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}

@@ -94,7 +94,7 @@ function NameField({ defaultValue }: { defaultValue?: string }) {
       <input name="name" defaultValue={defaultValue} required maxLength={40}
         placeholder="Groceries" style={{
           minHeight: 52, borderRadius: 13, border: '1px solid var(--c-border)',
-          background: 'var(--c-card)', color: 'var(--c-ink)', fontSize: 'var(--step-0)', padding: '0 14px',
+          background: 'var(--c-card)', color: 'var(--c-ink)', fontSize: 'var(--field)', padding: '0 14px',
         }} />
     </label>
   );

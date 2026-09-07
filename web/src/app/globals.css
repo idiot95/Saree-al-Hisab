@@ -133,6 +133,9 @@
      which is exactly the sort of thing that is never consciously noticed and
      always read as sloppiness. */
   --pad: 16px;
+
+  /* What you type into. See the field rule below the resets. */
+  --field: max(16px, var(--step-0));
   }
 
   html {
@@ -170,6 +173,18 @@
   p { line-height: var(--lh-normal); max-width: var(--measure); }
 
   button, input, select, textarea { font: inherit; font-optical-sizing: auto; }
+
+  /* iOS Safari zooms the whole page in when a field smaller than 16px takes
+     focus, and does not zoom it back out when the field is left — so every
+     screen with a form on it ended a size too big, and stayed that way until
+     somebody pinched. The scale puts body text at 14–15px on a phone, which
+     is under the line. So a field is never under 16px, whatever the scale
+     says: this rule for fields that inherit, and `--field` for the ones
+     that name a size inline. Buttons do not trigger it and keep the scale;
+     the amount fields set a larger size of their own. Fixing the cause is
+     what leaves pinch-to-zoom itself alone — locking it out would be the
+     other way to hide this, and a bad trade for anyone who needs it. */
+  input, select, textarea { font-size: var(--field); }
   button {
     color: inherit; background: none; border: 0; padding: 0;
     cursor: pointer; text-align: left;

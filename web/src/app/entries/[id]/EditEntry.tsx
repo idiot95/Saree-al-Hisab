@@ -108,7 +108,7 @@ export default function EditEntry({ entry, categories, methods, canEdit }: {
             <select name="payment_method_id" defaultValue={entry.payment_method_id ?? ''}
               disabled={!canEdit} style={{
                 minHeight: 52, borderRadius: 13, border: '1px solid var(--c-border)',
-                background: 'var(--c-card)', color: 'var(--c-ink)', fontSize: 'var(--step-0)',
+                background: 'var(--c-card)', color: 'var(--c-ink)', fontSize: 'var(--field)',
                 fontWeight: 600, padding: '0 12px',
               }}>
               {methods.map((m) => (

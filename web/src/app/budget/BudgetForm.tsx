@@ -147,7 +147,7 @@ export default function BudgetForm({ month, rows, canEdit }: {
                   }))}
                   style={{
                     width: 88, minHeight: 44, border: 0, background: 'transparent',
-                    color: 'var(--c-ink)', fontSize: 'var(--step-0)', fontWeight: 600, textAlign: 'right',
+                    color: 'var(--c-ink)', fontSize: 'var(--field)', fontWeight: 600, textAlign: 'right',
                   }}
                 />
               </span>

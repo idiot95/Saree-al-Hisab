@@ -88,7 +88,7 @@ export default function DueRow({
             <input name="amount" inputMode="decimal" defaultValue={String(amount / 100)}
               style={{
                 minHeight: 48, borderRadius: 12, border: '1px solid var(--c-border)',
-                background: 'var(--c-card)', color: 'var(--c-ink)', fontSize: 'var(--step-0)',
+                background: 'var(--c-card)', color: 'var(--c-ink)', fontSize: 'var(--field)',
                 fontWeight: 600, padding: '0 12px',
               }} />
           </label>

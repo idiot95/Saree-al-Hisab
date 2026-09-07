@@ -84,7 +84,7 @@ export default function Claims({ claims, methods, canEdit }: {
                     <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)' }}>Into</span>
                     <select name="methodId" required style={{
                       minHeight: 50, borderRadius: 12, border: '1px solid var(--c-border)',
-                      background: 'var(--c-card)', color: 'var(--c-ink)', fontSize: 'var(--step-0)',
+                      background: 'var(--c-card)', color: 'var(--c-ink)', fontSize: 'var(--field)',
                       fontWeight: 600, padding: '0 12px',
                     }}>
                       {methods.map((m) => (

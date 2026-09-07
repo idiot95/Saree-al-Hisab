@@ -116,7 +116,7 @@ function Select({ label, name, options }: {
       <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)' }}>{label}</span>
       <select name={name} required style={{
         minHeight: 52, borderRadius: 13, border: '1px solid var(--c-border)',
-        background: 'var(--c-card)', color: 'var(--c-ink)', fontSize: 'var(--step-0)',
+        background: 'var(--c-card)', color: 'var(--c-ink)', fontSize: 'var(--field)',
         fontWeight: 600, padding: '0 12px',
       }}>
         {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}

@@ -107,7 +107,7 @@ export function Field({ label, name, type = 'text', hint, ...rest }: {
         name={name} type={type}
         style={{
           minHeight: 52, borderRadius: 13, border: '1px solid var(--c-border)',
-          background: 'var(--c-card)', color: 'var(--c-ink)', fontSize: 'var(--step-0)',
+          background: 'var(--c-card)', color: 'var(--c-ink)', fontSize: 'var(--field)',
           padding: '0 14px', width: '100%',
         }}
         {...rest}
@@ -130,7 +130,7 @@ export function CurrencyField({ defaultValue = 'INR', hint, ...rest }: {
       <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)' }}>Currency</span>
       <select name="currency" defaultValue={defaultValue} style={{
         minHeight: 52, borderRadius: 13, border: '1px solid var(--c-border)',
-        background: 'var(--c-card)', color: 'var(--c-ink)', fontSize: 'var(--step-0)',
+        background: 'var(--c-card)', color: 'var(--c-ink)', fontSize: 'var(--field)',
         padding: '0 14px', width: '100%', appearance: 'auto',
       }} {...rest}>
         {CURRENCIES.map((c) => (
