@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Chip } from '../Icon';
+import { Chip, tintOf } from '../Icon';
 import { useActionState, useState } from 'react';
 import { ErrorNote } from '../auth-ui';
 import { saveBudget } from './actions';
@@ -86,13 +86,32 @@ export default function BudgetForm({ month, rows, canEdit }: {
             }}>
               <Chip icon={r.icon} tint={r.tint} size={38} />
 
-              <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
                 <span style={{ fontSize: 15, fontWeight: 600 }}>{r.name}</span>
+                {/* How close this category is to its own line, in its own
+                    colour. A row of these is the quickest read on the screen:
+                    you see which one is about to go over without comparing
+                    any figures. */}
+                {budget > 0 && (
+                  <span style={{
+                    height: 5, borderRadius: 999, background: 'var(--c-track)',
+                    overflow: 'hidden', maxWidth: 150,
+                  }}>
+                    <span style={{
+                      display: 'block', height: '100%', borderRadius: 999,
+                      width: `${Math.min(100, (spent / budget) * 100)}%`,
+                      background: over ? 'var(--c-danger-fill)' : tintOf(r.tint)[1],
+                    }} />
+                  </span>
+                )}
                 {spent > 0 ? (
                   <Link href={`/entries?m=${month}&c=${r.category_id}`} style={{
                     fontSize: 12, textDecoration: 'none',
-                    color: over ? 'var(--c-danger)' : 'var(--c-teal)', fontWeight: 600,
-                  }}>{format(spent)} spent</Link>
+                    color: over ? 'var(--c-danger)' : 'var(--c-meta)', fontWeight: 600,
+                  }}>
+                    {format(spent)} of {format(budget || 0)}
+                    {over && ` · ${format(spent - budget)} over`}
+                  </Link>
                 ) : (
                   <span style={{ fontSize: 12, color: 'var(--c-meta)' }}>nothing spent yet</span>
                 )}

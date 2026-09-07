@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 import { actorOrNull, billsDue, duplicatesFor, schedulesFor } from '@/db/queries';
 import { outstandingDues } from '@/lib/recur';
 import { format } from '@/lib/money';
-import { HEADER_BG } from '../auth-ui';
+import { headerBg } from '../auth-ui';
 import TabBar, { TAB_BAR_SPACE } from '../TabBar';
 import DuplicateCard from './DuplicateCard';
 import DueRow from '../schedules/DueRow';
@@ -32,7 +32,7 @@ export default async function Inbox() {
   return (
     <main style={{ minHeight: '100dvh', background: 'var(--c-bg)', paddingBottom: TAB_BAR_SPACE }}>
       <header className="el2" style={{
-        background: HEADER_BG, color: '#fff', borderRadius: '0 0 28px 28px',
+        background: headerBg('pumpkin'), color: '#fff', borderRadius: '0 0 28px 28px',
         padding: '18px 20px 26px', display: 'flex', flexDirection: 'column', gap: 10,
       }}>
         <Link href="/" aria-label="Back" style={{

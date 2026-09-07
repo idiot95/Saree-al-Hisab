@@ -24,6 +24,10 @@ const SECURITY_HEADERS = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  /* Rewrites `import { IconHome2 } from '@tabler/icons-react'` into a deep
+     import, so a set of five thousand icons costs only the thirty-five that
+     are actually used. */
+  experimental: { optimizePackageImports: ['@tabler/icons-react'] },
   async headers() {
     return [{ source: '/:path*', headers: SECURITY_HEADERS }];
   },

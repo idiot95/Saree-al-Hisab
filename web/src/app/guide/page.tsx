@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { actorOrNull } from '@/db/queries';
 import TabBar, { TAB_BAR_SPACE } from '../TabBar';
-import { HEADER_BG } from '../auth-ui';
+import { headerBg } from '../auth-ui';
 
 export const metadata = { title: 'How it works · Quiet Ledger' };
 export const dynamic = 'force-dynamic';
@@ -149,7 +149,7 @@ export default async function Guide() {
   return (
     <main style={{ minHeight: '100dvh', background: 'var(--c-bg)', paddingBottom: TAB_BAR_SPACE }}>
       <header className="el2" style={{
-        background: HEADER_BG, color: '#fff', borderRadius: '0 0 28px 28px',
+        background: headerBg('slate'), color: '#fff', borderRadius: '0 0 28px 28px',
         padding: '18px 20px 28px', display: 'flex', flexDirection: 'column', gap: 11,
       }}>
         <Link href="/" aria-label="Back" style={{

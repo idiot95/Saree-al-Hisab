@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 import { actorOrNull, categoriesFor, methodsFor, schedulesFor } from '@/db/queries';
 import { format } from '@/lib/money';
 import { describeRule, nextUnsettled, outstandingDues } from '@/lib/recur';
-import { HEADER_BG } from '../auth-ui';
+import { headerBg } from '../auth-ui';
 import TabBar, { TAB_BAR_SPACE } from '../TabBar';
 import NewSchedule from './NewSchedule';
 import DueRow, { StopSchedule } from './DueRow';
@@ -31,7 +31,7 @@ export default async function Schedules() {
   return (
     <main style={{ minHeight: '100dvh', background: 'var(--c-bg)', paddingBottom: TAB_BAR_SPACE }}>
       <header className="el2" style={{
-        background: HEADER_BG, color: '#fff', borderRadius: '0 0 28px 28px',
+        background: headerBg('cyan'), color: '#fff', borderRadius: '0 0 28px 28px',
         padding: '18px 20px 26px', display: 'flex', flexDirection: 'column', gap: 10,
       }}>
         <Link href="/" aria-label="Back" style={{

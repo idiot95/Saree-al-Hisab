@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { actorOrNull, bookList, owedByPerson, peopleFor } from '@/db/queries';
 import { format } from '@/lib/money';
-import { HEADER_BG } from '../auth-ui';
+import { headerBg } from '../auth-ui';
 import TabBar, { TAB_BAR_SPACE } from '../TabBar';
 import AddPerson from './AddPerson';
 import NewBook from '../books/NewBook';
@@ -44,7 +44,7 @@ export default async function People() {
   return (
     <main style={{ minHeight: '100dvh', background: 'var(--c-bg)', paddingBottom: TAB_BAR_SPACE }}>
       <header className="el2" style={{
-        background: HEADER_BG, color: '#fff', borderRadius: '0 0 28px 28px',
+        background: headerBg('purple'), color: '#fff', borderRadius: '0 0 28px 28px',
         padding: '18px 20px 26px', display: 'flex', flexDirection: 'column', gap: 12,
       }}>
         <Link href="/" aria-label="Back" style={{

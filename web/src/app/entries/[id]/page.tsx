@@ -3,7 +3,7 @@ import { notFound, redirect } from 'next/navigation';
 import {
   actorOrNull, categoriesFor, claimsOnEntry, entryById, methodsFor, peopleFor,
 } from '@/db/queries';
-import { HEADER_BG } from '../../auth-ui';
+import { headerBg } from '../../auth-ui';
 import EditEntry from './EditEntry';
 import OwedFor from './OwedFor';
 
@@ -40,7 +40,7 @@ export default async function Entry({ params }: { params: Promise<{ id: string }
   return (
     <main style={{ minHeight: '100dvh', background: 'var(--c-bg)', paddingBottom: 44 }}>
       <header className="el2" style={{
-        background: HEADER_BG, color: '#fff', borderRadius: '0 0 26px 26px',
+        background: headerBg('indigo'), color: '#fff', borderRadius: '0 0 26px 26px',
         padding: '18px 20px 22px', display: 'flex', flexDirection: 'column', gap: 10,
       }}>
         <Link href="/entries" aria-label="Back to entries" style={{

@@ -49,10 +49,10 @@ export default async function Home() {
           background: 'rgba(255,255,255,.16)', border: '1px solid rgba(255,255,255,.22)',
         }}>{(actor.user_name || '?').slice(0, 2).toUpperCase()}</span>
         <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <span style={{
-            fontSize: 16, fontWeight: 600, overflow: 'hidden',
+          <h1 style={{
+            margin: 0, fontSize: 16, fontWeight: 600, overflow: 'hidden',
             textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-          }}>{name}</span>
+          }}>{name}</h1>
           <span style={{ fontSize: 12.5, color: 'rgba(255,255,255,.72)' }}>
             {actor.user_name} · {actor.role ? ROLE[actor.role] : ''}
           </span>

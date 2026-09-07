@@ -3,7 +3,7 @@ import { Chip } from '../Icon';
 import { redirect } from 'next/navigation';
 import { actorOrNull, budgetFor, entriesFor } from '@/db/queries';
 import { format, monthKey } from '@/lib/money';
-import { HEADER_BG } from '../auth-ui';
+import { headerBg } from '../auth-ui';
 import TabBar, { TAB_BAR_SPACE } from '../TabBar';
 
 export const metadata = { title: 'Entries · Quiet Ledger' };
@@ -64,7 +64,7 @@ export default async function Entries({ searchParams }: {
   return (
     <main style={{ minHeight: '100dvh', background: 'var(--c-bg)', paddingBottom: TAB_BAR_SPACE }}>
       <header className="el2" style={{
-        background: HEADER_BG, color: '#fff', borderRadius: '0 0 28px 28px',
+        background: headerBg('indigo'), color: '#fff', borderRadius: '0 0 28px 28px',
         padding: '18px 20px 24px', display: 'flex', flexDirection: 'column', gap: 12,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -103,7 +103,7 @@ export default async function Entries({ searchParams }: {
 
         {filtered && (
           <Link href={`/entries?m=${month}`} style={{
-            alignSelf: 'flex-start', minHeight: 36, display: 'flex', alignItems: 'center', gap: 6,
+            alignSelf: 'flex-start', minHeight: 44, display: 'flex', alignItems: 'center', gap: 6,
             padding: '0 12px', borderRadius: 999, textDecoration: 'none',
             background: 'rgba(255,255,255,.16)', color: '#fff', fontSize: 13, fontWeight: 600,
           }}>

@@ -4,7 +4,7 @@ import {
   actorOrNull, categoriesFor, claimsFor, methodsFor, personById, personLedger,
 } from '@/db/queries';
 import { format } from '@/lib/money';
-import { HEADER_BG } from '../../auth-ui';
+import { headerBg } from '../../auth-ui';
 import PersonActions from './PersonActions';
 import Claims from './Claims';
 
@@ -43,7 +43,7 @@ export default async function Person({ params }: { params: Promise<{ id: string 
   return (
     <main style={{ minHeight: '100dvh', background: 'var(--c-bg)', paddingBottom: 44 }}>
       <header className="el2" style={{
-        background: HEADER_BG, color: '#fff', borderRadius: '0 0 28px 28px',
+        background: headerBg('purple'), color: '#fff', borderRadius: '0 0 28px 28px',
         padding: '18px 20px 26px', display: 'flex', flexDirection: 'column', gap: 10,
       }}>
         <Link href="/people" aria-label="Back" style={{

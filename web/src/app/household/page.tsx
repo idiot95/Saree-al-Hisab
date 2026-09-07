@@ -8,7 +8,7 @@ import RevokeButton from './RevokeButton';
 import TabBar, { TAB_BAR_SPACE } from '../TabBar';
 import PasswordCard from './PasswordCard';
 import ScanKey from './ScanKey';
-import { HEADER_BG } from '../auth-ui';
+import { headerBg } from '../auth-ui';
 import BooksSwitcher from './BooksSwitcher';
 
 export const metadata = { title: 'Household · Quiet Ledger' };
@@ -41,7 +41,7 @@ export default async function Household() {
   return (
     <main style={{ minHeight: '100dvh', background: 'var(--c-bg)', paddingBottom: TAB_BAR_SPACE }}>
       <header className="el2" style={{
-        background: HEADER_BG,
+        background: headerBg('slate'),
         color: '#fff', borderRadius: '0 0 28px 28px', padding: '18px 20px 26px',
         display: 'flex', flexDirection: 'column', gap: 12,
       }}>

@@ -100,7 +100,7 @@ export default function MonthSoFar({ month, rows, budget, spent }: {
       {top.length > 0 && (
         <ul style={{
           margin: 0, padding: '3px 0 0', listStyle: 'none',
-          display: 'flex', flexDirection: 'column', gap: 9,
+          display: 'flex', flexDirection: 'column', gap: 2,
         }}>
           {top.map((r) => {
             const b = Number(r.budget); const s = Number(r.spent);
@@ -109,7 +109,7 @@ export default function MonthSoFar({ month, rows, budget, spent }: {
             return (
               <li key={r.category_id}>
                 <Link href={`/entries?c=${r.category_id}`} style={{
-                  display: 'flex', alignItems: 'center', gap: 10, minHeight: 30,
+                  display: 'flex', alignItems: 'center', gap: 10, minHeight: 44,
                   textDecoration: 'none',
                 }}>
                 <Chip icon={r.icon} tint={r.tint} size={24} radius={7} iconSize={13} />

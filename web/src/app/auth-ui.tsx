@@ -7,9 +7,39 @@
    It used to carry a repeating 1px line every 26px, meant to read as ruled
    ledger paper. On a phone it read as banding across the header instead, so it
    is gone. A soft highlight and the gradient are the whole thing now. */
-export const HEADER_BG =
-  'radial-gradient(130% 85% at 82% -12%, rgba(255,255,255,.16) 0%, rgba(255,255,255,0) 62%),'
-  + 'linear-gradient(150deg,#2C5063 0%,#233D4D 58%,#172B37 100%)';
+/* Each section of the app gets its own header colour.
+
+   One dark teal on twelve screens made every one look like the last, which is
+   the complaint that prompted this: you could not tell at a glance which part
+   of the app you were in. The base stays dark so white text keeps working —
+   every accent below was measured against white and the worst is 6.32:1,
+   comfortably past the 4.5:1 that body text needs.
+
+   The hue carries meaning where there is meaning to carry: money owed is
+   pumpkin, the same colour as over-budget; savings and net worth are green. */
+const ACCENT: Record<string, [string, string, string]> = {
+  //         lightest      middle       darkest
+  teal:    ['#2C5063', '#233D4D', '#172B37'],
+  gold:    ['#6B4E10', '#543D0C', '#3A2A08'],
+  indigo:  ['#3A3F86', '#2B2F66', '#1E2147'],
+  blue:    ['#1F5578', '#18415C', '#12324A'],
+  green:   ['#2C6B4F', '#20543D', '#17402F'],
+  purple:  ['#5C2F66', '#46244E', '#331A38'],
+  pumpkin: ['#8A3D14', '#6B2E0E', '#4E2109'],
+  cyan:    ['#1A5F63', '#124A4D', '#0E3739'],
+  slate:   ['#3C4A52', '#2E3940', '#222B31'],
+};
+
+export type Accent = keyof typeof ACCENT;
+
+export function headerBg(accent: Accent = 'teal'): string {
+  const [a, b, c] = ACCENT[accent] ?? ACCENT.teal;
+  return 'radial-gradient(130% 85% at 82% -12%, rgba(255,255,255,.16) 0%, rgba(255,255,255,0) 62%),'
+    + `linear-gradient(150deg,${a} 0%,${b} 58%,${c} 100%)`;
+}
+
+/** The default, kept so screens that have not chosen an accent still work. */
+export const HEADER_BG = headerBg('teal');
 
 export const primaryBtn: React.CSSProperties = {
   width: '100%', minHeight: 56, borderRadius: 15, fontSize: 16.5, fontWeight: 600, color: '#fff',

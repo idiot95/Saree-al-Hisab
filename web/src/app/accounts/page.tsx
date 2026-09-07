@@ -1,10 +1,10 @@
 import { redirect } from 'next/navigation';
-import { Chip, RAIL_ICON, ACCOUNT_ICON, ACCOUNT_TINT } from '../Icon';
+import { Chip, RAIL_ICON, RAIL_TINT, ACCOUNT_ICON, ACCOUNT_TINT } from '../Icon';
 import {
   actorOrNull, accountsWithBalances, methodsWithFunding, openCyclesFor,
 } from '@/db/queries';
 import { format } from '@/lib/money';
-import { HEADER_BG } from '../auth-ui';
+import { headerBg } from '../auth-ui';
 import TabBar, { TAB_BAR_SPACE } from '../TabBar';
 import AddAccount from './AddAccount';
 import AddMethod from './AddMethod';
@@ -56,7 +56,7 @@ export default async function Accounts() {
   return (
     <main style={{ minHeight: '100dvh', background: 'var(--c-bg)', paddingBottom: TAB_BAR_SPACE }}>
       <header className="el2" style={{
-        background: HEADER_BG, color: '#fff', borderRadius: '0 0 28px 28px',
+        background: headerBg('blue'), color: '#fff', borderRadius: '0 0 28px 28px',
         padding: '18px 20px 30px', display: 'flex', flexDirection: 'column', gap: 12,
       }}>
         <a href="/" aria-label="Back" style={{
@@ -207,7 +207,7 @@ export default async function Accounts() {
             display: 'flex', alignItems: 'center', gap: 12, minHeight: 76,
             borderBottom: i === methods.length - 1 ? undefined : '1px solid var(--c-rule)',
           }}>
-            <Chip icon={RAIL_ICON[m.kind] ?? 'tag'} tint="indigo" size={40} />
+            <Chip icon={RAIL_ICON[m.kind] ?? 'tag'} tint={RAIL_TINT[m.kind] ?? 'neutral'} size={40} />
             <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
               <span style={{ fontSize: 15.5, fontWeight: 600 }}>{m.name}</span>
               <span style={{ fontSize: 12.5, color: 'var(--c-meta)' }}>

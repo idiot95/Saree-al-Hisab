@@ -1,8 +1,9 @@
 import Link from 'next/link';
+import { Chip, ACCOUNT_ICON, ACCOUNT_TINT } from '../Icon';
 import { redirect } from 'next/navigation';
 import { actorOrNull, allBalances, owedByPerson, worthSeries } from '@/db/queries';
 import { format } from '@/lib/money';
-import { HEADER_BG } from '../auth-ui';
+import { headerBg } from '../auth-ui';
 import TabBar, { TAB_BAR_SPACE } from '../TabBar';
 
 export const metadata = { title: 'Net worth · Quiet Ledger' };
@@ -42,7 +43,7 @@ export default async function Worth() {
   return (
     <main style={{ minHeight: '100dvh', background: 'var(--c-bg)', paddingBottom: TAB_BAR_SPACE }}>
       <header className="el2" style={{
-        background: HEADER_BG, color: '#fff', borderRadius: '0 0 28px 28px',
+        background: headerBg('green'), color: '#fff', borderRadius: '0 0 28px 28px',
         padding: '18px 20px 26px', display: 'flex', flexDirection: 'column', gap: 10,
       }}>
         <Link href="/" aria-label="Back" style={{
@@ -54,9 +55,10 @@ export default async function Worth() {
             <path d="M15 5l-7 7 7 7" />
           </svg>
         </Link>
-        <p style={{ margin: 0, fontSize: 11.5, letterSpacing: '.05em', color: 'rgba(255,255,255,.66)' }}>
-          NET WORTH
-        </p>
+        <h1 style={{
+          margin: 0, fontSize: 11.5, fontWeight: 600, letterSpacing: '.05em',
+          color: 'rgba(255,255,255,.66)',
+        }}>NET WORTH</h1>
         <span className="t" style={{
           fontSize: 38, letterSpacing: '-.024em', lineHeight: 1,
           color: worth < 0 ? 'var(--c-danger-fill)' : '#fff',
@@ -73,16 +75,7 @@ export default async function Worth() {
             margin: '0 18px', background: 'var(--c-card)', borderRadius: 18, padding: 16,
             display: 'flex', alignItems: 'center', gap: 14,
           }}>
-            <span style={{
-              width: 44, height: 44, flex: 'none', borderRadius: 12, display: 'flex',
-              alignItems: 'center', justifyContent: 'center',
-              background: 'var(--cat-cyan)', color: 'var(--cat-cyan-ink)',
-            }}>
-              <svg width={21} height={21} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                <path d="M12 3.5 20 8v8l-8 4.5L4 16V8z" />
-              </svg>
-            </span>
+            <Chip icon={ACCOUNT_ICON.savings} tint={ACCOUNT_TINT.savings} size={44} radius={12} />
             <span style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 3 }}>
               <span style={{ fontSize: 15, fontWeight: 600 }}>In savings</span>
               <span style={{ fontSize: 12.5, lineHeight: 1.45, color: 'var(--c-meta)' }}>
@@ -114,9 +107,12 @@ export default async function Worth() {
               label: a.name,
               note: GROUP[a.kind] ?? a.kind,
               value: Number(a.balance),
+              icon: ACCOUNT_ICON[a.kind] ?? 'tag',
+              tint: ACCOUNT_TINT[a.kind] ?? 'neutral',
             })),
             ...(claims > 0 ? [{
               key: 'claims', label: 'Owed for shared costs', note: 'People', value: claims,
+              icon: 'person', tint: 'indigo',
             }] : []),
           ]} total={assetTotal} />
         </Section>
@@ -128,6 +124,8 @@ export default async function Worth() {
               label: a.name + (a.last4 ? ` · ${a.last4}` : ''),
               note: GROUP[a.kind] ?? a.kind,
               value: Number(a.balance),
+              icon: ACCOUNT_ICON[a.kind] ?? 'card',
+              tint: ACCOUNT_TINT[a.kind] ?? 'orange',
             }))} total={debtTotal} negative />
           </Section>
         )}
@@ -196,7 +194,8 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 }
 
 function Rows({ rows, total, negative }: {
-  rows: { key: string; label: string; note: string; value: number }[];
+  rows: { key: string; label: string; note: string; value: number;
+          icon: string; tint: string }[];
   total: number; negative?: boolean;
 }) {
   return (
@@ -206,6 +205,7 @@ function Rows({ rows, total, negative }: {
           display: 'flex', alignItems: 'center', gap: 12, minHeight: 54,
           borderBottom: i === rows.length - 1 ? undefined : '1px solid var(--c-rule)',
         }}>
+          <Chip icon={r.icon} tint={r.tint} size={34} radius={9} iconSize={17} />
           <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
             <span style={{ fontSize: 14.5, fontWeight: 600 }}>{r.label}</span>
             <span style={{ fontSize: 12, color: 'var(--c-meta)' }}>{r.note}</span>

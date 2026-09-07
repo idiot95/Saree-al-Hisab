@@ -537,27 +537,31 @@ Recording while offline would need a queue on the device and a sync afterwards.
 That is a real feature and this is not it — claiming it and losing somebody's
 receipt would be worse than not offering it.
 
-## The icon set
+## The icon set and the colour
 
-`src/app/Icon.tsx` is the whole set: 35 glyphs, all 24×24, all stroked at the
-same weight on the same optical grid, so a row of them reads as a set rather
-than a collection.
+**Tabler Icons** (MIT), imported by name so only the ~35 used are bundled;
+`optimizePackageImports` rewrites the barrel into deep imports. Drawing them by
+hand was a false economy — a set somebody maintains is more consistent than one
+invented glyph by glyph, and it grows when a household wants a category nobody
+thought of. The `Icon` wrapper stays, so call sites still ask for `'cart'`.
 
-**Categories already carried an icon name in the database** — `cart`, `house2`,
-`cutlery` — and every screen was discarding it and drawing two letters instead.
-The names now mean something. Account kinds and payment rails have their own
-glyphs too, so a card never reads like a bank and UPI never reads like cash.
+Categories have carried an icon name since the schema was written and every
+screen was discarding it for two letters. `Chip` is the tinted tile a glyph
+sits in and is the same component everywhere, so categories, accounts and rails
+read as one kind of thing because one piece of code draws them. **People keep
+their initials** — a person is not a category.
 
-Broad categories on purpose, which is what makes a wallet app scannable: one
-clear glyph for "eating out" beats six for restaurants, cafés and takeaway.
-An unknown name falls back to a tag rather than an empty box.
+**Every section has its own header colour.** One dark teal across twelve
+screens made each look like the last: you could not tell at a glance where you
+were. Budget is gold, entries indigo, accounts blue, trends and net worth
+green, people purple, inbox pumpkin, schedules cyan, household slate; home and
+Add Entry keep the base teal. Each was measured against white — the worst is
+6.32:1, past the 4.5:1 body text needs — and the hue carries meaning where
+there is meaning: the inbox is the same pumpkin as over-budget.
 
-`Chip` is the tinted tile the glyph sits in, and it is the same component on
-every list row — categories, accounts and rails all read as the same kind of
-thing because they are drawn by the same code.
-
-**People keep their initials.** A person is not a category, and a face-shaped
-avatar with a name in it is what everyone already expects of one.
+Payment rails are tinted per rail, and budget rows carry a bar in their own
+category's colour, so the row about to go over is visible without reading a
+figure.
 
 ## The UX laws, and where each one shows up
 

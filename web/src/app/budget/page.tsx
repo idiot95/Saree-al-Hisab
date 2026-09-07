@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { actorOrNull, budgetFor, monthTotals, previousBudget } from '@/db/queries';
 import { format, monthKey } from '@/lib/money';
-import { HEADER_BG } from '../auth-ui';
+import { headerBg } from '../auth-ui';
 import TabBar, { TAB_BAR_SPACE } from '../TabBar';
 import BudgetForm from './BudgetForm';
 import CopyPrevious from './CopyPrevious';
@@ -43,7 +43,7 @@ export default async function Budget({ searchParams }: {
   return (
     <main style={{ minHeight: '100dvh', background: 'var(--c-bg)', paddingBottom: TAB_BAR_SPACE }}>
       <header className="el2" style={{
-        background: HEADER_BG, color: '#fff', borderRadius: '0 0 28px 28px',
+        background: headerBg('gold'), color: '#fff', borderRadius: '0 0 28px 28px',
         padding: '18px 20px 26px', display: 'flex', flexDirection: 'column', gap: 14,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -58,9 +58,9 @@ export default async function Budget({ searchParams }: {
           </Link>
           <span style={{ flex: 1 }} />
           <Step href={`/budget?m=${shift(month, -1)}`} label="Previous month" d="M15 5l-7 7 7 7" />
-          <span style={{ fontSize: 14.5, fontWeight: 600, minWidth: 118, textAlign: 'center' }}>
-            {label(month)}
-          </span>
+          <h1 style={{
+            margin: 0, fontSize: 14.5, fontWeight: 600, minWidth: 118, textAlign: 'center',
+          }}>{label(month)}</h1>
           <Step href={`/budget?m=${shift(month, 1)}`} label="Next month" d="M9 5l7 7-7 7" />
         </div>
 

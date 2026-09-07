@@ -3,7 +3,7 @@ import { Chip } from '../Icon';
 import { redirect } from 'next/navigation';
 import { actorOrNull, categoryTrend, monthlySeries } from '@/db/queries';
 import { format, monthKey } from '@/lib/money';
-import { HEADER_BG } from '../auth-ui';
+import { headerBg } from '../auth-ui';
 import TabBar, { TAB_BAR_SPACE } from '../TabBar';
 import { MonthBars, CategoryDonut } from './charts';
 
@@ -45,7 +45,7 @@ export default async function Trends() {
   return (
     <main style={{ minHeight: '100dvh', background: 'var(--c-bg)', paddingBottom: TAB_BAR_SPACE }}>
       <header className="el2" style={{
-        background: HEADER_BG, color: '#fff', borderRadius: '0 0 28px 28px',
+        background: headerBg('green'), color: '#fff', borderRadius: '0 0 28px 28px',
         padding: '18px 20px 26px', display: 'flex', flexDirection: 'column', gap: 11,
       }}>
         <Link href="/" aria-label="Back" style={{
