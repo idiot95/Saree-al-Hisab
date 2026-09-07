@@ -182,6 +182,17 @@ yields no working links), single use, seven days for an invite and one day for
 a reset. The screen that hands the owner a link says all of it. A link is shown
 exactly once — losing it means revoking and reissuing.
 
+**What the owner sends is a message, not a link.** A bare link in a chat is
+a puzzle — where does it go, what happens there, is it safe — so
+`InviteForm` composes the whole thing: who is inviting, into which household,
+the two steps that follow (open it; put in your name and a password, and you
+are in), what to do if you already have an account, and what the link is and
+when it dies — the expiry quoted from the row the database wrote, not
+re-derived on the phone. Share hands it to whichever app the phone offers
+(`navigator.share`, detected through `useSyncExternalStore` so the server
+render matches); Copy message is for everywhere else; the link alone is one
+tap further down.
+
 Nobody here can send email, so a forgotten password is recovered the way
 anything else in a household is: **you ask, and an owner hands you a link.**
 Which does mean an owner can take over any account — already true of someone

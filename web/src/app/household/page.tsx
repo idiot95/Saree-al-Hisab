@@ -100,7 +100,7 @@ export default async function Household() {
           ))}
         </Card>
 
-        {canManage && <InviteForm origin={origin} />}
+        {canManage && <InviteForm origin={origin} household={name} inviter={actor.user_name} />}
 
         <Head>Your households</Head>
         <BooksSwitcher books={books} canRename={canManage} />

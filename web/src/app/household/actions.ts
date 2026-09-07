@@ -19,7 +19,7 @@ import { THEMES, THEME_COOKIE } from '@/lib/theme';
 
 const INVITE_DAYS = 7;
 
-export type Result = { ok: true; message?: string } | { ok: false; error: string };
+export type Result = { ok: true; message?: string; until?: string } | { ok: false; error: string };
 
 /* Every one takes (previous state, form data) so it can be handed straight to
    useActionState. That is not a formality: an action passed through a client
@@ -67,13 +67,16 @@ export async function createInvite(_prev: Result | null, formData: FormData): Pr
   const { token, hash } = newLinkToken();
   // now() rather than a Date from here: expiry is judged by the database's
   // clock, so it should be set by it too.
-  await sql`
+  const [made] = await sql`
     insert into invite (household_id, email, role, token_hash, invited_by, expires_at)
     values (${actor.household_id}, ${email}, ${role}, ${hash}, ${actor.user_id},
-            now() + ${INVITE_DAYS} * interval '1 day')`;
+            now() + ${INVITE_DAYS} * interval '1 day')
+    returning expires_at`;
 
   revalidatePath('/household');
-  return { ok: true, message: token };
+  // The expiry the database actually set, so the message quotes the same day.
+  const until = new Date(made.expires_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'long' });
+  return { ok: true, message: token, until };
 }
 
 export async function revokeInvite(_prev: Result | null, formData: FormData): Promise<Result> {
