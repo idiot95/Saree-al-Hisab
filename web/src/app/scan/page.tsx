@@ -28,10 +28,10 @@ export default async function Scan() {
             <path d="M15 5l-7 7 7 7" />
           </svg>
         </Link>
-        <h1 className="t" style={{ margin: 0, fontSize: 26, letterSpacing: '-.018em' }}>
+        <h1 className="t" style={{ margin: 0, fontSize: 'var(--step-3)', letterSpacing: '-.018em' }}>
           Scan a receipt
         </h1>
-        <p style={{ margin: 0, fontSize: 13, lineHeight: 1.5, color: 'rgba(255,255,255,.82)' }}>
+        <p style={{ margin: 0, fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'rgba(255,255,255,.82)' }}>
           It reads the total, the date and the shop. You check them and save — nothing is
           recorded on your behalf.
         </p>
@@ -40,7 +40,7 @@ export default async function Scan() {
       <div style={{ paddingTop: 20 }}>
         <ScanForm canScan={scanning.has_key && actor.role !== 'viewer'} />
         <p style={{
-          margin: '18px 20px 0', fontSize: 12.5, lineHeight: 1.5, color: 'var(--c-meta)',
+          margin: '18px 20px 0', fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--c-meta)',
         }}>
           The photo goes to Google&rsquo;s Gemini using your household&rsquo;s own key, and is
           not stored by this app. What comes back is a suggestion: the amount is checked to be

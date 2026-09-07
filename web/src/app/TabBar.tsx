@@ -66,7 +66,7 @@ export default function TabBar({ current }: { current: string }) {
               </svg>
             </span>
             <span style={{
-              fontSize: 10.5, fontWeight: on ? 700 : 500, letterSpacing: '.01em',
+              fontSize: 'var(--step--2)', fontWeight: on ? 700 : 500, letterSpacing: '.01em',
             }}>{t.label}</span>
           </Link>
         );

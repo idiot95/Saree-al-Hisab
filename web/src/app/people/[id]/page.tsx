@@ -55,17 +55,17 @@ export default async function Person({ params }: { params: Promise<{ id: string 
             <path d="M15 5l-7 7 7 7" />
           </svg>
         </Link>
-        <h1 className="t" style={{ margin: 0, fontSize: 27, letterSpacing: '-.018em' }}>
+        <h1 className="t" style={{ margin: 0, fontSize: 'var(--step-3)', letterSpacing: '-.018em' }}>
           {person.name}
         </h1>
-        <span className="t" style={{ fontSize: 32, letterSpacing: '-.022em', marginTop: 2 }}>
+        <span className="t" style={{ fontSize: 'var(--step-4)', letterSpacing: '-.022em', marginTop: 2 }}>
           {balance === 0 && owedOnClaims === 0
             ? 'Settled up'
             : format(Math.abs(balance) + owedOnClaims)}
         </span>
         {/* Lending and shared costs are different debts and are said apart —
             conflating them is what makes a khata stop being trusted. */}
-        <p style={{ margin: 0, fontSize: 13.5, lineHeight: 1.5, color: 'rgba(255,255,255,.82)' }}>
+        <p style={{ margin: 0, fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'rgba(255,255,255,.82)' }}>
           {balance === 0 && owedOnClaims === 0
             ? `Nothing outstanding between you${person.phone ? ` · ${person.phone}` : ''}`
             : [
@@ -98,14 +98,14 @@ export default async function Person({ params }: { params: Promise<{ id: string 
 
         {ledger.length > 0 && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0 20px 11px' }}>
-            <h2 style={{ margin: 0, fontSize: 16.5, fontWeight: 600 }}>Money lent and returned</h2>
+            <h2 style={{ margin: 0, fontSize: 'var(--step-1)', fontWeight: 600 }}>Money lent and returned</h2>
             <span style={{ flex: 1, height: 1, background: 'var(--c-border)' }} />
           </div>
         )}
 
         {ledger.length === 0 ? (
           <p style={{
-            margin: '10px 34px', textAlign: 'center', fontSize: 14, lineHeight: 1.55,
+            margin: '10px 34px', textAlign: 'center', fontSize: 'var(--step--1)', lineHeight: 1.55,
             color: 'var(--c-meta)',
           }}>
             Nothing between you yet.
@@ -122,9 +122,9 @@ export default async function Person({ params }: { params: Promise<{ id: string 
                   borderBottom: i === ledger.length - 1 ? undefined : '1px solid var(--c-rule)',
                 }}>
                   <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
-                    <span style={{ fontSize: 15, fontWeight: 600, color: colour }}>{word}</span>
+                    <span style={{ fontSize: 'var(--step-0)', fontWeight: 600, color: colour }}>{word}</span>
                     <span style={{
-                      fontSize: 12.5, color: 'var(--c-meta)', overflow: 'hidden',
+                      fontSize: 'var(--step--1)', color: 'var(--c-meta)', overflow: 'hidden',
                       textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                     }}>
                       {new Date(e.occurred_on).toLocaleDateString('en-IN',
@@ -134,7 +134,7 @@ export default async function Person({ params }: { params: Promise<{ id: string 
                       {e.note ? ` · ${e.note}` : ''}
                     </span>
                   </span>
-                  <span className="t" style={{ fontSize: 16, letterSpacing: '-.01em', color: colour }}>
+                  <span className="t amt" style={{ fontSize: 'var(--step-0)', letterSpacing: '-.01em', color: colour }}>
                     {e.direction === 'back' ? '−' : '+'}{format(Number(e.amount))}
                   </span>
                 </div>
@@ -144,7 +144,7 @@ export default async function Person({ params }: { params: Promise<{ id: string 
         )}
 
         <p style={{
-          margin: '18px 20px 0', fontSize: 12.5, lineHeight: 1.5, color: 'var(--c-meta)',
+          margin: '18px 20px 0', fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--c-meta)',
         }}>
           None of this touches the monthly budget while it is outstanding — money lent has not
           been spent. Writing it off is the moment that changes.

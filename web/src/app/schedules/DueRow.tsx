@@ -31,27 +31,27 @@ export default function DueRow({
           <Icon name={icon ?? 'autodebit'} size={19} strokeWidth={1.9} />
         </span>
         <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
-          <span style={{ fontSize: 15, fontWeight: 600 }}>{name}</span>
-          <span style={{ fontSize: 12.5, color: overdue ? 'var(--c-danger)' : 'var(--c-meta)' }}>
+          <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>{name}</span>
+          <span style={{ fontSize: 'var(--step--1)', color: overdue ? 'var(--c-danger)' : 'var(--c-meta)' }}>
             {overdue ? `${-daysAway} days overdue`
               : daysAway === 0 ? 'due today' : `due in ${daysAway} days`}
             {category && ` · ${category}`}
           </span>
         </span>
-        <span className="t" style={{ fontSize: 16.5 }}>{format(amount)}</span>
+        <span className="t" style={{ fontSize: 'var(--step-1)' }}>{format(amount)}</span>
       </div>
 
       {!open ? (
         <div style={{ display: 'flex', gap: 8 }}>
           <button type="button" onClick={() => setOpen(true)} style={{
-            flex: 1, minHeight: 44, borderRadius: 11, fontSize: 13.5, fontWeight: 600,
+            flex: 1, minHeight: 44, borderRadius: 11, fontSize: 'var(--step--1)', fontWeight: 600,
             background: 'var(--c-seagrass)', color: 'var(--c-on-fill)',
           }}>Record it</button>
           <form action={skip}>
             <input type="hidden" name="scheduleId" value={scheduleId} />
             <input type="hidden" name="dueOn" value={dueOn} />
             <button type="submit" style={{
-              minHeight: 44, padding: '0 14px', borderRadius: 11, fontSize: 13.5,
+              minHeight: 44, padding: '0 14px', borderRadius: 11, fontSize: 'var(--step--1)',
               fontWeight: 600, background: 'var(--c-sunk)', color: 'var(--c-meta)',
             }}>Skip</button>
           </form>
@@ -61,28 +61,28 @@ export default function DueRow({
           <input type="hidden" name="scheduleId" value={scheduleId} />
           <input type="hidden" name="dueOn" value={dueOn} />
           <label style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--c-meta)' }}>
+            <span style={{ fontSize: 'var(--step--2)', fontWeight: 600, color: 'var(--c-meta)' }}>
               Amount — change it if this month differed
             </span>
             <input name="amount" inputMode="decimal" defaultValue={String(amount / 100)}
               style={{
                 minHeight: 48, borderRadius: 12, border: '1px solid var(--c-border)',
-                background: 'var(--c-card)', color: 'var(--c-ink)', fontSize: 16,
+                background: 'var(--c-card)', color: 'var(--c-ink)', fontSize: 'var(--step-0)',
                 fontWeight: 600, padding: '0 12px',
               }} />
           </label>
           {recState && !recState.ok && (
-            <span role="alert" style={{ fontSize: 12.5, color: 'var(--c-danger)' }}>
+            <span role="alert" style={{ fontSize: 'var(--step--1)', color: 'var(--c-danger)' }}>
               {recState.error}
             </span>
           )}
           <div style={{ display: 'flex', gap: 8 }}>
             <button type="button" onClick={() => setOpen(false)} style={{
-              minHeight: 46, padding: '0 14px', borderRadius: 11, fontSize: 13.5,
+              minHeight: 46, padding: '0 14px', borderRadius: 11, fontSize: 'var(--step--1)',
               fontWeight: 600, background: 'var(--c-sunk)', color: 'var(--c-meta)',
             }}>Cancel</button>
             <button type="submit" disabled={recording} style={{
-              flex: 1, minHeight: 46, borderRadius: 11, fontSize: 14.5, fontWeight: 600,
+              flex: 1, minHeight: 46, borderRadius: 11, fontSize: 'var(--step-0)', fontWeight: 600,
               background: 'var(--c-seagrass)', color: 'var(--c-on-fill)',
               opacity: recording ? 0.6 : 1,
             }}>{recording ? 'Saving…' : 'Record the payment'}</button>
@@ -112,13 +112,13 @@ export function StopSchedule({ scheduleId, name }: { scheduleId: string; name: s
         </button>
       </form>
       {state && !state.ok && (
-        <span role="alert" style={{ fontSize: 11.5, color: 'var(--c-danger)' }}>{state.error}</span>
+        <span role="alert" style={{ fontSize: 'var(--step--2)', color: 'var(--c-danger)' }}>{state.error}</span>
       )}
     </span>
   );
 }
 
 const quiet: React.CSSProperties = {
-  minHeight: 44, padding: '0 9px', fontSize: 12.5, fontWeight: 600,
+  minHeight: 44, padding: '0 9px', fontSize: 'var(--step--1)', fontWeight: 600,
   color: 'var(--c-meta)', background: 'transparent',
 };

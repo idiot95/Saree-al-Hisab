@@ -41,19 +41,19 @@ export default async function Book({ params }: { params: Promise<{ id: string }>
           </svg>
         </Link>
         <span style={{
-          alignSelf: 'flex-start', fontSize: 11, fontWeight: 700, letterSpacing: '.05em',
+          alignSelf: 'flex-start', fontSize: 'var(--step--2)', fontWeight: 700, letterSpacing: '.05em',
           padding: '5px 10px', borderRadius: 7, background: 'rgba(255,255,255,.16)',
         }}>
           {book.kind === 'loan' ? 'LENDING BOOK' : 'SHARED COSTS BOOK'}
           {book.closed_at && ' · CLOSED'}
         </span>
-        <h1 className="t" style={{ margin: 0, fontSize: 27, letterSpacing: '-.018em' }}>
+        <h1 className="t" style={{ margin: 0, fontSize: 'var(--step-3)', letterSpacing: '-.018em' }}>
           {book.name}
         </h1>
-        <span className="t" style={{ fontSize: 30, letterSpacing: '-.022em' }}>
+        <span className="t" style={{ fontSize: 'var(--step-4)', letterSpacing: '-.022em' }}>
           {total === 0 ? 'Settled up' : format(Math.abs(total))}
         </span>
-        <p style={{ margin: 0, fontSize: 13, lineHeight: 1.5, color: 'rgba(255,255,255,.82)' }}>
+        <p style={{ margin: 0, fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'rgba(255,255,255,.82)' }}>
           {members.length === 0
             ? 'Add people and this adds up what they owe between them.'
             : [
@@ -63,7 +63,7 @@ export default async function Book({ params }: { params: Promise<{ id: string }>
               ].filter(Boolean).join(' · ')}
         </p>
         {book.note && (
-          <p style={{ margin: 0, fontSize: 12.5, color: 'rgba(255,255,255,.7)' }}>{book.note}</p>
+          <p style={{ margin: 0, fontSize: 'var(--step--1)', color: 'rgba(255,255,255,.7)' }}>{book.note}</p>
         )}
       </header>
 
@@ -73,7 +73,7 @@ export default async function Book({ params }: { params: Promise<{ id: string }>
           canEdit={actor.role !== 'viewer'}
         />
         <p style={{
-          margin: '18px 20px 0', fontSize: 12.5, lineHeight: 1.5, color: 'var(--c-meta)',
+          margin: '18px 20px 0', fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--c-meta)',
         }}>
           A book is a folder for people. It changes nothing about the arithmetic — the same
           loans and the same claims, added up in one place so you can answer &ldquo;where do we

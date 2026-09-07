@@ -102,7 +102,7 @@ export default function AddEntry({
           <button aria-label="Close" style={iconBtn}>
             <Glyph d="M6 6l12 12M18 6L6 18" />
           </button>
-          <h1 className="t" style={{ margin: 0, fontSize: 19 }}>New entry</h1>
+          <h1 className="t" style={{ margin: 0, fontSize: 'var(--step-2)' }}>New entry</h1>
           <a href="/scan" aria-label="Scan a receipt" style={{
             width: 44, height: 44, borderRadius: 999, display: 'flex',
             alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,.92)',
@@ -126,7 +126,7 @@ export default function AddEntry({
                 onClick={() => { setKind(k.id); if (k.id === 'transfer') setCategoryId(null); }}
                 style={{
                   flex: 1, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  borderRadius: 999, fontSize: 13.5, fontWeight: 600,
+                  borderRadius: 999, fontSize: 'var(--step--1)', fontWeight: 600,
                   background: on ? '#fff' : 'transparent',
                   color: on ? '#233D4D' : 'rgba(255,255,255,.86)',
                 }}
@@ -139,10 +139,10 @@ export default function AddEntry({
 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, minWidth: 0 }}>
-            <span className="n" style={{ fontSize: 28, fontWeight: 500, color: 'rgba(255,255,255,.62)' }}>
+            <span className="n" style={{ fontSize: 'var(--step-3)', fontWeight: 500, color: 'rgba(255,255,255,.62)' }}>
               {symbolOf('INR')}
             </span>
-            <span className="n" aria-live="polite" style={{ fontSize: 46, fontWeight: 600, letterSpacing: '-.036em', lineHeight: 1.05 }}>
+            <span className="n" aria-live="polite" style={{ fontSize: 'var(--step-4)', fontWeight: 600, letterSpacing: '-.036em', lineHeight: 1.05 }}>
               {keysDisplay(keys)}
             </span>
             <span style={{ width: 2, height: 34, background: 'rgba(255,255,255,.85)', marginLeft: 3, alignSelf: 'center' }} />
@@ -175,14 +175,14 @@ export default function AddEntry({
             display: 'flex', alignItems: 'center', gap: 12, width: '100%', minHeight: 56,
           }}>
             <span style={{
-              width: 92, flex: 'none', fontSize: 13.5, fontWeight: 600, color: 'var(--c-meta)',
+              width: 92, flex: 'none', fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)',
             }}>Date</span>
             <input
               type="date" value={occurredOn} max={today}
               onChange={(e) => setOccurredOn(e.target.value || today)}
               style={{
                 flex: 1, minHeight: 48, border: 0, background: 'transparent',
-                color: 'var(--c-ink)', fontSize: 15.5, fontWeight: 600,
+                color: 'var(--c-ink)', fontSize: 'var(--step-0)', fontWeight: 600,
               }}
             />
           </label>
@@ -197,7 +197,7 @@ export default function AddEntry({
             style={{
               width: '100%', minHeight: 50, borderRadius: 13, padding: '0 14px',
               border: '1px solid var(--c-border)', background: 'var(--c-card)',
-              color: 'var(--c-ink)', fontSize: 15.5,
+              color: 'var(--c-ink)', fontSize: 'var(--step-0)',
             }}
           />
         </div>
@@ -214,7 +214,7 @@ export default function AddEntry({
                 aria-pressed={on}
                 style={{
                   minHeight: 44, padding: '0 14px', display: 'flex', alignItems: 'center',
-                  borderRadius: 999, flex: 'none', whiteSpace: 'nowrap', fontSize: 13.5, fontWeight: 600,
+                  borderRadius: 999, flex: 'none', whiteSpace: 'nowrap', fontSize: 'var(--step--1)', fontWeight: 600,
                   scrollSnapAlign: 'start',
                   gap: 7,
                   background: on ? `var(--cat-${c.tint}-ink)` : `var(--cat-${c.tint})`,
@@ -235,7 +235,7 @@ export default function AddEntry({
           padding: '13px 15px', borderRadius: 14, background: 'var(--c-pollen)', color: 'var(--c-on-fill)',
         }}>
           <Glyph d="M12 7.5v5.5 M12 16.6v.1 M20.5 12a8.5 8.5 0 1 1-17 0 8.5 8.5 0 0 1 17 0" size={17} w={1.9} />
-          <span style={{ flex: 1, fontSize: 13, lineHeight: 1.45 }}>
+          <span style={{ flex: 1, fontSize: 'var(--step--1)', lineHeight: 1.45 }}>
             <b>{dupe.who}</b> already recorded {format(dupe.amountMinor)}
             {dupe.merchant ? ` at ${dupe.merchant}` : ''} on {friendly(dupe.on)}, from {dupe.account}.
             Is this the same thing?
@@ -247,7 +247,7 @@ export default function AddEntry({
         <div role="alert" style={{
           display: 'flex', alignItems: 'center', gap: 10, margin: '0 18px 12px',
           padding: '13px 15px', borderRadius: 14, background: 'var(--c-danger-tint)', color: 'var(--c-danger)',
-          fontSize: 13.5, fontWeight: 600,
+          fontSize: 'var(--step--1)', fontWeight: 600,
         }}>
           <Glyph d="M12 7.5v5.5 M12 16.6v.1 M20.5 12a8.5 8.5 0 1 1-17 0 8.5 8.5 0 0 1 17 0" size={17} w={2} />
           {error}
@@ -262,7 +262,7 @@ export default function AddEntry({
           background: 'var(--c-card)', border: '1px solid var(--c-border)',
         }}
       >
-        <span style={{ flex: 1, fontSize: 14.5, fontWeight: 600 }}>Shared with the household</span>
+        <span style={{ flex: 1, fontSize: 'var(--step-0)', fontWeight: 600 }}>Shared with the household</span>
         <span style={{
           width: 50, height: 30, borderRadius: 999, flex: 'none', padding: 3, display: 'flex',
           justifyContent: shared ? 'flex-end' : 'flex-start',
@@ -290,7 +290,7 @@ export default function AddEntry({
             className="el2"
             style={{
               flex: 1, minHeight: 169, display: 'flex', flexDirection: 'column', alignItems: 'center',
-              justifyContent: 'center', gap: 6, borderRadius: 14, fontSize: 15, fontWeight: 600,
+              justifyContent: 'center', gap: 6, borderRadius: 14, fontSize: 'var(--step-0)', fontWeight: 600,
               color: '#fff', opacity: canSave ? 1 : 0.45,
               background:
                 'radial-gradient(120% 100% at 25% 0%, rgba(255,255,255,.18) 0%, rgba(255,255,255,0) 60%),' +
@@ -312,11 +312,11 @@ const iconBtn: React.CSSProperties = {
 };
 const chip: React.CSSProperties = {
   minHeight: 44, padding: '0 12px', display: 'flex', alignItems: 'center', gap: 6,
-  borderRadius: 999, fontSize: 13, fontWeight: 600, flex: 'none',
+  borderRadius: 999, fontSize: 'var(--step--1)', fontWeight: 600, flex: 'none',
 };
 const key: React.CSSProperties = {
   minHeight: 56, display: 'flex', alignItems: 'center', justifyContent: 'center',
-  borderRadius: 14, background: 'var(--c-sunk2)', fontSize: 23, fontWeight: 600, color: 'var(--c-ink)',
+  borderRadius: 14, background: 'var(--c-sunk2)', fontSize: 'var(--step-3)', fontWeight: 600, color: 'var(--c-ink)',
 };
 
 function friendly(iso: string) {
@@ -335,10 +335,10 @@ function Row({ label, value, hint, last, muted, onClick }: {
       display: 'flex', alignItems: 'center', gap: 12, width: '100%', minHeight: 56,
       borderBottom: last ? undefined : '1px solid var(--c-rule)',
     }}>
-      <span style={{ width: 92, flex: 'none', fontSize: 13.5, fontWeight: 600, color: 'var(--c-meta)' }}>{label}</span>
+      <span style={{ width: 92, flex: 'none', fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)' }}>{label}</span>
       <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
-        <span style={{ fontSize: 15.5, fontWeight: 600, color: muted ? 'var(--c-ph)' : undefined }}>{value}</span>
-        {hint && <span style={{ fontSize: 12, color: 'var(--c-meta)' }}>{hint}</span>}
+        <span style={{ fontSize: 'var(--step-0)', fontWeight: 600, color: muted ? 'var(--c-ph)' : undefined }}>{value}</span>
+        {hint && <span style={{ fontSize: 'var(--step--2)', color: 'var(--c-meta)' }}>{hint}</span>}
       </span>
       <Glyph d="M9 5l7 7-7 7" size={18} colour="var(--c-faint)" />
     </button>

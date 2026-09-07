@@ -42,7 +42,7 @@ export function headerBg(accent: Accent = 'teal'): string {
 export const HEADER_BG = headerBg('teal');
 
 export const primaryBtn: React.CSSProperties = {
-  width: '100%', minHeight: 56, borderRadius: 15, fontSize: 16.5, fontWeight: 600, color: '#fff',
+  width: '100%', minHeight: 56, borderRadius: 15, fontSize: 'var(--step-1)', fontWeight: 600, color: '#fff',
   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 9,
   background:
     'radial-gradient(120% 100% at 25% 0%, rgba(255,255,255,.18) 0%, rgba(255,255,255,0) 60%),'
@@ -50,7 +50,7 @@ export const primaryBtn: React.CSSProperties = {
 };
 
 export const quietBtn: React.CSSProperties = {
-  width: '100%', minHeight: 52, borderRadius: 15, fontSize: 15.5, fontWeight: 600,
+  width: '100%', minHeight: 52, borderRadius: 15, fontSize: 'var(--step-0)', fontWeight: 600,
   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
   background: 'var(--c-card)', color: 'var(--c-ink)', border: '1px solid var(--c-border)',
   textDecoration: 'none',
@@ -79,13 +79,13 @@ export function AuthShell({ kicker, title, blurb, children }: {
           </svg>
         </span>
         {kicker && (
-          <p style={{ margin: 0, fontSize: 13.5, color: 'rgba(255,255,255,.78)' }}>{kicker}</p>
+          <p style={{ margin: 0, fontSize: 'var(--step--1)', color: 'rgba(255,255,255,.78)' }}>{kicker}</p>
         )}
         <h1 className="t" style={{
-          margin: 0, fontSize: 33, lineHeight: 1.08, letterSpacing: '-.02em', textWrap: 'balance',
+          margin: 0, fontSize: 'var(--step-4)', lineHeight: 1.08, letterSpacing: '-.02em', textWrap: 'balance',
         }}>{title}</h1>
         {blurb && (
-          <p style={{ margin: 0, fontSize: 15, lineHeight: 1.5, color: 'rgba(255,255,255,.82)' }}>
+          <p style={{ margin: 0, fontSize: 'var(--step-0)', lineHeight: 1.5, color: 'rgba(255,255,255,.82)' }}>
             {blurb}
           </p>
         )}
@@ -100,18 +100,18 @@ export function Field({ label, name, type = 'text', hint, ...rest }: {
 } & React.InputHTMLAttributes<HTMLInputElement>) {
   return (
     <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-      <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--c-meta)' }}>{label}</span>
+      <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)' }}>{label}</span>
       <input
         name={name} type={type}
         style={{
           minHeight: 52, borderRadius: 13, border: '1px solid var(--c-border)',
-          background: 'var(--c-card)', color: 'var(--c-ink)', fontSize: 16,
+          background: 'var(--c-card)', color: 'var(--c-ink)', fontSize: 'var(--step-0)',
           padding: '0 14px', width: '100%',
         }}
         {...rest}
       />
       {hint && (
-        <span style={{ fontSize: 12, lineHeight: 1.45, color: 'var(--c-meta)' }}>{hint}</span>
+        <span style={{ fontSize: 'var(--step--2)', lineHeight: 1.45, color: 'var(--c-meta)' }}>{hint}</span>
       )}
     </label>
   );
@@ -122,7 +122,7 @@ export function ErrorNote({ children }: { children: React.ReactNode }) {
     <p role="alert" style={{
       margin: 0, display: 'flex', alignItems: 'flex-start', gap: 8, padding: '12px 14px',
       borderRadius: 13, background: 'var(--c-danger-tint)', color: 'var(--c-danger)',
-      fontSize: 13.5, lineHeight: 1.5, fontWeight: 600,
+      fontSize: 'var(--step--1)', lineHeight: 1.5, fontWeight: 600,
     }}>
       <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor"
         strokeWidth={2} strokeLinecap="round" style={{ flex: 'none', marginTop: 2 }} aria-hidden>
@@ -152,9 +152,9 @@ export function DeadEnd({ title, body, cta }: {
           <circle cx="12" cy="12" r="8.6" /><path d="M12 7.6V13" /><path d="M12 16.4v.1" />
         </svg>
       </span>
-      <h1 className="t" style={{ margin: 0, fontSize: 24, letterSpacing: '-.016em' }}>{title}</h1>
+      <h1 className="t" style={{ margin: 0, fontSize: 'var(--step-3)', letterSpacing: '-.016em' }}>{title}</h1>
       <p style={{
-        margin: 0, fontSize: 14.5, lineHeight: 1.55, color: 'var(--c-meta)', maxWidth: '32ch',
+        margin: 0, fontSize: 'var(--step-0)', lineHeight: 1.55, color: 'var(--c-meta)', maxWidth: '32ch',
       }}>{body}</p>
       {cta && (
         <a href={cta.href} style={{ ...quietBtn, width: 'auto', padding: '0 22px', marginTop: 8 }}>

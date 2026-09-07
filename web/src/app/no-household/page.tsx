@@ -31,11 +31,11 @@ export default async function NoHousehold() {
         </svg>
       </span>
 
-      <h1 className="t" style={{ margin: '4px 0 0', fontSize: 25, letterSpacing: '-.016em' }}>
+      <h1 className="t" style={{ margin: '4px 0 0', fontSize: 'var(--step-3)', letterSpacing: '-.016em' }}>
         You are not in a household
       </h1>
       <p style={{
-        margin: 0, fontSize: 14.5, lineHeight: 1.55, color: 'var(--c-meta)', maxWidth: '34ch',
+        margin: 0, fontSize: 'var(--step-0)', lineHeight: 1.55, color: 'var(--c-meta)', maxWidth: '34ch',
       }}>
         Signed in as {actor.user_name || 'you'}. Ask someone to invite you to theirs, or
         start your own.
@@ -47,11 +47,11 @@ export default async function NoHousehold() {
           borderRadius: 14, background: 'var(--c-card)', border: '1px solid var(--c-border)',
           maxWidth: '34ch',
         }}>
-          <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--c-meta)' }}>
+          <span style={{ fontSize: 'var(--step--2)', fontWeight: 600, color: 'var(--c-meta)' }}>
             Ask them to invite this email
           </span>
-          <span style={{ fontSize: 15, fontWeight: 600, wordBreak: 'break-all' }}>{actor.email}</span>
-          <span style={{ fontSize: 12, lineHeight: 1.45, color: 'var(--c-meta)', marginTop: 3 }}>
+          <span style={{ fontSize: 'var(--step-0)', fontWeight: 600, wordBreak: 'break-all' }}>{actor.email}</span>
+          <span style={{ fontSize: 'var(--step--2)', lineHeight: 1.45, color: 'var(--c-meta)', marginTop: 3 }}>
             An invitation is tied to the email it is sent to.
           </span>
         </p>
@@ -63,7 +63,7 @@ export default async function NoHousehold() {
         <button type="submit" style={{
           minHeight: 48, padding: '0 20px', display: 'flex', alignItems: 'center',
           borderRadius: 13, background: 'transparent', color: 'var(--c-meta)',
-          fontSize: 14, fontWeight: 600, marginTop: 2,
+          fontSize: 'var(--step--1)', fontWeight: 600, marginTop: 2,
         }}>
           Sign out
         </button>

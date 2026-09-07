@@ -34,7 +34,7 @@ export default function AddMethod({ accounts, startOpen = false }: { accounts: A
         margin: '0 18px 22px', width: 'calc(100% - 36px)', minHeight: 58, borderRadius: 16,
         display: 'flex', alignItems: 'center', gap: 11, padding: '0 16px',
         background: 'var(--c-card)', border: '1px dashed var(--c-dash)',
-        color: 'var(--c-ink)', fontSize: 15, fontWeight: 600,
+        color: 'var(--c-ink)', fontSize: 'var(--step-0)', fontWeight: 600,
       }}>
         <span style={{
           width: 32, height: 32, flex: 'none', borderRadius: 999, display: 'flex',
@@ -55,25 +55,25 @@ export default function AddMethod({ accounts, startOpen = false }: { accounts: A
       display: 'flex', flexDirection: 'column', gap: 13,
     }}>
       <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-        <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--c-meta)' }}>
+        <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)' }}>
           Draws on
         </span>
         <select name="funding_account_id" value={accountId}
           onChange={(e) => setAccountId(e.target.value)}
           style={{
             minHeight: 52, borderRadius: 13, border: '1px solid var(--c-border)',
-            background: 'var(--c-card)', color: 'var(--c-ink)', fontSize: 15.5,
+            background: 'var(--c-card)', color: 'var(--c-ink)', fontSize: 'var(--step-0)',
             fontWeight: 600, padding: '0 12px',
           }}>
           {accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
         </select>
-        <span style={{ fontSize: 12, lineHeight: 1.45, color: 'var(--c-meta)' }}>
+        <span style={{ fontSize: 'var(--step--2)', lineHeight: 1.45, color: 'var(--c-meta)' }}>
           Spending on this method is recorded against this account.
         </span>
       </label>
 
       <fieldset style={{ border: 0, padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 7 }}>
-        <legend style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--c-meta)', padding: 0 }}>
+        <legend style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)', padding: 0 }}>
           Type
         </legend>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
@@ -87,14 +87,14 @@ export default function AddMethod({ accounts, startOpen = false }: { accounts: A
                 style={{ width: 17, height: 17, accentColor: 'var(--c-seagrass)' }} />
               <Icon name={RAIL_ICON[r.id]} size={17} strokeWidth={1.8} />
               <span style={{ display: 'flex', flexDirection: 'column' }}>
-                <span style={{ fontSize: 14, fontWeight: 600 }}>{r.label}</span>
-                <span style={{ fontSize: 11.5, color: 'var(--c-meta)' }}>{r.hint}</span>
+                <span style={{ fontSize: 'var(--step--1)', fontWeight: 600 }}>{r.label}</span>
+                <span style={{ fontSize: 'var(--step--2)', color: 'var(--c-meta)' }}>{r.hint}</span>
               </span>
             </label>
           ))}
         </div>
         {allowed.length === 0 && (
-          <span style={{ fontSize: 12.5, color: 'var(--c-meta)' }}>
+          <span style={{ fontSize: 'var(--step--1)', color: 'var(--c-meta)' }}>
             No payment method can draw on that account type.
           </span>
         )}
@@ -108,11 +108,11 @@ export default function AddMethod({ accounts, startOpen = false }: { accounts: A
 
       <div style={{ display: 'flex', gap: 9 }}>
         <button type="button" onClick={() => setOpen(false)} style={{
-          minHeight: 50, padding: '0 16px', borderRadius: 13, fontSize: 14.5, fontWeight: 600,
+          minHeight: 50, padding: '0 16px', borderRadius: 13, fontSize: 'var(--step-0)', fontWeight: 600,
           background: 'var(--c-sunk)', color: 'var(--c-meta)',
         }}>Cancel</button>
         <button type="submit" disabled={pending || allowed.length === 0} style={{
-          flex: 1, minHeight: 50, borderRadius: 13, fontSize: 15.5, fontWeight: 600,
+          flex: 1, minHeight: 50, borderRadius: 13, fontSize: 'var(--step-0)', fontWeight: 600,
           background: 'var(--c-seagrass)', color: 'var(--c-on-fill)',
           opacity: pending || allowed.length === 0 ? 0.65 : 1,
         }}>{pending ? 'Saving…' : 'Add payment method'}</button>

@@ -57,9 +57,9 @@ export default async function Trends() {
             <path d="M15 5l-7 7 7 7" />
           </svg>
         </Link>
-        <h1 className="t" style={{ margin: 0, fontSize: 27, letterSpacing: '-.018em' }}>Trends</h1>
+        <h1 className="t" style={{ margin: 0, fontSize: 'var(--step-3)', letterSpacing: '-.018em' }}>Trends</h1>
         {!nothing && (
-          <p style={{ margin: 0, fontSize: 13.5, lineHeight: 1.5, color: 'rgba(255,255,255,.84)' }}>
+          <p style={{ margin: 0, fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'rgba(255,255,255,.84)' }}>
             {average > 0 && `${format(average)} a month on average`}
             {lastMonth > 0 && thisMonth > 0 && (
               thisMonth > lastMonth
@@ -72,7 +72,7 @@ export default async function Trends() {
 
       {nothing ? (
         <p style={{
-          margin: '40px 34px', textAlign: 'center', fontSize: 14.5, lineHeight: 1.55,
+          margin: '40px 34px', textAlign: 'center', fontSize: 'var(--step-0)', lineHeight: 1.55,
           color: 'var(--c-meta)',
         }}>
           Nothing to chart yet. Record a few entries and this fills in.
@@ -121,13 +121,13 @@ export default async function Trends() {
                       flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2,
                       textDecoration: 'none', color: 'var(--c-ink)',
                     }}>
-                      <span style={{ fontSize: 14.5, fontWeight: 600 }}>{m.name}</span>
-                      <span style={{ fontSize: 12, color: 'var(--c-meta)' }}>
+                      <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>{m.name}</span>
+                      <span style={{ fontSize: 'var(--step--2)', color: 'var(--c-meta)' }}>
                         {format(Number(m.before))} → {format(Number(m.now))}
                       </span>
                     </Link>
-                    <span style={{
-                      display: 'flex', alignItems: 'center', gap: 5, fontSize: 14, fontWeight: 600,
+                    <span className="amt" style={{
+                      display: 'flex', alignItems: 'center', gap: 5, fontSize: 'var(--step--1)', fontWeight: 600,
                       color: m.delta > 0 ? 'var(--c-danger)' : 'var(--c-ok)',
                     }}>
                       <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -152,7 +152,7 @@ function Card({ title, children }: { title: string; children: React.ReactNode })
   return (
     <section>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0 20px 11px' }}>
-        <h2 style={{ margin: 0, fontSize: 16.5, fontWeight: 600, letterSpacing: '-.012em' }}>
+        <h2 style={{ margin: 0, fontSize: 'var(--step-1)', fontWeight: 600, letterSpacing: '-.012em' }}>
           {title}
         </h2>
         <span style={{ flex: 1, height: 1, background: 'var(--c-border)' }} />
@@ -173,11 +173,11 @@ function Table({ rows }: {
       borderTop: '1px solid var(--c-rule)', display: 'flex', flexDirection: 'column', gap: 9,
     }}>
       {rows.map((r) => (
-        <li key={r.key} style={{ display: 'flex', alignItems: 'baseline', gap: 10, fontSize: 13 }}>
+        <li key={r.key} style={{ display: 'flex', alignItems: 'baseline', gap: 10, fontSize: 'var(--step--1)' }}>
           <span style={{ flex: 1, color: 'var(--c-meta)' }}>{r.left}</span>
           {r.note && (
             <span style={{
-              fontSize: 11.5,
+              fontSize: 'var(--step--2)',
               color: r.bad ? 'var(--c-danger)'
                 : r.note === 'nothing recorded' ? 'var(--c-meta)' : 'var(--c-ok)',
             }}>{r.note}</span>

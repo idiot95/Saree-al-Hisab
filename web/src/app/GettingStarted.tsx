@@ -1,10 +1,19 @@
 import Link from 'next/link';
 
-/* The steps tick themselves off from real rows. Nothing here is a flag that
-   somebody has to remember to set, so it cannot drift out of step with what
-   the household has actually done. */
+/* Onboarding is a strip, not a screen.
 
-type Step = { title: string; blurb: string; href: string; cta: string; done: boolean };
+   It used to be a tall card at the top of home, so the first thing anyone saw
+   was a list of chores rather than what their month cost. A checklist earns
+   one line until it is finished, and then it disappears — the app is for
+   people who have already set it up, which is nearly all of the time. */
+
+type Step = {
+  title: string; blurb: string; href: string; cta: string;
+  done: boolean;
+  /* An optional step counts towards the ring but never holds the strip open —
+     a household of one would otherwise be nagged to invite somebody forever. */
+  optional?: boolean;
+};
 
 export default function GettingStarted({ progress }: {
   progress: { accounts: number; methods: number; entries: number; members: number; budget: number };
@@ -12,106 +21,71 @@ export default function GettingStarted({ progress }: {
   const steps: Step[] = [
     {
       title: 'Add your accounts',
-      blurb: 'Your bank, your cards, cash. Credit cards can hold their billing cycle.',
-      href: '/accounts', cta: 'Go to accounts',
-      done: progress.accounts > 1,
+      blurb: 'Your bank, your cards, cash.',
+      href: '/accounts', cta: 'Add accounts', done: progress.accounts > 1,
     },
     {
       title: 'Add how you pay',
-      blurb: 'GPay, a card, net banking. Each one draws on an account.',
-      href: '/accounts', cta: 'Go to accounts',
-      done: progress.methods > 1,
+      blurb: 'GPay, a card, net banking.',
+      href: '/accounts', cta: 'Add a payment method', done: progress.methods > 1,
     },
     {
-      title: 'Set this month\u2019s budget',
-      blurb: 'Give each category an amount. Everything else reports against it.',
-      href: '/budget', cta: 'Go to budget',
-      done: progress.budget > 0,
+      title: 'Set this month’s budget',
+      blurb: 'Everything reports against it.',
+      href: '/budget', cta: 'Set the budget', done: progress.budget > 0,
     },
     {
       title: 'Record an entry',
-      blurb: 'An expense, some income or a transfer. Three taps.',
-      href: '/add', cta: 'New entry',
-      done: progress.entries > 0,
+      blurb: 'An expense, income or a transfer.',
+      href: '/add', cta: 'New entry', done: progress.entries > 0,
     },
     {
       title: 'Invite your household',
-      blurb: 'Optional. Everyone you invite sees the same set of books.',
-      href: '/household', cta: 'Go to household',
-      done: progress.members > 1,
+      blurb: 'If anyone else keeps these books with you.',
+      href: '/household', cta: 'Invite someone', done: progress.members > 1,
+      optional: true,
     },
   ];
 
   const done = steps.filter((s) => s.done).length;
-  if (done === steps.length) return null;
-  const next = steps.find((s) => !s.done)!;
+  /* Finished means every step that actually has to happen. The optional one
+     is offered while there is other setup left and then stops asking. */
+  const remaining = steps.filter((s) => !s.done && !s.optional);
+  if (remaining.length === 0) return null;
+  const next = remaining[0];
 
   return (
-    <section className="el" style={{
-      background: 'var(--c-card)', borderRadius: 18, padding: 16,
-      display: 'flex', flexDirection: 'column', gap: 14,
+    <Link href={next.href} className="el" style={{
+      display: 'flex', alignItems: 'center', gap: 12, minHeight: 62, padding: '0 14px',
+      borderRadius: 15, textDecoration: 'none', background: 'var(--c-card)',
+      border: '1px solid var(--c-border)', color: 'var(--c-ink)',
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <h2 style={{ margin: 0, fontSize: 16.5, fontWeight: 600, flex: 1 }}>Getting started</h2>
-        <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--c-meta)' }}>
-          {done} of {steps.length}
-        </span>
-      </div>
-
-      <span style={{ height: 6, borderRadius: 999, background: 'var(--c-track)', overflow: 'hidden' }}>
-        <span style={{
-          display: 'block', height: '100%', borderRadius: 999,
-          width: `${(done / steps.length) * 100}%`, background: 'var(--c-seagrass)',
-        }} />
+      {/* A ring rather than a bar: it takes a quarter of the width and reads
+          as progress at a glance. */}
+      <span style={{ position: 'relative', width: 36, height: 36, flex: 'none' }}>
+        <svg width={36} height={36} viewBox="0 0 36 36" aria-hidden>
+          <circle cx="18" cy="18" r="15" fill="none" stroke="var(--c-track)" strokeWidth="3.5" />
+          <circle cx="18" cy="18" r="15" fill="none" stroke="var(--c-seagrass)" strokeWidth="3.5"
+            strokeLinecap="round" transform="rotate(-90 18 18)"
+            strokeDasharray={`${(done / steps.length) * 94.2} 94.2`} />
+        </svg>
+        <span className="n" style={{
+          position: 'absolute', inset: 0, display: 'flex', alignItems: 'center',
+          justifyContent: 'center', fontSize: 'var(--step--2)', fontWeight: 700,
+          color: 'var(--c-meta)',
+        }}>{done}/{steps.length}</span>
       </span>
 
-      <ol style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column' }}>
-        {steps.map((s, i) => (
-          <li key={s.title} style={{
-            display: 'flex', alignItems: 'flex-start', gap: 11, padding: '11px 0',
-            borderBottom: i === steps.length - 1 ? undefined : '1px solid var(--c-rule)',
-            opacity: s.done ? 0.55 : 1,
-          }}>
-            <span style={{
-              width: 24, height: 24, flex: 'none', borderRadius: 999, marginTop: 1,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              background: s.done ? 'var(--c-ok-fill)' : 'var(--c-sunk)',
-              color: s.done ? 'var(--c-on-fill)' : 'var(--c-meta)',
-              fontSize: 11.5, fontWeight: 700,
-            }}>
-              {s.done ? (
-                <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                  strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                  <path d="M5 12.5 10 17.5 19 7" />
-                </svg>
-              ) : i + 1}
-            </span>
-            <span style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <span style={{
-                fontSize: 14.5, fontWeight: 600,
-                textDecoration: s.done ? 'line-through' : undefined,
-              }}>{s.title}</span>
-              {!s.done && (
-                <span style={{ fontSize: 12.5, lineHeight: 1.45, color: 'var(--c-meta)' }}>
-                  {s.blurb}
-                </span>
-              )}
-            </span>
-          </li>
-        ))}
-      </ol>
+      <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>{next.title}</span>
+        <span style={{
+          fontSize: 'var(--step--1)', color: 'var(--c-meta)',
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+        }}>{next.blurb} Setting up · {done} of {steps.length} done</span>
+      </span>
 
-      {/* The New entry button sits directly below this card, so pointing at it
-          again here would just be the same button twice. */}
-      {next.href !== '/add' && (
-        <Link href={next.href} className="el" style={{
-          minHeight: 50, borderRadius: 13, display: 'flex', alignItems: 'center',
-          justifyContent: 'center', gap: 8, textDecoration: 'none', fontSize: 15.5, fontWeight: 600,
-          background: 'var(--c-seagrass)', color: 'var(--c-on-fill)',
-        }}>
-          {next.cta}
-        </Link>
-      )}
-    </section>
+      <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="var(--c-off)"
+        strokeWidth={2} strokeLinecap="round" aria-hidden><path d="M9 5l7 7-7 7" /></svg>
+    </Link>
   );
 }

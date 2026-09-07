@@ -22,7 +22,7 @@ export default async function SignIn() {
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '2px 0' }}>
           <span style={{ flex: 1, height: 1, background: 'var(--c-border)' }} />
-          <span style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--c-meta)', letterSpacing: '.04em' }}>
+          <span style={{ fontSize: 'var(--step--2)', fontWeight: 600, color: 'var(--c-meta)', letterSpacing: '.04em' }}>
             NEW HERE
           </span>
           <span style={{ flex: 1, height: 1, background: 'var(--c-border)' }} />
@@ -30,7 +30,7 @@ export default async function SignIn() {
         <a href="/signup" style={quietBtn}>Create an account</a>
 
         <p style={{
-          margin: '6px 4px 0', fontSize: 12.5, lineHeight: 1.5, textAlign: 'center',
+          margin: '6px 4px 0', fontSize: 'var(--step--1)', lineHeight: 1.5, textAlign: 'center',
           color: 'var(--c-meta)',
         }}>
           Forgotten your password? The owner of your household can send you a reset link.

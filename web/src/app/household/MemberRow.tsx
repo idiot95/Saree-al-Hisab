@@ -32,7 +32,7 @@ export default function MemberRow({ member, canManage, isSelf, last, origin }: {
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
         <span style={{
           width: 42, height: 42, borderRadius: 999, flex: 'none', display: 'flex',
-          alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700,
+          alignItems: 'center', justifyContent: 'center', fontSize: 'var(--step--1)', fontWeight: 700,
           background: 'var(--cat-blue)', color: 'var(--cat-blue-ink)', overflow: 'hidden',
         }}>
           {member.image
@@ -42,19 +42,19 @@ export default function MemberRow({ member, canManage, isSelf, last, origin }: {
         </span>
 
         <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
-          <span style={{ fontSize: 15.5, fontWeight: 600 }}>
+          <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>
             {member.name}
             {isSelf && <span style={{ color: 'var(--c-meta)', fontWeight: 500 }}> · you</span>}
           </span>
           <span style={{
-            fontSize: 12.5, color: 'var(--c-meta)',
+            fontSize: 'var(--step--1)', color: 'var(--c-meta)',
             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
           }}>{member.email}</span>
         </span>
 
         {!canManage || isSelf ? (
           <span style={{
-            flex: 'none', fontSize: 12.5, fontWeight: 600, padding: '7px 11px', borderRadius: 9,
+            flex: 'none', fontSize: 'var(--step--1)', fontWeight: 600, padding: '7px 11px', borderRadius: 9,
             background: 'var(--c-sunk)', color: 'var(--c-meta)',
           }}>{LABEL[member.role]}</span>
         ) : (
@@ -83,7 +83,7 @@ export default function MemberRow({ member, canManage, isSelf, last, origin }: {
         }}>
           <form action={saveRole} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             <input type="hidden" name="userId" value={member.id} />
-            <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--c-meta)' }}>
+            <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)' }}>
               What {member.name.split(' ')[0]} can do
             </span>
             <div style={{ display: 'flex', gap: 8 }}>
@@ -91,7 +91,7 @@ export default function MemberRow({ member, canManage, isSelf, last, origin }: {
                 name="role" value={role} onChange={(e) => setRole(e.target.value as Role)}
                 style={{
                   flex: 1, minHeight: 46, borderRadius: 11, border: '1px solid var(--c-border)',
-                  background: 'var(--c-card)', color: 'var(--c-ink)', fontSize: 14.5,
+                  background: 'var(--c-card)', color: 'var(--c-ink)', fontSize: 'var(--step-0)',
                   fontWeight: 600, padding: '0 10px',
                 }}
               >
@@ -100,7 +100,7 @@ export default function MemberRow({ member, canManage, isSelf, last, origin }: {
                 <option value="owner">Owner</option>
               </select>
               <button type="submit" disabled={savingRole || role === member.role} style={{
-                minHeight: 46, padding: '0 16px', borderRadius: 11, fontSize: 14.5, fontWeight: 600,
+                minHeight: 46, padding: '0 16px', borderRadius: 11, fontSize: 'var(--step-0)', fontWeight: 600,
                 background: role === member.role ? 'var(--c-sunk)' : 'var(--c-seagrass)',
                 color: role === member.role ? 'var(--c-meta)' : 'var(--c-on-fill)',
               }}>
@@ -115,7 +115,7 @@ export default function MemberRow({ member, canManage, isSelf, last, origin }: {
           <form action={sendReset} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             <input type="hidden" name="userId" value={member.id} />
             <button type="submit" disabled={sendingReset} style={{
-              minHeight: 46, borderRadius: 11, fontSize: 14.5, fontWeight: 600,
+              minHeight: 46, borderRadius: 11, fontSize: 'var(--step-0)', fontWeight: 600,
               background: 'var(--c-card)', border: '1px solid var(--c-border)',
               color: 'var(--c-ink)',
             }}>
@@ -128,12 +128,12 @@ export default function MemberRow({ member, canManage, isSelf, last, origin }: {
           <form action={remove} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             <input type="hidden" name="userId" value={member.id} />
             <button type="submit" disabled={removing} style={{
-              minHeight: 46, borderRadius: 11, fontSize: 14.5, fontWeight: 600,
+              minHeight: 46, borderRadius: 11, fontSize: 'var(--step-0)', fontWeight: 600,
               background: 'var(--c-danger-tint)', color: 'var(--c-danger)',
             }}>
               {removing ? 'Removing…' : `Remove ${member.name.split(' ')[0]}`}
             </button>
-            <span style={{ fontSize: 12, lineHeight: 1.45, color: 'var(--c-meta)' }}>
+            <span style={{ fontSize: 'var(--step--2)', lineHeight: 1.45, color: 'var(--c-meta)' }}>
               Their entries stay. Removing someone never changes what a month cost.
             </span>
           </form>
@@ -144,7 +144,7 @@ export default function MemberRow({ member, canManage, isSelf, last, origin }: {
         <p role="alert" style={{
           margin: 0, display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px',
           borderRadius: 11, background: 'var(--c-danger-tint)', color: 'var(--c-danger)',
-          fontSize: 13, fontWeight: 600,
+          fontSize: 'var(--step--1)', fontWeight: 600,
         }}>
           <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor"
             strokeWidth={2} strokeLinecap="round" style={{ flex: 'none' }} aria-hidden>
@@ -166,20 +166,20 @@ function ResetLink({ url, copied, setCopied }: {
       padding: 12, borderRadius: 12, background: 'var(--c-warn-tint)',
       display: 'flex', flexDirection: 'column', gap: 8,
     }}>
-      <span style={{ fontSize: 12.5, lineHeight: 1.5, color: 'var(--c-ink)' }}>
+      <span style={{ fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--c-ink)' }}>
         Send this privately. <b>Anyone who opens it can set that password and sign in as
         them.</b> It works once and expires in a day.
       </span>
       <code style={{
         display: 'block', padding: '9px 11px', borderRadius: 9, background: 'var(--c-card)',
-        border: '1px solid var(--c-border)', fontSize: 11, lineHeight: 1.5,
+        border: '1px solid var(--c-border)', fontSize: 'var(--step--2)', lineHeight: 1.5,
         wordBreak: 'break-all', color: 'var(--c-meta)',
       }}>{url}</code>
       <button type="button" onClick={async () => {
         try { await navigator.clipboard.writeText(url); setCopied(true); } catch { setCopied(false); }
       }} style={{
         minHeight: 44, borderRadius: 10, background: 'var(--c-card)',
-        border: '1px solid var(--c-border)', color: 'var(--c-ink)', fontSize: 14, fontWeight: 600,
+        border: '1px solid var(--c-border)', color: 'var(--c-ink)', fontSize: 'var(--step--1)', fontWeight: 600,
       }}>
         {copied ? 'Copied' : 'Copy link'}
       </button>

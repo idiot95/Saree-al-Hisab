@@ -59,25 +59,25 @@ export default async function Budget({ searchParams }: {
           <span style={{ flex: 1 }} />
           <Step href={`/budget?m=${shift(month, -1)}`} label="Previous month" d="M15 5l-7 7 7 7" />
           <h1 style={{
-            margin: 0, fontSize: 14.5, fontWeight: 600, minWidth: 118, textAlign: 'center',
+            margin: 0, fontSize: 'var(--step-1)', fontWeight: 650, minWidth: 122, textAlign: 'center',
           }}>{label(month)}</h1>
           <Step href={`/budget?m=${shift(month, 1)}`} label="Next month" d="M9 5l7 7-7 7" />
         </div>
 
         <div style={{ display: 'flex', alignItems: 'flex-end', gap: 20 }}>
           <span style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-            <span style={{ fontSize: 11.5, color: 'rgba(255,255,255,.66)', letterSpacing: '.04em' }}>
+            <span style={{ fontSize: 'var(--step--2)', color: 'rgba(255,255,255,.66)', letterSpacing: '.04em' }}>
               BUDGETED
             </span>
-            <span className="t" style={{ fontSize: 30, letterSpacing: '-.02em' }}>{format(budget)}</span>
+            <span className="t" style={{ fontSize: 'var(--step-4)', letterSpacing: '-.02em' }}>{format(budget)}</span>
           </span>
           {!empty && (
             <span style={{ display: 'flex', flexDirection: 'column', gap: 3, paddingBottom: 3 }}>
-              <span style={{ fontSize: 11.5, color: 'rgba(255,255,255,.66)', letterSpacing: '.04em' }}>
+              <span style={{ fontSize: 'var(--step--2)', color: 'rgba(255,255,255,.66)', letterSpacing: '.04em' }}>
                 {left >= 0 ? 'LEFT' : 'OVER'}
               </span>
               <span className="t" style={{
-                fontSize: 21, letterSpacing: '-.02em',
+                fontSize: 'var(--step-2)', letterSpacing: '-.02em',
                 color: left >= 0 ? '#fff' : 'var(--c-danger-fill)',
               }}>{format(Math.abs(left))}</span>
             </span>
@@ -96,7 +96,7 @@ export default async function Budget({ searchParams }: {
             }} />
           </span>
         )}
-        <p style={{ margin: 0, fontSize: 13, color: 'rgba(255,255,255,.8)' }}>
+        <p style={{ margin: 0, fontSize: 'var(--step--1)', color: 'rgba(255,255,255,.8)' }}>
           {empty
             ? 'Give each category an amount and everything reports against it.'
             : `${format(spent)} spent of ${format(budget)}`}
@@ -114,7 +114,7 @@ export default async function Budget({ searchParams }: {
             <path d="M3.5 11V4.5H10L20.5 15a1.6 1.6 0 0 1 0 2.3l-3.2 3.2a1.6 1.6 0 0 1-2.3 0z" />
             <path d="M7 8v.01" />
           </svg>
-          <span style={{ flex: 1, fontSize: 14.5, fontWeight: 600 }}>Edit categories</span>
+          <span style={{ flex: 1, fontSize: 'var(--step-0)', fontWeight: 600 }}>Edit categories</span>
           <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="var(--c-off)"
             strokeWidth={2} strokeLinecap="round" aria-hidden><path d="M9 5l7 7-7 7" /></svg>
         </Link>
@@ -131,7 +131,7 @@ export default async function Budget({ searchParams }: {
 
         {!canEdit && (
           <p style={{
-            margin: '4px 20px 0', fontSize: 12.5, lineHeight: 1.5,
+            margin: '4px 20px 0', fontSize: 'var(--step--1)', lineHeight: 1.5,
             color: 'var(--c-meta)', textAlign: 'center',
           }}>
             Only owners and contributing members can change the budget.
@@ -139,7 +139,7 @@ export default async function Budget({ searchParams }: {
         )}
 
         <p style={{
-          margin: '18px 20px 0', fontSize: 12.5, lineHeight: 1.5, color: 'var(--c-meta)',
+          margin: '18px 20px 0', fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--c-meta)',
         }}>
           Each month is its own set of figures. Changing {label(month)} leaves every earlier
           month exactly as it was.

@@ -55,15 +55,17 @@ export default async function Worth() {
             <path d="M15 5l-7 7 7 7" />
           </svg>
         </Link>
-        <h1 style={{
-          margin: 0, fontSize: 11.5, fontWeight: 600, letterSpacing: '.05em',
-          color: 'rgba(255,255,255,.66)',
-        }}>NET WORTH</h1>
-        <span className="t" style={{
-          fontSize: 38, letterSpacing: '-.024em', lineHeight: 1,
-          color: worth < 0 ? 'var(--c-danger-fill)' : '#fff',
-        }}>{format(worth)}</span>
-        <p style={{ margin: 0, fontSize: 13, lineHeight: 1.5, color: 'rgba(255,255,255,.82)' }}>
+        <h1 style={{ margin: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <span style={{
+            fontSize: 'var(--step--2)', fontWeight: 600, letterSpacing: '.05em',
+            color: 'rgba(255,255,255,.66)',
+          }}>NET WORTH</span>
+          <span className="t" style={{
+            fontSize: 'var(--step-4)', letterSpacing: '-.024em', lineHeight: 1,
+            color: worth < 0 ? 'var(--c-danger-fill)' : '#fff',
+          }}>{format(worth)}</span>
+        </h1>
+        <p style={{ margin: 0, fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'rgba(255,255,255,.82)' }}>
           Everything you hold, less everything you owe. Money lent to people counts as yours,
           because it is.
         </p>
@@ -77,19 +79,19 @@ export default async function Worth() {
           }}>
             <Chip icon={ACCOUNT_ICON.savings} tint={ACCOUNT_TINT.savings} size={44} radius={12} />
             <span style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 3 }}>
-              <span style={{ fontSize: 15, fontWeight: 600 }}>In savings</span>
-              <span style={{ fontSize: 12.5, lineHeight: 1.45, color: 'var(--c-meta)' }}>
+              <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>In savings</span>
+              <span style={{ fontSize: 'var(--step--1)', lineHeight: 1.45, color: 'var(--c-meta)' }}>
                 Outside the monthly budget. Moving money here is not spending it.
               </span>
             </span>
-            <span className="t" style={{ fontSize: 20 }}>{format(savings)}</span>
+            <span className="t" style={{ fontSize: 'var(--step-2)' }}>{format(savings)}</span>
           </section>
         )}
 
         <Section title="Held in accounts, month by month">
           <Sparkline points={points} lo={lo} hi={hi} months={series.map((p) => p.month)} />
           <p style={{
-            margin: '12px 0 0', fontSize: 12.5, lineHeight: 1.5, color: 'var(--c-meta)',
+            margin: '12px 0 0', fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--c-meta)',
           }}>
             {first === last
               ? 'Level over the last six months.'
@@ -167,7 +169,7 @@ function Sparkline({ points, lo, hi, months }: {
       </svg>
       <ul style={{
         display: 'flex', justifyContent: 'space-between', margin: '8px 0 0', padding: 0,
-        listStyle: 'none', fontSize: 10.5, color: 'var(--c-meta)',
+        listStyle: 'none', fontSize: 'var(--step--2)', color: 'var(--c-meta)',
       }}>
         {months.map((m) => (
           <li key={m}>{new Date(m).toLocaleDateString('en-IN', { month: 'short' })}</li>
@@ -181,7 +183,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   return (
     <section>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0 20px 11px' }}>
-        <h2 style={{ margin: 0, fontSize: 16.5, fontWeight: 600, letterSpacing: '-.012em' }}>
+        <h2 style={{ margin: 0, fontSize: 'var(--step-1)', fontWeight: 600, letterSpacing: '-.012em' }}>
           {title}
         </h2>
         <span style={{ flex: 1, height: 1, background: 'var(--c-border)' }} />
@@ -207,11 +209,11 @@ function Rows({ rows, total, negative }: {
         }}>
           <Chip icon={r.icon} tint={r.tint} size={34} radius={9} iconSize={17} />
           <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <span style={{ fontSize: 14.5, fontWeight: 600 }}>{r.label}</span>
-            <span style={{ fontSize: 12, color: 'var(--c-meta)' }}>{r.note}</span>
+            <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>{r.label}</span>
+            <span style={{ fontSize: 'var(--step--2)', color: 'var(--c-meta)' }}>{r.note}</span>
           </span>
-          <span className="t" style={{
-            fontSize: 15.5, color: negative ? 'var(--c-danger)' : 'var(--c-ink)',
+          <span className="t amt" style={{
+            fontSize: 'var(--step-0)', color: negative ? 'var(--c-danger)' : 'var(--c-ink)',
           }}>{format(Math.abs(r.value))}</span>
         </li>
       ))}
@@ -219,9 +221,9 @@ function Rows({ rows, total, negative }: {
         display: 'flex', alignItems: 'center', gap: 12, minHeight: 50,
         borderTop: '1px solid var(--c-border)', marginTop: 6, paddingTop: 6,
       }}>
-        <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: 'var(--c-meta)' }}>Total</span>
+        <span style={{ flex: 1, fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)' }}>Total</span>
         <span className="t" style={{
-          fontSize: 18, color: negative ? 'var(--c-danger)' : 'var(--c-ink)',
+          fontSize: 'var(--step-2)', color: negative ? 'var(--c-danger)' : 'var(--c-ink)',
         }}>{format(Math.abs(total))}</span>
       </li>
     </ul>

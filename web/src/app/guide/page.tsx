@@ -171,10 +171,10 @@ export default async function Guide() {
             <path d="M15 5l-7 7 7 7" />
           </svg>
         </Link>
-        <h1 className="t" style={{ margin: 0, fontSize: 27, letterSpacing: '-.018em' }}>
+        <h1 className="t" style={{ margin: 0, fontSize: 'var(--step-3)', letterSpacing: '-.018em' }}>
           How it works
         </h1>
-        <p style={{ margin: 0, fontSize: 14, lineHeight: 1.5, color: 'rgba(255,255,255,.82)' }}>
+        <p style={{ margin: 0, fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'rgba(255,255,255,.82)' }}>
           Fourteen things worth knowing. Five minutes.
         </p>
       </header>
@@ -188,16 +188,16 @@ export default async function Guide() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <span style={{
                 width: 26, height: 26, flex: 'none', borderRadius: 999, display: 'flex',
-                alignItems: 'center', justifyContent: 'center', fontSize: 12.5, fontWeight: 700,
+                alignItems: 'center', justifyContent: 'center', fontSize: 'var(--step--1)', fontWeight: 700,
                 background: 'var(--c-teal-l)', color: 'var(--c-teal)',
               }}>{i + 1}</span>
-              <h2 style={{ margin: 0, fontSize: 16, fontWeight: 600, letterSpacing: '-.01em' }}>
+              <h2 style={{ margin: 0, fontSize: 'var(--step-0)', fontWeight: 600, letterSpacing: '-.01em' }}>
                 {s.title}
               </h2>
             </div>
             <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 7 }}>
               {s.lines.map((l) => (
-                <li key={l} style={{ display: 'flex', gap: 9, fontSize: 13.5, lineHeight: 1.5 }}>
+                <li key={l} style={{ display: 'flex', gap: 9, fontSize: 'var(--step--1)', lineHeight: 1.5 }}>
                   <span style={{
                     width: 5, height: 5, borderRadius: 999, background: 'var(--c-off)',
                     flex: 'none', marginTop: 7,
@@ -208,7 +208,7 @@ export default async function Guide() {
             </ul>
             <Link href={s.href} style={{
               minHeight: 46, borderRadius: 12, display: 'flex', alignItems: 'center',
-              justifyContent: 'center', textDecoration: 'none', fontSize: 14.5, fontWeight: 600,
+              justifyContent: 'center', textDecoration: 'none', fontSize: 'var(--step-0)', fontWeight: 600,
               background: 'var(--c-sunk)', color: 'var(--c-ink)',
             }}>{s.link}</Link>
           </li>
@@ -218,7 +218,7 @@ export default async function Guide() {
       <Link href="/" style={{
         display: 'flex', margin: '20px 18px 0', minHeight: 52, borderRadius: 14,
         alignItems: 'center', justifyContent: 'center', textDecoration: 'none',
-        fontSize: 15.5, fontWeight: 600, color: '#fff',
+        fontSize: 'var(--step-0)', fontWeight: 600, color: '#fff',
         background: 'radial-gradient(120% 100% at 25% 0%, rgba(255,255,255,.18) 0%, rgba(255,255,255,0) 60%),'
           + 'linear-gradient(145deg,#2C5063 0%,#1C3541 100%)',
       }}>Back to home</Link>

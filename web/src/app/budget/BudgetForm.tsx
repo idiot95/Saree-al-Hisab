@@ -55,14 +55,14 @@ export default function BudgetForm({ month, rows, canEdit }: {
         background: 'var(--c-bg)', borderBottom: '1px solid var(--c-border)',
       }}>
         <span style={{ display: 'flex', flexDirection: 'column', gap: 1, flex: 1 }}>
-          <span style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--c-meta)', letterSpacing: '.03em' }}>
+          <span style={{ fontSize: 'var(--step--2)', fontWeight: 600, color: 'var(--c-meta)', letterSpacing: '.03em' }}>
             MONTH TOTAL
           </span>
-          <span className="t" style={{ fontSize: 21, letterSpacing: '-.015em' }}>{format(total)}</span>
+          <span className="t" style={{ fontSize: 'var(--step-2)', letterSpacing: '-.015em' }}>{format(total)}</span>
         </span>
         {canEdit && (
           <button type="submit" disabled={pending || !changed} style={{
-            minHeight: 46, padding: '0 18px', borderRadius: 12, fontSize: 15, fontWeight: 600,
+            minHeight: 46, padding: '0 18px', borderRadius: 12, fontSize: 'var(--step-0)', fontWeight: 600,
             background: changed ? 'var(--c-seagrass)' : 'var(--c-sunk)',
             color: changed ? 'var(--c-on-fill)' : 'var(--c-meta)',
             opacity: pending ? 0.6 : 1,
@@ -87,11 +87,11 @@ export default function BudgetForm({ month, rows, canEdit }: {
               <Chip icon={r.icon} tint={r.tint} size={38} />
 
               <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
-                <span style={{ fontSize: 15, fontWeight: 600 }}>
+                <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>
                   {r.name}
                   {r.archived && (
                     <span style={{
-                      marginLeft: 7, fontSize: 10.5, fontWeight: 700, letterSpacing: '.03em',
+                      marginLeft: 7, fontSize: 'var(--step--2)', fontWeight: 700, letterSpacing: '.03em',
                       padding: '3px 6px', borderRadius: 6,
                       background: 'var(--c-sunk)', color: 'var(--c-meta)',
                     }}>RETIRED</span>
@@ -115,14 +115,14 @@ export default function BudgetForm({ month, rows, canEdit }: {
                 )}
                 {spent > 0 ? (
                   <Link href={`/entries?m=${month}&c=${r.category_id}`} style={{
-                    fontSize: 12, textDecoration: 'none',
+                    fontSize: 'var(--step--2)', textDecoration: 'none',
                     color: over ? 'var(--c-danger)' : 'var(--c-meta)', fontWeight: 600,
                   }}>
                     {format(spent)} of {format(budget || 0)}
                     {over && ` · ${format(spent - budget)} over`}
                   </Link>
                 ) : (
-                  <span style={{ fontSize: 12, color: 'var(--c-meta)' }}>nothing spent yet</span>
+                  <span style={{ fontSize: 'var(--step--2)', color: 'var(--c-meta)' }}>nothing spent yet</span>
                 )}
               </span>
 
@@ -132,7 +132,7 @@ export default function BudgetForm({ month, rows, canEdit }: {
                 background: canEdit ? 'var(--c-sunk2)' : 'transparent',
                 border: canEdit ? '1px solid var(--c-border)' : 'none',
               }}>
-                <span style={{ fontSize: 14, color: 'var(--c-meta)' }}>₹</span>
+                <span style={{ fontSize: 'var(--step--1)', color: 'var(--c-meta)' }}>₹</span>
                 <input
                   name={`c_${r.category_id}`} inputMode="decimal" disabled={!canEdit}
                   value={draft[r.category_id] ?? ''} placeholder="0"
@@ -141,7 +141,7 @@ export default function BudgetForm({ month, rows, canEdit }: {
                   }))}
                   style={{
                     width: 88, minHeight: 44, border: 0, background: 'transparent',
-                    color: 'var(--c-ink)', fontSize: 16, fontWeight: 600, textAlign: 'right',
+                    color: 'var(--c-ink)', fontSize: 'var(--step-0)', fontWeight: 600, textAlign: 'right',
                   }}
                 />
               </span>
@@ -156,7 +156,7 @@ export default function BudgetForm({ month, rows, canEdit }: {
       {state?.ok && !changed && (
         <p role="status" style={{
           margin: '0 18px 12px', padding: '11px 13px', borderRadius: 12,
-          background: 'var(--c-ok-tint)', color: 'var(--c-ok)', fontSize: 13.5, fontWeight: 600,
+          background: 'var(--c-ok-tint)', color: 'var(--c-ok)', fontSize: 'var(--step--1)', fontWeight: 600,
         }}>{state.message}</p>
       )}
 

@@ -58,7 +58,7 @@ export function MonthBars({ points }: {
         })}
       </svg>
       <figcaption style={{
-        display: 'flex', gap: 14, marginTop: 8, fontSize: 11.5, color: 'var(--c-meta)',
+        display: 'flex', gap: 14, marginTop: 8, fontSize: 'var(--step--2)', color: 'var(--c-meta)',
       }}>
         <Key colour="var(--c-seagrass)">spent</Key>
         <Key dashed>budget</Key>
@@ -110,7 +110,7 @@ export function CategoryDonut({ slices, total }: {
         display: 'flex', flexDirection: 'column', gap: 7,
       }}>
         {slices.map((s, i) => (
-          <li key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5 }}>
+          <li key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 'var(--step--1)' }}>
             <Chip icon={s.icon} tint={s.tint} size={22} radius={6} iconSize={12} />
             <span style={{
               flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',

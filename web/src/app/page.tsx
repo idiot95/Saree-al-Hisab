@@ -4,17 +4,22 @@ import { signOut } from '@/auth';
 import {
   actorOrNull, budgetFor, inboxCount, monthTotals, peopleFor, schedulesFor, setupProgress,
 } from '@/db/queries';
-import { outstandingDues } from '@/lib/recur';
 import { format, monthKey } from '@/lib/money';
-import { HEADER_BG } from './auth-ui';
-import TabBar, { TAB_BAR_SPACE } from './TabBar';
+import { outstandingDues } from '@/lib/recur';
+import { headerBg } from './auth-ui';
+import { Icon } from './Icon';
 import GettingStarted from './GettingStarted';
 import MonthSoFar from './MonthSoFar';
+import TabBar, { TAB_BAR_SPACE } from './TabBar';
 
 export const dynamic = 'force-dynamic';
 
 const ROLE = { owner: 'Owner', adult: 'Contributing member', viewer: 'Viewer' } as const;
 
+/* Home answers one question — how is this month going — and then gets out of
+   the way. Everything else is a way to somewhere else, so it is small, and the
+   setup checklist is one line rather than the tall card that used to push the
+   answer below the fold. */
 export default async function Home() {
   const actor = await actorOrNull();
   if (!actor) redirect('/signin');
@@ -22,64 +27,68 @@ export default async function Home() {
 
   const name = actor.household_name;
   const month = monthKey(new Date());
-  const [progress, totals, rows, people] = await Promise.all([
+  const [progress, totals, rows, people, inbox, schedules] = await Promise.all([
     setupProgress(actor.household_id),
     monthTotals(actor.household_id, month),
     budgetFor(actor.household_id, month),
     peopleFor(actor.household_id),
-  ]);
-  const [inbox, schedules] = await Promise.all([
     inboxCount(actor.household_id),
     schedulesFor(actor.household_id),
   ]);
+
+  const budget = Number(totals.budget);
+  const spent = Number(totals.spent);
   const dues = outstandingDues(schedules, new Date(), 7).length;
   const needsYou = inbox.duplicates + inbox.bills + dues;
   const lent = people.reduce((n, p) => n + Number(p.balance), 0);
-  const budget = Number(totals.budget);
+  const monthName = new Date(month).toLocaleDateString('en-IN', { month: 'long' });
 
   return (
     <main style={{ minHeight: '100dvh', background: 'var(--c-bg)', paddingBottom: TAB_BAR_SPACE }}>
       <header className="el2" style={{
-        background: HEADER_BG, color: '#fff', borderRadius: '0 0 28px 28px',
-        padding: '20px 20px 26px', display: 'flex', alignItems: 'center', gap: 12,
+        background: headerBg('teal'), color: '#fff', borderRadius: '0 0 26px 26px',
+        padding: '18px 20px 22px', display: 'flex', alignItems: 'center', gap: 12,
       }}>
         <span style={{
-          width: 42, height: 42, flex: 'none', borderRadius: 999, display: 'flex',
-          alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700,
+          width: 38, height: 38, flex: 'none', borderRadius: 999, display: 'flex',
+          alignItems: 'center', justifyContent: 'center',
+          fontSize: 'var(--step--1)', fontWeight: 700,
           background: 'rgba(255,255,255,.16)', border: '1px solid rgba(255,255,255,.22)',
         }}>{(actor.user_name || '?').slice(0, 2).toUpperCase()}</span>
-        <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1 }}>
           <h1 style={{
-            margin: 0, fontSize: 16, fontWeight: 600, overflow: 'hidden',
-            textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            fontSize: 'var(--step-1)', fontWeight: 600, overflow: 'hidden',
+            textOverflow: 'ellipsis', whiteSpace: 'nowrap', letterSpacing: '-.01em',
           }}>{name}</h1>
-          <span style={{ fontSize: 12.5, color: 'rgba(255,255,255,.72)' }}>
+          <span style={{ fontSize: 'var(--step--1)', color: 'rgba(255,255,255,.72)' }}>
             {actor.user_name} · {actor.role ? ROLE[actor.role] : ''}
           </span>
         </span>
         <form action={async () => { 'use server'; await signOut({ redirectTo: '/signin' }); }}>
-          <button type="submit" style={{
-            minHeight: 44, padding: '0 13px', borderRadius: 11, fontSize: 13.5, fontWeight: 600,
-            background: 'rgba(255,255,255,.14)', color: '#fff',
-          }}>Sign out</button>
+          <button type="submit" aria-label="Sign out" style={{
+            width: 44, height: 44, borderRadius: 999, display: 'flex',
+            alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,.9)',
+          }}>
+            <svg width={19} height={19} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M15 16.5 19.5 12 15 7.5" /><path d="M19 12H9" />
+              <path d="M12 4.5H6.5A1.5 1.5 0 0 0 5 6v12a1.5 1.5 0 0 0 1.5 1.5H12" />
+            </svg>
+          </button>
         </form>
       </header>
 
-      <div style={{ padding: '20px 18px 0', display: 'flex', flexDirection: 'column', gap: 16 }}>
-        <GettingStarted progress={{ ...progress, budget }} />
+      <div style={{ padding: '18px 18px 0', display: 'flex', flexDirection: 'column', gap: 14 }}>
+        {/* The answer first. */}
+        {budget > 0
+          ? <MonthSoFar month={month} rows={rows} budget={budget} spent={spent} />
+          : <NoBudgetYet monthName={monthName} spent={spent} entries={progress.entries} />}
 
-        {budget > 0 && (
-          <MonthSoFar month={month} rows={rows} budget={budget} spent={Number(totals.spent)} />
-        )}
-
-        {/* Hick's Law: the tab bar already offers Add, Budget, Accounts and
-            Household on every screen, so repeating them here is only more to
-            read past. Home shows what only home can show, plus one quiet way
-            back to the explanation. */}
+        {/* Then anything that actually wants a decision. */}
         {needsYou > 0 && (
           <Link href="/inbox" className="el" style={{
             minHeight: 62, borderRadius: 15, display: 'flex', alignItems: 'center', gap: 12,
-            padding: '0 16px', textDecoration: 'none', background: 'var(--c-warn-tint)',
+            padding: '0 15px', textDecoration: 'none', background: 'var(--c-warn-tint)',
             border: '1px solid var(--c-warn-fill)', color: 'var(--c-ink)',
           }}>
             <span style={{
@@ -94,15 +103,14 @@ export default async function Home() {
               </svg>
             </span>
             <span style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <span style={{ fontSize: 15, fontWeight: 600 }}>Inbox</span>
-              <span style={{ fontSize: 12.5, color: 'var(--c-warn)' }}>
+              <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>
+                {needsYou} {needsYou === 1 ? 'thing' : 'things'} to look at
+              </span>
+              <span style={{ fontSize: 'var(--step--1)', color: 'var(--c-warn)' }}>
                 {[dues > 0 ? `${dues} due now` : null,
-                  inbox.duplicates > 0
-                    ? `${inbox.duplicates} possible ${inbox.duplicates === 1 ? 'duplicate' : 'duplicates'}`
-                    : null,
-                  inbox.bills > 0
-                    ? `${inbox.bills} card ${inbox.bills === 1 ? 'bill' : 'bills'} due`
-                    : null].filter(Boolean).join(' · ')}
+                  inbox.bills > 0 ? `${inbox.bills} card ${inbox.bills === 1 ? 'bill' : 'bills'}` : null,
+                  inbox.duplicates > 0 ? `${inbox.duplicates} possible ${inbox.duplicates === 1 ? 'duplicate' : 'duplicates'}` : null,
+                ].filter(Boolean).join(' · ')}
               </span>
             </span>
             <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="var(--c-warn)"
@@ -110,145 +118,80 @@ export default async function Home() {
           </Link>
         )}
 
-        <Link href="/worth" className="el" style={{
-          minHeight: 58, borderRadius: 15, display: 'flex', alignItems: 'center', gap: 12,
-          padding: '0 16px', textDecoration: 'none', background: 'var(--c-card)',
-          border: '1px solid var(--c-border)', color: 'var(--c-ink)',
-        }}>
-          <span style={{
-            width: 34, height: 34, flex: 'none', borderRadius: 999, display: 'flex',
-            alignItems: 'center', justifyContent: 'center',
-            background: 'var(--c-sunk)', color: 'var(--c-meta)',
-          }}>
-            <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-              strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-              <path d="M12 3.5 20 8v8l-8 4.5L4 16V8z" /><path d="M4 8l8 4.5L20 8M12 12.5v8" />
-            </svg>
-          </span>
-          <span style={{ flex: 1, fontSize: 15, fontWeight: 600 }}>Net worth</span>
-          <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="var(--c-off)"
-            strokeWidth={2} strokeLinecap="round" aria-hidden><path d="M9 5l7 7-7 7" /></svg>
-        </Link>
+        {/* Setting up is one line, and only until it is done. */}
+        <GettingStarted progress={{ ...progress, budget }} />
 
-        <Link href="/schedules" className="el" style={{
-          minHeight: 58, borderRadius: 15, display: 'flex', alignItems: 'center', gap: 12,
-          padding: '0 16px', textDecoration: 'none', background: 'var(--c-card)',
-          border: '1px solid var(--c-border)', color: 'var(--c-ink)',
+        {/* Everywhere else, as a grid: five destinations scan faster in two
+            columns than they read as five identical stacked rows. */}
+        <nav aria-label="More" style={{
+          display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10, marginTop: 2,
         }}>
-          <span style={{
-            width: 34, height: 34, flex: 'none', borderRadius: 999, display: 'flex',
-            alignItems: 'center', justifyContent: 'center',
-            background: 'var(--c-sunk)', color: 'var(--c-meta)',
-          }}>
-            <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-              strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-              <rect x="3.5" y="5" width="17" height="15" rx="2.4" />
-              <path d="M3.5 9.5h17M8 3.5v3M16 3.5v3" />
-            </svg>
-          </span>
-          <span style={{ flex: 1, fontSize: 15, fontWeight: 600 }}>Scheduled</span>
-          {schedules.length > 0 && (
-            <span style={{ fontSize: 12.5, color: 'var(--c-meta)' }}>
-              {schedules.length} {schedules.length === 1 ? 'payment' : 'payments'}
-            </span>
-          )}
-          <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="var(--c-off)"
-            strokeWidth={2} strokeLinecap="round" aria-hidden><path d="M9 5l7 7-7 7" /></svg>
-        </Link>
-
-        <Link href="/trends" className="el" style={{
-          minHeight: 58, borderRadius: 15, display: 'flex', alignItems: 'center', gap: 12,
-          padding: '0 16px', textDecoration: 'none', background: 'var(--c-card)',
-          border: '1px solid var(--c-border)', color: 'var(--c-ink)',
-        }}>
-          <span style={{
-            width: 34, height: 34, flex: 'none', borderRadius: 999, display: 'flex',
-            alignItems: 'center', justifyContent: 'center',
-            background: 'var(--c-sunk)', color: 'var(--c-meta)',
-          }}>
-            <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-              strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-              <path d="M4 18l5-5 3.5 3.5L20 8" /><path d="M15 8h5v5" />
-            </svg>
-          </span>
-          <span style={{ flex: 1, fontSize: 15, fontWeight: 600 }}>Trends</span>
-          <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="var(--c-off)"
-            strokeWidth={2} strokeLinecap="round" aria-hidden><path d="M9 5l7 7-7 7" /></svg>
-        </Link>
-
-        <Link href="/people" className="el" style={{
-          minHeight: 58, borderRadius: 15, display: 'flex', alignItems: 'center', gap: 12,
-          padding: '0 16px', textDecoration: 'none', background: 'var(--c-card)',
-          border: '1px solid var(--c-border)', color: 'var(--c-ink)',
-        }}>
-          <span style={{
-            width: 34, height: 34, flex: 'none', borderRadius: 999, display: 'flex',
-            alignItems: 'center', justifyContent: 'center',
-            background: 'var(--c-sunk)', color: 'var(--c-meta)',
-          }}>
-            <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-              strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-              <path d="M7 9.5h10M7 14.5h6" /><rect x="3.5" y="4.5" width="17" height="15" rx="2.5" />
-            </svg>
-          </span>
-          <span style={{ flex: 1, fontSize: 15, fontWeight: 600 }}>Lending</span>
-          {lent !== 0 && (
-            <span style={{ fontSize: 12.5, color: 'var(--c-meta)' }}>
-              {format(Math.abs(lent))} {lent > 0 ? 'owed to you' : 'you owe'}
-            </span>
-          )}
-          <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="var(--c-off)"
-            strokeWidth={2} strokeLinecap="round" aria-hidden><path d="M9 5l7 7-7 7" /></svg>
-        </Link>
-
-        <Link href="/household" className="el" style={{
-          minHeight: 58, borderRadius: 15, display: 'flex', alignItems: 'center', gap: 12,
-          padding: '0 16px', textDecoration: 'none', background: 'var(--c-card)',
-          border: '1px solid var(--c-border)', color: 'var(--c-ink)',
-        }}>
-          <span style={{
-            width: 34, height: 34, flex: 'none', borderRadius: 999, display: 'flex',
-            alignItems: 'center', justifyContent: 'center',
-            background: 'var(--c-sunk)', color: 'var(--c-meta)',
-          }}>
-            <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-              strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-              <circle cx="9" cy="8.5" r="3.2" /><path d="M3 19.5a6 6 0 0 1 12 0" />
-              <path d="M16 5.6a3.2 3.2 0 0 1 0 5.8" /><path d="M17 14.2a6 6 0 0 1 4 5.3" />
-            </svg>
-          </span>
-          <span style={{ flex: 1, fontSize: 15, fontWeight: 600 }}>Household</span>
-          <span style={{ fontSize: 12.5, color: 'var(--c-meta)' }}>
-            {progress.members} {progress.members === 1 ? 'member' : 'members'}
-          </span>
-          <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="var(--c-off)"
-            strokeWidth={2} strokeLinecap="round" aria-hidden><path d="M9 5l7 7-7 7" /></svg>
-        </Link>
-
-        <Link href="/guide" className="el" style={{
-          minHeight: 58, borderRadius: 15, display: 'flex', alignItems: 'center', gap: 12,
-          padding: '0 16px', textDecoration: 'none', background: 'var(--c-card)',
-          border: '1px solid var(--c-border)', color: 'var(--c-ink)',
-        }}>
-          <span style={{
-            width: 34, height: 34, flex: 'none', borderRadius: 999, display: 'flex',
-            alignItems: 'center', justifyContent: 'center',
-            background: 'var(--c-sunk)', color: 'var(--c-meta)',
-          }}>
-            <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-              strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-              <circle cx="12" cy="12" r="8.6" />
-              <path d="M9.6 9.4a2.5 2.5 0 1 1 3.3 2.4c-.6.2-.9.7-.9 1.3v.5" />
-              <path d="M12 16.6v.1" />
-            </svg>
-          </span>
-          <span style={{ flex: 1, fontSize: 15, fontWeight: 600 }}>How it works</span>
-          <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="var(--c-off)"
-            strokeWidth={2} strokeLinecap="round" aria-hidden><path d="M9 5l7 7-7 7" /></svg>
-        </Link>
+          <Tile href="/trends" icon="invest" tint="green" label="Trends" note="Six months" />
+          <Tile href="/worth" icon="vault" tint="cyan" label="Net worth" note="What it adds to" />
+          <Tile href="/schedules" icon="autodebit" tint="indigo" label="Scheduled"
+            note={schedules.length ? `${schedules.length} set` : 'Rent, fees, EMIs'} />
+          <Tile href="/people" icon="person" tint="purple" label="Lending"
+            note={lent !== 0 ? format(Math.abs(lent)) : 'Who owes what'} />
+          <Tile href="/household" icon="person" tint="blue" label="Household"
+            note={`${progress.members} ${progress.members === 1 ? 'member' : 'members'}`} />
+          <Tile href="/guide" icon="book" tint="neutral" label="How it works" note="A walkthrough" />
+        </nav>
       </div>
       <TabBar current="/" />
     </main>
   );
 }
 
+/* Without a budget there is still something true to say, and saying it beats
+   an empty space with a prompt in it. */
+function NoBudgetYet({ monthName, spent, entries }: {
+  monthName: string; spent: number; entries: number;
+}) {
+  return (
+    <section className="el" style={{
+      background: 'var(--c-card)', borderRadius: 18, padding: 16,
+      display: 'flex', flexDirection: 'column', gap: 10,
+    }}>
+      <h2 style={{ fontSize: 'var(--step-2)', fontWeight: 600 }}>{monthName} so far</h2>
+      <span className="t" style={{ fontSize: 'var(--step-4)', lineHeight: 1 }}>{format(spent)}</span>
+      <p style={{ margin: 0, fontSize: 'var(--step--1)', color: 'var(--c-meta)' }}>
+        {entries === 0
+          ? 'Nothing recorded yet.'
+          : `Across ${entries} ${entries === 1 ? 'entry' : 'entries'}. Set a budget and this gets something to measure against.`}
+      </p>
+      <Link href="/budget" style={{
+        minHeight: 48, borderRadius: 13, display: 'flex', alignItems: 'center',
+        justifyContent: 'center', textDecoration: 'none',
+        fontSize: 'var(--step-0)', fontWeight: 600,
+        background: 'var(--c-seagrass)', color: 'var(--c-on-fill)',
+      }}>Set this month&rsquo;s budget</Link>
+    </section>
+  );
+}
+
+function Tile({ href, icon, tint, label, note }: {
+  href: string; icon: string; tint: string; label: string; note: string;
+}) {
+  return (
+    <Link href={href} className="el" style={{
+      minHeight: 92, borderRadius: 16, display: 'flex', flexDirection: 'column',
+      justifyContent: 'space-between', gap: 8, padding: '12px 13px', textDecoration: 'none',
+      background: 'var(--c-card)', border: '1px solid var(--c-border)', color: 'var(--c-ink)',
+    }}>
+      <span style={{
+        width: 32, height: 32, borderRadius: 9, display: 'flex', alignItems: 'center',
+        justifyContent: 'center',
+        background: `var(--cat-${tint})`, color: `var(--cat-${tint}-ink)`,
+      }}>
+        <Icon name={icon} size={17} />
+      </span>
+      <span style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+        <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>{label}</span>
+        <span style={{
+          fontSize: 'var(--step--2)', color: 'var(--c-meta)',
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+        }}>{note}</span>
+      </span>
+    </Link>
+  );
+}

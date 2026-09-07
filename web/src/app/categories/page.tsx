@@ -30,10 +30,10 @@ export default async function Categories() {
             <path d="M15 5l-7 7 7 7" />
           </svg>
         </Link>
-        <h1 className="t" style={{ margin: 0, fontSize: 27, letterSpacing: '-.018em' }}>
+        <h1 className="t" style={{ margin: 0, fontSize: 'var(--step-3)', letterSpacing: '-.018em' }}>
           Categories
         </h1>
-        <p style={{ margin: 0, fontSize: 13, lineHeight: 1.5, color: 'rgba(255,255,255,.84)' }}>
+        <p style={{ margin: 0, fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'rgba(255,255,255,.84)' }}>
           {live} in use. The order here is the order Add Entry offers them in, so the three you
           use daily are worth putting first.
         </p>
@@ -41,7 +41,7 @@ export default async function Categories() {
 
       <div style={{ paddingTop: 20 }}>
         <CategoryEditor categories={categories} canEdit={actor.role !== 'viewer'} />
-        <p style={{ margin: '0 20px', fontSize: 12.5, lineHeight: 1.5, color: 'var(--c-meta)' }}>
+        <p style={{ margin: '0 20px', fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--c-meta)' }}>
           Renaming is safe: every entry points at the category itself, so they all follow the
           new name and no month changes value.
         </p>

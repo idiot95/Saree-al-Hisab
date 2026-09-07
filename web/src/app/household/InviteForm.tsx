@@ -16,7 +16,7 @@ export default function InviteForm({ origin }: { origin: string }) {
   return (
     <>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '4px 20px 12px' }}>
-        <h2 style={{ margin: 0, fontSize: 16.5, fontWeight: 600, letterSpacing: '-.012em' }}>
+        <h2 style={{ margin: 0, fontSize: 'var(--step-1)', fontWeight: 600, letterSpacing: '-.012em' }}>
           Invite someone
         </h2>
         <span style={{ flex: 1, height: 1, background: 'var(--c-border)' }} />
@@ -27,7 +27,7 @@ export default function InviteForm({ origin }: { origin: string }) {
       }}>
         <form action={act} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--c-meta)' }}>
+            <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)' }}>
               Email address
             </span>
             <input
@@ -36,14 +36,14 @@ export default function InviteForm({ origin }: { origin: string }) {
               value={email} onChange={(e) => setEmail(e.target.value)}
               style={{
                 minHeight: 50, borderRadius: 13, border: '1px solid var(--c-border)',
-                background: 'var(--c-sunk2)', color: 'var(--c-ink)', fontSize: 16,
+                background: 'var(--c-sunk2)', color: 'var(--c-ink)', fontSize: 'var(--step-0)',
                 padding: '0 14px', width: '100%',
               }}
             />
           </label>
 
           <fieldset style={{ border: 0, padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <legend style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--c-meta)', padding: 0 }}>
+            <legend style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)', padding: 0 }}>
               What they can do
             </legend>
             <Choice
@@ -59,7 +59,7 @@ export default function InviteForm({ origin }: { origin: string }) {
           </fieldset>
 
           <button type="submit" disabled={pending} style={{
-            minHeight: 52, borderRadius: 14, fontSize: 16, fontWeight: 600, color: '#fff',
+            minHeight: 52, borderRadius: 14, fontSize: 'var(--step-0)', fontWeight: 600, color: '#fff',
             opacity: pending ? 0.6 : 1,
             background:
               'radial-gradient(120% 100% at 25% 0%, rgba(255,255,255,.18) 0%, rgba(255,255,255,0) 60%),'
@@ -72,7 +72,7 @@ export default function InviteForm({ origin }: { origin: string }) {
             <p role="alert" style={{
               margin: 0, display: 'flex', alignItems: 'center', gap: 8, padding: '11px 13px',
               borderRadius: 12, background: 'var(--c-danger-tint)', color: 'var(--c-danger)',
-              fontSize: 13.5, fontWeight: 600,
+              fontSize: 'var(--step--1)', fontWeight: 600,
             }}>
               <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor"
                 strokeWidth={2} strokeLinecap="round" style={{ flex: 'none' }} aria-hidden>
@@ -101,8 +101,8 @@ function Choice({ name, value, title, what, defaultChecked }: {
       <input type="radio" name={name} value={value} defaultChecked={defaultChecked}
         style={{ width: 19, height: 19, marginTop: 1, accentColor: 'var(--c-seagrass)', flex: 'none' }} />
       <span style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-        <span style={{ fontSize: 14.5, fontWeight: 600 }}>{title}</span>
-        <span style={{ fontSize: 12.5, lineHeight: 1.45, color: 'var(--c-meta)' }}>{what}</span>
+        <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>{title}</span>
+        <span style={{ fontSize: 'var(--step--1)', lineHeight: 1.45, color: 'var(--c-meta)' }}>{what}</span>
       </span>
     </label>
   );
@@ -117,7 +117,7 @@ function InviteLink({ url, email }: { url: string; email: string }) {
       display: 'flex', flexDirection: 'column', gap: 10,
     }}>
       <span style={{
-        display: 'flex', alignItems: 'center', gap: 7, fontSize: 13.5, fontWeight: 700,
+        display: 'flex', alignItems: 'center', gap: 7, fontSize: 'var(--step--1)', fontWeight: 700,
         color: 'var(--c-ok)',
       }}>
         <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -126,16 +126,16 @@ function InviteLink({ url, email }: { url: string; email: string }) {
         </svg>
         Invitation ready
       </span>
-      <p style={{ margin: 0, fontSize: 13, lineHeight: 1.5, color: 'var(--c-ink)' }}>
+      <p style={{ margin: 0, fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--c-ink)' }}>
         Send this to {email || 'them'} privately. <b>Anyone who opens this link can take that
         place in the household.</b> It works once and expires in seven days.
       </p>
-      <p style={{ margin: 0, fontSize: 12, lineHeight: 1.5, color: 'var(--c-meta)' }}>
+      <p style={{ margin: 0, fontSize: 'var(--step--2)', lineHeight: 1.5, color: 'var(--c-meta)' }}>
         Shown only once. If you lose it, withdraw the invitation and create a new one.
       </p>
       <code style={{
         display: 'block', padding: '10px 12px', borderRadius: 10, background: 'var(--c-card)',
-        border: '1px solid var(--c-border)', fontSize: 11.5, lineHeight: 1.5,
+        border: '1px solid var(--c-border)', fontSize: 'var(--step--2)', lineHeight: 1.5,
         wordBreak: 'break-all', color: 'var(--c-meta)',
       }}>{url}</code>
       <button
@@ -147,7 +147,7 @@ function InviteLink({ url, email }: { url: string; email: string }) {
         style={{
           minHeight: 46, borderRadius: 12, background: 'var(--c-card)',
           border: '1px solid var(--c-border)', color: 'var(--c-ink)',
-          fontSize: 14.5, fontWeight: 600,
+          fontSize: 'var(--step-0)', fontWeight: 600,
         }}
       >
         {copied === 'done' ? 'Copied' : copied === 'failed' ? 'Select the link above to copy' : 'Copy link'}

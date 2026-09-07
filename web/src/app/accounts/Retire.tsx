@@ -28,12 +28,12 @@ export function RetireAccount({ id, name, blocked }: { id: string; name: string;
         </form>
       </span>
       {blocked > 0 && (
-        <span style={{ fontSize: 11.5, color: 'var(--c-meta)', textAlign: 'right', maxWidth: 210 }}>
+        <span style={{ fontSize: 'var(--step--2)', color: 'var(--c-meta)', textAlign: 'right', maxWidth: 210 }}>
           {blocked === 1 ? '1 payment method draws' : `${blocked} payment methods draw`} on this.
         </span>
       )}
       {state && !state.ok && (
-        <span role="alert" style={{ fontSize: 11.5, color: 'var(--c-danger)', textAlign: 'right', maxWidth: 210 }}>
+        <span role="alert" style={{ fontSize: 'var(--step--2)', color: 'var(--c-danger)', textAlign: 'right', maxWidth: 210 }}>
           {state.error}
         </span>
       )}
@@ -51,7 +51,7 @@ export function MethodControls({ id, isDefault }: { id: string; isDefault: boole
       <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         {isDefault ? (
           <span style={{
-            fontSize: 11, fontWeight: 700, padding: '5px 9px', borderRadius: 7,
+            fontSize: 'var(--step--2)', fontWeight: 700, padding: '5px 9px', borderRadius: 7,
             background: 'var(--c-ok-tint)', color: 'var(--c-ok)', letterSpacing: '.03em',
           }}>DEFAULT</span>
         ) : (
@@ -72,7 +72,7 @@ export function MethodControls({ id, isDefault }: { id: string; isDefault: boole
         )}
       </span>
       {retireState && !retireState.ok && (
-        <span role="alert" style={{ fontSize: 11.5, color: 'var(--c-danger)', textAlign: 'right', maxWidth: 220 }}>
+        <span role="alert" style={{ fontSize: 'var(--step--2)', color: 'var(--c-danger)', textAlign: 'right', maxWidth: 220 }}>
           {retireState.error}
         </span>
       )}
@@ -81,6 +81,6 @@ export function MethodControls({ id, isDefault }: { id: string; isDefault: boole
 }
 
 const link: React.CSSProperties = {
-  minHeight: 44, padding: '0 8px', fontSize: 12.5, fontWeight: 600,
+  minHeight: 44, padding: '0 8px', fontSize: 'var(--step--1)', fontWeight: 600,
   color: 'var(--c-meta)', background: 'transparent',
 };

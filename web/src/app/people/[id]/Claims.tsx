@@ -27,10 +27,10 @@ export default function Claims({ claims, methods, canEdit }: {
   return (
     <>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0 20px 11px' }}>
-        <h2 style={{ margin: 0, fontSize: 16.5, fontWeight: 600 }}>Owed for shared costs</h2>
+        <h2 style={{ margin: 0, fontSize: 'var(--step-1)', fontWeight: 600 }}>Owed for shared costs</h2>
         <span style={{ flex: 1, height: 1, background: 'var(--c-border)' }} />
       </div>
-      <p style={{ margin: '-4px 20px 12px', fontSize: 12.5, lineHeight: 1.5, color: 'var(--c-meta)' }}>
+      <p style={{ margin: '-4px 20px 12px', fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--c-meta)' }}>
         Things you paid for that they owe part of. Already counted in the month you bought
         them — this is only what is coming back.
       </p>
@@ -49,10 +49,10 @@ export default function Claims({ claims, methods, canEdit }: {
                 textDecoration: 'none', color: 'var(--c-ink)',
               }}>
                 <span style={{
-                  fontSize: 15, fontWeight: 600, overflow: 'hidden',
+                  fontSize: 'var(--step-0)', fontWeight: 600, overflow: 'hidden',
                   textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                 }}>{c.merchant || c.category || 'Entry'}</span>
-                <span style={{ fontSize: 12, color: 'var(--c-meta)' }}>
+                <span style={{ fontSize: 'var(--step--2)', color: 'var(--c-meta)' }}>
                   {new Date(c.occurred_on).toLocaleDateString('en-IN',
                     { day: 'numeric', month: 'short' })}
                   {c.status === 'part_paid' && ` · ${format(Number(c.received))} in`}
@@ -61,8 +61,8 @@ export default function Claims({ claims, methods, canEdit }: {
                   {c.note ? ` · ${c.note}` : ''}
                 </span>
               </Link>
-              <span className="t" style={{
-                fontSize: 16,
+              <span className="t amt" style={{
+                fontSize: 'var(--step-0)',
                 color: c.status === 'settled' ? 'var(--c-ok)'
                   : c.status === 'written_off' ? 'var(--c-meta)'
                   : c.status === 'part_paid' ? 'var(--c-warn)' : 'var(--c-ink)',
@@ -80,10 +80,10 @@ export default function Claims({ claims, methods, canEdit }: {
                     autoFocus defaultValue={String(Number(c.outstanding) / 100)} />
                   <Field label="Date" name="occurred_on" type="date" defaultValue={today} required />
                   <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--c-meta)' }}>Into</span>
+                    <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)' }}>Into</span>
                     <select name="methodId" required style={{
                       minHeight: 50, borderRadius: 12, border: '1px solid var(--c-border)',
-                      background: 'var(--c-card)', color: 'var(--c-ink)', fontSize: 15,
+                      background: 'var(--c-card)', color: 'var(--c-ink)', fontSize: 'var(--step-0)',
                       fontWeight: 600, padding: '0 12px',
                     }}>
                       {methods.map((m) => (
@@ -94,11 +94,11 @@ export default function Claims({ claims, methods, canEdit }: {
                   {state && !state.ok && <ErrorNote>{state.error}</ErrorNote>}
                   <div style={{ display: 'flex', gap: 9 }}>
                     <button type="button" onClick={() => setSettling(null)} style={{
-                      minHeight: 46, padding: '0 14px', borderRadius: 11, fontSize: 14,
+                      minHeight: 46, padding: '0 14px', borderRadius: 11, fontSize: 'var(--step--1)',
                       fontWeight: 600, background: 'var(--c-sunk)', color: 'var(--c-meta)',
                     }}>Cancel</button>
                     <button type="submit" disabled={pending} style={{
-                      flex: 1, minHeight: 46, borderRadius: 11, fontSize: 14.5, fontWeight: 600,
+                      flex: 1, minHeight: 46, borderRadius: 11, fontSize: 'var(--step-0)', fontWeight: 600,
                       background: 'var(--c-seagrass)', color: 'var(--c-on-fill)',
                       opacity: pending ? 0.6 : 1,
                     }}>{pending ? 'Saving…' : 'Record it'}</button>
@@ -107,13 +107,13 @@ export default function Claims({ claims, methods, canEdit }: {
               ) : (
                 <div style={{ display: 'flex', gap: 8 }}>
                   <button type="button" onClick={() => setSettling(c.id)} style={{
-                    flex: 1, minHeight: 44, borderRadius: 11, fontSize: 13.5, fontWeight: 600,
+                    flex: 1, minHeight: 44, borderRadius: 11, fontSize: 'var(--step--1)', fontWeight: 600,
                     background: 'var(--c-sunk)', color: 'var(--c-ink)',
                   }}>They paid me</button>
                   <form action={drop}>
                     <input type="hidden" name="claimId" value={c.id} />
                     <button type="submit" style={{
-                      minHeight: 44, padding: '0 14px', borderRadius: 11, fontSize: 13.5,
+                      minHeight: 44, padding: '0 14px', borderRadius: 11, fontSize: 'var(--step--1)',
                       fontWeight: 600, background: 'transparent', color: 'var(--c-meta)',
                     }}>Write off</button>
                   </form>
@@ -124,7 +124,7 @@ export default function Claims({ claims, methods, canEdit }: {
         ))}
       </section>
       {live.length === 0 && (
-        <p style={{ margin: '-14px 20px 22px', fontSize: 12.5, color: 'var(--c-meta)' }}>
+        <p style={{ margin: '-14px 20px 22px', fontSize: 'var(--step--1)', color: 'var(--c-meta)' }}>
           Nothing outstanding on shared costs.
         </p>
       )}

@@ -52,10 +52,10 @@ export default async function Entry({ params }: { params: Promise<{ id: string }
             <path d="M15 5l-7 7 7 7" />
           </svg>
         </Link>
-        <h1 className="t" style={{ margin: 0, fontSize: 24, letterSpacing: '-.018em' }}>
+        <h1 className="t" style={{ margin: 0, fontSize: 'var(--step-3)', letterSpacing: '-.018em' }}>
           {KIND[entry.kind] ?? 'Entry'}
         </h1>
-        <p style={{ margin: 0, fontSize: 13, color: 'rgba(255,255,255,.76)' }}>
+        <p style={{ margin: 0, fontSize: 'var(--step--1)', color: 'rgba(255,255,255,.76)' }}>
           {entry.who} recorded this on {recorded}
           {entry.account && ` · ${entry.account}`}
         </p>
@@ -87,7 +87,7 @@ export default async function Entry({ params }: { params: Promise<{ id: string }
         {/* Tesler: the shape rules are real and cannot be wished away, so the
             app says which change it will not make rather than pretending. */}
         <p style={{
-          margin: '18px 20px 0', fontSize: 12.5, lineHeight: 1.5, color: 'var(--c-meta)',
+          margin: '18px 20px 0', fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--c-meta)',
         }}>
           To change what kind of entry this is, delete it and add it again — an expense and a
           transfer follow different rules, and quietly rewriting one into the other is how a

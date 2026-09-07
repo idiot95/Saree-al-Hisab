@@ -82,7 +82,7 @@ export default async function Entries({ searchParams }: {
               <path d="M15 5l-7 7 7 7" />
             </svg>
           </Link>
-          <span style={{ fontSize: 14.5, fontWeight: 600, minWidth: 118, textAlign: 'center' }}>
+          <span style={{ fontSize: 'var(--step-0)', fontWeight: 600, minWidth: 118, textAlign: 'center' }}>
             {monthLabel(month)}
           </span>
           <Link href={`/entries?m=${shift(month, 1)}${categoryId ? `&c=${categoryId}` : ''}`}
@@ -94,10 +94,10 @@ export default async function Entries({ searchParams }: {
           </Link>
         </div>
 
-        <h1 className="t" style={{ margin: 0, fontSize: 26, letterSpacing: '-.018em' }}>
+        <h1 className="t" style={{ margin: 0, fontSize: 'var(--step-3)', letterSpacing: '-.018em' }}>
           {filtered ? filtered.name : 'Entries'}
         </h1>
-        <p style={{ margin: 0, fontSize: 13.5, color: 'rgba(255,255,255,.82)' }}>
+        <p style={{ margin: 0, fontSize: 'var(--step--1)', color: 'rgba(255,255,255,.82)' }}>
           {entries.length} {entries.length === 1 ? 'entry' : 'entries'} · {format(spent)} spent
         </p>
 
@@ -105,7 +105,7 @@ export default async function Entries({ searchParams }: {
           <Link href={`/entries?m=${month}`} style={{
             alignSelf: 'flex-start', minHeight: 44, display: 'flex', alignItems: 'center', gap: 6,
             padding: '0 12px', borderRadius: 999, textDecoration: 'none',
-            background: 'rgba(255,255,255,.16)', color: '#fff', fontSize: 13, fontWeight: 600,
+            background: 'rgba(255,255,255,.16)', color: '#fff', fontSize: 'var(--step--1)', fontWeight: 600,
           }}>
             <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor"
               strokeWidth={2.4} strokeLinecap="round" aria-hidden><path d="M6 6l12 12M18 6L6 18" /></svg>
@@ -116,7 +116,7 @@ export default async function Entries({ searchParams }: {
 
       {entries.length === 0 ? (
         <p style={{
-          margin: '40px 34px', textAlign: 'center', fontSize: 14.5, lineHeight: 1.55,
+          margin: '40px 34px', textAlign: 'center', fontSize: 'var(--step-0)', lineHeight: 1.55,
           color: 'var(--c-meta)',
         }}>
           Nothing recorded for {monthLabel(month)}{filtered ? ` under ${filtered.name}` : ''} yet.
@@ -126,7 +126,7 @@ export default async function Entries({ searchParams }: {
           {days.map((d) => (
             <section key={d.on} style={{ marginBottom: 18 }}>
               <h2 style={{
-                margin: '0 20px 8px', fontSize: 12.5, fontWeight: 700, letterSpacing: '.03em',
+                margin: '0 20px 8px', fontSize: 'var(--step--1)', fontWeight: 700, letterSpacing: '.03em',
                 color: 'var(--c-meta)',
               }}>{dayLabel(d.on)}</h2>
               <div className="el" style={{
@@ -157,13 +157,13 @@ export default async function Entries({ searchParams }: {
                       )}
                       <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
                         <span style={{
-                          fontSize: 15, fontWeight: 600, overflow: 'hidden',
+                          fontSize: 'var(--step-0)', fontWeight: 600, overflow: 'hidden',
                           textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                         }}>
                           {e.merchant || e.category || (move ? 'Transfer' : 'Entry')}
                         </span>
                         <span style={{
-                          fontSize: 12, color: 'var(--c-meta)', overflow: 'hidden',
+                          fontSize: 'var(--step--2)', color: 'var(--c-meta)', overflow: 'hidden',
                           textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                         }}>
                           {move && e.counter_account
@@ -172,8 +172,8 @@ export default async function Entries({ searchParams }: {
                           {e.is_shared && ' · shared'}
                         </span>
                       </span>
-                      <span className="t" style={{
-                        fontSize: 16, letterSpacing: '-.01em', flex: 'none',
+                      <span className="t amt" style={{
+                        fontSize: 'var(--step-0)', letterSpacing: '-.01em',
                         color: incoming ? 'var(--c-ok)' : move ? 'var(--c-meta)' : 'var(--c-ink)',
                       }}>
                         {incoming ? '+' : ''}{format(Number(e.amount))}

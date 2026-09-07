@@ -19,7 +19,7 @@ export default function NewBook() {
         margin: '0 18px 22px', width: 'calc(100% - 36px)', minHeight: 56, borderRadius: 16,
         display: 'flex', alignItems: 'center', gap: 11, padding: '0 16px',
         background: 'var(--c-card)', border: '1px dashed var(--c-dash)',
-        color: 'var(--c-ink)', fontSize: 15, fontWeight: 600,
+        color: 'var(--c-ink)', fontSize: 'var(--step-0)', fontWeight: 600,
       }}>
         <span style={{
           width: 32, height: 32, flex: 'none', borderRadius: 999, display: 'flex',
@@ -42,7 +42,7 @@ export default function NewBook() {
       <Field label="Name" name="name" required maxLength={60}
         placeholder="The Pune flat" autoFocus />
       <fieldset style={{ border: 0, padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
-        <legend style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--c-meta)', padding: 0 }}>
+        <legend style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)', padding: 0 }}>
           What sort of book
         </legend>
         {KINDS.map((k, i) => (
@@ -54,8 +54,8 @@ export default function NewBook() {
             <input type="radio" name="kind" value={k.id} defaultChecked={i === 0}
               style={{ width: 18, height: 18, marginTop: 1, accentColor: 'var(--c-seagrass)', flex: 'none' }} />
             <span style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-              <span style={{ fontSize: 14.5, fontWeight: 600 }}>{k.label}</span>
-              <span style={{ fontSize: 12.5, lineHeight: 1.45, color: 'var(--c-meta)' }}>{k.what}</span>
+              <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>{k.label}</span>
+              <span style={{ fontSize: 'var(--step--1)', lineHeight: 1.45, color: 'var(--c-meta)' }}>{k.what}</span>
             </span>
           </label>
         ))}
@@ -64,11 +64,11 @@ export default function NewBook() {
       {state && !state.ok && <ErrorNote>{state.error}</ErrorNote>}
       <div style={{ display: 'flex', gap: 9 }}>
         <button type="button" onClick={() => setOpen(false)} style={{
-          minHeight: 50, padding: '0 16px', borderRadius: 13, fontSize: 14.5, fontWeight: 600,
+          minHeight: 50, padding: '0 16px', borderRadius: 13, fontSize: 'var(--step-0)', fontWeight: 600,
           background: 'var(--c-sunk)', color: 'var(--c-meta)',
         }}>Cancel</button>
         <button type="submit" disabled={pending} style={{
-          flex: 1, minHeight: 50, borderRadius: 13, fontSize: 15.5, fontWeight: 600,
+          flex: 1, minHeight: 50, borderRadius: 13, fontSize: 'var(--step-0)', fontWeight: 600,
           background: 'var(--c-seagrass)', color: 'var(--c-on-fill)', opacity: pending ? 0.65 : 1,
         }}>{pending ? 'Creating…' : 'Create book'}</button>
       </div>

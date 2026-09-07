@@ -89,7 +89,7 @@ export default function PersonActions({ personId, name, balance, methods, catego
 
       {mode !== 'off' && balance > 0 && (
         <button type="button" onClick={() => setMode('off')} style={{
-          marginTop: 12, minHeight: 44, width: '100%', fontSize: 13.5, fontWeight: 600,
+          marginTop: 12, minHeight: 44, width: '100%', fontSize: 'var(--step--1)', fontWeight: 600,
           color: 'var(--c-meta)', background: 'transparent',
         }}>
           Or write off the {format(balance)} they owe
@@ -100,11 +100,11 @@ export default function PersonActions({ personId, name, balance, methods, catego
 }
 
 function Title({ children }: { children: React.ReactNode }) {
-  return <h2 style={{ margin: 0, fontSize: 17, fontWeight: 600 }}>{children}</h2>;
+  return <h2 style={{ margin: 0, fontSize: 'var(--step-1)', fontWeight: 600 }}>{children}</h2>;
 }
 function Explain({ children }: { children: React.ReactNode }) {
   return (
-    <p style={{ margin: 0, fontSize: 12.5, lineHeight: 1.5, color: 'var(--c-meta)' }}>{children}</p>
+    <p style={{ margin: 0, fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--c-meta)' }}>{children}</p>
   );
 }
 function Select({ label, name, options }: {
@@ -112,10 +112,10 @@ function Select({ label, name, options }: {
 }) {
   return (
     <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-      <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--c-meta)' }}>{label}</span>
+      <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)' }}>{label}</span>
       <select name={name} required style={{
         minHeight: 52, borderRadius: 13, border: '1px solid var(--c-border)',
-        background: 'var(--c-card)', color: 'var(--c-ink)', fontSize: 15.5,
+        background: 'var(--c-card)', color: 'var(--c-ink)', fontSize: 'var(--step-0)',
         fontWeight: 600, padding: '0 12px',
       }}>
         {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
@@ -129,11 +129,11 @@ function Row({ onCancel, pending, label, danger }: {
   return (
     <div style={{ display: 'flex', gap: 9 }}>
       <button type="button" onClick={onCancel} style={{
-        minHeight: 50, padding: '0 16px', borderRadius: 13, fontSize: 14.5, fontWeight: 600,
+        minHeight: 50, padding: '0 16px', borderRadius: 13, fontSize: 'var(--step-0)', fontWeight: 600,
         background: 'var(--c-sunk)', color: 'var(--c-meta)',
       }}>Cancel</button>
       <button type="submit" disabled={pending} style={{
-        flex: 1, minHeight: 50, borderRadius: 13, fontSize: 15.5, fontWeight: 600,
+        flex: 1, minHeight: 50, borderRadius: 13, fontSize: 'var(--step-0)', fontWeight: 600,
         opacity: pending ? 0.65 : 1,
         background: danger ? 'var(--c-danger-tint)' : 'var(--c-seagrass)',
         color: danger ? 'var(--c-danger)' : 'var(--c-on-fill)',
@@ -146,7 +146,7 @@ function Btn({ children, onClick, primary }: {
 }) {
   return (
     <button type="button" onClick={onClick} className={primary ? 'el2' : 'el'} style={{
-      flex: 1, minHeight: 54, borderRadius: 14, fontSize: 15, fontWeight: 600,
+      flex: 1, minHeight: 54, borderRadius: 14, fontSize: 'var(--step-0)', fontWeight: 600,
       background: primary
         ? 'radial-gradient(120% 100% at 25% 0%, rgba(255,255,255,.18) 0%, rgba(255,255,255,0) 60%),'
           + 'linear-gradient(145deg,#2C5063 0%,#1C3541 100%)'

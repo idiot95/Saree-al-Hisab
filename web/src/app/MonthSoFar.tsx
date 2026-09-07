@@ -40,22 +40,22 @@ export default function MonthSoFar({ month, rows, budget, spent }: {
       display: 'flex', flexDirection: 'column', gap: 13,
     }}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
-        <h2 style={{ margin: 0, fontSize: 16.5, fontWeight: 600, flex: 1 }}>
+        <h2 style={{ fontSize: 'var(--step-2)', fontWeight: 600, flex: 1 }}>
           {start.toLocaleDateString('en-IN', { month: 'long' })} so far
         </h2>
         <Link href="/trends" style={{
-          fontSize: 13, fontWeight: 600, color: 'var(--c-teal)', textDecoration: 'none',
+          fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-teal)', textDecoration: 'none',
         }}>Trends</Link>
         <Link href="/budget" style={{
-          fontSize: 13, fontWeight: 600, color: 'var(--c-teal)', textDecoration: 'none',
+          fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-teal)', textDecoration: 'none',
         }}>Budget</Link>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8 }}>
-        <span className="t" style={{ fontSize: 32, letterSpacing: '-.022em', lineHeight: 1 }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
+        <span className="t" style={{ fontSize: 'var(--step-4)', lineHeight: 1 }}>
           {format(spent)}
         </span>
-        <span style={{ fontSize: 13.5, color: 'var(--c-meta)', paddingBottom: 3 }}>
+        <span style={{ fontSize: 'var(--step--1)', color: 'var(--c-meta)' }}>
           of {format(budget)}
         </span>
       </div>
@@ -84,7 +84,7 @@ export default function MonthSoFar({ month, rows, budget, spent }: {
       </span>
 
       <p style={{
-        margin: 0, fontSize: 13, lineHeight: 1.45,
+        margin: 0, fontSize: 'var(--step--1)', lineHeight: 1.45,
         color: over ? 'var(--c-danger)' : ahead ? 'var(--c-warn)' : 'var(--c-meta)',
         fontWeight: over || ahead ? 600 : 400,
       }}>
@@ -114,21 +114,22 @@ export default function MonthSoFar({ month, rows, budget, spent }: {
                 }}>
                 <Chip icon={r.icon} tint={r.tint} size={24} radius={7} iconSize={13} />
                 <span style={{
-                  fontSize: 12.5, width: 74, overflow: 'hidden', textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap', color: 'var(--c-meta)',
+                  flex: 1, minWidth: 0, fontSize: 'var(--step--1)', overflow: 'hidden',
+                  textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--c-ink)',
                 }}>{r.name}</span>
                 <span style={{
-                  flex: 1, height: 6, borderRadius: 999, background: 'var(--c-track)',
-                  overflow: 'hidden',
+                  width: 58, flex: 'none', height: 6, borderRadius: 999,
+                  background: 'var(--c-track)', overflow: 'hidden',
                 }}>
                   <span style={{
                     display: 'block', height: '100%', borderRadius: 999, width: `${pct}%`,
                     background: isOver ? 'var(--c-danger-fill)' : TINT[r.tint] ?? 'var(--c-seagrass)',
                   }} />
                 </span>
-                <span style={{
-                  fontSize: 12, width: 74, textAlign: 'right', fontWeight: 600,
-                  color: isOver ? 'var(--c-danger)' : 'var(--c-meta)',
+                <span className="n" style={{
+                  fontSize: 'var(--step--1)', width: 78, flex: 'none', textAlign: 'right',
+                  fontWeight: 600, fontVariantNumeric: 'tabular-nums',
+                  color: isOver ? 'var(--c-danger)' : 'var(--c-ink)',
                 }}>{format(s)}</span>
                 </Link>
               </li>

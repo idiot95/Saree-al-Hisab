@@ -54,8 +54,8 @@ export default async function Household() {
             <path d="M15 5l-7 7 7 7" />
           </svg>
         </a>
-        <h1 className="t" style={{ margin: 0, fontSize: 27, letterSpacing: '-.018em' }}>{name}</h1>
-        <p style={{ margin: 0, fontSize: 13.5, color: 'rgba(255,255,255,.84)' }}>
+        <h1 className="t" style={{ margin: 0, fontSize: 'var(--step-3)', letterSpacing: '-.018em' }}>{name}</h1>
+        <p style={{ margin: 0, fontSize: 'var(--step--1)', color: 'rgba(255,255,255,.84)' }}>
           {members.length} {members.length === 1 ? 'member' : 'members'}
           {live.length > 0 && ` · ${live.length} invited`}
         </p>
@@ -64,7 +64,7 @@ export default async function Household() {
       <p style={{
         display: 'flex', alignItems: 'flex-start', gap: 10, margin: '18px 18px 22px',
         padding: '13px 14px', borderRadius: 14, background: 'var(--cat-cyan)',
-        color: 'var(--cat-cyan-ink)', fontSize: 13, lineHeight: 1.5,
+        color: 'var(--cat-cyan-ink)', fontSize: 'var(--step--1)', lineHeight: 1.5,
       }}>
         <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor"
           strokeWidth={1.9} strokeLinecap="round" style={{ flex: 'none', marginTop: 2 }} aria-hidden>
@@ -117,11 +117,11 @@ export default async function Household() {
                 </span>
                 <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
                   <span style={{
-                    fontSize: 14.5, fontWeight: 600, overflow: 'hidden',
+                    fontSize: 'var(--step-0)', fontWeight: 600, overflow: 'hidden',
                     textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                   }}>{iv.email}</span>
                   <span style={{
-                    fontSize: 12.5, color: iv.expired ? 'var(--c-danger)' : 'var(--c-meta)',
+                    fontSize: 'var(--step--1)', color: iv.expired ? 'var(--c-danger)' : 'var(--c-meta)',
                   }}>
                     {LABEL[iv.role]} · {iv.expired ? 'expired' : `expires ${when(iv.expires_at)}`}
                   </span>
@@ -150,15 +150,15 @@ export default async function Household() {
             display: 'flex', flexDirection: 'column', gap: 4, padding: '14px 0',
             borderBottom: i === 2 ? undefined : '1px solid var(--c-rule)',
           }}>
-            <span style={{ fontSize: 14.5, fontWeight: 600 }}>{LABEL[r]}</span>
-            <span style={{ fontSize: 12.5, lineHeight: 1.5, color: 'var(--c-meta)' }}>{WHAT[r]}</span>
+            <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>{LABEL[r]}</span>
+            <span style={{ fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--c-meta)' }}>{WHAT[r]}</span>
           </div>
         ))}
       </Card>
 
       {!canManage && (
         <p style={{
-          margin: '0 20px', fontSize: 12.5, lineHeight: 1.5, color: 'var(--c-meta)',
+          margin: '0 20px', fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--c-meta)',
           textAlign: 'center',
         }}>
           Only an owner can invite or remove people.
@@ -176,7 +176,7 @@ function when(d: Date) {
 function Head({ children }: { children: React.ReactNode }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '2px 20px 11px' }}>
-      <h2 style={{ margin: 0, fontSize: 16.5, fontWeight: 600, letterSpacing: '-.012em' }}>
+      <h2 style={{ margin: 0, fontSize: 'var(--step-1)', fontWeight: 600, letterSpacing: '-.012em' }}>
         {children}
       </h2>
       <span style={{ flex: 1, height: 1, background: 'var(--c-border)' }} />

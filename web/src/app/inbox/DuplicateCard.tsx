@@ -29,7 +29,7 @@ export default function DuplicateCard({ low, high, reason }: {
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
         <span style={{
-          display: 'flex', alignItems: 'center', gap: 6, fontSize: 11.5, fontWeight: 700,
+          display: 'flex', alignItems: 'center', gap: 6, fontSize: 'var(--step--2)', fontWeight: 700,
           letterSpacing: '.03em', padding: '5px 9px', borderRadius: 7,
           background: 'var(--c-warn-tint)', color: 'var(--c-warn)',
         }}>
@@ -41,7 +41,7 @@ export default function DuplicateCard({ low, high, reason }: {
         </span>
       </div>
 
-      <p style={{ margin: 0, fontSize: 13, lineHeight: 1.5, color: 'var(--c-meta)' }}>
+      <p style={{ margin: 0, fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--c-meta)' }}>
         {reason === 'two_people'
           ? `${low.who} and ${high.who} each recorded this. The accounts differ, which is usually the sign of one purchase entered twice rather than two purchases.`
           : 'The same amount, on the same account, within three days.'}
@@ -57,19 +57,19 @@ export default function DuplicateCard({ low, high, reason }: {
               flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3,
               textDecoration: 'none', color: 'var(--c-ink)',
             }}>
-              <span style={{ fontSize: 14.5, fontWeight: 600 }}>
+              <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>
                 {s.merchant || s.category || 'Entry'}
               </span>
-              <span style={{ fontSize: 12, color: 'var(--c-meta)' }}>
+              <span style={{ fontSize: 'var(--step--2)', color: 'var(--c-meta)' }}>
                 {new Date(s.on).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
                 {' · '}{s.account}{' · '}{s.who}
               </span>
             </Link>
-            <span className="t" style={{ fontSize: 16 }}>{format(Number(s.amount))}</span>
+            <span className="t" style={{ fontSize: 'var(--step-0)' }}>{format(Number(s.amount))}</span>
             <form action={drop}>
               <input type="hidden" name="txnId" value={s.id} />
               <button type="submit" disabled={dropping} style={{
-                minHeight: 44, padding: '0 11px', borderRadius: 10, fontSize: 12.5,
+                minHeight: 44, padding: '0 11px', borderRadius: 10, fontSize: 'var(--step--1)',
                 fontWeight: 600, background: 'var(--c-danger-tint)', color: 'var(--c-danger)',
                 opacity: dropping ? 0.6 : 1,
               }}>{i === 0 ? 'Delete this' : 'Delete this'}</button>
@@ -79,14 +79,14 @@ export default function DuplicateCard({ low, high, reason }: {
       </div>
 
       {err && (
-        <p role="alert" style={{ margin: 0, fontSize: 13, color: 'var(--c-danger)' }}>{err}</p>
+        <p role="alert" style={{ margin: 0, fontSize: 'var(--step--1)', color: 'var(--c-danger)' }}>{err}</p>
       )}
 
       <form action={keep}>
         <input type="hidden" name="lowId" value={low.id} />
         <input type="hidden" name="highId" value={high.id} />
         <button type="submit" disabled={keeping} style={{
-          width: '100%', minHeight: 48, borderRadius: 12, fontSize: 14.5, fontWeight: 600,
+          width: '100%', minHeight: 48, borderRadius: 12, fontSize: 'var(--step-0)', fontWeight: 600,
           background: 'var(--c-sunk)', color: 'var(--c-ink)', opacity: keeping ? 0.6 : 1,
         }}>{keeping ? 'Saving…' : 'They are both real — keep them'}</button>
       </form>

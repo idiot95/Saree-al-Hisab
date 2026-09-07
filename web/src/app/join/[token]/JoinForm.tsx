@@ -14,7 +14,7 @@ export default function JoinForm({ token, email }: { token: string; email: strin
       <Field label="Email" name="shown" type="email" value={email} readOnly disabled
         style={{
           minHeight: 52, borderRadius: 13, border: '1px solid var(--c-border)',
-          background: 'var(--c-sunk)', color: 'var(--c-meta)', fontSize: 16,
+          background: 'var(--c-sunk)', color: 'var(--c-meta)', fontSize: 'var(--step-0)',
           padding: '0 14px', width: '100%',
         }} />
       <Field label="Your name" name="name" autoComplete="name"

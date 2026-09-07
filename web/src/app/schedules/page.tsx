@@ -43,10 +43,10 @@ export default async function Schedules() {
             <path d="M15 5l-7 7 7 7" />
           </svg>
         </Link>
-        <h1 className="t" style={{ margin: 0, fontSize: 27, letterSpacing: '-.018em' }}>
+        <h1 className="t" style={{ margin: 0, fontSize: 'var(--step-3)', letterSpacing: '-.018em' }}>
           Scheduled
         </h1>
-        <p style={{ margin: 0, fontSize: 13.5, color: 'rgba(255,255,255,.84)' }}>
+        <p style={{ margin: 0, fontSize: 'var(--step--1)', color: 'rgba(255,255,255,.84)' }}>
           {schedules.length === 0
             ? 'Rent, fees, an EMI — the things that come round whether you look or not.'
             : `${format(monthly)} a month across ${schedules.length} ${schedules.length === 1 ? 'schedule' : 'schedules'}`}
@@ -85,13 +85,13 @@ export default async function Schedules() {
                   borderBottom: i === schedules.length - 1 ? undefined : '1px solid var(--c-rule)',
                 }}>
                   <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
-                    <span style={{ fontSize: 15, fontWeight: 600 }}>{s.name}</span>
-                    <span style={{ fontSize: 12.5, color: 'var(--c-meta)' }}>
+                    <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>{s.name}</span>
+                    <span style={{ fontSize: 'var(--step--1)', color: 'var(--c-meta)' }}>
                       {s.rrule ? describeRule(s.rrule) : 'no schedule'}
                       {s.rrule && ` · next ${friendly(nextUnsettled(s.rrule, s.settled, new Date()) ?? undefined)}`}
                     </span>
                   </span>
-                  <span className="t" style={{ fontSize: 16 }}>{format(Number(s.amount ?? 0))}</span>
+                  <span className="t amt" style={{ fontSize: 'var(--step-0)' }}>{format(Number(s.amount ?? 0))}</span>
                   {canWrite && <StopSchedule scheduleId={s.id} name={s.name} />}
                 </div>
               ))}
@@ -107,7 +107,7 @@ export default async function Schedules() {
           />
         )}
 
-        <p style={{ margin: '0 20px', fontSize: 12.5, lineHeight: 1.5, color: 'var(--c-meta)' }}>
+        <p style={{ margin: '0 20px', fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--c-meta)' }}>
           Nothing is recorded until you say so. A schedule is a reminder with the details
           already filled in, not a standing instruction that writes entries behind your back.
         </p>
@@ -125,7 +125,7 @@ function friendly(iso?: string) {
 function Head({ children }: { children: React.ReactNode }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0 20px 11px' }}>
-      <h2 style={{ margin: 0, fontSize: 16.5, fontWeight: 600 }}>{children}</h2>
+      <h2 style={{ margin: 0, fontSize: 'var(--step-1)', fontWeight: 600 }}>{children}</h2>
       <span style={{ flex: 1, height: 1, background: 'var(--c-border)' }} />
     </div>
   );

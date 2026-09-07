@@ -23,11 +23,11 @@ export default function AddAccount({ startOpen = false }: { startOpen?: boolean 
         margin: '0 18px 22px', width: 'calc(100% - 36px)', minHeight: 58, borderRadius: 16,
         display: 'flex', alignItems: 'center', gap: 11, padding: '0 16px',
         background: 'var(--c-card)', border: '1px dashed var(--c-dash)',
-        color: 'var(--c-ink)', fontSize: 15, fontWeight: 600,
+        color: 'var(--c-ink)', fontSize: 'var(--step-0)', fontWeight: 600,
       }}>
         <Plus /> Add an account
         {state?.ok && state.message && (
-          <span style={{ marginLeft: 'auto', fontSize: 12.5, color: 'var(--c-ok)' }}>added</span>
+          <span style={{ marginLeft: 'auto', fontSize: 'var(--step--1)', color: 'var(--c-ok)' }}>added</span>
         )}
       </button>
     );
@@ -39,7 +39,7 @@ export default function AddAccount({ startOpen = false }: { startOpen?: boolean 
       display: 'flex', flexDirection: 'column', gap: 13,
     }}>
       <fieldset style={{ border: 0, padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
-        <legend style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--c-meta)', padding: 0 }}>
+        <legend style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)', padding: 0 }}>
           Type
         </legend>
         {KINDS.map((k) => (
@@ -54,8 +54,8 @@ export default function AddAccount({ startOpen = false }: { startOpen?: boolean 
               style={{ width: 18, height: 18, marginTop: 1, accentColor: 'var(--c-seagrass)', flex: 'none' }} />
             <Chip icon={ACCOUNT_ICON[k.id]} tint={ACCOUNT_TINT[k.id]} size={34} radius={9} iconSize={17} />
             <span style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-              <span style={{ fontSize: 14.5, fontWeight: 600 }}>{k.label}</span>
-              <span style={{ fontSize: 12.5, lineHeight: 1.45, color: 'var(--c-meta)' }}>{k.what}</span>
+              <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>{k.label}</span>
+              <span style={{ fontSize: 'var(--step--1)', lineHeight: 1.45, color: 'var(--c-meta)' }}>{k.what}</span>
             </span>
           </label>
         ))}
@@ -86,7 +86,7 @@ export default function AddAccount({ startOpen = false }: { startOpen?: boolean 
           </div>
           <p style={{
             margin: 0, padding: '11px 13px', borderRadius: 12, background: 'var(--c-teal-l)',
-            color: 'var(--c-ink)', fontSize: 12.5, lineHeight: 1.5,
+            color: 'var(--c-ink)', fontSize: 'var(--step--1)', lineHeight: 1.5,
           }}>
             Purchases on this card are filed into the right billing cycle automatically.
             Use a day between 1 and 28 &mdash; every month has one.
@@ -100,11 +100,11 @@ export default function AddAccount({ startOpen = false }: { startOpen?: boolean 
 
       <div style={{ display: 'flex', gap: 9 }}>
         <button type="button" onClick={() => setOpen(false)} style={{
-          minHeight: 50, padding: '0 16px', borderRadius: 13, fontSize: 14.5, fontWeight: 600,
+          minHeight: 50, padding: '0 16px', borderRadius: 13, fontSize: 'var(--step-0)', fontWeight: 600,
           background: 'var(--c-sunk)', color: 'var(--c-meta)',
         }}>Cancel</button>
         <button type="submit" disabled={pending} style={{
-          flex: 1, minHeight: 50, borderRadius: 13, fontSize: 15.5, fontWeight: 600,
+          flex: 1, minHeight: 50, borderRadius: 13, fontSize: 'var(--step-0)', fontWeight: 600,
           background: 'var(--c-seagrass)', color: 'var(--c-on-fill)', opacity: pending ? 0.65 : 1,
         }}>{pending ? 'Saving…' : 'Add account'}</button>
       </div>

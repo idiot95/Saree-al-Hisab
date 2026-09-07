@@ -29,7 +29,7 @@ export default function PasswordCard() {
               <path d="M8 10V7.5a4 4 0 0 1 8 0V10" />
             </svg>
           </span>
-          <span style={{ flex: 1, fontSize: 15.5, fontWeight: 600 }}>Change your password</span>
+          <span style={{ flex: 1, fontSize: 'var(--step-0)', fontWeight: 600 }}>Change your password</span>
           <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="var(--c-meta)"
             strokeWidth={2} strokeLinecap="round" aria-hidden><path d="M9 5l7 7-7 7" /></svg>
         </button>
@@ -51,7 +51,7 @@ export default function PasswordCard() {
             <p role="status" style={{
               margin: 0, display: 'flex', alignItems: 'center', gap: 8, padding: '11px 13px',
               borderRadius: 12, background: 'var(--c-ok-tint)', color: 'var(--c-ok)',
-              fontSize: 13.5, fontWeight: 600,
+              fontSize: 'var(--step--1)', fontWeight: 600,
             }}>
               <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor"
                 strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
@@ -63,11 +63,11 @@ export default function PasswordCard() {
 
           <div style={{ display: 'flex', gap: 9 }}>
             <button type="button" onClick={() => setOpen(false)} style={{
-              minHeight: 48, padding: '0 16px', borderRadius: 12, fontSize: 14.5, fontWeight: 600,
+              minHeight: 48, padding: '0 16px', borderRadius: 12, fontSize: 'var(--step-0)', fontWeight: 600,
               background: 'var(--c-sunk)', color: 'var(--c-meta)',
             }}>Cancel</button>
             <button type="submit" disabled={pending} style={{
-              flex: 1, minHeight: 48, borderRadius: 12, fontSize: 15, fontWeight: 600,
+              flex: 1, minHeight: 48, borderRadius: 12, fontSize: 'var(--step-0)', fontWeight: 600,
               background: 'var(--c-seagrass)', color: 'var(--c-on-fill)',
               opacity: pending ? 0.65 : 1,
             }}>{pending ? 'Saving…' : 'Change password'}</button>

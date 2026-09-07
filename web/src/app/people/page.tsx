@@ -56,30 +56,30 @@ export default async function People() {
             <path d="M15 5l-7 7 7 7" />
           </svg>
         </Link>
-        <h1 className="t" style={{ margin: 0, fontSize: 27, letterSpacing: '-.018em' }}>
+        <h1 className="t" style={{ margin: 0, fontSize: 'var(--step-3)', letterSpacing: '-.018em' }}>
           Lending
         </h1>
         <div style={{ display: 'flex', gap: 24, marginTop: 2 }}>
           <span style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-            <span style={{ fontSize: 11.5, color: 'rgba(255,255,255,.66)', letterSpacing: '.04em' }}>
+            <span style={{ fontSize: 'var(--step--2)', color: 'rgba(255,255,255,.66)', letterSpacing: '.04em' }}>
               OWED TO YOU
             </span>
-            <span className="t" style={{ fontSize: 25, letterSpacing: '-.02em' }}>
+            <span className="t" style={{ fontSize: 'var(--step-3)', letterSpacing: '-.02em' }}>
               {format(owedToYou + claimsTotal)}
             </span>
           </span>
           {youOwe < 0 && (
             <span style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-              <span style={{ fontSize: 11.5, color: 'rgba(255,255,255,.66)', letterSpacing: '.04em' }}>
+              <span style={{ fontSize: 'var(--step--2)', color: 'rgba(255,255,255,.66)', letterSpacing: '.04em' }}>
                 YOU OWE
               </span>
-              <span className="t" style={{ fontSize: 25, letterSpacing: '-.02em' }}>
+              <span className="t" style={{ fontSize: 'var(--step-3)', letterSpacing: '-.02em' }}>
                 {format(-youOwe)}
               </span>
             </span>
           )}
         </div>
-        <p style={{ margin: 0, fontSize: 12.5, lineHeight: 1.45, color: 'rgba(255,255,255,.78)' }}>
+        <p style={{ margin: 0, fontSize: 'var(--step--1)', lineHeight: 1.45, color: 'rgba(255,255,255,.78)' }}>
           {claimsTotal > 0
             ? `${format(owedToYou)} lent · ${format(claimsTotal)} owed for things you paid for`
             : 'Money lent is not spending. It sits here until it comes back — or until you decide it will not.'}
@@ -103,7 +103,7 @@ export default async function People() {
           <>
             <Head>Books</Head>
             <p style={{
-              margin: '-4px 20px 12px', fontSize: 12.5, lineHeight: 1.5, color: 'var(--c-meta)',
+              margin: '-4px 20px 12px', fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--c-meta)',
             }}>
               Folders for people — the flat, a trip, office lunches — so you can see where a
               whole group stands without adding it up yourself.
@@ -133,13 +133,13 @@ export default async function People() {
                         </svg>
                       </span>
                       <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
-                        <span style={{ fontSize: 15, fontWeight: 600 }}>{b.name}</span>
-                        <span style={{ fontSize: 12, color: 'var(--c-meta)' }}>
+                        <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>{b.name}</span>
+                        <span style={{ fontSize: 'var(--step--2)', color: 'var(--c-meta)' }}>
                           {b.people} {b.people === 1 ? 'person' : 'people'}
                           {b.closed_at ? ' · closed' : ''}
                         </span>
                       </span>
-                      <span className="t" style={{ fontSize: 16, color: t === 0 ? 'var(--c-meta)' : 'var(--c-ink)' }}>
+                      <span className="t" style={{ fontSize: 'var(--step-0)', color: t === 0 ? 'var(--c-meta)' : 'var(--c-ink)' }}>
                         {t === 0 ? '—' : format(Math.abs(t))}
                       </span>
                     </Link>
@@ -153,7 +153,7 @@ export default async function People() {
 
         {people.length === 0 && (
           <p style={{
-            margin: '0 34px', textAlign: 'center', fontSize: 14, lineHeight: 1.55,
+            margin: '0 34px', textAlign: 'center', fontSize: 'var(--step--1)', lineHeight: 1.55,
             color: 'var(--c-meta)',
           }}>
             Add someone you lend to or borrow from, and every rupee between you is tracked here.
@@ -168,7 +168,7 @@ export default async function People() {
 function Head({ children }: { children: React.ReactNode }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0 20px 11px' }}>
-      <h2 style={{ margin: 0, fontSize: 16.5, fontWeight: 600, letterSpacing: '-.012em' }}>{children}</h2>
+      <h2 style={{ margin: 0, fontSize: 'var(--step-1)', fontWeight: 600, letterSpacing: '-.012em' }}>{children}</h2>
       <span style={{ flex: 1, height: 1, background: 'var(--c-border)' }} />
     </div>
   );
@@ -193,12 +193,12 @@ function List({ people, claimed }: {
           }}>
             <span style={{
               width: 42, height: 42, flex: 'none', borderRadius: 999, display: 'flex',
-              alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700,
+              alignItems: 'center', justifyContent: 'center', fontSize: 'var(--step--1)', fontWeight: 700,
               background: bg, color: ink,
             }}>{p.name.slice(0, 2).toUpperCase()}</span>
             <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
-              <span style={{ fontSize: 15.5, fontWeight: 600 }}>{p.name}</span>
-              <span style={{ fontSize: 12.5, color: 'var(--c-meta)' }}>
+              <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>{p.name}</span>
+              <span style={{ fontSize: 'var(--step--1)', color: 'var(--c-meta)' }}>
                 {(claimed.get(p.id) ?? 0) > 0 && bal !== 0
                   ? `${format(bal)} lent · ${format(claimed.get(p.id)!)} shared`
                   : (claimed.get(p.id) ?? 0) > 0
@@ -209,11 +209,11 @@ function List({ people, claimed }: {
             </span>
             <span style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', gap: 2 }}>
               <span className="t" style={{
-                fontSize: 17, letterSpacing: '-.01em',
+                fontSize: 'var(--step-1)', letterSpacing: '-.01em',
                 color: total > 0 ? 'var(--c-ink)' : total < 0 ? 'var(--c-danger)' : 'var(--c-meta)',
               }}>{total === 0 ? '—' : format(Math.abs(total))}</span>
               {total !== 0 && (
-                <span style={{ fontSize: 11, color: 'var(--c-meta)' }}>
+                <span style={{ fontSize: 'var(--step--2)', color: 'var(--c-meta)' }}>
                   {total > 0 ? 'owes you' : 'you owe'}
                 </span>
               )}

@@ -26,29 +26,29 @@ export default function BooksSwitcher({ books, canRename }: { books: Book[]; can
         }}>
           <span style={{
             width: 36, height: 36, flex: 'none', borderRadius: 10, display: 'flex',
-            alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700,
+            alignItems: 'center', justifyContent: 'center', fontSize: 'var(--step--1)', fontWeight: 700,
             background: b.active ? 'var(--c-seagrass)' : 'var(--c-sunk)',
             color: b.active ? 'var(--c-on-fill)' : 'var(--c-meta)',
           }}>{b.name.slice(0, 2).toUpperCase()}</span>
           <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
             <span style={{
-              fontSize: 15, fontWeight: 600, overflow: 'hidden',
+              fontSize: 'var(--step-0)', fontWeight: 600, overflow: 'hidden',
               textOverflow: 'ellipsis', whiteSpace: 'nowrap',
             }}>{b.name}</span>
-            <span style={{ fontSize: 12, color: 'var(--c-meta)' }}>
+            <span style={{ fontSize: 'var(--step--2)', color: 'var(--c-meta)' }}>
               {ROLE[b.role]} · {b.people} {b.people === 1 ? 'person' : 'people'}
             </span>
           </span>
           {b.active ? (
             <span style={{
-              flex: 'none', fontSize: 11.5, fontWeight: 700, padding: '6px 10px', borderRadius: 8,
+              flex: 'none', fontSize: 'var(--step--2)', fontWeight: 700, padding: '6px 10px', borderRadius: 8,
               background: 'var(--c-ok-tint)', color: 'var(--c-ok)', letterSpacing: '.03em',
             }}>CURRENT</span>
           ) : (
             <form action={switchAct}>
               <input type="hidden" name="householdId" value={b.id} />
               <button type="submit" style={{
-                minHeight: 44, padding: '0 13px', borderRadius: 10, fontSize: 13.5,
+                minHeight: 44, padding: '0 13px', borderRadius: 10, fontSize: 'var(--step--1)',
                 fontWeight: 600, background: 'var(--c-sunk)', color: 'var(--c-ink)',
               }}>Open</button>
             </form>
@@ -78,7 +78,7 @@ export default function BooksSwitcher({ books, canRename }: { books: Book[]; can
           <Pencil />
           <span style={{ flex: 1 }}>Rename this household</span>
           {renameState?.ok && (
-            <span style={{ fontSize: 12, color: 'var(--c-ok)', fontWeight: 600 }}>done</span>
+            <span style={{ fontSize: 'var(--step--2)', color: 'var(--c-ok)', fontWeight: 600 }}>done</span>
           )}
         </button>
       ))}
@@ -108,14 +108,14 @@ export default function BooksSwitcher({ books, canRename }: { books: Book[]; can
 
 const row: React.CSSProperties = {
   width: '100%', minHeight: 60, display: 'flex', alignItems: 'center', gap: 11,
-  textAlign: 'left', fontSize: 14.5, fontWeight: 600, color: 'var(--c-ink)',
+  textAlign: 'left', fontSize: 'var(--step-0)', fontWeight: 600, color: 'var(--c-ink)',
 };
 const ghost: React.CSSProperties = {
-  minHeight: 46, padding: '0 15px', borderRadius: 11, fontSize: 14,
+  minHeight: 46, padding: '0 15px', borderRadius: 11, fontSize: 'var(--step--1)',
   fontWeight: 600, background: 'var(--c-sunk)', color: 'var(--c-meta)',
 };
 const solid: React.CSSProperties = {
-  minHeight: 46, borderRadius: 11, fontSize: 14.5, fontWeight: 600,
+  minHeight: 46, borderRadius: 11, fontSize: 'var(--step-0)', fontWeight: 600,
   background: 'var(--c-seagrass)', color: 'var(--c-on-fill)',
 };
 

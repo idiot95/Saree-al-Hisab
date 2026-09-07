@@ -13,13 +13,13 @@ export default function ScanForm({ canScan }: { canScan: boolean }) {
   if (!canScan) {
     return (
       <div className="el" style={card}>
-        <p style={{ margin: 0, fontSize: 14, lineHeight: 1.55, color: 'var(--c-meta)' }}>
+        <p style={{ margin: 0, fontSize: 'var(--step--1)', lineHeight: 1.55, color: 'var(--c-meta)' }}>
           Scanning needs a Google AI key, which is free and takes a minute to get. An owner
           adds it once under Household.
         </p>
         <Link href="/household" style={{
           minHeight: 48, borderRadius: 12, display: 'flex', alignItems: 'center',
-          justifyContent: 'center', textDecoration: 'none', fontSize: 15, fontWeight: 600,
+          justifyContent: 'center', textDecoration: 'none', fontSize: 'var(--step-0)', fontWeight: 600,
           background: 'var(--c-seagrass)', color: 'var(--c-on-fill)',
         }}>Go to Household</Link>
       </div>
@@ -44,10 +44,10 @@ export default function ScanForm({ canScan }: { canScan: boolean }) {
             <path d="M4.5 8.5 6 6h4l1-1.5h2L14 6h4l1.5 2.5v9a1.5 1.5 0 0 1-1.5 1.5H6a1.5 1.5 0 0 1-1.5-1.5z" />
             <circle cx="12" cy="12.5" r="3.4" />
           </svg>
-          <span style={{ fontSize: 15, fontWeight: 600 }}>
+          <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>
             {picked ?? 'Photograph the receipt'}
           </span>
-          <span style={{ fontSize: 12.5, color: 'var(--c-meta)', textAlign: 'center' }}>
+          <span style={{ fontSize: 'var(--step--1)', color: 'var(--c-meta)', textAlign: 'center' }}>
             Or pick a screenshot or PDF. Up to 6 MB.
           </span>
         </label>
@@ -55,7 +55,7 @@ export default function ScanForm({ canScan }: { canScan: boolean }) {
         {state && !state.ok && <ErrorNote>{state.error}</ErrorNote>}
 
         <button type="submit" disabled={pending} className="el2" style={{
-          minHeight: 54, borderRadius: 15, fontSize: 16, fontWeight: 600, color: '#fff',
+          minHeight: 54, borderRadius: 15, fontSize: 'var(--step-0)', fontWeight: 600, color: '#fff',
           opacity: pending ? 0.6 : 1,
           background: 'radial-gradient(120% 100% at 25% 0%, rgba(255,255,255,.18) 0%, rgba(255,255,255,0) 60%),'
             + 'linear-gradient(145deg,#2C5063 0%,#1C3541 100%)',
@@ -87,14 +87,14 @@ function Draft({ result }: {
     <section className="el" style={{ ...card, marginTop: 16 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
         <span style={{
-          fontSize: 11, fontWeight: 700, letterSpacing: '.04em', padding: '5px 9px',
+          fontSize: 'var(--step--2)', fontWeight: 700, letterSpacing: '.04em', padding: '5px 9px',
           borderRadius: 7,
           background: s.confidence === 'high' ? 'var(--c-ok-tint)'
             : s.confidence === 'medium' ? 'var(--c-warn-tint)' : 'var(--c-danger-tint)',
           color: s.confidence === 'high' ? 'var(--c-ok)'
             : s.confidence === 'medium' ? 'var(--c-warn)' : 'var(--c-danger)',
         }}>{s.confidence.toUpperCase()} CONFIDENCE</span>
-        <span style={{ fontSize: 12.5, color: 'var(--c-meta)' }}>Nothing saved yet</span>
+        <span style={{ fontSize: 'var(--step--1)', color: 'var(--c-meta)' }}>Nothing saved yet</span>
       </div>
 
       <dl style={{ margin: 0, display: 'flex', flexDirection: 'column', gap: 0 }}>
@@ -108,7 +108,7 @@ function Draft({ result }: {
 
       {blocked ? (
         <p style={{
-          margin: 0, padding: '12px 14px', borderRadius: 13, fontSize: 13, lineHeight: 1.5,
+          margin: 0, padding: '12px 14px', borderRadius: 13, fontSize: 'var(--step--1)', lineHeight: 1.5,
           background: 'var(--c-warn-tint)', color: 'var(--c-warn)', fontWeight: 600,
         }}>
           Could not read {result.missing.join(', ')}. Open a blank entry and fill it in — a
@@ -118,7 +118,7 @@ function Draft({ result }: {
 
       <Link href={blocked ? '/add' : `/add?${params.toString()}`} className="el2" style={{
         minHeight: 52, borderRadius: 14, display: 'flex', alignItems: 'center',
-        justifyContent: 'center', textDecoration: 'none', fontSize: 15.5, fontWeight: 600,
+        justifyContent: 'center', textDecoration: 'none', fontSize: 'var(--step-0)', fontWeight: 600,
         color: '#fff',
         background: 'radial-gradient(120% 100% at 25% 0%, rgba(255,255,255,.18) 0%, rgba(255,255,255,0) 60%),'
           + 'linear-gradient(145deg,#2C5063 0%,#1C3541 100%)',
@@ -133,9 +133,9 @@ function Line({ label, value }: { label: string; value: string | null }) {
       display: 'flex', alignItems: 'center', gap: 12, minHeight: 46,
       borderBottom: '1px solid var(--c-rule)',
     }}>
-      <dt style={{ flex: 1, fontSize: 13, color: 'var(--c-meta)' }}>{label}</dt>
+      <dt style={{ flex: 1, fontSize: 'var(--step--1)', color: 'var(--c-meta)' }}>{label}</dt>
       <dd style={{
-        margin: 0, fontSize: 15, fontWeight: 600,
+        margin: 0, fontSize: 'var(--step-0)', fontWeight: 600,
         color: value ? 'var(--c-ink)' : 'var(--c-danger)',
       }}>{value ?? 'not readable'}</dd>
     </div>

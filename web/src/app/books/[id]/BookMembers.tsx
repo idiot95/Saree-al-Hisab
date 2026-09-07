@@ -56,7 +56,7 @@ export default function BookMembers({ bookId, people, closed, canEdit }: {
       {canEdit && (adding ? (
         <section className="el" style={{ ...card, paddingTop: 4, paddingBottom: 4 }}>
           {rest.length === 0 ? (
-            <p style={{ margin: 0, padding: '18px 0', textAlign: 'center', fontSize: 13.5, color: 'var(--c-meta)' }}>
+            <p style={{ margin: 0, padding: '18px 0', textAlign: 'center', fontSize: 'var(--step--1)', color: 'var(--c-meta)' }}>
               Everyone is already in this book.
             </p>
           ) : rest.map((p, i) => (
@@ -65,14 +65,14 @@ export default function BookMembers({ bookId, people, closed, canEdit }: {
                 <input type="hidden" name="bookId" value={bookId} />
                 <input type="hidden" name="counterpartyId" value={p.id} />
                 <button type="submit" style={{
-                  minHeight: 44, padding: '0 14px', borderRadius: 11, fontSize: 13.5,
+                  minHeight: 44, padding: '0 14px', borderRadius: 11, fontSize: 'var(--step--1)',
                   fontWeight: 600, background: 'var(--c-seagrass)', color: 'var(--c-on-fill)',
                 }}>Add</button>
               </form>
             </Row>
           ))}
           <button type="button" onClick={() => setAdding(false)} style={{
-            width: '100%', minHeight: 48, fontSize: 14, fontWeight: 600,
+            width: '100%', minHeight: 48, fontSize: 'var(--step--1)', fontWeight: 600,
             color: 'var(--c-meta)', background: 'transparent',
           }}>Done</button>
         </section>
@@ -81,7 +81,7 @@ export default function BookMembers({ bookId, people, closed, canEdit }: {
           margin: '0 18px 22px', width: 'calc(100% - 36px)', minHeight: 54, borderRadius: 15,
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 9,
           background: 'var(--c-card)', border: '1px dashed var(--c-dash)',
-          color: 'var(--c-ink)', fontSize: 15, fontWeight: 600,
+          color: 'var(--c-ink)', fontSize: 'var(--step-0)', fontWeight: 600,
         }}>Add someone to this book</button>
       ))}
 
@@ -90,39 +90,39 @@ export default function BookMembers({ bookId, people, closed, canEdit }: {
           <form action={toggle}>
             <input type="hidden" name="bookId" value={bookId} />
             <button type="submit" disabled={toggling} style={{
-              width: '100%', minHeight: 50, borderRadius: 13, fontSize: 14.5, fontWeight: 600,
+              width: '100%', minHeight: 50, borderRadius: 13, fontSize: 'var(--step-0)', fontWeight: 600,
               background: 'var(--c-sunk)', color: 'var(--c-ink)', opacity: toggling ? 0.6 : 1,
             }}>{closed ? 'Reopen this book' : 'Close this book'}</button>
           </form>
-          <p style={{ margin: 0, fontSize: 12, lineHeight: 1.45, color: 'var(--c-meta)' }}>
+          <p style={{ margin: 0, fontSize: 'var(--step--2)', lineHeight: 1.45, color: 'var(--c-meta)' }}>
             Closing files it away. Nothing about what anyone owes changes — a closed book with
             money still outstanding is a perfectly ordinary thing.
           </p>
           {closeState && !closeState.ok && (
-            <p role="alert" style={{ margin: 0, fontSize: 13, color: 'var(--c-danger)' }}>
+            <p role="alert" style={{ margin: 0, fontSize: 'var(--step--1)', color: 'var(--c-danger)' }}>
               {closeState.error}
             </p>
           )}
 
           {!confirming ? (
             <button type="button" onClick={() => setConfirming(true)} style={{
-              minHeight: 46, fontSize: 13.5, fontWeight: 600, color: 'var(--c-danger)',
+              minHeight: 46, fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-danger)',
               background: 'transparent',
             }}>Delete this book</button>
           ) : (
             <form action={remove} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <input type="hidden" name="bookId" value={bookId} />
-              <p style={{ margin: 0, fontSize: 12.5, lineHeight: 1.45, color: 'var(--c-meta)' }}>
+              <p style={{ margin: 0, fontSize: 'var(--step--1)', lineHeight: 1.45, color: 'var(--c-meta)' }}>
                 Only the folder goes. Every person, every loan and every claim stays exactly
                 where it is.
               </p>
               <div style={{ display: 'flex', gap: 9 }}>
                 <button type="button" onClick={() => setConfirming(false)} style={{
-                  minHeight: 48, padding: '0 16px', borderRadius: 12, fontSize: 14,
+                  minHeight: 48, padding: '0 16px', borderRadius: 12, fontSize: 'var(--step--1)',
                   fontWeight: 600, background: 'var(--c-sunk)', color: 'var(--c-meta)',
                 }}>Cancel</button>
                 <button type="submit" style={{
-                  flex: 1, minHeight: 48, borderRadius: 12, fontSize: 14.5, fontWeight: 600,
+                  flex: 1, minHeight: 48, borderRadius: 12, fontSize: 'var(--step-0)', fontWeight: 600,
                   background: 'var(--c-danger-tint)', color: 'var(--c-danger)',
                 }}>Delete the book</button>
               </div>
@@ -145,15 +145,15 @@ function Row({ p, last, children }: { p: Person; last: boolean; children?: React
     }}>
       <span style={{
         width: 40, height: 40, flex: 'none', borderRadius: 999, display: 'flex',
-        alignItems: 'center', justifyContent: 'center', fontSize: 13.5, fontWeight: 700,
+        alignItems: 'center', justifyContent: 'center', fontSize: 'var(--step--1)', fontWeight: 700,
         background: bg, color: ink,
       }}>{p.name.slice(0, 2).toUpperCase()}</span>
       <Link href={`/people/${p.id}`} style={{
         flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2,
         textDecoration: 'none', color: 'var(--c-ink)',
       }}>
-        <span style={{ fontSize: 15, fontWeight: 600 }}>{p.name}</span>
-        <span style={{ fontSize: 12, color: 'var(--c-meta)' }}>
+        <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>{p.name}</span>
+        <span style={{ fontSize: 'var(--step--2)', color: 'var(--c-meta)' }}>
           {total === 0 ? 'settled up'
             : [lent !== 0 ? `${format(Math.abs(lent))} lent` : null,
                claimed > 0 ? `${format(claimed)} shared` : null].filter(Boolean).join(' · ')}
@@ -161,7 +161,7 @@ function Row({ p, last, children }: { p: Person; last: boolean; children?: React
       </Link>
       {total !== 0 && (
         <span className="t" style={{
-          fontSize: 15.5, color: total > 0 ? 'var(--c-ink)' : 'var(--c-danger)',
+          fontSize: 'var(--step-0)', color: total > 0 ? 'var(--c-ink)' : 'var(--c-danger)',
         }}>{format(Math.abs(total))}</span>
       )}
       {children}
@@ -172,7 +172,7 @@ function Row({ p, last, children }: { p: Person; last: boolean; children?: React
 function Head({ children }: { children: React.ReactNode }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0 20px 11px' }}>
-      <h2 style={{ margin: 0, fontSize: 16.5, fontWeight: 600 }}>{children}</h2>
+      <h2 style={{ margin: 0, fontSize: 'var(--step-1)', fontWeight: 600 }}>{children}</h2>
       <span style={{ flex: 1, height: 1, background: 'var(--c-border)' }} />
     </div>
   );
@@ -182,6 +182,6 @@ const card: React.CSSProperties = {
   margin: '0 18px 22px', background: 'var(--c-card)', borderRadius: 18, padding: '0 16px',
 };
 const quiet: React.CSSProperties = {
-  minHeight: 44, padding: '0 10px', fontSize: 13, fontWeight: 600,
+  minHeight: 44, padding: '0 10px', fontSize: 'var(--step--1)', fontWeight: 600,
   color: 'var(--c-meta)', background: 'transparent',
 };

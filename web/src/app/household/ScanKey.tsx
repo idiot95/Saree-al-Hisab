@@ -32,8 +32,8 @@ export default function ScanKey({ hasKey, setOn }: { hasKey: boolean; setOn: str
           </svg>
         </span>
         <span style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <span style={{ fontSize: 15.5, fontWeight: 600 }}>Receipt scanning</span>
-          <span style={{ fontSize: 12.5, color: hasKey ? 'var(--c-ok)' : 'var(--c-meta)' }}>
+          <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>Receipt scanning</span>
+          <span style={{ fontSize: 'var(--step--1)', color: hasKey ? 'var(--c-ok)' : 'var(--c-meta)' }}>
             {hasKey ? `On since ${setOn}` : 'Off — needs a Google AI key'}
           </span>
         </span>
@@ -41,12 +41,12 @@ export default function ScanKey({ hasKey, setOn }: { hasKey: boolean; setOn: str
 
       {!open ? (
         <button type="button" onClick={() => setOpen(true)} style={{
-          minHeight: 48, borderRadius: 12, fontSize: 14.5, fontWeight: 600,
+          minHeight: 48, borderRadius: 12, fontSize: 'var(--step-0)', fontWeight: 600,
           background: 'var(--c-sunk)', color: 'var(--c-ink)',
         }}>{hasKey ? 'Replace or remove the key' : 'Add a key'}</button>
       ) : (
         <>
-          <p style={{ margin: 0, fontSize: 12.5, lineHeight: 1.5, color: 'var(--c-meta)' }}>
+          <p style={{ margin: 0, fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--c-meta)' }}>
             Get one free at <b>aistudio.google.com/apikey</b>. It is yours, not ours: it is
             stored encrypted, only this household can use it, and every scan is billed to your
             own free quota rather than shared with strangers.
@@ -57,22 +57,22 @@ export default function ScanKey({ hasKey, setOn }: { hasKey: boolean; setOn: str
             {saveState && !saveState.ok && <ErrorNote>{saveState.error}</ErrorNote>}
             {saveState?.ok && (
               <p role="status" style={{
-                margin: 0, padding: '11px 13px', borderRadius: 12, fontSize: 13.5, fontWeight: 600,
+                margin: 0, padding: '11px 13px', borderRadius: 12, fontSize: 'var(--step--1)', fontWeight: 600,
                 background: 'var(--c-ok-tint)', color: 'var(--c-ok)',
               }}>{saveState.message}</p>
             )}
             <div style={{ display: 'flex', gap: 9 }}>
               <button type="button" onClick={() => setOpen(false)} style={{
-                minHeight: 48, padding: '0 16px', borderRadius: 12, fontSize: 14.5,
+                minHeight: 48, padding: '0 16px', borderRadius: 12, fontSize: 'var(--step-0)',
                 fontWeight: 600, background: 'var(--c-sunk)', color: 'var(--c-meta)',
               }}>Cancel</button>
               <button type="submit" disabled={saving} style={{
-                flex: 1, minHeight: 48, borderRadius: 12, fontSize: 15, fontWeight: 600,
+                flex: 1, minHeight: 48, borderRadius: 12, fontSize: 'var(--step-0)', fontWeight: 600,
                 background: 'var(--c-seagrass)', color: 'var(--c-on-fill)',
                 opacity: saving ? 0.6 : 1,
               }}>{saving ? 'Checking with Google…' : 'Check and save'}</button>
             </div>
-            <span style={{ fontSize: 12, color: 'var(--c-meta)' }}>
+            <span style={{ fontSize: 'var(--step--2)', color: 'var(--c-meta)' }}>
               The key is tried against Google before it is stored, so a typo is caught now
               rather than the first time you photograph a receipt.
             </span>
@@ -81,7 +81,7 @@ export default function ScanKey({ hasKey, setOn }: { hasKey: boolean; setOn: str
           {hasKey && (
             <form action={remove}>
               <button type="submit" disabled={removing} style={{
-                width: '100%', minHeight: 46, borderRadius: 12, fontSize: 14, fontWeight: 600,
+                width: '100%', minHeight: 46, borderRadius: 12, fontSize: 'var(--step--1)', fontWeight: 600,
                 background: 'transparent', color: 'var(--c-danger)',
               }}>{removing ? 'Removing…' : 'Remove the key and turn scanning off'}</button>
               {rmState && !rmState.ok && <ErrorNote>{rmState.error}</ErrorNote>}

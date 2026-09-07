@@ -48,23 +48,23 @@ export default function EditEntry({ entry, categories, methods, canEdit }: {
         {/* The amount is what people come here to fix, so it is the biggest
             thing on the screen and already focused. */}
         <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--c-meta)' }}>Amount</span>
+          <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)' }}>Amount</span>
           <span style={{
             display: 'flex', alignItems: 'center', gap: 6, minHeight: 62, padding: '0 14px',
             borderRadius: 14, background: 'var(--c-sunk2)', border: '1px solid var(--c-border)',
           }}>
-            <span className="t" style={{ fontSize: 24, color: 'var(--c-meta)' }}>₹</span>
+            <span className="t" style={{ fontSize: 'var(--step-3)', color: 'var(--c-meta)' }}>₹</span>
             <input
               name="amount" inputMode="decimal" value={amount} disabled={!canEdit}
               onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ''))}
               className="t"
               style={{
                 flex: 1, minHeight: 58, border: 0, background: 'transparent',
-                color: 'var(--c-ink)', fontSize: 30, letterSpacing: '-.02em', width: '100%',
+                color: 'var(--c-ink)', fontSize: 'var(--step-4)', letterSpacing: '-.02em', width: '100%',
               }}
             />
           </span>
-          <span style={{ fontSize: 12, color: 'var(--c-meta)' }}>{format(minor)}</span>
+          <span style={{ fontSize: 'var(--step--2)', color: 'var(--c-meta)' }}>{format(minor)}</span>
         </label>
 
         <Field label="Date" name="occurred_on" type="date"
@@ -72,7 +72,7 @@ export default function EditEntry({ entry, categories, methods, canEdit }: {
 
         {wantsCategory && (
           <fieldset style={{ border: 0, padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 7 }}>
-            <legend style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--c-meta)', padding: 0 }}>
+            <legend style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)', padding: 0 }}>
               Category
             </legend>
             <input type="hidden" name="category_id" value={categoryId} />
@@ -84,7 +84,7 @@ export default function EditEntry({ entry, categories, methods, canEdit }: {
                   <button key={c.category_id} type="button" disabled={!canEdit}
                     onClick={() => setCategoryId(c.category_id)}
                     style={{
-                      minHeight: 44, padding: '0 14px', borderRadius: 999, fontSize: 14,
+                      minHeight: 44, padding: '0 14px', borderRadius: 999, fontSize: 'var(--step--1)',
                       fontWeight: 600, background: on ? bg : 'var(--c-sunk2)',
                       color: on ? ink : 'var(--c-meta)',
                       border: `1px solid ${on ? ink : 'var(--c-border)'}`,
@@ -100,18 +100,18 @@ export default function EditEntry({ entry, categories, methods, canEdit }: {
 
         {methods.length > 0 && (
           <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--c-meta)' }}>Paid with</span>
+            <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)' }}>Paid with</span>
             <select name="payment_method_id" defaultValue={entry.payment_method_id ?? ''}
               disabled={!canEdit} style={{
                 minHeight: 52, borderRadius: 13, border: '1px solid var(--c-border)',
-                background: 'var(--c-card)', color: 'var(--c-ink)', fontSize: 15.5,
+                background: 'var(--c-card)', color: 'var(--c-ink)', fontSize: 'var(--step-0)',
                 fontWeight: 600, padding: '0 12px',
               }}>
               {methods.map((m) => (
                 <option key={m.id} value={m.id}>{m.name} — {m.funds}</option>
               ))}
             </select>
-            <span style={{ fontSize: 12, lineHeight: 1.4, color: 'var(--c-meta)' }}>
+            <span style={{ fontSize: 'var(--step--2)', lineHeight: 1.4, color: 'var(--c-meta)' }}>
               Changing this moves the money to the account behind it.
             </span>
           </label>
@@ -128,14 +128,14 @@ export default function EditEntry({ entry, categories, methods, canEdit }: {
           <input type="checkbox" name="is_shared" defaultChecked={entry.is_shared}
             disabled={!canEdit}
             style={{ width: 20, height: 20, accentColor: 'var(--c-seagrass)' }} />
-          <span style={{ fontSize: 14.5, fontWeight: 600 }}>Shared with the household</span>
+          <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>Shared with the household</span>
         </label>
 
         {state && !state.ok && <ErrorNote>{state.error}</ErrorNote>}
 
         {canEdit && (
           <button type="submit" disabled={pending} className="el2" style={{
-            minHeight: 54, borderRadius: 15, fontSize: 16, fontWeight: 600, color: '#fff',
+            minHeight: 54, borderRadius: 15, fontSize: 'var(--step-0)', fontWeight: 600, color: '#fff',
             opacity: pending ? 0.6 : 1,
             background: 'radial-gradient(120% 100% at 25% 0%, rgba(255,255,255,.18) 0%, rgba(255,255,255,0) 60%),'
               + 'linear-gradient(145deg,#2C5063 0%,#1C3541 100%)',
@@ -147,23 +147,23 @@ export default function EditEntry({ entry, categories, methods, canEdit }: {
         <div style={{ margin: '0 18px' }}>
           {!confirming ? (
             <button type="button" onClick={() => setConfirming(true)} style={{
-              width: '100%', minHeight: 50, borderRadius: 13, fontSize: 14.5, fontWeight: 600,
+              width: '100%', minHeight: 50, borderRadius: 13, fontSize: 'var(--step-0)', fontWeight: 600,
               background: 'transparent', color: 'var(--c-danger)',
             }}>Delete this entry</button>
           ) : (
             <form action={remove} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               <input type="hidden" name="id" value={entry.id} />
-              <p style={{ margin: 0, fontSize: 13, lineHeight: 1.5, color: 'var(--c-meta)' }}>
+              <p style={{ margin: 0, fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--c-meta)' }}>
                 The month&rsquo;s totals and the account balance change straight away.
               </p>
               {del && !del.ok && <ErrorNote>{del.error}</ErrorNote>}
               <div style={{ display: 'flex', gap: 9 }}>
                 <button type="button" onClick={() => setConfirming(false)} style={{
-                  minHeight: 50, padding: '0 16px', borderRadius: 13, fontSize: 14.5,
+                  minHeight: 50, padding: '0 16px', borderRadius: 13, fontSize: 'var(--step-0)',
                   fontWeight: 600, background: 'var(--c-sunk)', color: 'var(--c-meta)',
                 }}>Cancel</button>
                 <button type="submit" disabled={removing} style={{
-                  flex: 1, minHeight: 50, borderRadius: 13, fontSize: 15, fontWeight: 600,
+                  flex: 1, minHeight: 50, borderRadius: 13, fontSize: 'var(--step-0)', fontWeight: 600,
                   background: 'var(--c-danger-tint)', color: 'var(--c-danger)',
                   opacity: removing ? 0.6 : 1,
                 }}>{removing ? 'Deleting…' : 'Delete'}</button>

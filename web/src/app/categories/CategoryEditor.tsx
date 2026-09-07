@@ -26,7 +26,7 @@ function Picker({ icon, tint, onIcon, onTint }: {
       <input type="hidden" name="tint" value={tint} />
 
       <fieldset style={{ border: 0, padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 7 }}>
-        <legend style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--c-meta)', padding: 0 }}>
+        <legend style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)', padding: 0 }}>
           Colour
         </legend>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -54,7 +54,7 @@ function Picker({ icon, tint, onIcon, onTint }: {
       </fieldset>
 
       <fieldset style={{ border: 0, padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 7 }}>
-        <legend style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--c-meta)', padding: 0 }}>
+        <legend style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)', padding: 0 }}>
           Icon
         </legend>
         <div style={{
@@ -87,11 +87,11 @@ function Picker({ icon, tint, onIcon, onTint }: {
 function NameField({ defaultValue }: { defaultValue?: string }) {
   return (
     <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-      <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--c-meta)' }}>Name</span>
+      <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)' }}>Name</span>
       <input name="name" defaultValue={defaultValue} required maxLength={40}
         placeholder="Groceries" style={{
           minHeight: 52, borderRadius: 13, border: '1px solid var(--c-border)',
-          background: 'var(--c-card)', color: 'var(--c-ink)', fontSize: 16, padding: '0 14px',
+          background: 'var(--c-card)', color: 'var(--c-ink)', fontSize: 'var(--step-0)', padding: '0 14px',
         }} />
     </label>
   );
@@ -125,7 +125,7 @@ export default function CategoryEditor({ categories, canEdit }: {
             margin: '0 18px 22px', width: 'calc(100% - 36px)', minHeight: 56, borderRadius: 16,
             display: 'flex', alignItems: 'center', gap: 11, padding: '0 16px',
             background: 'var(--c-card)', border: '1px dashed var(--c-dash)',
-            color: 'var(--c-ink)', fontSize: 15, fontWeight: 600,
+            color: 'var(--c-ink)', fontSize: 'var(--step-0)', fontWeight: 600,
           }}>
             <span style={{
               width: 32, height: 32, flex: 'none', borderRadius: 999, display: 'flex',
@@ -142,7 +142,7 @@ export default function CategoryEditor({ categories, canEdit }: {
       {retired.length > 0 && (
         <>
           <Head>Retired</Head>
-          <p style={{ margin: '-4px 20px 12px', fontSize: 12.5, lineHeight: 1.5, color: 'var(--c-meta)' }}>
+          <p style={{ margin: '-4px 20px 12px', fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--c-meta)' }}>
             Not offered for new entries. Everything already filed under them is untouched, and
             they still appear in the months they were used.
           </p>
@@ -168,8 +168,8 @@ function Row({ cat, first, last, canEdit, onEdit }: {
     }}>
       <Chip icon={cat.icon} tint={cat.tint} size={40} />
       <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
-        <span style={{ fontSize: 15.5, fontWeight: 600 }}>{cat.name}</span>
-        <span style={{ fontSize: 12, color: 'var(--c-meta)' }}>
+        <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>{cat.name}</span>
+        <span style={{ fontSize: 'var(--step--2)', color: 'var(--c-meta)' }}>
           {cat.entries === 0 ? 'nothing filed here yet'
             : `${cat.entries} ${cat.entries === 1 ? 'entry' : 'entries'}`}
           {cat.budgeted_months > 0 && ` · budgeted in ${cat.budgeted_months} ${cat.budgeted_months === 1 ? 'month' : 'months'}`}
@@ -198,7 +198,7 @@ function Row({ cat, first, last, canEdit, onEdit }: {
             ))}
           </span>
           <button type="button" onClick={onEdit} style={{
-            minHeight: 44, padding: '0 12px', borderRadius: 11, fontSize: 13.5, fontWeight: 600,
+            minHeight: 44, padding: '0 12px', borderRadius: 11, fontSize: 'var(--step--1)', fontWeight: 600,
             background: 'var(--c-sunk)', color: 'var(--c-ink)',
           }}>Edit</button>
         </>
@@ -231,15 +231,15 @@ function EditRow({ cat, onDone }: { cat: Cat; onDone: () => void }) {
       <form action={retire} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         <input type="hidden" name="id" value={cat.id} />
         <button type="submit" disabled={retiring} style={{
-          minHeight: 44, borderRadius: 11, fontSize: 13.5, fontWeight: 600,
+          minHeight: 44, borderRadius: 11, fontSize: 'var(--step--1)', fontWeight: 600,
           background: 'transparent', color: 'var(--c-danger)',
         }}>{retiring ? 'Retiring…' : 'Retire this category'}</button>
         {retireState && !retireState.ok && (
-          <span role="alert" style={{ fontSize: 12.5, color: 'var(--c-danger)' }}>
+          <span role="alert" style={{ fontSize: 'var(--step--1)', color: 'var(--c-danger)' }}>
             {retireState.error}
           </span>
         )}
-        <span style={{ fontSize: 12, lineHeight: 1.45, color: 'var(--c-meta)' }}>
+        <span style={{ fontSize: 'var(--step--2)', lineHeight: 1.45, color: 'var(--c-meta)' }}>
           It stops being offered for new entries. Nothing already filed under it moves, and no
           month changes value.
         </span>
@@ -280,8 +280,8 @@ function RetiredRow({ cat, last, canEdit }: { cat: Cat; last: boolean; canEdit: 
     }}>
       <Chip icon={cat.icon} tint={cat.tint} size={36} />
       <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
-        <span style={{ fontSize: 15, fontWeight: 600 }}>{cat.name}</span>
-        <span style={{ fontSize: 12, color: 'var(--c-meta)' }}>
+        <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>{cat.name}</span>
+        <span style={{ fontSize: 'var(--step--2)', color: 'var(--c-meta)' }}>
           {cat.entries} {cat.entries === 1 ? 'entry' : 'entries'} kept
         </span>
       </span>
@@ -289,7 +289,7 @@ function RetiredRow({ cat, last, canEdit }: { cat: Cat; last: boolean; canEdit: 
         <form action={restore}>
           <input type="hidden" name="id" value={cat.id} />
           <button type="submit" style={{
-            minHeight: 44, padding: '0 12px', borderRadius: 11, fontSize: 13.5,
+            minHeight: 44, padding: '0 12px', borderRadius: 11, fontSize: 'var(--step--1)',
             fontWeight: 600, background: 'var(--c-sunk)', color: 'var(--c-ink)',
           }}>Bring back</button>
         </form>
@@ -301,7 +301,7 @@ function RetiredRow({ cat, last, canEdit }: { cat: Cat; last: boolean; canEdit: 
 function Head({ children }: { children: React.ReactNode }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0 20px 11px' }}>
-      <h2 style={{ margin: 0, fontSize: 16.5, fontWeight: 600 }}>{children}</h2>
+      <h2 style={{ margin: 0, fontSize: 'var(--step-1)', fontWeight: 600 }}>{children}</h2>
       <span style={{ flex: 1, height: 1, background: 'var(--c-border)' }} />
     </div>
   );
@@ -311,10 +311,10 @@ const card: React.CSSProperties = {
   margin: '0 18px 22px', background: 'var(--c-card)', borderRadius: 18, padding: '0 16px',
 };
 const ghost: React.CSSProperties = {
-  minHeight: 50, padding: '0 16px', borderRadius: 13, fontSize: 14.5, fontWeight: 600,
+  minHeight: 50, padding: '0 16px', borderRadius: 13, fontSize: 'var(--step-0)', fontWeight: 600,
   background: 'var(--c-sunk)', color: 'var(--c-meta)',
 };
 const solid: React.CSSProperties = {
-  flex: 1, minHeight: 50, borderRadius: 13, fontSize: 15.5, fontWeight: 600,
+  flex: 1, minHeight: 50, borderRadius: 13, fontSize: 'var(--step-0)', fontWeight: 600,
   background: 'var(--c-seagrass)', color: 'var(--c-on-fill)',
 };

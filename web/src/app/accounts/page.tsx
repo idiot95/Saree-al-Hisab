@@ -68,23 +68,23 @@ export default async function Accounts() {
             <path d="M15 5l-7 7 7 7" />
           </svg>
         </a>
-        <p style={{ margin: 0, fontSize: 13, color: 'rgba(255,255,255,.72)' }}>{name}</p>
-        <h1 className="t" style={{ margin: 0, fontSize: 27, letterSpacing: '-.018em' }}>
+        <p style={{ margin: 0, fontSize: 'var(--step--1)', color: 'rgba(255,255,255,.72)' }}>{name}</p>
+        <h1 className="t" style={{ margin: 0, fontSize: 'var(--step-3)', letterSpacing: '-.018em' }}>
           Accounts
         </h1>
         <div style={{ display: 'flex', gap: 22, marginTop: 4 }}>
           <span style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-            <span style={{ fontSize: 11.5, color: 'rgba(255,255,255,.66)', letterSpacing: '.04em' }}>
+            <span style={{ fontSize: 'var(--step--2)', color: 'rgba(255,255,255,.66)', letterSpacing: '.04em' }}>
               BALANCE
             </span>
-            <span className="t" style={{ fontSize: 25, letterSpacing: '-.02em' }}>{format(have)}</span>
+            <span className="t" style={{ fontSize: 'var(--step-3)', letterSpacing: '-.02em' }}>{format(have)}</span>
           </span>
           {cards.length > 0 && (
             <span style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-              <span style={{ fontSize: 11.5, color: 'rgba(255,255,255,.66)', letterSpacing: '.04em' }}>
+              <span style={{ fontSize: 'var(--step--2)', color: 'rgba(255,255,255,.66)', letterSpacing: '.04em' }}>
                 OWED ON CARDS
               </span>
-              <span className="t" style={{ fontSize: 25, letterSpacing: '-.02em' }}>
+              <span className="t" style={{ fontSize: 'var(--step-3)', letterSpacing: '-.02em' }}>
                 {format(Math.abs(owed))}
               </span>
             </span>
@@ -101,15 +101,15 @@ export default async function Accounts() {
           }}>
             <Chip icon={ACCOUNT_ICON[a.kind]} tint={ACCOUNT_TINT[a.kind]} />
             <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
-              <span style={{ fontSize: 15.5, fontWeight: 600 }}>{a.name}</span>
-              <span style={{ fontSize: 12.5, color: 'var(--c-meta)' }}>
+              <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>{a.name}</span>
+              <span style={{ fontSize: 'var(--step--1)', color: 'var(--c-meta)' }}>
                 {KIND_LABEL[a.kind]}{a.last4 && ` · ends ${a.last4}`}
                 {a.kind === 'savings' && ' · outside the budget'}
               </span>
             </span>
             <span style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <span className="t" style={{
-                fontSize: 17, letterSpacing: '-.01em',
+              <span className="t n" style={{
+                fontSize: 'var(--step-1)', letterSpacing: '-.01em',
                 color: Number(a.balance) < 0 ? 'var(--c-danger)' : 'var(--c-ink)',
               }}>{format(Number(a.balance))}</span>
               {canWrite && <RetireAccount id={a.id} name={a.name} blocked={a.methods} />}
@@ -135,14 +135,14 @@ export default async function Accounts() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                     <Chip icon={ACCOUNT_ICON.credit} tint={ACCOUNT_TINT.credit} />
                     <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
-                      <span style={{ fontSize: 15.5, fontWeight: 600 }}>{a.name}</span>
-                      <span style={{ fontSize: 12.5, color: 'var(--c-meta)' }}>
+                      <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>{a.name}</span>
+                      <span style={{ fontSize: 'var(--step--1)', color: 'var(--c-meta)' }}>
                         {a.last4 ? `ends ${a.last4} · ` : ''}
                         statement {a.statement_day ? nth(a.statement_day) : '—'},
                         {' '}due {a.due_day ? nth(a.due_day) : '—'}
                       </span>
                     </span>
-                    <span className="t" style={{ fontSize: 17, letterSpacing: '-.01em' }}>
+                    <span className="t" style={{ fontSize: 'var(--step-1)', letterSpacing: '-.01em' }}>
                       {format(used)}
                     </span>
                   </div>
@@ -159,7 +159,7 @@ export default async function Accounts() {
                             : used / limit > 0.5 ? 'var(--c-warn-fill)' : 'var(--c-ok-fill)',
                         }} />
                       </span>
-                      <span style={{ fontSize: 12, color: 'var(--c-meta)' }}>
+                      <span style={{ fontSize: 'var(--step--2)', color: 'var(--c-meta)' }}>
                         {format(limit - used)} of {format(limit)} still available
                       </span>
                     </span>
@@ -167,7 +167,7 @@ export default async function Accounts() {
 
                   <span style={{
                     display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px',
-                    borderRadius: 11, background: 'var(--c-sunk2)', fontSize: 12.5,
+                    borderRadius: 11, background: 'var(--c-sunk2)', fontSize: 'var(--step--1)',
                     lineHeight: 1.45, color: 'var(--c-meta)',
                   }}>
                     {cyc ? (
@@ -197,7 +197,7 @@ export default async function Accounts() {
 
       <Head>Payment methods</Head>
       <p style={{
-        margin: '-4px 20px 12px', fontSize: 12.5, lineHeight: 1.5, color: 'var(--c-meta)',
+        margin: '-4px 20px 12px', fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--c-meta)',
       }}>
         Each one draws on a single account, so spending is recorded against the right balance.
       </p>
@@ -209,8 +209,8 @@ export default async function Accounts() {
           }}>
             <Chip icon={RAIL_ICON[m.kind] ?? 'tag'} tint={RAIL_TINT[m.kind] ?? 'neutral'} size={40} />
             <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
-              <span style={{ fontSize: 15.5, fontWeight: 600 }}>{m.name}</span>
-              <span style={{ fontSize: 12.5, color: 'var(--c-meta)' }}>
+              <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>{m.name}</span>
+              <span style={{ fontSize: 'var(--step--1)', color: 'var(--c-meta)' }}>
                 {m.funds}{m.handle && ` · ${m.handle}`}
               </span>
             </span>
@@ -225,7 +225,7 @@ export default async function Accounts() {
 
       {!canWrite && (
         <p style={{
-          margin: '0 20px', fontSize: 12.5, lineHeight: 1.5, color: 'var(--c-meta)', textAlign: 'center',
+          margin: '0 20px', fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--c-meta)', textAlign: 'center',
         }}>
           Only owners and contributing members can change accounts.
         </p>
@@ -238,7 +238,7 @@ export default async function Accounts() {
 function Head({ children }: { children: React.ReactNode }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '18px 20px 11px' }}>
-      <h2 style={{ margin: 0, fontSize: 16.5, fontWeight: 600, letterSpacing: '-.012em' }}>{children}</h2>
+      <h2 style={{ margin: 0, fontSize: 'var(--step-1)', fontWeight: 600, letterSpacing: '-.012em' }}>{children}</h2>
       <span style={{ flex: 1, height: 1, background: 'var(--c-border)' }} />
     </div>
   );
@@ -255,7 +255,7 @@ function Card({ children }: { children: React.ReactNode }) {
 function Empty({ children }: { children: React.ReactNode }) {
   return (
     <p style={{
-      margin: 0, padding: '22px 0', textAlign: 'center', fontSize: 13.5, color: 'var(--c-meta)',
+      margin: 0, padding: '22px 0', textAlign: 'center', fontSize: 'var(--step--1)', color: 'var(--c-meta)',
     }}>{children}</p>
   );
 }

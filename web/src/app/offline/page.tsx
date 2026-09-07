@@ -22,18 +22,18 @@ export default function Offline() {
           <path d="M12 19.5v.01" />
         </svg>
       </span>
-      <h1 className="t" style={{ margin: 0, fontSize: 24, letterSpacing: '-.016em' }}>
+      <h1 className="t" style={{ margin: 0, fontSize: 'var(--step-3)', letterSpacing: '-.016em' }}>
         No connection
       </h1>
       <p style={{
-        margin: 0, fontSize: 14.5, lineHeight: 1.55, color: 'var(--c-meta)', maxWidth: '31ch',
+        margin: 0, fontSize: 'var(--step-0)', lineHeight: 1.55, color: 'var(--c-meta)', maxWidth: '31ch',
       }}>
         Your books live on the server, so they need a signal to open. Nothing has been lost —
         try again once you are back online.
       </p>
       <a href="/" style={{
         minHeight: 50, padding: '0 22px', display: 'flex', alignItems: 'center',
-        borderRadius: 14, textDecoration: 'none', fontSize: 15.5, fontWeight: 600,
+        borderRadius: 14, textDecoration: 'none', fontSize: 'var(--step-0)', fontWeight: 600,
         background: 'var(--c-card)', border: '1px solid var(--c-border)', color: 'var(--c-ink)',
       }}>Try again</a>
     </main>
