@@ -15,16 +15,16 @@ import { auth } from '@/auth';
       is verified, dated against the account's session epoch, and the role is
       read from the database.
 
-   /api/auth, /signin, /signup, /join and /reset are excluded from the
+   /api/auth, /signin, /signup, /join, /reset and /terms are excluded from the
    redirect: Auth.js has to answer, and opening your own household, accepting
    an invitation and setting a new password all have to work for someone who is
-   not signed in yet. */
+   not signed in yet — as does reading what they are agreeing to. */
 
 /* Paths the redirect must never touch. /api/auth is Auth.js itself — sending
    an unauthenticated request there to /signin would break signing in, which is
    the one thing it exists to do. The rest are the doors someone has to be able
    to open before they have a session at all. */
-const NO_REDIRECT = /^\/(api|signin|signup|join|reset|offline)(\/|$)/;
+const NO_REDIRECT = /^\/(api|signin|signup|join|reset|offline|terms)(\/|$)/;
 
 function policy(nonce: string, dev: boolean) {
   return [

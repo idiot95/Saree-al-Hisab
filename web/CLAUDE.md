@@ -370,6 +370,15 @@ user-derived id, no `dangerouslySetInnerHTML`, and constraint failures log the
 error code and constraint name only — a Postgres error carries the offending
 row in `detail`, which here means amounts and merchant names.
 
+**`/terms` is the security posture in the user's words**, public (the proxy
+lets it through), linked under the sign-up button and from Household. Every
+line on it is a claim the code makes good on — scrypt, AES-256-GCM for the
+Gemini key, TLS-only Postgres, the per-request membership check, revocable
+sessions — and the two it cannot yet (no account deletion, no export) are
+said as plainly. When one of those changes, change the page and its date.
+The README at the repo root is the "run your own copy" the page points at.
+The repo is public and has no LICENSE file; that choice is the owner's.
+
 ## Where it runs
 
 **Both halves are in Singapore** — Neon `aws-ap-southeast-1`, Vercel functions

@@ -186,6 +186,33 @@ export default async function Household() {
           </button>
         </form>
 
+        {/* The same page that sign-up points at, from inside: the terms are
+            also the record of how the books are kept, and that is a question
+            people ask months later, when the household has grown. */}
+        <Link href="/terms" transitionTypes={['nav-forward']} className="el card press" style={{
+          margin: '-8px var(--gutter) 22px', minHeight: 56, padding: '0 var(--pad)', borderRadius: 18,
+          display: 'flex', alignItems: 'center', gap: 11, background: 'var(--c-card)',
+          textDecoration: 'none', color: 'var(--c-ink)',
+        }}>
+          <span style={{
+            width: 38, height: 38, flex: 'none', borderRadius: 999, display: 'flex',
+            alignItems: 'center', justifyContent: 'center',
+            background: 'var(--c-sunk)', color: 'var(--c-meta)',
+          }}>
+            <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M12 3.5 5 6.5v5.2c0 4 3 7.3 7 8.8 4-1.5 7-4.8 7-8.8V6.5z" />
+              <path d="m9.5 12 1.8 1.8L14.8 10" />
+            </svg>
+          </span>
+          <span style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>Terms, and how your data is kept</span>
+            <span style={{ fontSize: 'var(--step--2)', color: 'var(--c-meta)' }}>Encrypted, checked on every request, source public</span>
+          </span>
+          <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="var(--c-meta)"
+            strokeWidth={2} strokeLinecap="round" aria-hidden><path d="M9 5l7 7-7 7" /></svg>
+        </Link>
+
         <Head>What each role can do</Head>
         <Card pad="4px 16px">
           {(['owner', 'adult', 'viewer'] as const).map((r, i) => (
