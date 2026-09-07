@@ -80,7 +80,7 @@ A repayment is `kind = 'claim_receipt'` — money in, but explicitly not income.
 ## Running it
 
     npm run migrate            # in filename order; --reset drops and rebuilds
-    npm run test:invariants    # 78 assertions against real Postgres
+    npm run test:invariants    # 81 assertions against real Postgres
     npm run test:lib           # money, password hashing and link tokens
     npm run tokens             # regenerate tokens.css from the canvas palette
 
@@ -92,7 +92,7 @@ because they are idempotent, so a changed view ships without a new file.
 ## Proven, not assumed
 
 `npm run test:invariants` tries to BREAK each rule and expects Postgres to
-refuse. 78 assertions currently pass, covering: a move can never look like
+refuse. 81 assertions currently pass, covering: a move can never look like
 spending, `spend_txn` is the only definition of spending, refunds net off in
 the month they land, a card purchase files itself into the right cycle, a
 payment method is a rail and not a balance, lending never touches the budget,
@@ -415,6 +415,27 @@ here could be pointed at a person there.
 Proven: three people lent ₹5,000, ₹10,000 and ₹15,000; a book with two of them
 totals ₹15,000 and leaves the third out; closing it changes no balance and no
 entry.
+
+## The inbox
+
+`/inbox` is where things that want a decision surface, and nothing else does.
+An inbox that collects notices nobody can act on stops being read, and then the
+one item that mattered is missed along with the rest.
+
+**Possible duplicates**, from the `duplicate_candidate` view that has been
+there since the ledger was built and had nothing showing it. Both entries are
+put side by side whole, because what DIFFERS between them is the question —
+rule B in particular flags entries on different accounts, which is exactly the
+case where a pair looks least alike and is most likely to be one purchase. "They
+are both real" is written to `duplicate_dismissed`, so a pair never asks twice.
+
+**Card bills** as their due date approaches. This one needed a fix:
+`card_open_cycle` returns the NEWEST open cycle per card, which is right for
+"what is riding on this card now" and exactly wrong for "what do I owe soon" —
+it hid a bill due in five days behind a cycle that had just opened. `billsDue`
+goes over every unpaid cycle instead. Three assertions hold the two apart.
+
+The home screen shows the count only when there is something in it.
 
 ## The UX laws, and where each one shows up
 

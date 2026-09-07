@@ -137,6 +137,21 @@ await txn({ kind: 'card_payment', account_id: fresh.id, counter_account_id: card
 ok(await balanceOf(card) === cardBefore, 'paying the bill walks the card back to where it was');
 ok(await balanceOf(fresh.id) === bankBefore - 300000, 'and the cash for it left the bank');
 
+/* The bill that needs paying is the OLDEST unpaid cycle. card_open_cycle
+   returns the NEWEST, which is right for "what is on this card now" and wrong
+   for "what do I owe soon" — a bill due in days can hide behind a cycle that
+   has only just opened. */
+await txn({ kind: 'expense', account_id: card, category_id: cat,
+            amount: 111000, occurred_on: '2026-10-08' });
+const openCycles = await sql`select period_start, due_on from card_cycle_total
+  where account_id = ${card} and status <> 'paid' order by period_start`;
+ok(openCycles.length >= 2, 'a later purchase opens a second cycle while the first is unpaid');
+const newest = await sql`select period_start from card_open_cycle where account_id = ${card}`;
+ok(iso(newest[0].period_start) === iso(openCycles[openCycles.length - 1].period_start),
+  'card_open_cycle gives the newest cycle — right for the card screen');
+ok(iso(openCycles[0].period_start) !== iso(newest[0].period_start),
+  'and the oldest unpaid cycle is a different one — which is the bill actually due');
+
 console.log('\nPAYMENT METHODS — a rail is not a balance');
 await refuses('a UPI method drawing on a credit card is refused',
   () => sql`insert into payment_method ${sql({ household_id: hh.id, name: 'GPay', kind: 'upi', funding_account_id: card })}`);

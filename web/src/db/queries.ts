@@ -593,3 +593,79 @@ export async function categoryTrend(householdId: string, month: string) {
   ` as Promise<{ id: string; name: string; tint: string;
                  now: string; before: string; budget: string }[]>;
 }
+
+/* ── the inbox: things worth a decision ─────────────────────────────────── */
+
+export type DuplicatePair = {
+  low_id: string; high_id: string; reason: 'same_account' | 'two_people';
+  low_amount: string; high_amount: string;
+  low_on: Date; high_on: Date;
+  low_merchant: string | null; high_merchant: string | null;
+  low_who: string; high_who: string;
+  low_account: string; high_account: string;
+  low_category: string | null; high_category: string | null;
+};
+
+/** Pairs the database thinks might be the same purchase twice. Detected, never
+ *  prevented — two identical coffees in a day is legitimate — so this is a
+ *  queue of decisions, not a list of errors. */
+export async function duplicatesFor(householdId: string) {
+  return sql`
+    select d.low_id, d.high_id, d.reason,
+           lo.amount::text as low_amount, hi.amount::text as high_amount,
+           lo.occurred_on as low_on, hi.occurred_on as high_on,
+           lo.merchant as low_merchant, hi.merchant as high_merchant,
+           lu.name as low_who, hu.name as high_who,
+           la.name as low_account, ha.name as high_account,
+           lc.name as low_category, hc.name as high_category
+    from duplicate_candidate d
+    join txn lo on lo.id = d.low_id
+    join txn hi on hi.id = d.high_id
+    join app_user lu on lu.id = lo.created_by
+    join app_user hu on hu.id = hi.created_by
+    join account la on la.id = lo.account_id
+    join account ha on ha.id = hi.account_id
+    left join category lc on lc.id = lo.category_id
+    left join category hc on hc.id = hi.category_id
+    where d.household_id = ${householdId}
+    order by hi.occurred_on desc
+  ` as Promise<DuplicatePair[]>;
+}
+
+/** Card bills with a due date coming up.
+ *
+ *  Deliberately NOT card_open_cycle: that view returns the newest open cycle
+ *  per card, which is right for "what is riding on this card right now" and
+ *  exactly wrong here. The bill that needs paying is the OLDEST unpaid one, and
+ *  going through card_open_cycle hid a bill due in five days behind the cycle
+ *  that had only just opened. */
+export async function billsDue(householdId: string, withinDays = 21) {
+  return sql`
+    select c.account_id, a.name as account, a.last4,
+           c.period_start, c.period_end, c.due_on, c.charged::text, c.entries::int,
+           (c.due_on - current_date)::int as days_away
+    from card_cycle_total c
+    join account a on a.id = c.account_id
+    where a.household_id = ${householdId}
+      and c.status <> 'paid'
+      and c.charged > 0
+      and c.due_on <= current_date + ${withinDays}::int
+    order by c.due_on
+  ` as Promise<{ account_id: string; account: string; last4: string | null;
+                 period_start: Date; period_end: Date; due_on: Date;
+                 charged: string; entries: number; days_away: number }[]>;
+}
+
+/** Just the count, for the home screen. Cheap enough to run on every load,
+ *  which is the point — an inbox nobody is told about is not an inbox. */
+export async function inboxCount(householdId: string) {
+  const [r] = await sql`
+    select
+      (select count(*)::int from duplicate_candidate
+        where household_id = ${householdId}) as duplicates,
+      (select count(*)::int from card_cycle_total c
+        join account a on a.id = c.account_id
+        where a.household_id = ${householdId} and c.status <> 'paid' and c.charged > 0
+          and c.due_on <= current_date + 21) as bills`;
+  return r as unknown as { duplicates: number; bills: number };
+}

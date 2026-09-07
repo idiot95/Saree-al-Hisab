@@ -59,6 +59,16 @@ const SECTIONS = [
     ],
   },
   {
+    title: 'The inbox catches what slips',
+    href: '/inbox', link: 'Open inbox',
+    lines: [
+      'If the same purchase looks like it was recorded twice, both entries are shown side by side and you decide.',
+      'Two people in a household often record one purchase differently — he paid by card, she assumed cash — so that check deliberately ignores which account it was on.',
+      'Saying "they are both real" is remembered, so a pair never asks twice.',
+      'Card bills appear here as their due date approaches, with what is riding on them.',
+    ],
+  },
+  {
     title: 'Seeing the shape of it',
     href: '/trends', link: 'Open trends',
     lines: [
@@ -125,7 +135,7 @@ export default async function Guide() {
           How it works
         </h1>
         <p style={{ margin: 0, fontSize: 14, lineHeight: 1.5, color: 'rgba(255,255,255,.82)' }}>
-          Nine things worth knowing. Three minutes.
+          Ten things worth knowing. Three minutes.
         </p>
       </header>
 

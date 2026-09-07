@@ -1,7 +1,9 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { signOut } from '@/auth';
-import { actorOrNull, budgetFor, monthTotals, peopleFor, setupProgress } from '@/db/queries';
+import {
+  actorOrNull, budgetFor, inboxCount, monthTotals, peopleFor, setupProgress,
+} from '@/db/queries';
 import { format, monthKey } from '@/lib/money';
 import { HEADER_BG } from './auth-ui';
 import TabBar, { TAB_BAR_SPACE } from './TabBar';
@@ -25,6 +27,8 @@ export default async function Home() {
     budgetFor(actor.household_id, month),
     peopleFor(actor.household_id),
   ]);
+  const inbox = await inboxCount(actor.household_id);
+  const needsYou = inbox.duplicates + inbox.bills;
   const lent = people.reduce((n, p) => n + Number(p.balance), 0);
   const budget = Number(totals.budget);
 
@@ -67,6 +71,39 @@ export default async function Home() {
             Household on every screen, so repeating them here is only more to
             read past. Home shows what only home can show, plus one quiet way
             back to the explanation. */}
+        {needsYou > 0 && (
+          <Link href="/inbox" className="el" style={{
+            minHeight: 62, borderRadius: 15, display: 'flex', alignItems: 'center', gap: 12,
+            padding: '0 16px', textDecoration: 'none', background: 'var(--c-warn-tint)',
+            border: '1px solid var(--c-warn-fill)', color: 'var(--c-ink)',
+          }}>
+            <span style={{
+              width: 34, height: 34, flex: 'none', borderRadius: 999, display: 'flex',
+              alignItems: 'center', justifyContent: 'center',
+              background: 'var(--c-warn-fill)', color: 'var(--c-on-fill)',
+            }}>
+              <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                strokeWidth={2.1} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <path d="M3.5 12.5h4l1.5 3h6l1.5-3h4" />
+                <path d="M5.5 6.5h13l2 6v5a1.5 1.5 0 0 1-1.5 1.5h-14A1.5 1.5 0 0 1 3.5 17.5v-5z" />
+              </svg>
+            </span>
+            <span style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <span style={{ fontSize: 15, fontWeight: 600 }}>Inbox</span>
+              <span style={{ fontSize: 12.5, color: 'var(--c-warn)' }}>
+                {[inbox.duplicates > 0
+                    ? `${inbox.duplicates} possible ${inbox.duplicates === 1 ? 'duplicate' : 'duplicates'}`
+                    : null,
+                  inbox.bills > 0
+                    ? `${inbox.bills} card ${inbox.bills === 1 ? 'bill' : 'bills'} due`
+                    : null].filter(Boolean).join(' · ')}
+              </span>
+            </span>
+            <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="var(--c-warn)"
+              strokeWidth={2} strokeLinecap="round" aria-hidden><path d="M9 5l7 7-7 7" /></svg>
+          </Link>
+        )}
+
         <Link href="/trends" className="el" style={{
           minHeight: 58, borderRadius: 15, display: 'flex', alignItems: 'center', gap: 12,
           padding: '0 16px', textDecoration: 'none', background: 'var(--c-card)',
