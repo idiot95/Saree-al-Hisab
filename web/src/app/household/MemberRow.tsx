@@ -99,7 +99,7 @@ export default function MemberRow({ member, canManage, isSelf, last, origin }: {
                 <option value="viewer">Viewer</option>
                 <option value="owner">Owner</option>
               </select>
-              <button type="submit" disabled={savingRole || role === member.role} style={{
+              <button className="cta" type="submit" disabled={savingRole || role === member.role} style={{
                 minHeight: 46, padding: '0 16px', borderRadius: 11, fontSize: 'var(--step-0)', fontWeight: 600,
                 background: role === member.role ? 'var(--c-sunk)' : 'var(--c-seagrass)',
                 color: role === member.role ? 'var(--c-meta)' : 'var(--c-on-fill)',
@@ -114,7 +114,7 @@ export default function MemberRow({ member, canManage, isSelf, last, origin }: {
               hands over a link. */}
           <form action={sendReset} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             <input type="hidden" name="userId" value={member.id} />
-            <button type="submit" disabled={sendingReset} style={{
+            <button className="cta" type="submit" disabled={sendingReset} style={{
               minHeight: 46, borderRadius: 11, fontSize: 'var(--step-0)', fontWeight: 600,
               background: 'var(--c-card)', border: '1px solid var(--c-border)',
               color: 'var(--c-ink)',
@@ -127,7 +127,7 @@ export default function MemberRow({ member, canManage, isSelf, last, origin }: {
 
           <form action={remove} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             <input type="hidden" name="userId" value={member.id} />
-            <button type="submit" disabled={removing} style={{
+            <button className="cta" type="submit" disabled={removing} style={{
               minHeight: 46, borderRadius: 11, fontSize: 'var(--step-0)', fontWeight: 600,
               background: 'var(--c-danger-tint)', color: 'var(--c-danger)',
             }}>
@@ -175,7 +175,7 @@ function ResetLink({ url, copied, setCopied }: {
         border: '1px solid var(--c-border)', fontSize: 'var(--step--2)', lineHeight: 1.5,
         wordBreak: 'break-all', color: 'var(--c-meta)',
       }}>{url}</code>
-      <button type="button" onClick={async () => {
+      <button className="cta" type="button" onClick={async () => {
         try { await navigator.clipboard.writeText(url); setCopied(true); } catch { setCopied(false); }
       }} style={{
         minHeight: 44, borderRadius: 10, background: 'var(--c-card)',

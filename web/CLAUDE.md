@@ -92,7 +92,7 @@ because they are idempotent, so a changed view ships without a new file.
 ## Proven, not assumed
 
 `npm run test:invariants` tries to BREAK each rule and expects Postgres to
-refuse. 94 assertions currently pass, covering: a move can never look like
+refuse. 106 assertions currently pass, covering: a move can never look like
 spending, `spend_txn` is the only definition of spending, refunds net off in
 the month they land, a card purchase files itself into the right cycle, a
 payment method is a rail and not a balance, lending never touches the budget,
@@ -102,7 +102,8 @@ plaintext is nowhere in the database, a password cannot exist without an
 address to use it with, and an account that has recorded entries cannot be
 deleted at all — the ledger holds it in place — and one person can keep
 several sets of books without either set knowing about the other, and a
-balance is only ever the sum of the entries beneath it, a card due before its
+balance is only ever the sum of the entries beneath it, a cost on a tab splits
+into shares that add back up to the paisa and outlive the tab, a card due before its
 statement day still takes a purchase and moving the days re-files the unpaid
 ones, and an entry delivered twice under one `client_ref` is one row.
 
@@ -414,25 +415,30 @@ Proven end to end: a ₹2,000 dinner with ₹1,000 claimed, settled in two
 payments. Month spending stays ₹2,000 throughout, income never moves, and cash
 ends at −₹1,000 — what you actually bore.
 
-### Books are folders for people
+### Tabs split a cost the moment it is saved
 
-`/books/[id]` groups people into a named book — the Pune flat, a trip, office
-lunches — so a household can answer "where do we stand on this" without adding
-rows up in its head. A book has a kind, loan or shared costs, and both totals
-are shown separately because they are different debts.
+`/tab/[id]` is a **tab**: a few people who share costs — the flat, a trip,
+office lunches. It replaced "books", which were folders that only summed
+figures already there. A tab does work: pick it on Add Entry (`?tab=` from the
+tab's own screen preselects it) and `saveEntry` writes the expense with
+`book_id` and **one `claim` per person on the tab, in the same transaction** —
+the entry and its shares land together or not at all. Only an expense can go
+on a tab, only an open tab is offered, and a tab with nobody on it refuses.
 
-**A book changes nothing about the arithmetic.** It holds no entries and owns
-no money: the same loans and the same claims, summed in one place. Taking
-someone out of a book removes them from the folder and nothing else. Closing a
-book is filing, not settling — a closed book with money still outstanding is an
-ordinary thing to have — and deleting one takes only the folder.
+Two splits, in `src/app/tab/splits.ts` and nowhere else: **equal** divides
+among the people and the household (n+1 shares, ours is not owed, the payer
+absorbs the odd paisa) and **full** divides the whole cost among the people,
+the first few carrying the odd paisa so the shares add back up exactly.
+Never a fraction, proven to the paisa.
 
-Both ids are checked against the household before they are joined, or a book
-here could be pointed at a person there.
-
-Proven: three people lent ₹5,000, ₹10,000 and ₹15,000; a book with two of them
-totals ₹15,000 and leaves the third out; closing it changes no balance and no
-entry.
+The tab's screen adds up what each person still owes on it from `claim_state`
+and lets you **settle up** in place: one amount, blank meaning all of it,
+spread across that person's open shares on this tab **oldest first**, each
+receipt a `claim_receipt` in one transaction. So a part payment clears the
+oldest entries whole and leaves the newest partly owed, and month spending
+never moves. Taking someone off the tab leaves what they already owe standing;
+closing is filing, not settling; deleting takes only the tab (`txn.book_id`
+goes null, the shares stay). Eleven assertions cover it.
 
 ## The inbox
 
@@ -477,6 +483,11 @@ Recording writes the entry and the occurrence in one transaction, so a schedule
 cannot show as paid with nothing in the ledger to show for it — `paid_has_txn`
 refuses it. The amount can be overridden for a month that differed.
 
+A schedule has a **kind**: rent goes out, a salary comes in. Same calendar,
+opposite sign — `recordDue` writes an `income` entry for an income schedule,
+the row says "expected" rather than "due", and the screen totals the two
+separately. A transfer cannot be scheduled; it is a payment or a receipt.
+
 Two things testing caught. `schedule.created_at` exists because without it a
 schedule added today would immediately claim you had missed last month's rent —
 dues before the schedule existed are history the app was not present for, not
@@ -485,11 +496,14 @@ rent leaves the screen still offering today.
 
 ## Net worth
 
-`/worth` is everything held less everything owed, in one figure. Money lent to
-someone counts as yours because it is — a person's account is in the sum like
-any other — and money you owe them counts against you. Savings are called out
-separately, because they sit outside the monthly budget and "can I check my
-savings" is a different question from "how am I doing this month".
+`/worth` is everything held, plus what people owe you, less what you owe, in
+one figure. Money lent to someone counts as yours because it is — a person's
+account is in the sum like any other — and **outstanding claims count too**:
+shares of costs you covered are your money in someone else's pocket, and
+leaving them out understated a household that pays first and collects later.
+Savings are called out separately, because they sit outside the monthly budget
+and "can I check my savings" is a different question from "how am I doing
+this month". The icon is a rising line, not a pig.
 
 The line is labelled **"held in accounts"** rather than net worth, and that is
 deliberate. An outstanding claim is money owed to you today and is in the
@@ -582,7 +596,7 @@ storage after it opens. The design, in the order the pieces matter:
   person decides. Stuck entries are never retried on their own.
 - **`/offline` is `force-dynamic`** though it reads nothing, because every
   script tag carries the request's CSP nonce and a prerendered page ships
-  with none. The worker (`public/sw.js`, `VERSION = 'v2'`) fetches it once at
+  with none. The worker (`public/sw.js`, `VERSION = 'v3'`) fetches it once at
   install, `credentials: 'omit'`, together with every `/_next/static/` script
   and stylesheet the markup names, so the cached copy is a self-consistent
   snapshot: the nonce in its cached headers is the nonce in its cached
@@ -591,6 +605,8 @@ storage after it opens. The design, in the order the pieces matter:
 - `AddEntry` itself takes `offline`: it queues instead of posting, and also
   queues when `navigator.onLine` is false or the action throws mid-save, so
   a tunnel between tap and reply loses nothing.
+- The pickers now carry the household's open tabs too (`pickers.tabs`,
+  optional so an older snapshot still reads).
 
 What is proven: idempotent delivery, the household check, the malformed
 reference refusal (invariants + a call-level test), and the queue's drain
@@ -712,6 +728,26 @@ then refuses and logs on every page. Tab data lives in `tabs.ts` and the
 glyph in `TabGlyph.tsx` — both plain modules — so the still and the live bar
 are one drawing. Re-check with the crawl: every `<script>` on every dynamic
 route carries the response's nonce.
+
+**The plus button opens a sheet** (`AddSheet.tsx`): type it in, scan a
+receipt with the camera, or upload a photo or PDF already on the phone. The
+two file choices post straight to the existing `scan` action and land on
+`/add` prefilled only when nothing is missing; otherwise the reason stays on
+the sheet. Without JavaScript the button is still a link to `/add`.
+
+**Light and dark live in a cookie**, `ql.theme`, read in the root layout and
+stamped as `data-theme` on `<html>`; absent means follow the phone.
+`tokens.css` already carries both palettes. The picker on `/household`
+switches the document from the click handler, then the action makes it
+stick. A device preference, not a household setting.
+
+**Depth comes from composition tokens in `globals.css`**, not from the
+generated palette: `--g-primary` and `--g-pumpkin` (a sheen over the brand
+colours, on every primary button and the Add tab), `--shade` on `.card`
+surfaces, `--g-fill` on progress bars, and a hairline `--edge` highlight
+inside `.el`/`.el2`. Each has a dark-mode value under the same guards
+`tokens.css` uses. `.card` is a separate class from `.el` on purpose:
+`.el` also dresses buttons whose background is the gradient.
 
 **Settings has a door**: the Home header — your initials, the household, a
 cog — opens `/household`, and Sign out lives there under "Your account". A

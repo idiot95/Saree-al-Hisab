@@ -10,7 +10,7 @@ export default function PasswordCard() {
   const [open, setOpen] = useState(false);
 
   return (
-    <section className="el" style={{
+    <section className="el card" style={{
       margin: '0 var(--gutter) 22px', background: 'var(--c-card)', borderRadius: 18, padding: 16,
       display: 'flex', flexDirection: 'column', gap: 12,
     }}>
@@ -62,13 +62,13 @@ export default function PasswordCard() {
           )}
 
           <div style={{ display: 'flex', gap: 9 }}>
-            <button type="button" onClick={() => setOpen(false)} style={{
+            <button className="cta" type="button" onClick={() => setOpen(false)} style={{
               minHeight: 48, padding: '0 16px', borderRadius: 12, fontSize: 'var(--step-0)', fontWeight: 600,
               background: 'var(--c-sunk)', color: 'var(--c-meta)',
             }}>Cancel</button>
-            <button type="submit" disabled={pending} style={{
+            <button className="cta" type="submit" disabled={pending} style={{
               flex: 1, minHeight: 48, borderRadius: 12, fontSize: 'var(--step-0)', fontWeight: 600,
-              background: 'var(--c-seagrass)', color: 'var(--c-on-fill)',
+              background: 'var(--g-primary)', color: 'var(--c-on-fill)',
               opacity: pending ? 0.65 : 1,
             }}>{pending ? 'Saving…' : 'Change password'}</button>
           </div>

@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import AddEntry from './AddEntry';
-import { actorOrNull, categoriesFor, methodsFor, accountsFor } from '@/db/queries';
+import { actorOrNull, categoriesFor, methodsFor, accountsFor, tabsForEntry } from '@/db/queries';
 import Screen from '../Screen';
 
 export const metadata = { title: 'New entry · Quiet Ledger' };
@@ -8,16 +8,17 @@ export const dynamic = 'force-dynamic';
 
 export default async function Page({ searchParams }: {
   searchParams: Promise<{ amount?: string; on?: string; merchant?: string;
-                          kind?: string; category?: string }>;
+                          kind?: string; category?: string; tab?: string }>;
 }) {
   const actor = await actorOrNull();
   if (!actor) redirect('/signin');
   if (!actor.household_id) redirect('/no-household');
   const household_id = actor.household_id;
-  const [categories, methods, accounts] = await Promise.all([
+  const [categories, methods, accounts, tabs] = await Promise.all([
     categoriesFor(household_id),
     methodsFor(household_id),
     accountsFor(household_id),
+    tabsForEntry(household_id),
   ]);
   const today = new Date().toISOString().slice(0, 10);
 
@@ -33,6 +34,8 @@ export default async function Page({ searchParams }: {
     kind: (q.kind === 'expense' || q.kind === 'income' ? q.kind : null) as
       'expense' | 'income' | null,
     categoryId: categories.some((c) => c.id === q.category) ? q.category! : null,
+    // Arrived from a tab's own screen: only an open tab of this household's is honoured.
+    tabId: tabs.some((t) => t.id === q.tab) ? q.tab! : null,
   };
 
   return (
@@ -44,6 +47,7 @@ export default async function Page({ searchParams }: {
         }))}
         methods={methods.map((m) => ({ id: m.id, name: m.name, funds: m.funds }))}
         accounts={accounts}
+        tabs={tabs}
         today={today}
         householdId={household_id}
       />

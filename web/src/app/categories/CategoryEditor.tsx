@@ -237,7 +237,7 @@ export default function CategoryEditor({ categories, canEdit }: {
   return (
     <>
       <Head>In use</Head>
-      <section className="el" style={{ ...card, overflow: 'hidden' }}>
+      <section className="el card" style={{ ...card, overflow: 'hidden' }}>
         {live.map((c, i) => (
           editing === c.id
             ? <EditRow key={c.id} cat={c} first={i === 0} last={i === live.length - 1} onDone={() => setEditing(null)} />
@@ -289,7 +289,7 @@ export default function CategoryEditor({ categories, canEdit }: {
             Not offered for new entries. Everything already filed under them is untouched, and
             they still appear in the months they were used.
           </p>
-          <section className="el" style={card}>
+          <section className="el card" style={card}>
             {retired.map((c, i) => (
               <RetiredRow key={c.id} cat={c} last={i === retired.length - 1} canEdit={canEdit}
                 onBack={() => setHidden((h) => { const n = new Set(h); n.delete(c.id); return n; })} />
@@ -400,7 +400,7 @@ function EditRow({ cat, first, last, onDone }: { cat: Cat; first: boolean; last:
 
       <form action={retire} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         <input type="hidden" name="id" value={cat.id} />
-        <button type="submit" disabled={retiring} style={{
+        <button className="cta" type="submit" disabled={retiring} style={{
           minHeight: 44, borderRadius: 11, fontSize: 'var(--step--1)', fontWeight: 600,
           background: 'transparent', color: 'var(--c-danger)',
         }}>{retiring ? 'Retiring…' : 'Retire this category'}</button>
@@ -424,7 +424,7 @@ function AddRow({ onDone }: { onDone: () => void }) {
   const [tint, setTint] = useState<string>('blue');
 
   return (
-    <form action={act} className="el" style={{
+    <form action={act} className="el card" style={{
       margin: '0 var(--gutter) 22px', background: 'var(--c-card)', borderRadius: 18, padding: 16,
       display: 'flex', flexDirection: 'column', gap: 13,
     }}>
@@ -460,7 +460,7 @@ function RetiredRow({ cat, last, canEdit, onBack }: {
       {canEdit && (
         <form action={restore} onSubmit={() => { haptic('select'); onBack(); }}>
           <input type="hidden" name="id" value={cat.id} />
-          <button type="submit" style={{
+          <button className="cta" type="submit" style={{
             minHeight: 44, padding: '0 12px', borderRadius: 11, fontSize: 'var(--step--1)',
             fontWeight: 600, background: 'var(--c-sunk)', color: 'var(--c-ink)',
           }}>Bring back</button>
@@ -505,5 +505,5 @@ const ghost: React.CSSProperties = {
 };
 const solid: React.CSSProperties = {
   flex: 1, minHeight: 50, borderRadius: 13, fontSize: 'var(--step-0)', fontWeight: 600,
-  background: 'var(--c-seagrass)', color: 'var(--c-on-fill)',
+  background: 'var(--g-primary)', color: 'var(--c-on-fill)',
 };

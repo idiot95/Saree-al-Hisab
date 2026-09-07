@@ -39,7 +39,7 @@ export default function PersonActions({ personId, name, balance, methods, catego
   );
 
   return (
-    <div className="el" style={{
+    <div className="el card" style={{
       margin: '0 var(--gutter) 20px', background: 'var(--c-card)', borderRadius: 18, padding: 16,
     }}>
       {mode === 'lend' && (
@@ -128,11 +128,11 @@ function Row({ onCancel, pending, label, danger }: {
 }) {
   return (
     <div style={{ display: 'flex', gap: 9 }}>
-      <button type="button" onClick={onCancel} style={{
+      <button className="cta" type="button" onClick={onCancel} style={{
         minHeight: 50, padding: '0 16px', borderRadius: 13, fontSize: 'var(--step-0)', fontWeight: 600,
         background: 'var(--c-sunk)', color: 'var(--c-meta)',
       }}>Cancel</button>
-      <button type="submit" disabled={pending} style={{
+      <button className="cta" type="submit" disabled={pending} style={{
         flex: 1, minHeight: 50, borderRadius: 13, fontSize: 'var(--step-0)', fontWeight: 600,
         opacity: pending ? 0.65 : 1,
         background: danger ? 'var(--c-danger-tint)' : 'var(--c-seagrass)',
@@ -145,7 +145,7 @@ function Btn({ children, onClick, primary }: {
   children: React.ReactNode; onClick: () => void; primary?: boolean;
 }) {
   return (
-    <button type="button" onClick={onClick} className={primary ? 'el2' : 'el'} style={{
+    <button type="button" onClick={onClick} className={`${primary ? 'el2' : 'el'} cta`} style={{
       flex: 1, minHeight: 54, borderRadius: 14, fontSize: 'var(--step-0)', fontWeight: 600,
       background: primary
         ? 'radial-gradient(120% 100% at 25% 0%, rgba(255,255,255,.18) 0%, rgba(255,255,255,0) 60%),'

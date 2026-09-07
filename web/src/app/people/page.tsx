@@ -1,12 +1,13 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { actorOrNull, bookList, owedByPerson, peopleFor } from '@/db/queries';
+import { actorOrNull, owedByPerson, peopleFor, tabList } from '@/db/queries';
 import { format } from '@/lib/money';
 import { headerBg } from '../auth-ui';
 import TabBar from '../TabBar';
 import { TAB_BAR_SPACE } from '../tabs';
 import AddPerson from './AddPerson';
-import NewBook from '../books/NewBook';
+import NewTab from '../tab/NewTab';
+import { Chip } from '../Icon';
 import Screen from '../Screen';
 import SwipeBack from '../SwipeBack';
 
@@ -29,10 +30,10 @@ export default async function People() {
   if (!actor) redirect('/signin');
   if (!actor.household_id) redirect('/no-household');
 
-  const [people, owed, books] = await Promise.all([
+  const [people, owed, tabs] = await Promise.all([
     peopleFor(actor.household_id),
     owedByPerson(actor.household_id),
-    bookList(actor.household_id),
+    tabList(actor.household_id),
   ]);
   const claimed = new Map(owed.map((o) => [o.id, Number(o.claimed)]));
   const claimsTotal = owed.reduce((n, o) => n + Number(o.claimed), 0);
@@ -106,53 +107,44 @@ export default async function People() {
 
           {people.length > 0 && (
             <>
-              <Head>Books</Head>
+              <Head>Tabs</Head>
               <p style={{
                 margin: '-4px 20px 12px', fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--c-meta)',
               }}>
-                Folders for people — the flat, a trip, office lunches — so you can see where a
-                whole group stands without adding it up yourself.
+                A few people who share costs — the flat, a trip, office lunches. Put an expense on
+                a tab and it is split among them the moment you save it.
               </p>
-              {books.length > 0 && (
-                <section className="el" style={{
+              {tabs.length > 0 && (
+                <section className="el card" style={{
                   margin: '0 var(--gutter) 16px', background: 'var(--c-card)', borderRadius: 18, padding: '0 var(--gutter)',
                 }}>
-                  {books.map((b, i) => {
-                    const t = Number(b.lent) + Number(b.claimed);
+                  {tabs.map((b, i) => {
+                    const t = Number(b.outstanding);
                     return (
-                      <Link key={b.id} href={`/books/${b.id}`} transitionTypes={['nav-forward']} style={{
+                      <Link key={b.id} href={`/tab/${b.id}`} transitionTypes={['nav-forward']} style={{
                         display: 'flex', alignItems: 'center', gap: 12, minHeight: 72,
                         textDecoration: 'none', color: 'var(--c-ink)',
                         opacity: b.closed_at ? 0.55 : 1,
-                        borderBottom: i === books.length - 1 ? undefined : '1px solid var(--c-rule)',
+                        borderBottom: i === tabs.length - 1 ? undefined : '1px solid var(--c-rule)',
                       }}>
-                        <span style={{
-                          width: 40, height: 40, flex: 'none', borderRadius: 11, display: 'flex',
-                          alignItems: 'center', justifyContent: 'center',
-                          background: b.kind === 'loan' ? 'var(--cat-indigo)' : 'var(--cat-cyan)',
-                          color: b.kind === 'loan' ? 'var(--cat-indigo-ink)' : 'var(--cat-cyan-ink)',
-                        }}>
-                          <svg width={19} height={19} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                            <path d="M3.5 7.5a2 2 0 0 1 2-2h3.6l1.8 2h7.6a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z" />
-                          </svg>
-                        </span>
+                        <Chip icon="tab" tint={b.split === 'full' ? 'indigo' : 'cyan'} />
                         <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
                           <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>{b.name}</span>
                           <span style={{ fontSize: 'var(--step--2)', color: 'var(--c-meta)' }}>
                             {b.people} {b.people === 1 ? 'person' : 'people'}
+                            {b.entries > 0 ? ` · ${b.entries} ${b.entries === 1 ? 'entry' : 'entries'}` : ''}
                             {b.closed_at ? ' · closed' : ''}
                           </span>
                         </span>
                         <span className="t" style={{ fontSize: 'var(--step-0)', color: t === 0 ? 'var(--c-meta)' : 'var(--c-ink)' }}>
-                          {t === 0 ? '—' : format(Math.abs(t))}
+                          {t === 0 ? (b.entries > 0 ? 'settled' : '—') : format(t)}
                         </span>
                       </Link>
                     );
                   })}
                 </section>
               )}
-              {canWrite && <NewBook />}
+              {canWrite && <NewTab people={people.map((p) => ({ id: p.id, name: p.name, tint: p.tint }))} />}
             </>
           )}
 
@@ -184,7 +176,7 @@ function List({ people, claimed }: {
   people: Awaited<ReturnType<typeof peopleFor>>; claimed: Map<string, number>;
 }) {
   return (
-    <section className="el" style={{
+    <section className="el card" style={{
       margin: '0 var(--gutter) 22px', background: 'var(--c-card)', borderRadius: 18, padding: '0 var(--pad)',
     }}>
       {people.map((p, i) => {

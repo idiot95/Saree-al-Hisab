@@ -16,10 +16,11 @@ export default function NewSchedule({ methods, categories, startOpen = false }: 
   const [state, act, pending] = useActionState(createSchedule, null);
   const [open, setOpen] = useState(startOpen);
   const [freq, setFreq] = useState('MONTHLY');
+  const [kind, setKind] = useState<'expense' | 'income'>('expense');
 
   if (!open) {
     return (
-      <button type="button" onClick={() => setOpen(true)} className="el" style={{
+      <button type="button" onClick={() => setOpen(true)} className="el card" style={{
         margin: '0 var(--gutter) 22px', width: 'calc(100% - 36px)', minHeight: 56, borderRadius: 16,
         display: 'flex', alignItems: 'center', gap: 11, padding: '0 var(--pad)',
         background: 'var(--c-card)', border: '1px dashed var(--c-dash)',
@@ -33,19 +34,41 @@ export default function NewSchedule({ methods, categories, startOpen = false }: 
           <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor"
             strokeWidth={2.2} strokeLinecap="round" aria-hidden><path d="M12 5v14M5 12h14" /></svg>
         </span>
-        Add a scheduled payment
+        Add a payment or income that comes round
       </button>
     );
   }
 
   return (
-    <form action={act} className="el" style={{
+    <form action={act} className="el card" style={{
       margin: '0 var(--gutter) 22px', background: 'var(--c-card)', borderRadius: 18, padding: 16,
       display: 'flex', flexDirection: 'column', gap: 13,
     }}>
+      <div role="tablist" aria-label="Paid out or paid in" style={{
+        display: 'flex', gap: 3, padding: 3, background: 'var(--c-sunk)', borderRadius: 999,
+      }}>
+        {([['expense', 'Goes out'], ['income', 'Comes in']] as const).map(([id, label]) => {
+          const on = kind === id;
+          return (
+            <label key={id} style={{
+              position: 'relative', flex: 1, minHeight: 44, display: 'flex', alignItems: 'center',
+              justifyContent: 'center', borderRadius: 999, cursor: 'pointer',
+              fontSize: 'var(--step--1)', fontWeight: 600,
+              background: on ? 'var(--c-card)' : 'transparent',
+              color: on ? 'var(--c-ink)' : 'var(--c-meta)',
+              boxShadow: on ? '0 1px 2px rgba(0,0,0,.08)' : undefined,
+            }}>
+              <input type="radio" name="kind" value={id} checked={on} onChange={() => setKind(id)}
+                style={{ position: 'absolute', opacity: 0, width: 1, height: 1 }} />
+              {label}
+            </label>
+          );
+        })}
+      </div>
       <Field label="What is it" name="name" required maxLength={60}
-        placeholder="Rent" autoFocus />
-      <Field label="Amount" name="amount" inputMode="decimal" required placeholder="45000" />
+        placeholder={kind === 'income' ? 'Salary' : 'Rent'} autoFocus />
+      <Field label="Amount" name="amount" inputMode="decimal" required
+        placeholder={kind === 'income' ? '120000' : '45000'} />
 
       <fieldset style={{ border: 0, padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 7 }}>
         <legend style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)', padding: 0 }}>
@@ -91,7 +114,9 @@ export default function NewSchedule({ methods, categories, startOpen = false }: 
       </p>
 
       <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-        <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)' }}>Paid with</span>
+        <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)' }}>
+          {kind === 'income' ? 'Arrives by' : 'Paid with'}
+        </span>
         <select name="methodId" required style={select}>
           {methods.map((m) => <option key={m.id} value={m.id}>{m.name} — {m.funds}</option>)}
         </select>
@@ -105,13 +130,13 @@ export default function NewSchedule({ methods, categories, startOpen = false }: 
 
       {state && !state.ok && <ErrorNote>{state.error}</ErrorNote>}
       <div style={{ display: 'flex', gap: 9 }}>
-        <button type="button" onClick={() => setOpen(false)} style={{
+        <button className="cta" type="button" onClick={() => setOpen(false)} style={{
           minHeight: 50, padding: '0 16px', borderRadius: 13, fontSize: 'var(--step-0)', fontWeight: 600,
           background: 'var(--c-sunk)', color: 'var(--c-meta)',
         }}>Cancel</button>
-        <button type="submit" disabled={pending} style={{
+        <button className="cta" type="submit" disabled={pending} style={{
           flex: 1, minHeight: 50, borderRadius: 13, fontSize: 'var(--step-0)', fontWeight: 600,
-          background: 'var(--c-seagrass)', color: 'var(--c-on-fill)', opacity: pending ? 0.65 : 1,
+          background: 'var(--g-primary)', color: 'var(--c-on-fill)', opacity: pending ? 0.65 : 1,
         }}>{pending ? 'Saving…' : 'Add it'}</button>
       </div>
     </form>

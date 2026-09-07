@@ -61,7 +61,7 @@ export default function EntryList({ days, canEdit }: {
               margin: '0 var(--gutter) 8px', fontSize: 'var(--step--1)', fontWeight: 700, letterSpacing: '.03em',
               color: 'var(--c-meta)',
             }}>{d.label}</h2>
-            <div className="el" style={{
+            <div className="el card" style={{
               margin: '0 var(--gutter)', background: 'var(--c-card)', borderRadius: 16,
               padding: '0 var(--pad)', overflow: 'hidden',
             }}>

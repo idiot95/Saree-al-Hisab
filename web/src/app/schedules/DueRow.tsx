@@ -6,11 +6,12 @@ import { recordDue, skipDue, archiveSchedule } from './actions';
 import { format } from '@/lib/money';
 
 export default function DueRow({
-  scheduleId, name, dueOn, daysAway, amount, category, icon, tint,
+  scheduleId, name, kind = 'expense', dueOn, daysAway, amount, category, icon, tint,
 }: {
-  scheduleId: string; name: string; dueOn: string; daysAway: number;
+  scheduleId: string; name: string; kind?: 'expense' | 'income'; dueOn: string; daysAway: number;
   amount: number; category: string | null; icon?: string | null; tint?: string | null;
 }) {
+  const income = kind === 'income';
   const [recState, record, recording] = useActionState(recordDue, null);
   const [, skip] = useActionState(skipDue, null);
   const [open, setOpen] = useState(false);
@@ -33,24 +34,27 @@ export default function DueRow({
         <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
           <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>{name}</span>
           <span style={{ fontSize: 'var(--step--1)', color: overdue ? 'var(--c-danger)' : 'var(--c-meta)' }}>
-            {overdue ? `${-daysAway} days overdue`
-              : daysAway === 0 ? 'due today' : `due in ${daysAway} days`}
+            {income
+              ? (overdue ? `expected ${-daysAway} days ago` : daysAway === 0 ? 'expected today' : `expected in ${daysAway} days`)
+              : (overdue ? `${-daysAway} days overdue` : daysAway === 0 ? 'due today' : `due in ${daysAway} days`)}
             {category && ` · ${category}`}
           </span>
         </span>
-        <span className="t" style={{ fontSize: 'var(--step-1)' }}>{format(amount)}</span>
+        <span className="t" style={{ fontSize: 'var(--step-1)', color: income ? 'var(--c-seagrass)' : undefined }}>
+          {income ? '+' : ''}{format(amount)}
+        </span>
       </div>
 
       {!open ? (
         <div style={{ display: 'flex', gap: 8 }}>
-          <button type="button" onClick={() => setOpen(true)} style={{
+          <button className="cta" type="button" onClick={() => setOpen(true)} style={{
             flex: 1, minHeight: 44, borderRadius: 11, fontSize: 'var(--step--1)', fontWeight: 600,
-            background: 'var(--c-seagrass)', color: 'var(--c-on-fill)',
-          }}>Record it</button>
+            background: 'var(--g-primary)', color: 'var(--c-on-fill)',
+          }}>{income ? 'It came in' : 'Record it'}</button>
           <form action={skip}>
             <input type="hidden" name="scheduleId" value={scheduleId} />
             <input type="hidden" name="dueOn" value={dueOn} />
-            <button type="submit" style={{
+            <button className="cta" type="submit" style={{
               minHeight: 44, padding: '0 14px', borderRadius: 11, fontSize: 'var(--step--1)',
               fontWeight: 600, background: 'var(--c-sunk)', color: 'var(--c-meta)',
             }}>Skip</button>
@@ -77,13 +81,13 @@ export default function DueRow({
             </span>
           )}
           <div style={{ display: 'flex', gap: 8 }}>
-            <button type="button" onClick={() => setOpen(false)} style={{
+            <button className="cta" type="button" onClick={() => setOpen(false)} style={{
               minHeight: 46, padding: '0 14px', borderRadius: 11, fontSize: 'var(--step--1)',
               fontWeight: 600, background: 'var(--c-sunk)', color: 'var(--c-meta)',
             }}>Cancel</button>
-            <button type="submit" disabled={recording} style={{
+            <button className="cta" type="submit" disabled={recording} style={{
               flex: 1, minHeight: 46, borderRadius: 11, fontSize: 'var(--step-0)', fontWeight: 600,
-              background: 'var(--c-seagrass)', color: 'var(--c-on-fill)',
+              background: 'var(--g-primary)', color: 'var(--c-on-fill)',
               opacity: recording ? 0.6 : 1,
             }}>{recording ? 'Saving…' : 'Record the payment'}</button>
           </div>

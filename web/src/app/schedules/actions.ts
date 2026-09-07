@@ -27,6 +27,12 @@ export async function createSchedule(_prev: Result | null, fd: FormData): Promis
   if (name.length < 2) return { ok: false, error: 'Give it a name.' };
   if (name.length > 60) return { ok: false, error: 'Names are 60 characters at most.' };
 
+  // Rent goes out; a salary comes in. The kind is fixed at creation and every
+  // entry recorded from the schedule carries it, so a month's income can never
+  // be booked as an expense by the reminder that raised it.
+  const kind = String(fd.get('kind') ?? 'expense');
+  if (kind !== 'expense' && kind !== 'income') return { ok: false, error: 'Is it paid out, or paid to you?' };
+
   const day = Number(fd.get('day'));
   if (!Number.isInteger(day) || day < 1 || day > MAX_DAY) {
     return { ok: false, error: `Pick a day from 1 to ${MAX_DAY} — every month has those.` };
@@ -46,7 +52,7 @@ export async function createSchedule(_prev: Result | null, fd: FormData): Promis
     select funding_account_id from payment_method
     where id = ${String(fd.get('methodId') ?? '')} and household_id = ${actor.household_id}
       and archived_at is null`;
-  if (!m) return { ok: false, error: 'Choose how it is paid.' };
+  if (!m) return { ok: false, error: kind === 'income' ? 'Choose where it arrives.' : 'Choose how it is paid.' };
 
   const [cat] = await sql`
     select id from category
@@ -55,9 +61,9 @@ export async function createSchedule(_prev: Result | null, fd: FormData): Promis
   if (!cat) return { ok: false, error: 'Choose a category.' };
 
   await sql`
-    insert into schedule (household_id, name, amount, amount_from_statement,
+    insert into schedule (household_id, name, kind, amount, amount_from_statement,
                           account_id, category_id, rrule)
-    values (${actor.household_id}, ${name}, ${minor}, false,
+    values (${actor.household_id}, ${name}, ${kind}, ${minor}, false,
             ${m.funding_account_id}, ${cat.id}, ${rule})`;
 
   revalidatePath('/schedules');
@@ -92,7 +98,7 @@ export async function recordDue(_prev: Result | null, fd: FormData): Promise<Res
   if (!/^\d{4}-\d{2}-\d{2}$/.test(dueOn)) return { ok: false, error: 'That date is not valid.' };
 
   const [s] = await sql`
-    select id, name, amount::bigint, account_id, category_id from schedule
+    select id, name, kind, amount::bigint, account_id, category_id from schedule
     where id = ${scheduleId} and household_id = ${actor.household_id} and archived_at is null`;
   if (!s) return { ok: false, error: 'That schedule is not one of yours.' };
 
@@ -105,7 +111,7 @@ export async function recordDue(_prev: Result | null, fd: FormData): Promise<Res
       const [t] = await tx`
         insert into txn (household_id, created_by, kind, amount, occurred_on,
                          account_id, category_id, merchant, source)
-        values (${actor.household_id}, ${actor.user_id}, 'expense', ${minor}, ${dueOn}::date,
+        values (${actor.household_id}, ${actor.user_id}, ${s.kind}, ${minor}, ${dueOn}::date,
                 ${s.account_id}, ${s.category_id}, ${s.name}, 'manual')
         returning id`;
       await tx`

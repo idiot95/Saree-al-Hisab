@@ -24,10 +24,11 @@ export const txnSource = pgEnum('txn_source', ['manual', 'receipt', 'shared']);
 export const claimKind = pgEnum('claim_kind', ['reimbursement', 'loan', 'shared', 'refund_due']);
 export const claimStatus = pgEnum('claim_status', ['open', 'part_paid', 'settled', 'written_off']);
 export const dueStatus = pgEnum('due_status', ['pending', 'paid', 'skipped']);
+export const scheduleKind = pgEnum('schedule_kind', ['expense', 'income']);
 export const inboxKind = pgEnum('inbox_kind', ['expected_income', 'recurring', 'duplicate']);
 export const inboxStatus = pgEnum('inbox_status', ['open', 'accepted', 'dismissed']);
 export const methodKind = pgEnum('method_kind', ['upi', 'card', 'netbanking', 'cash', 'cheque', 'wallet', 'autodebit']);
-export const bookKind = pgEnum('book_kind', ['loan', 'reimbursement']);
+export const splitRule = pgEnum('split_rule', ['equal', 'full']);
 export const cycleStatus = pgEnum('cycle_status', ['open', 'statemented', 'paid']);
 
 export const household = pgTable('household', {
@@ -181,16 +182,20 @@ export const counterparty = pgTable('counterparty', {
   uniqueIndex('counterparty_account').on(t.accountId),
 ]);
 
-/* A folder. Optional on an entry, and it may span several people — which a
-   folder nested inside one person could not express. Grouping only: no
-   splits, by decision. */
+/* A tab: a few people who share costs — the flat, a trip, the Ashara
+   kitchen. An expense put on a tab is split among its members the moment it
+   is saved, one claim per member, and settling up clears those claims
+   person by person. Money simply lent is not a tab; that is the person's own
+   khata. (Superseded the earlier "grouping only, no splits" decision: a tab
+   that does not split is a label, and a label is not what anyone asked for.) */
 export const ledgerBook = pgTable('ledger_book', {
   id: uuid('id').primaryKey().defaultRandom(),
   householdId: uuid('household_id').notNull().references(() => household.id, { onDelete: 'cascade' }),
-  /* A loan book holds money you lent — never spending. A reimbursement book
-     holds money you spent on someone else's behalf — spending you expect back.
-     They settle differently, so the kind is not decoration. */
-  kind: bookKind('kind').notNull().default('reimbursement'),
+  /* equal: the household is one of the sharers, so a cost is divided by the
+     members plus one and the household keeps its own share. full: the
+     household paid on the members' behalf and they owe all of it between
+     them. */
+  split: splitRule('split').notNull().default('equal'),
   name: text('name').notNull(),
   note: text('note'),
   closedAt: timestamp('closed_at', { withTimezone: true }),
@@ -283,7 +288,9 @@ export const txn = pgTable('txn', {
   source: txnSource('source').notNull().default('manual'),
   createdBy: uuid('created_by').notNull().references(() => appUser.id),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-  bookId: uuid('book_id'),
+  /* The tab this expense was put on, if any. Deleting the tab leaves the
+     entry — and the claims it raised — exactly where they are. */
+  bookId: uuid('book_id').references(() => ledgerBook.id, { onDelete: 'set null' }),
   reversesTxnId: uuid('reverses_txn_id'),
   /* Set only on a claim_receipt: which claim this money is settling. */
   claimId: uuid('claim_id'),
@@ -374,6 +381,9 @@ export const claimItem = pgTable('claim_item', {
 export const schedule = pgTable('schedule', {
   id: uuid('id').primaryKey().defaultRandom(),
   householdId: uuid('household_id').notNull().references(() => household.id, { onDelete: 'cascade' }),
+  /* Rent goes out; a salary comes in. Same calendar, opposite sign, and the
+     entry recorded when it is due carries this kind. */
+  kind: scheduleKind('kind').notNull().default('expense'),
   name: text('name').notNull(),
   amount: bigint('amount', { mode: 'number' }),
   amountFromStatement: boolean('amount_from_statement').notNull().default(false),

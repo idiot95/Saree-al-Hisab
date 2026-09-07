@@ -13,7 +13,7 @@ export default function ScanKey({ hasKey, setOn }: { hasKey: boolean; setOn: str
   const [open, setOpen] = useState(false);
 
   return (
-    <section className="el" style={{
+    <section className="el card" style={{
       margin: '0 var(--gutter) 22px', background: 'var(--c-card)', borderRadius: 18, padding: 16,
       display: 'flex', flexDirection: 'column', gap: 12,
     }}>
@@ -40,7 +40,7 @@ export default function ScanKey({ hasKey, setOn }: { hasKey: boolean; setOn: str
       </div>
 
       {!open ? (
-        <button type="button" onClick={() => setOpen(true)} style={{
+        <button className="cta" type="button" onClick={() => setOpen(true)} style={{
           minHeight: 48, borderRadius: 12, fontSize: 'var(--step-0)', fontWeight: 600,
           background: 'var(--c-sunk)', color: 'var(--c-ink)',
         }}>{hasKey ? 'Replace or remove the key' : 'Add a key'}</button>
@@ -62,13 +62,13 @@ export default function ScanKey({ hasKey, setOn }: { hasKey: boolean; setOn: str
               }}>{saveState.message}</p>
             )}
             <div style={{ display: 'flex', gap: 9 }}>
-              <button type="button" onClick={() => setOpen(false)} style={{
+              <button className="cta" type="button" onClick={() => setOpen(false)} style={{
                 minHeight: 48, padding: '0 16px', borderRadius: 12, fontSize: 'var(--step-0)',
                 fontWeight: 600, background: 'var(--c-sunk)', color: 'var(--c-meta)',
               }}>Cancel</button>
-              <button type="submit" disabled={saving} style={{
+              <button className="cta" type="submit" disabled={saving} style={{
                 flex: 1, minHeight: 48, borderRadius: 12, fontSize: 'var(--step-0)', fontWeight: 600,
-                background: 'var(--c-seagrass)', color: 'var(--c-on-fill)',
+                background: 'var(--g-primary)', color: 'var(--c-on-fill)',
                 opacity: saving ? 0.6 : 1,
               }}>{saving ? 'Checking with Google…' : 'Check and save'}</button>
             </div>
@@ -80,7 +80,7 @@ export default function ScanKey({ hasKey, setOn }: { hasKey: boolean; setOn: str
 
           {hasKey && (
             <form action={remove}>
-              <button type="submit" disabled={removing} style={{
+              <button className="cta" type="submit" disabled={removing} style={{
                 width: '100%', minHeight: 46, borderRadius: 12, fontSize: 'var(--step--1)', fontWeight: 600,
                 background: 'transparent', color: 'var(--c-danger)',
               }}>{removing ? 'Removing…' : 'Remove the key and turn scanning off'}</button>

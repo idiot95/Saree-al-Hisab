@@ -25,9 +25,8 @@ export function TabGlyph({ t, on, here, add }: {
         width: 46, height: 46, borderRadius: 999, marginTop: -14,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         color: '#fff',
-        background: 'radial-gradient(120% 100% at 25% 0%, rgba(255,255,255,.2) 0%, rgba(255,255,255,0) 60%),'
-          + 'linear-gradient(145deg,#2C5063 0%,#1C3541 100%)',
-        boxShadow: '0 4px 14px -4px rgba(35,61,77,.5)',
+        background: 'var(--g-pumpkin)',
+        boxShadow: 'inset 0 1px 0 rgba(255,255,255,.35), 0 6px 16px -4px rgba(254,127,45,.55)',
       } : {
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         height: 26, minWidth: 44, borderRadius: 999,

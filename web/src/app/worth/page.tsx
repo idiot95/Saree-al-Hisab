@@ -27,15 +27,27 @@ export default async function Worth() {
     worthSeries(actor.household_id, 6),
   ]);
 
-  const claims = owed.reduce((n, o) => n + Number(o.claimed), 0);
-  const held = accounts.reduce((n, a) => n + Number(a.balance), 0);
-  const worth = held + claims;
+  /* Three figures, and the headline is their sum.
 
-  const assets = accounts.filter((a) => Number(a.balance) > 0);
-  const debts = accounts.filter((a) => Number(a.balance) < 0);
-  const assetTotal = assets.reduce((n, a) => n + Number(a.balance), 0) + claims;
+     Held: every account that is yours — bank, cash, savings — less the cards,
+     which are money already spent. Owed to you: loans handed to people, and
+     shares of costs you covered that are still outstanding. Both are yours;
+     one of them is simply in someone else's pocket for now, and a household
+     that has lent a lot should see that as a line, not have it folded in
+     silently. */
+  const claims = owed.reduce((n, o) => n + Number(o.claimed), 0);
+  const own = accounts.filter((a) => a.kind !== 'person');
+  const people = accounts.filter((a) => a.kind === 'person');
+  const lent = people.filter((a) => Number(a.balance) > 0);
+  const borrowed = people.filter((a) => Number(a.balance) < 0);
+
+  const assets = own.filter((a) => Number(a.balance) > 0);
+  const debts = [...own.filter((a) => Number(a.balance) < 0), ...borrowed];
+  const assetTotal = assets.reduce((n, a) => n + Number(a.balance), 0);
   const debtTotal = debts.reduce((n, a) => n + Number(a.balance), 0);
-  const savings = accounts
+  const receivable = lent.reduce((n, a) => n + Number(a.balance), 0) + claims;
+  const worth = assetTotal + receivable + debtTotal;
+  const savings = own
     .filter((a) => a.kind === 'savings')
     .reduce((n, a) => n + Number(a.balance), 0);
 
@@ -71,14 +83,20 @@ export default async function Worth() {
             }}>{format(worth)}</span>
           </h1>
           <p style={{ margin: 0, fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'rgba(255,255,255,.82)' }}>
-            Everything you hold, less everything you owe. Money lent to people counts as yours,
-            because it is.
+            What you hold, plus what people owe you, less what you owe.
           </p>
+          <dl style={{
+            margin: '4px 0 0', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8,
+          }}>
+            <Figure label="Held" value={assetTotal} />
+            <Figure label="Owed to you" value={receivable} />
+            <Figure label="You owe" value={debtTotal} negative />
+          </dl>
         </header>
 
         <div style={{ paddingTop: 20, display: 'flex', flexDirection: 'column', gap: 22 }}>
           {savings !== 0 && (
-            <section className="el" style={{
+            <section className="el card" style={{
               margin: '0 var(--gutter)', background: 'var(--c-card)', borderRadius: 18, padding: 16,
               display: 'flex', alignItems: 'center', gap: 14,
             }}>
@@ -103,7 +121,7 @@ export default async function Worth() {
                 : last > first
                   ? `${format(last - first)} more than six months ago.`
                   : `${format(first - last)} less than six months ago.`}
-              {claims > 0 && ' Accounts only — money owed to you for shared costs is in the figure above but not in this line, because what was outstanding on a date months ago is not something the app kept.'}
+              {receivable !== 0 && ' Your own accounts only — what people owe you is in the figure above but not in this line.'}
             </p>
           </Section>
 
@@ -117,12 +135,29 @@ export default async function Worth() {
                 icon: ACCOUNT_ICON[a.kind] ?? 'tag',
                 tint: ACCOUNT_TINT[a.kind] ?? 'neutral',
               })),
-              ...(claims > 0 ? [{
-                key: 'claims', label: 'Owed for shared costs', note: 'People', value: claims,
-                icon: 'person', tint: 'indigo',
-              }] : []),
             ]} total={assetTotal} />
           </Section>
+
+          {receivable !== 0 && (
+            <Section title="Owed to you">
+              <Rows rows={[
+                ...lent.map((a) => ({
+                  key: a.id, label: a.name, note: 'Lent', value: Number(a.balance),
+                  icon: 'person', tint: 'indigo',
+                })),
+                ...(claims > 0 ? [{
+                  key: 'claims', label: 'Shares of costs you covered', note: 'Tabs and shared costs',
+                  value: claims, icon: 'receivable', tint: 'purple',
+                }] : []),
+              ]} total={receivable} />
+              <p style={{
+                margin: '12px 0 0', fontSize: 'var(--step--2)', lineHeight: 1.5, color: 'var(--c-meta)',
+              }}>
+                Counted in your net worth: it is your money, in someone else&apos;s pocket for now.
+                Settle up under Lending.
+              </p>
+            </Section>
+          )}
 
           {debts.length > 0 && (
             <Section title="What you owe">
@@ -140,6 +175,26 @@ export default async function Worth() {
         <TabBar current="/worth" />
       </main>
     </Screen>
+  );
+}
+
+/* One of the three figures under the headline, as a small stat with its own
+   label so a glance separates cash in hand from cash in a cousin's pocket. */
+function Figure({ label, value, negative }: { label: string; value: number; negative?: boolean }) {
+  return (
+    <div style={{
+      display: 'flex', flexDirection: 'column', gap: 3, padding: '9px 11px', borderRadius: 12,
+      background: 'rgba(255,255,255,.12)', minWidth: 0,
+    }}>
+      <dt style={{
+        fontSize: 'var(--step--2)', fontWeight: 600, letterSpacing: '.03em',
+        color: 'rgba(255,255,255,.72)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+      }}>{label}</dt>
+      <dd className="t" style={{
+        margin: 0, fontSize: 'var(--step-0)', letterSpacing: '-.01em',
+        color: negative && value !== 0 ? 'var(--c-danger-fill)' : '#fff',
+      }}>{format(Math.abs(value))}</dd>
+    </div>
   );
 }
 
@@ -194,7 +249,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
         </h2>
         <span style={{ flex: 1, height: 1, background: 'var(--c-border)' }} />
       </div>
-      <div className="el" style={{
+      <div className="el card" style={{
         margin: '0 var(--gutter)', background: 'var(--c-card)', borderRadius: 18, padding: 16,
       }}>{children}</div>
     </section>

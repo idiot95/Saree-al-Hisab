@@ -79,14 +79,14 @@ export default async function Inbox() {
             {dues.length > 0 && (
               <>
                 <Head>Due now</Head>
-                <section className="el" style={{
+                <section className="el card" style={{
                   margin: '0 var(--gutter) 22px', background: 'var(--c-card)', borderRadius: 18, padding: '0 var(--gutter)',
                 }}>
                   {dues.map((d) => {
                     const s = byId.get(d.scheduleId)!;
                     return (
                       <DueRow key={`${d.scheduleId}:${d.dueOn}`}
-                        scheduleId={d.scheduleId} name={s.name} dueOn={d.dueOn}
+                        scheduleId={d.scheduleId} name={s.name} kind={s.kind} dueOn={d.dueOn}
                         daysAway={d.daysAway} amount={Number(s.amount ?? 0)} category={s.category}
                         icon={s.icon} tint={s.tint} />
                     );
@@ -98,7 +98,7 @@ export default async function Inbox() {
             {bills.length > 0 && (
               <>
                 <Head>Card bills</Head>
-                <section className="el" style={{
+                <section className="el card" style={{
                   margin: '0 var(--gutter) 22px', background: 'var(--c-card)', borderRadius: 18, padding: '0 var(--pad)',
                 }}>
                   {bills.map((b, i) => {

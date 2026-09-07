@@ -414,30 +414,6 @@ export async function personLedger(householdId: string, accountId: string) {
                  other_side: string | null; who: string; category: string | null }[]>;
 }
 
-/** The books people are filed into, with what each one comes to. */
-export async function booksFor(householdId: string) {
-  return sql`
-    select b.id, b.kind, b.name, b.note, b.closed_at,
-           count(bm.counterparty_id)::int as people,
-           coalesce(sum(cb.balance), 0)::text as balance
-    from ledger_book b
-    left join book_member bm on bm.book_id = b.id
-    left join counterparty_balance cb on cb.counterparty_id = bm.counterparty_id
-    where b.household_id = ${householdId}
-    group by b.id
-    order by b.closed_at nulls first, b.name
-  ` as Promise<{ id: string; kind: 'loan' | 'reimbursement'; name: string; note: string | null;
-                 closed_at: Date | null; people: number; balance: string }[]>;
-}
-
-export async function bookMembership(householdId: string) {
-  return sql`
-    select bm.book_id, bm.counterparty_id
-    from book_member bm join ledger_book b on b.id = bm.book_id
-    where b.household_id = ${householdId}
-  ` as Promise<{ book_id: string; counterparty_id: string }[]>;
-}
-
 /* ── claims: money owed for things you already paid for ─────────────────── */
 
 export type ClaimRow = {
@@ -494,58 +470,94 @@ export async function owedByPerson(householdId: string) {
                  claimed: string; open_claims: number }[]>;
 }
 
-/* ── books: folders for people ──────────────────────────────────────────── */
+/* ── tabs: a few people who share costs ─────────────────────────────────── */
 
-export type BookRow = {
-  id: string; kind: 'loan' | 'reimbursement'; name: string; note: string | null;
-  closed_at: Date | null; people: number; lent: string; claimed: string;
+export type TabRow = {
+  id: string; split: 'equal' | 'full'; name: string; note: string | null;
+  closed_at: Date | null; people: number; entries: number; outstanding: string;
 };
 
-/** Every book with what its members come to, both kinds of debt kept apart.
- *  The sums are over DISTINCT members, so a person in a book contributes once
- *  however many claims they have open. */
-export async function bookList(householdId: string) {
+/** Every tab, with how many are on it and what is still owed across it. The
+ *  outstanding figure is over the claims raised by entries ON the tab — not
+ *  everything its members owe for other reasons, which is theirs, not the
+ *  tab's. */
+export async function tabList(householdId: string) {
   return sql`
-    select b.id, b.kind, b.name, b.note, b.closed_at,
-           count(bm.counterparty_id)::int as people,
-           coalesce(sum(cb.balance), 0)::text as lent,
-           coalesce(sum(cc.owed), 0)::text as claimed
+    select b.id, b.split, b.name, b.note, b.closed_at,
+           (select count(*)::int from book_member bm where bm.book_id = b.id) as people,
+           (select count(*)::int from txn t
+             where t.book_id = b.id and t.deleted_at is null) as entries,
+           coalesce((select sum(cs.outstanding) from claim_state cs
+                      join txn t on t.id = cs.txn_id and t.deleted_at is null
+                      where t.book_id = b.id and cs.status in ('open', 'part_paid')), 0)::text
+             as outstanding
     from ledger_book b
-    left join book_member bm on bm.book_id = b.id
-    left join counterparty_balance cb on cb.counterparty_id = bm.counterparty_id
-    left join counterparty_claims cc on cc.counterparty_id = bm.counterparty_id
     where b.household_id = ${householdId}
-    group by b.id
     order by (b.closed_at is not null), b.name
-  ` as Promise<BookRow[]>;
+  ` as Promise<TabRow[]>;
 }
 
-export async function bookById(householdId: string, id: string) {
+export async function tabById(householdId: string, id: string) {
   const [b] = await sql`
-    select id, kind, name, note, closed_at from ledger_book
+    select id, split, name, note, closed_at from ledger_book
     where id = ${id} and household_id = ${householdId}`;
   return (b ?? null) as null | {
-    id: string; kind: 'loan' | 'reimbursement'; name: string;
+    id: string; split: 'equal' | 'full'; name: string;
     note: string | null; closed_at: Date | null };
 }
 
-/** Everyone in the household, flagged for whether they are in this book — one
- *  query, so the member list and the "add someone" picker cannot disagree. */
-export async function peopleForBook(householdId: string, bookId: string) {
+/** The open tabs an expense can be put on — only those with someone on them,
+ *  because a cost split among nobody is not a split. */
+export async function tabsForEntry(householdId: string) {
+  return sql`
+    select b.id, b.name, b.split,
+           (select count(*)::int from book_member bm where bm.book_id = b.id) as people
+    from ledger_book b
+    where b.household_id = ${householdId} and b.closed_at is null
+      and exists (select 1 from book_member bm where bm.book_id = b.id)
+    order by b.name
+  ` as Promise<{ id: string; name: string; split: 'equal' | 'full'; people: number }[]>;
+}
+
+/** Everyone in the household, flagged for whether they are on this tab, with
+ *  what each still owes ON THIS TAB — one query, so the member list and the
+ *  "add someone" picker cannot disagree. */
+export async function peopleForTab(householdId: string, tabId: string) {
   return sql`
     select cp.id, cp.name, cp.tint,
-           (bm.book_id is not null) as in_book,
-           cb.balance::text as lent,
-           cc.owed::text as claimed,
-           cc.open_claims
+           (bm.book_id is not null) as on_tab,
+           coalesce((select sum(cs.outstanding) from claim_state cs
+                      join txn t on t.id = cs.txn_id and t.deleted_at is null
+                      where t.book_id = ${tabId} and cs.counterparty_id = cp.id
+                        and cs.status in ('open', 'part_paid')), 0)::text as owed,
+           coalesce((select sum(cs.expected_amount) from claim_state cs
+                      join txn t on t.id = cs.txn_id and t.deleted_at is null
+                      where t.book_id = ${tabId} and cs.counterparty_id = cp.id
+                        and cs.status <> 'written_off'), 0)::text as share
     from counterparty cp
-    join counterparty_balance cb on cb.counterparty_id = cp.id
-    join counterparty_claims cc on cc.counterparty_id = cp.id
-    left join book_member bm on bm.counterparty_id = cp.id and bm.book_id = ${bookId}
+    left join book_member bm on bm.counterparty_id = cp.id and bm.book_id = ${tabId}
     where cp.household_id = ${householdId} and cp.archived_at is null
     order by (bm.book_id is null), cp.name
-  ` as Promise<{ id: string; name: string; tint: string; in_book: boolean;
-                 lent: string; claimed: string; open_claims: number }[]>;
+  ` as Promise<{ id: string; name: string; tint: string; on_tab: boolean;
+                 owed: string; share: string }[]>;
+}
+
+/** The entries put on a tab, newest first, each with what is still owed on it. */
+export async function tabEntries(householdId: string, tabId: string) {
+  return sql`
+    select t.id, t.occurred_on, t.merchant, t.amount::text, u.name as who,
+           c.name as category, c.icon, c.tint,
+           coalesce((select sum(cs.outstanding) from claim_state cs
+                      where cs.txn_id = t.id and cs.status in ('open', 'part_paid')), 0)::text
+             as outstanding
+    from txn t
+    join app_user u on u.id = t.created_by
+    left join category c on c.id = t.category_id
+    where t.household_id = ${householdId} and t.book_id = ${tabId} and t.deleted_at is null
+    order by t.occurred_on desc, t.created_at desc
+  ` as Promise<{ id: string; occurred_on: Date; merchant: string | null; amount: string;
+                 who: string; category: string | null; icon: string | null; tint: string | null;
+                 outstanding: string }[]>;
 }
 
 /* ── trends ─────────────────────────────────────────────────────────────── */
@@ -688,7 +700,8 @@ export async function inboxCount(householdId: string) {
 /* ── scheduled payments ─────────────────────────────────────────────────── */
 
 export type ScheduleRow = {
-  id: string; name: string; amount: string | null; amount_from_statement: boolean;
+  id: string; name: string; kind: 'expense' | 'income';
+  amount: string | null; amount_from_statement: boolean;
   rrule: string | null; account_id: string; account: string; since: string;
   category_id: string | null; category: string | null; tint: string | null;
   icon: string | null;
@@ -702,7 +715,7 @@ export type ScheduleRow = {
    about next month without a job having visited it. */
 export async function schedulesFor(householdId: string) {
   return sql`
-    select s.id, s.name, s.amount::text, s.amount_from_statement, s.rrule,
+    select s.id, s.name, s.kind, s.amount::text, s.amount_from_statement, s.rrule,
            s.account_id, a.name as account, to_char(s.created_at, 'YYYY-MM-DD') as since,
            s.category_id, c.name as category, c.tint, c.icon,
            coalesce(array_agg(to_char(o.due_on, 'YYYY-MM-DD'))
@@ -739,11 +752,11 @@ export async function allBalances(householdId: string) {
 
 /* What was held in accounts at the end of each of the last N months.
  *
- * Deliberately accounts only. An outstanding claim is money owed to you today
- * and is in the headline figure, but reconstructing what was claimed and
- * unsettled on a date months ago would need a history this app does not keep —
- * so the series says "held in accounts" and means it, rather than implying a
- * precision it cannot support. */
+ * Deliberately the household's own accounts only — no people. An outstanding
+ * claim or a loan is money owed to you today and is in the headline figure,
+ * but reconstructing what was outstanding on a date months ago would need a
+ * history this app does not keep — so the series says "held in accounts" and
+ * means it, rather than implying a precision it cannot support. */
 export async function worthSeries(householdId: string, months = 6) {
   return sql`
     with span as (
@@ -755,7 +768,8 @@ export async function worthSeries(householdId: string, months = 6) {
     select to_char(s.month, 'YYYY-MM-DD') as month,
            (
              coalesce((select sum(a.opening_balance) from account a
-                       where a.household_id = ${householdId} and a.archived_at is null), 0)
+                       where a.household_id = ${householdId} and a.archived_at is null
+                         and a.kind <> 'person'), 0)
              + coalesce((
                  select sum(case
                    when t.account_id = a.id
@@ -769,6 +783,7 @@ export async function worthSeries(householdId: string, months = 6) {
                  where t.household_id = ${householdId}
                    and t.deleted_at is null
                    and a.archived_at is null
+                   and a.kind <> 'person'
                    and t.occurred_on < (s.month + interval '1 month')), 0)
            )::text as held
     from span s

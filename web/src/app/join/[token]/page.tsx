@@ -60,7 +60,7 @@ export default async function Join({ params, searchParams }: {
       title={invite.household}
     >
       <div style={{ padding: '22px var(--gutter) 30px', display: 'flex', flexDirection: 'column', gap: 14 }}>
-        <div className="el" style={{
+        <div className="el card" style={{
           background: 'var(--c-card)', borderRadius: 16, padding: 16,
           display: 'flex', flexDirection: 'column', gap: 9,
         }}>

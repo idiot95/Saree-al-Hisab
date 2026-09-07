@@ -65,7 +65,7 @@ export default function BudgetForm({ month, rows, canEdit }: {
           <span className="t" style={{ fontSize: 'var(--step-2)', letterSpacing: '-.015em' }}>{format(total)}</span>
         </span>
         {canEdit && (
-          <button type="submit" disabled={pending || !changed} style={{
+          <button className="cta" type="submit" disabled={pending || !changed} style={{
             minHeight: 46, padding: '0 18px', borderRadius: 12, fontSize: 'var(--step-0)', fontWeight: 600,
             background: changed ? 'var(--c-seagrass)' : 'var(--c-sunk)',
             color: changed ? 'var(--c-on-fill)' : 'var(--c-meta)',
@@ -76,7 +76,7 @@ export default function BudgetForm({ month, rows, canEdit }: {
         )}
       </div>
 
-      <div className="el" style={{
+      <div className="el card" style={{
         margin: '0 var(--gutter) 14px', background: 'var(--c-card)', borderRadius: 18, padding: '0 var(--pad)',
       }}>
         {rows.map((r, i) => {
@@ -113,7 +113,8 @@ export default function BudgetForm({ month, rows, canEdit }: {
                     <span style={{
                       display: 'block', height: '100%', borderRadius: 999,
                       width: `${Math.min(100, (spent / budget) * 100)}%`,
-                      background: over ? 'var(--c-danger-fill)' : tintOf(r.tint)[1],
+                      backgroundColor: over ? 'var(--c-danger-fill)' : tintOf(r.tint)[1],
+                      backgroundImage: 'var(--g-fill)',
                     }} />
                   </span>
                 )}

@@ -3,8 +3,10 @@ import {
   IconBulb, IconCar, IconHeartbeat, IconDeviceMobile, IconGift, IconPlane, IconGasStation,
   IconBook, IconCoffee, IconScissors, IconTools, IconPaw, IconBarbell, IconMusic, IconWifi,
   IconShieldCheck, IconHeartHandshake, IconCashBanknote, IconTrendingUp, IconTag,
-  IconBuildingBank, IconCash, IconPigMoney, IconCreditCard, IconUser, IconQrcode,
+  IconBuildingBank, IconCash, IconCoins, IconCreditCard, IconUser, IconQrcode,
   IconDeviceLaptop, IconWallet, IconRepeat, IconReceipt, IconSettings,
+  IconSunHigh, IconMoon, IconChartAreaLine, IconArrowDownLeft, IconUsersGroup,
+  IconPlus, IconCamera, IconUpload, IconPencil, IconCheck,
   type Icon as TablerIcon,
 } from '@tabler/icons-react';
 
@@ -49,7 +51,9 @@ const SET: Record<string, TablerIcon> = {
   // ── accounts, and the rails money travels on ────────────────────────────
   bank: IconBuildingBank,
   cash: IconCash,
-  vault: IconPigMoney,
+  // Savings: coins set aside, not a piggy bank — this is a household's
+  // reserve, not a child's.
+  savings: IconCoins,
   card: IconCreditCard,
   person: IconUser,
   upi: IconQrcode,
@@ -58,6 +62,23 @@ const SET: Record<string, TablerIcon> = {
   wallet: IconWallet,
   autodebit: IconRepeat,
   settings: IconSettings,
+
+  // ── the rest of the app ─────────────────────────────────────────────────
+  sun: IconSunHigh,
+  moon: IconMoon,
+  // Net worth: a line that rises, not a pig — a household's whole position is
+  // not a jar of coins.
+  worth: IconChartAreaLine,
+  // Money owed to you: an arrow coming in.
+  receivable: IconArrowDownLeft,
+  // A tab: a few people sharing a cost.
+  tab: IconUsersGroup,
+  // The plus button's sheet: type it, photograph it, or pick a photo.
+  plus: IconPlus,
+  camera: IconCamera,
+  upload: IconUpload,
+  pencil: IconPencil,
+  check: IconCheck,
 };
 
 export function Icon({ name, size = 19, strokeWidth = 1.8, ...rest }: {
@@ -104,7 +125,7 @@ export function Chip({ icon, tint, size = 40, radius = 11, iconSize }: {
 
 /** What an account kind looks like, so a card never reads like a bank. */
 export const ACCOUNT_ICON: Record<string, string> = {
-  spending: 'bank', cash: 'cash', savings: 'vault', credit: 'card', person: 'person',
+  spending: 'bank', cash: 'cash', savings: 'savings', credit: 'card', person: 'person',
 };
 export const ACCOUNT_TINT: Record<string, string> = {
   spending: 'blue', cash: 'green', savings: 'cyan', credit: 'orange', person: 'indigo',

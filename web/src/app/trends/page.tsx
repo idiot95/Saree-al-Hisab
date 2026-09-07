@@ -163,7 +163,7 @@ function Card({ title, children }: { title: string; children: React.ReactNode })
         </h2>
         <span style={{ flex: 1, height: 1, background: 'var(--c-border)' }} />
       </div>
-      <div className="el" style={{
+      <div className="el card" style={{
         margin: '0 var(--gutter)', background: 'var(--c-card)', borderRadius: 18, padding: 16,
       }}>{children}</div>
     </section>

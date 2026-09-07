@@ -1,10 +1,11 @@
 'use client';
 
-import { useSyncExternalStore } from 'react';
+import { useEffect, useSyncExternalStore } from 'react';
 import AddEntry from '../add/AddEntry';
 import { subscribe, snapshotPickers, snapshotQueue, nothing, none, dequeue, type Queued } from '../add/queue';
 import { format } from '@/lib/money';
 import { haptic } from '../haptics';
+import { forcedTheme, THEME_COOKIE } from '@/lib/theme';
 
 /* What the app is when there is no signal.
 
@@ -28,11 +29,23 @@ export default function OfflineScreen() {
   const pickers = useSyncExternalStore(subscribe, snapshotPickers, nothing);
   const queue = useSyncExternalStore(subscribe, snapshotQueue, none);
 
+  /* The shell was cached without cookies, so the layout could not stamp the
+     chosen scheme on it. The cookie is still on the phone; read it here so a
+     dark ledger does not flash light at the till. */
+  useEffect(() => {
+    const raw = document.cookie.split('; ').find((c) => c.startsWith(`${THEME_COOKIE}=`));
+    const forced = forcedTheme(raw?.slice(THEME_COOKIE.length + 1));
+    if (!forced) return;
+    document.documentElement.dataset.theme = forced;
+    document.documentElement.style.colorScheme = forced;
+  }, []);
+
   if (!pickers || pickers.methods.length === 0) return <Bare queue={queue} />;
 
   return (
     <AddEntry offline
       categories={pickers.categories} methods={pickers.methods} accounts={pickers.accounts}
+      tabs={pickers.tabs ?? []}
       householdId={pickers.householdId} today={localToday()}
       onQueued={() => { /* the store's own event re-renders the list below */ }}
     >
@@ -69,7 +82,7 @@ function Banner() {
 function Pending({ queue }: { queue: Queued[] }) {
   if (queue.length === 0) return null;
   return (
-    <section aria-label="Waiting to be sent" className="el" style={{
+    <section aria-label="Waiting to be sent" className="el card" style={{
       margin: '0 var(--gutter) 12px', background: 'var(--c-card)', borderRadius: 16, padding: '0 16px',
     }}>
       <p style={{

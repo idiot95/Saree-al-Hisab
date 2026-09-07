@@ -12,7 +12,7 @@ export default function ScanForm({ canScan }: { canScan: boolean }) {
 
   if (!canScan) {
     return (
-      <div className="el" style={card}>
+      <div className="el card" style={card}>
         <p style={{ margin: 0, fontSize: 'var(--step--1)', lineHeight: 1.55, color: 'var(--c-meta)' }}>
           Scanning needs a Google AI key, which is free and takes a minute to get. An owner
           adds it once under Household.
@@ -20,7 +20,7 @@ export default function ScanForm({ canScan }: { canScan: boolean }) {
         <Link transitionTypes={['nav-forward']} href="/household" style={{
           minHeight: 48, borderRadius: 12, display: 'flex', alignItems: 'center',
           justifyContent: 'center', textDecoration: 'none', fontSize: 'var(--step-0)', fontWeight: 600,
-          background: 'var(--c-seagrass)', color: 'var(--c-on-fill)',
+          background: 'var(--g-primary)', color: 'var(--c-on-fill)',
         }}>Go to Household</Link>
       </div>
     );
@@ -28,7 +28,7 @@ export default function ScanForm({ canScan }: { canScan: boolean }) {
 
   return (
     <>
-      <form action={act} className="el" style={card}>
+      <form action={act} className="el card" style={card}>
         <label style={{
           minHeight: 130, borderRadius: 15, display: 'flex', flexDirection: 'column',
           alignItems: 'center', justifyContent: 'center', gap: 8, cursor: 'pointer',
@@ -54,7 +54,7 @@ export default function ScanForm({ canScan }: { canScan: boolean }) {
 
         {state && !state.ok && <ErrorNote>{state.error}</ErrorNote>}
 
-        <button type="submit" disabled={pending} className="el2" style={{
+        <button type="submit" disabled={pending} className="el2 cta" style={{
           minHeight: 54, borderRadius: 15, fontSize: 'var(--step-0)', fontWeight: 600, color: '#fff',
           opacity: pending ? 0.6 : 1,
           background: 'radial-gradient(120% 100% at 25% 0%, rgba(255,255,255,.18) 0%, rgba(255,255,255,0) 60%),'
@@ -84,7 +84,7 @@ function Draft({ result }: {
   const blocked = result.missing.length > 0;
 
   return (
-    <section className="el" style={{ ...card, marginTop: 16 }}>
+    <section className="el card" style={{ ...card, marginTop: 16 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
         <span style={{
           fontSize: 'var(--step--2)', fontWeight: 700, letterSpacing: '.04em', padding: '5px 9px',

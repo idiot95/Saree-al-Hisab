@@ -22,7 +22,7 @@ export default function InviteForm({ origin }: { origin: string }) {
         <span style={{ flex: 1, height: 1, background: 'var(--c-border)' }} />
       </div>
 
-      <section className="el" style={{
+      <section className="el card" style={{
         margin: '0 var(--gutter) 22px', background: 'var(--c-card)', borderRadius: 18, padding: 16,
       }}>
         <form action={act} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -58,7 +58,7 @@ export default function InviteForm({ origin }: { origin: string }) {
             />
           </fieldset>
 
-          <button type="submit" disabled={pending} style={{
+          <button className="cta" type="submit" disabled={pending} style={{
             minHeight: 52, borderRadius: 14, fontSize: 'var(--step-0)', fontWeight: 600, color: '#fff',
             opacity: pending ? 0.6 : 1,
             background:
@@ -138,7 +138,7 @@ function InviteLink({ url, email }: { url: string; email: string }) {
         border: '1px solid var(--c-border)', fontSize: 'var(--step--2)', lineHeight: 1.5,
         wordBreak: 'break-all', color: 'var(--c-meta)',
       }}>{url}</code>
-      <button
+      <button className="cta"
         type="button"
         onClick={async () => {
           try { await navigator.clipboard.writeText(url); setCopied('done'); }

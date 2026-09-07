@@ -35,7 +35,7 @@ export default function Claims({ claims, methods, canEdit }: {
         them — this is only what is coming back.
       </p>
 
-      <section className="el" style={{
+      <section className="el card" style={{
         margin: '0 var(--gutter) 22px', background: 'var(--c-card)', borderRadius: 18, padding: '0 var(--pad)',
       }}>
         {claims.map((c, i) => (
@@ -93,26 +93,26 @@ export default function Claims({ claims, methods, canEdit }: {
                   </label>
                   {state && !state.ok && <ErrorNote>{state.error}</ErrorNote>}
                   <div style={{ display: 'flex', gap: 9 }}>
-                    <button type="button" onClick={() => setSettling(null)} style={{
+                    <button className="cta" type="button" onClick={() => setSettling(null)} style={{
                       minHeight: 46, padding: '0 14px', borderRadius: 11, fontSize: 'var(--step--1)',
                       fontWeight: 600, background: 'var(--c-sunk)', color: 'var(--c-meta)',
                     }}>Cancel</button>
-                    <button type="submit" disabled={pending} style={{
+                    <button className="cta" type="submit" disabled={pending} style={{
                       flex: 1, minHeight: 46, borderRadius: 11, fontSize: 'var(--step-0)', fontWeight: 600,
-                      background: 'var(--c-seagrass)', color: 'var(--c-on-fill)',
+                      background: 'var(--g-primary)', color: 'var(--c-on-fill)',
                       opacity: pending ? 0.6 : 1,
                     }}>{pending ? 'Saving…' : 'Record it'}</button>
                   </div>
                 </form>
               ) : (
                 <div style={{ display: 'flex', gap: 8 }}>
-                  <button type="button" onClick={() => setSettling(c.id)} style={{
+                  <button className="cta" type="button" onClick={() => setSettling(c.id)} style={{
                     flex: 1, minHeight: 44, borderRadius: 11, fontSize: 'var(--step--1)', fontWeight: 600,
                     background: 'var(--c-sunk)', color: 'var(--c-ink)',
                   }}>They paid me</button>
                   <form action={drop}>
                     <input type="hidden" name="claimId" value={c.id} />
-                    <button type="submit" style={{
+                    <button className="cta" type="submit" style={{
                       minHeight: 44, padding: '0 14px', borderRadius: 11, fontSize: 'var(--step--1)',
                       fontWeight: 600, background: 'transparent', color: 'var(--c-meta)',
                     }}>Write off</button>

@@ -10,7 +10,7 @@ export default function CopyPrevious({ month, from, total, categories }: {
   const [state, act, pending] = useActionState(copyPreviousMonth, null);
 
   return (
-    <form action={act} className="el" style={{
+    <form action={act} className="el card" style={{
       margin: '0 var(--gutter) 16px', background: 'var(--c-card)', borderRadius: 16, padding: 15,
       display: 'flex', flexDirection: 'column', gap: 10,
     }}>
@@ -22,9 +22,9 @@ export default function CopyPrevious({ month, from, total, categories }: {
       {state && !state.ok && (
         <span role="alert" style={{ fontSize: 'var(--step--1)', color: 'var(--c-danger)' }}>{state.error}</span>
       )}
-      <button type="submit" disabled={pending} style={{
+      <button className="cta" type="submit" disabled={pending} style={{
         minHeight: 48, borderRadius: 12, fontSize: 'var(--step-0)', fontWeight: 600,
-        background: 'var(--c-seagrass)', color: 'var(--c-on-fill)', opacity: pending ? 0.65 : 1,
+        background: 'var(--g-primary)', color: 'var(--c-on-fill)', opacity: pending ? 0.65 : 1,
       }}>{pending ? 'Copying…' : `Start from ${from}`}</button>
     </form>
   );

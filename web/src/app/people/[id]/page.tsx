@@ -115,7 +115,7 @@ export default async function Person({ params }: { params: Promise<{ id: string 
               Nothing between you yet.
             </p>
           ) : (
-            <section className="el" style={{
+            <section className="el card" style={{
               margin: '0 var(--gutter)', background: 'var(--c-card)', borderRadius: 18, padding: '0 var(--pad)',
             }}>
               {ledger.map((e, i) => {

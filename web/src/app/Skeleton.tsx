@@ -48,7 +48,7 @@ export default function Skeleton({ accent, title, current, rows = 4 }: {
         aria-busy="true" aria-live="polite">
         <span className="sr-only">Loading {title}</span>
         {Array.from({ length: rows }, (_, i) => (
-          <div key={i} className="el" style={{
+          <div key={i} className="el card" style={{
             borderRadius: 15, background: 'var(--c-card)', border: '1px solid var(--c-border)',
             padding: '15px 14px', display: 'flex', alignItems: 'center', gap: 12,
           }}>

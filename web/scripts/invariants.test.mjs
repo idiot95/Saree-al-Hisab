@@ -315,6 +315,68 @@ await sql`delete from txn where id = ${dinner.id}`;
 const [{ n: left }] = await sql`select count(*)::int as n from claim where id = ${cl.id}`;
 ok(left === 0, 'deleting the entry takes its claim with it — there is nothing left to be owed for');
 
+console.log('\nTABS — a cost split among a few people the moment it is saved');
+/* A tab is a few people who share costs. An expense put on it is split into
+   one claim per person as it is saved, so the entry, its shares and the tab
+   are three rows that have to hold together in the database, not just on the
+   screen that wrote them. */
+const ahmedCp = (await sql`select id from counterparty where name='Ahmed Raza' and household_id = ${hh.id}`)[0].id;
+const zainAcc = await mk('Zain', 'person');
+const [zainCp] = await sql`insert into counterparty ${sql({ household_id: hh.id, name: 'Zain', account_id: zainAcc })} returning id`;
+const [trip] = await sql`insert into ledger_book ${sql({ household_id: hh.id, name: 'Goa', split: 'full' })} returning id, split`;
+ok(trip.split === 'full', 'a tab carries how a cost on it is shared');
+await refuses('a split the app does not know is refused',
+  () => sql`insert into ledger_book ${sql({ household_id: hh.id, name: 'Nope', split: 'thirds' })}`);
+await sql`insert into book_member ${sql([{ book_id: trip.id, counterparty_id: ahmedCp }, { book_id: trip.id, counterparty_id: zainCp.id }])}`;
+
+// ₹1,000.01 between two people who owe all of it: the odd paisa goes to one.
+const [taxi] = await txn({ kind: 'expense', account_id: spend, category_id: cat, amount: 100001, book_id: trip.id });
+const spentAfterTaxi = await spent();
+await sql`insert into claim ${sql([
+  { household_id: hh.id, counterparty_id: ahmedCp, txn_id: taxi.id, kind: 'reimbursement', expected_amount: 50001 },
+  { household_id: hh.id, counterparty_id: zainCp.id, txn_id: taxi.id, kind: 'reimbursement', expected_amount: 50000 },
+])}`;
+const [{ total: claimed }] = await sql`select sum(expected_amount)::bigint as total from claim where txn_id = ${taxi.id}`;
+ok(Number(claimed) === 100001, 'the shares add back up to the whole cost, to the paisa');
+ok(await spent() === spentAfterTaxi, 'and splitting it changes nothing about what the month cost');
+await refuses('a second share for the same person on the same entry is refused',
+  () => sql`insert into claim ${sql({ household_id: hh.id, counterparty_id: ahmedCp, txn_id: taxi.id, kind: 'reimbursement', expected_amount: 1 })}`);
+await refuses('a share of nothing is refused',
+  () => sql`insert into claim ${sql({ household_id: hh.id, counterparty_id: ahmedCp, txn_id: taxi.id, kind: 'reimbursement', expected_amount: 0 })}`);
+
+/* Settling: what one person owes on a tab is the sum of their open shares on
+   entries under it, and a receipt against one of them brings just that one
+   down. The app spreads a part payment oldest-first; the database's job is
+   that the sum stays honest whichever order it is spread in. */
+const owedOn = async (cp) => Number((await sql`
+  select coalesce(sum(cs.outstanding), 0)::bigint as n from claim_state cs
+  join txn t on t.id = cs.txn_id and t.deleted_at is null
+  where cs.counterparty_id = ${cp} and t.book_id = ${trip.id}`)[0].n);
+ok(await owedOn(ahmedCp) === 50001, 'what a person owes on a tab is their open shares under it');
+const ahmedShare = (await sql`select id from claim where txn_id = ${taxi.id} and counterparty_id = ${ahmedCp}`)[0].id;
+await sql`insert into txn ${sql({ household_id: hh.id, created_by: user.id, kind: 'claim_receipt',
+  amount: 20001, occurred_on: '2026-09-07', account_id: spend, claim_id: ahmedShare })}`;
+ok(await owedOn(ahmedCp) === 30000 && await owedOn(zainCp.id) === 50000,
+  'a part payment from one person brings only that person down');
+
+/* Taking someone off the tab does not unspend what was spent on them; and
+   deleting the tab takes only the tab. The entry stays, the shares stay. */
+await sql`delete from book_member where book_id = ${trip.id} and counterparty_id = ${zainCp.id}`;
+ok(await owedOn(zainCp.id) === 50000, 'leaving the tab leaves what they owe for earlier entries standing');
+await sql`delete from ledger_book where id = ${trip.id}`;
+const [taxiAfter] = await sql`select book_id, deleted_at from txn where id = ${taxi.id}`;
+const [{ n: sharesLeft }] = await sql`select count(*)::int as n from claim where txn_id = ${taxi.id}`;
+ok(taxiAfter.book_id === null && taxiAfter.deleted_at === null && sharesLeft === 2,
+  'deleting the tab takes only the tab — the entry and its shares stay in the books');
+
+console.log('\nSCHEDULES — a salary comes round the way rent does');
+await allows('a schedule can be income',
+  () => sql`insert into schedule ${sql({ household_id: hh.id, kind: 'income', name: 'Salary', amount: 12000000,
+    account_id: spend, category_id: cat, rrule: 'FREQ=MONTHLY;BYMONTHDAY=1' })}`);
+await refuses('but not a transfer — a schedule is a payment or a receipt, never a move',
+  () => sql`insert into schedule ${sql({ household_id: hh.id, kind: 'transfer', name: 'Sweep', amount: 100,
+    account_id: spend, rrule: 'FREQ=MONTHLY;BYMONTHDAY=1' })}`);
+
 console.log('\nOFFLINE — an entry that waited for signal lands once');
 /* An entry recorded without signal carries a reference minted on the phone.
    Sending it twice — a retry after a reply that never arrived — must leave

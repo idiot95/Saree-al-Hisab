@@ -186,7 +186,7 @@ export default async function Guide() {
 
         <ol style={{ margin: 0, padding: '20px var(--gutter) 0', listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 14 }}>
           {SECTIONS.map((s, i) => (
-            <li key={s.title} className="el" style={{
+            <li key={s.title} className="el card" style={{
               background: 'var(--c-card)', borderRadius: 18, padding: 16,
               display: 'flex', flexDirection: 'column', gap: 10,
             }}>

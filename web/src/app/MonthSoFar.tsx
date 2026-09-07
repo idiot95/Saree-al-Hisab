@@ -35,7 +35,7 @@ export default function MonthSoFar({ month, rows, budget, spent }: {
   const top = [...withBudget].sort((a, b) => Number(b.spent) - Number(a.spent)).slice(0, 4);
 
   return (
-    <section className="el" style={{
+    <section className="el card" style={{
       background: 'var(--c-card)', borderRadius: 18, padding: 16,
       display: 'flex', flexDirection: 'column', gap: 13,
     }}>
@@ -70,8 +70,9 @@ export default function MonthSoFar({ month, rows, budget, spent }: {
           <span style={{
             display: 'block', height: '100%', borderRadius: 999,
             width: `${Math.min(100, throughMoney * 100)}%`,
-            background: over ? 'var(--c-danger-fill)'
+            backgroundColor: over ? 'var(--c-danger-fill)'
               : ahead ? 'var(--c-warn-fill)' : 'var(--c-ok-fill)',
+            backgroundImage: 'var(--g-fill)',
           }} />
         </span>
         {sameMonth && (
@@ -123,7 +124,8 @@ export default function MonthSoFar({ month, rows, budget, spent }: {
                 }}>
                   <span style={{
                     display: 'block', height: '100%', borderRadius: 999, width: `${pct}%`,
-                    background: isOver ? 'var(--c-danger-fill)' : TINT[r.tint] ?? 'var(--c-seagrass)',
+                    backgroundColor: isOver ? 'var(--c-danger-fill)' : TINT[r.tint] ?? 'var(--c-seagrass)',
+                    backgroundImage: 'var(--g-fill)',
                   }} />
                 </span>
                 <span className="n" style={{

@@ -1,4 +1,6 @@
 import type { Metadata, Viewport } from 'next';
+import { cookies } from 'next/headers';
+import { forcedTheme, THEME_COOKIE } from '@/lib/theme';
 import RegisterSW from './RegisterSW';
 import SyncQueue from './SyncQueue';
 import { Inter } from 'next/font/google';
@@ -44,21 +46,38 @@ export const metadata: Metadata = {
   },
 };
 
-// The theme colour follows the scheme so the iOS status bar and the Android
-// task-switcher match the header the user is actually looking at.
-export const viewport: Viewport = {
-  width: 'device-width',
-  initialScale: 1,
-  viewportFit: 'cover',
-  themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#233D4D' },
-    { media: '(prefers-color-scheme: dark)', color: '#0D171E' },
-  ],
-};
+/* The header colour in each scheme: what the iOS status bar and the Android
+   task-switcher paint behind the app. */
+const HEADER = { light: '#233D4D', dark: '#0D171E' } as const;
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+async function chosenTheme() {
+  return forcedTheme((await cookies()).get(THEME_COOKIE)?.value);
+}
+
+// The theme colour follows the scheme so the status bar matches the header
+// the user is actually looking at. When they have chosen a scheme under
+// Household it is one colour; otherwise it follows the phone.
+export async function generateViewport(): Promise<Viewport> {
+  const forced = await chosenTheme();
+  return {
+    width: 'device-width',
+    initialScale: 1,
+    viewportFit: 'cover',
+    themeColor: forced ? HEADER[forced] : [
+      { media: '(prefers-color-scheme: light)', color: HEADER.light },
+      { media: '(prefers-color-scheme: dark)', color: HEADER.dark },
+    ],
+  };
+}
+
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  /* data-theme is what tokens.css switches on; color-scheme is what the
+     browser switches on for its own scrollbars and form controls. Both, or a
+     dark page gets a light date picker. Absent, both follow the phone. */
+  const forced = await chosenTheme();
   return (
-    <html lang="en" className={inter.variable}>
+    <html lang="en" className={inter.variable} data-theme={forced ?? undefined}
+      style={forced ? { colorScheme: forced } : undefined}>
       <body>
         {children}
         <SyncQueue />

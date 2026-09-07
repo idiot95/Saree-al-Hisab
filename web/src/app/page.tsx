@@ -134,7 +134,7 @@ export default async function Home() {
             display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10, marginTop: 2,
           }}>
             <Tile href="/trends" icon="invest" tint="green" label="Trends" note="Six months" />
-            <Tile href="/worth" icon="vault" tint="cyan" label="Net worth" note="What it adds to" />
+            <Tile href="/worth" icon="worth" tint="cyan" label="Net worth" note="With what you are owed" />
             <Tile href="/schedules" icon="autodebit" tint="indigo" label="Scheduled"
               note={schedules.length ? `${schedules.length} set` : 'Rent, fees, EMIs'} />
             <Tile href="/people" icon="person" tint="purple" label="Lending"
@@ -156,7 +156,7 @@ function NoBudgetYet({ monthName, spent, entries }: {
   monthName: string; spent: number; entries: number;
 }) {
   return (
-    <section className="el" style={{
+    <section className="el card" style={{
       background: 'var(--c-card)', borderRadius: 18, padding: 16,
       display: 'flex', flexDirection: 'column', gap: 10,
     }}>
@@ -171,7 +171,7 @@ function NoBudgetYet({ monthName, spent, entries }: {
         minHeight: 48, borderRadius: 13, display: 'flex', alignItems: 'center',
         justifyContent: 'center', textDecoration: 'none',
         fontSize: 'var(--step-0)', fontWeight: 600,
-        background: 'var(--c-seagrass)', color: 'var(--c-on-fill)',
+        background: 'var(--g-primary)', color: 'var(--c-on-fill)',
       }}>Set this month&rsquo;s budget</Link>
     </section>
   );

@@ -114,7 +114,7 @@ function Panel({ account: a, last, onDone }: { account: Editable; last: boolean;
       <form action={retire} onSubmit={(e) => { if (!sure) { e.preventDefault(); setSure(true); } }}
         style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         <input type="hidden" name="id" value={a.id} />
-        <button type="submit" disabled={retiring} style={{
+        <button className="cta" type="submit" disabled={retiring} style={{
           minHeight: 44, borderRadius: 11, fontSize: 'var(--step--1)', fontWeight: 600,
           background: sure ? 'var(--c-danger-tint)' : 'transparent', color: 'var(--c-danger)',
         }}>
@@ -141,5 +141,5 @@ const ghost: React.CSSProperties = {
 };
 const solid: React.CSSProperties = {
   flex: 1, minHeight: 50, borderRadius: 13, fontSize: 'var(--step-0)', fontWeight: 600,
-  background: 'var(--c-seagrass)', color: 'var(--c-on-fill)',
+  background: 'var(--g-primary)', color: 'var(--c-on-fill)',
 };

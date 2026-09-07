@@ -31,7 +31,7 @@ export default function OwedFor({ txnId, entryAmount, people, claims, canEdit }:
   if (people.length === 0 && claims.length === 0) return null;
 
   return (
-    <section className="el" style={{
+    <section className="el card" style={{
       margin: '0 var(--gutter) 16px', background: 'var(--c-card)', borderRadius: 18, padding: 16,
       display: 'flex', flexDirection: 'column', gap: 12,
     }}>
@@ -94,18 +94,18 @@ export default function OwedFor({ txnId, entryAmount, people, claims, canEdit }:
           <Field label="Note (optional)" name="note" maxLength={200} />
           {state && !state.ok && <ErrorNote>{state.error}</ErrorNote>}
           <div style={{ display: 'flex', gap: 9 }}>
-            <button type="button" onClick={() => setOpen(false)} style={{
+            <button className="cta" type="button" onClick={() => setOpen(false)} style={{
               minHeight: 48, padding: '0 16px', borderRadius: 12, fontSize: 'var(--step-0)', fontWeight: 600,
               background: 'var(--c-sunk)', color: 'var(--c-meta)',
             }}>Cancel</button>
-            <button type="submit" disabled={pending} style={{
+            <button className="cta" type="submit" disabled={pending} style={{
               flex: 1, minHeight: 48, borderRadius: 12, fontSize: 'var(--step-0)', fontWeight: 600,
-              background: 'var(--c-seagrass)', color: 'var(--c-on-fill)', opacity: pending ? 0.6 : 1,
+              background: 'var(--g-primary)', color: 'var(--c-on-fill)', opacity: pending ? 0.6 : 1,
             }}>{pending ? 'Saving…' : 'Someone owes me'}</button>
           </div>
         </form>
       ) : (
-        <button type="button" onClick={() => setOpen(true)} style={{
+        <button className="cta" type="button" onClick={() => setOpen(true)} style={{
           minHeight: 48, borderRadius: 12, fontSize: 'var(--step-0)', fontWeight: 600,
           background: 'var(--c-sunk)', color: 'var(--c-ink)',
         }}>

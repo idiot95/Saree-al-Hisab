@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { headers } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { signOut } from '@/auth';
 import { actorOrNull, membersOf, openInvitesOf, scanningState } from '@/db/queries';
@@ -11,6 +11,8 @@ import TabBar from '../TabBar';
 import { TAB_BAR_SPACE } from '../tabs';
 import PasswordCard from './PasswordCard';
 import ScanKey from './ScanKey';
+import ThemePicker from './ThemePicker';
+import { forcedTheme, THEME_COOKIE } from '@/lib/theme';
 import { headerBg } from '../auth-ui';
 import BooksSwitcher from './BooksSwitcher';
 import Screen from '../Screen';
@@ -42,6 +44,7 @@ export default async function Household() {
   const h = await headers();
   const origin = `${h.get('x-forwarded-proto') ?? 'http'}://${h.get('host')}`;
   const live = invites.filter((i) => !i.expired);
+  const theme = forcedTheme((await cookies()).get(THEME_COOKIE)?.value) ?? 'system';
 
   return (
     <Screen>
@@ -147,13 +150,16 @@ export default async function Household() {
           </>
         )}
 
+        <Head>Appearance</Head>
+        <ThemePicker current={theme} />
+
         <Head>Your account</Head>
         <PasswordCard />
         {/* Signing out lives here, with the rest of the account — not on the
             Home header, where it was the only button and the wrong one to
             press by accident with a thumb. */}
         <form action={async () => { 'use server'; await signOut({ redirectTo: '/signin' }); }}
-          className="el" style={{ margin: '-8px var(--gutter) 22px', borderRadius: 18 }}>
+          className="el card" style={{ margin: '-8px var(--gutter) 22px', borderRadius: 18 }}>
           <button type="submit" className="press" style={{
             width: '100%', minHeight: 56, padding: '0 var(--pad)', borderRadius: 18,
             display: 'flex', alignItems: 'center', gap: 11, background: 'var(--c-card)',
@@ -222,7 +228,7 @@ function Head({ children }: { children: React.ReactNode }) {
 
 function Card({ children, pad }: { children: React.ReactNode; pad: string }) {
   return (
-    <section className="el" style={{
+    <section className="el card" style={{
       margin: '0 var(--gutter) 22px', background: 'var(--c-card)', borderRadius: 18, padding: pad,
     }}>{children}</section>
   );

@@ -39,7 +39,7 @@ export default function EditEntry({ entry, categories, methods, canEdit }: {
 
   return (
     <>
-      <form action={act} className="el" style={{
+      <form action={act} className="el card" style={{
         margin: '0 var(--gutter) 16px', background: 'var(--c-card)', borderRadius: 18, padding: 16,
         display: 'flex', flexDirection: 'column', gap: 14,
       }}>
@@ -134,7 +134,7 @@ export default function EditEntry({ entry, categories, methods, canEdit }: {
         {state && !state.ok && <ErrorNote>{state.error}</ErrorNote>}
 
         {canEdit && (
-          <button type="submit" disabled={pending} className="el2" style={{
+          <button type="submit" disabled={pending} className="el2 cta" style={{
             minHeight: 54, borderRadius: 15, fontSize: 'var(--step-0)', fontWeight: 600, color: '#fff',
             opacity: pending ? 0.6 : 1,
             background: 'radial-gradient(120% 100% at 25% 0%, rgba(255,255,255,.18) 0%, rgba(255,255,255,0) 60%),'
@@ -146,7 +146,7 @@ export default function EditEntry({ entry, categories, methods, canEdit }: {
       {canEdit && (
         <div style={{ margin: '0 var(--gutter)' }}>
           {!confirming ? (
-            <button type="button" onClick={() => setConfirming(true)} style={{
+            <button className="cta" type="button" onClick={() => setConfirming(true)} style={{
               width: '100%', minHeight: 50, borderRadius: 13, fontSize: 'var(--step-0)', fontWeight: 600,
               background: 'transparent', color: 'var(--c-danger)',
             }}>Delete this entry</button>
@@ -158,11 +158,11 @@ export default function EditEntry({ entry, categories, methods, canEdit }: {
               </p>
               {del && !del.ok && <ErrorNote>{del.error}</ErrorNote>}
               <div style={{ display: 'flex', gap: 9 }}>
-                <button type="button" onClick={() => setConfirming(false)} style={{
+                <button className="cta" type="button" onClick={() => setConfirming(false)} style={{
                   minHeight: 50, padding: '0 16px', borderRadius: 13, fontSize: 'var(--step-0)',
                   fontWeight: 600, background: 'var(--c-sunk)', color: 'var(--c-meta)',
                 }}>Cancel</button>
-                <button type="submit" disabled={removing} style={{
+                <button className="cta" type="submit" disabled={removing} style={{
                   flex: 1, minHeight: 50, borderRadius: 13, fontSize: 'var(--step-0)', fontWeight: 600,
                   background: 'var(--c-danger-tint)', color: 'var(--c-danger)',
                   opacity: removing ? 0.6 : 1,

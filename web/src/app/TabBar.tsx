@@ -1,6 +1,8 @@
 'use client';
 
 import Link from 'next/link';
+import { useCallback, useState } from 'react';
+import AddSheet from './AddSheet';
 import { haptic } from './haptics';
 import { TABS, BAR_STYLE, tabLook, tabStyle } from './tabs';
 import { TabGlyph } from './TabGlyph';
@@ -19,7 +21,14 @@ import { TabGlyph } from './TabGlyph';
    costing more in deliberation than it saves in walking. */
 
 export default function TabBar({ current }: { current: string }) {
+  /* The plus opens a sheet — type it, scan it, upload it — rather than going
+     straight to Add Entry. It stays a link to /add underneath, so before the
+     script has arrived, or without it, the tap still lands somewhere. */
+  const [sheet, setSheet] = useState(false);
+  const close = useCallback(() => setSheet(false), []);
   return (
+    <>
+    <AddSheet open={sheet} onClose={close} />
     <nav aria-label="Main" style={BAR_STYLE}>
       {TABS.map((t) => {
         /* A screen inside a tab lights that tab, but not as brightly as the
@@ -33,7 +42,11 @@ export default function TabBar({ current }: { current: string }) {
             aria-current={here ? 'page' : on ? 'true' : undefined}
             /* A tick under the thumb as the tab is taken — the moment of the
                tap, not the moment the screen arrives. */
-            onClick={() => { if (!here) haptic('tap'); }}
+            onClick={(e) => {
+              if (add) { e.preventDefault(); haptic('tap'); setSheet(true); return; }
+              if (!here) haptic('tap');
+            }}
+            aria-haspopup={add ? 'dialog' : undefined}
             className="press"
             style={tabStyle(on, add)}
           >
@@ -42,5 +55,6 @@ export default function TabBar({ current }: { current: string }) {
         );
       })}
     </nav>
+    </>
   );
 }

@@ -8,6 +8,7 @@ import { keysDisplay, pushKey, popKey, fromKeys, symbolOf, format } from '@/lib/
 import { saveEntry, checkDuplicate } from './actions';
 import { haptic } from '../haptics';
 import { enqueue, writePickers, type Queued } from './queue';
+import { shares, type Split } from '../tab/splits';
 
 /* Add Entry — the screen the whole product rests on.
    With no bank feed and no SMS, this is how nearly everything gets in, so it
@@ -27,17 +28,18 @@ const KINDS: { id: Kind; label: string }[] = [
 export type Category = { id: string; name: string; tint: string; icon: string };
 export type Method = { id: string; name: string; funds: string };
 export type Account = { id: string; name: string; kind: string };
+export type Tab = { id: string; name: string; split: Split; people: number };
 
 const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '00', '0', '.'];
 
 export default function AddEntry({
-  categories, methods, accounts, today, householdId, draft, offline = false, onQueued, children,
+  categories, methods, accounts, tabs = [], today, householdId, draft, offline = false, onQueued, children,
 }: {
-  categories: Category[]; methods: Method[]; accounts: Account[]; today: string;
+  categories: Category[]; methods: Method[]; accounts: Account[]; tabs?: Tab[]; today: string;
   householdId: string;
   draft?: {
     amountMinor: number | null; occurredOn: string | null; merchant: string | null;
-    kind: 'expense' | 'income' | null; categoryId: string | null;
+    kind: 'expense' | 'income' | null; categoryId: string | null; tabId?: string | null;
   };
   /* On the offline screen nothing is sent from here at all: every save goes
      to the phone's queue, and the layout sends the queue when signal is back. */
@@ -55,8 +57,8 @@ export default function AddEntry({
      only, no amounts, no entries — and it is replaced on every visit. */
   useEffect(() => {
     if (offline) return;
-    writePickers({ householdId, categories, methods, accounts, savedAt: new Date().toISOString() });
-  }, [offline, householdId, categories, methods, accounts]);
+    writePickers({ householdId, categories, methods, accounts, tabs, savedAt: new Date().toISOString() });
+  }, [offline, householdId, categories, methods, accounts, tabs]);
   /* A scan hands its draft over here rather than saving anything itself. The
      keypad is seeded with the amount so it stays the same control, correctable
      the same way — a scanned figure is a suggestion, not a fact. */
@@ -64,6 +66,7 @@ export default function AddEntry({
   const [keys, setKeys] = useState(
     draft?.amountMinor ? String(draft.amountMinor / 100) : '');
   const [categoryId, setCategoryId] = useState<string | null>(draft?.categoryId ?? null);
+  const [tabId, setTabId] = useState<string | null>(draft?.tabId ?? null);
   const [methodId, setMethodId] = useState(methods[0]?.id ?? '');
   const [counterId, setCounterId] = useState<string | null>(null);
   const [shared, setShared] = useState(true);
@@ -78,6 +81,7 @@ export default function AddEntry({
 
   const minor = fromKeys(keys);
   const method = methods.find((m) => m.id === methodId) ?? methods[0];
+  const tab = tabs.find((t) => t.id === tabId) ?? null;
 
   /* Prevention beats detection: ask what is already recorded while they are
      still typing, so the warning arrives at the moment of the decision rather
@@ -100,6 +104,7 @@ export default function AddEntry({
     const draft = {
       kind, amountMinor: minor, categoryId, methodId,
       counterAccountId: counterId, merchant, occurredOn, isShared: shared,
+      tabId: kind === 'expense' ? tabId : null,
     };
     const clear = () => { setKeys(''); setCategoryId(null); setMerchant(''); setDupe(null); };
     /* Kept on the phone: the same tick as a save, because from where the
@@ -195,7 +200,7 @@ export default function AddEntry({
         </div>
       </header>
 
-      <div className="el" style={{ margin: '-18px 18px 12px', background: 'var(--c-card)', borderRadius: 18, padding: '2px 16px' }}>
+      <div className="el card" style={{ margin: '-18px 18px 12px', background: 'var(--c-card)', borderRadius: 18, padding: '2px 16px' }}>
         <Row
           label={kind === 'transfer' ? 'From' : 'Paid with'}
           value={method?.name ?? '—'}
@@ -270,6 +275,39 @@ export default function AddEntry({
               </button>
             );
           })}
+        </div>
+      )}
+
+      {kind === 'expense' && tabs.length > 0 && (
+        <div style={{ padding: '2px 18px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={{ display: 'flex', gap: 8, overflowX: 'auto', scrollbarWidth: 'none' }}>
+            {tabs.map((t) => {
+              const on = t.id === tabId;
+              return (
+                <button
+                  key={t.id}
+                  onClick={() => { haptic('select'); setTabId(on ? null : t.id); }}
+                  aria-pressed={on}
+                  style={{
+                    minHeight: 44, padding: '0 14px 0 11px', display: 'flex', alignItems: 'center', gap: 7,
+                    borderRadius: 999, flex: 'none', whiteSpace: 'nowrap',
+                    fontSize: 'var(--step--1)', fontWeight: 600,
+                    background: on ? 'var(--cat-purple-ink)' : 'var(--c-card)',
+                    color: on ? '#fff' : 'var(--c-ink)',
+                    border: `1px ${on ? 'solid' : 'dashed'} ${on ? 'var(--cat-purple-ink)' : 'var(--c-dash)'}`,
+                  }}
+                >
+                  <Icon name="tab" size={16} strokeWidth={1.9} />
+                  {t.name}
+                </button>
+              );
+            })}
+          </div>
+          {tab && (
+            <p style={{ margin: 0, fontSize: 'var(--step--2)', lineHeight: 1.45, color: 'var(--c-meta)' }}>
+              {splitNote(tab, minor)}
+            </p>
+          )}
         </div>
       )}
 
@@ -409,4 +447,20 @@ function Glyph({ d, size = 21, w = 2, colour }: { d: string; size?: number; w?: 
       {d.split(' M').map((seg, i) => <path key={i} d={i === 0 ? seg : 'M' + seg} />)}
     </svg>
   );
+}
+
+/** What putting this amount on the tab will do, in one line, before Save. */
+function splitNote(tab: Tab, minor: number): string {
+  const who = `${tab.people} ${tab.people === 1 ? 'person' : 'people'}`;
+  if (minor <= 0) {
+    return tab.split === 'equal'
+      ? `Split equally among ${who} and you.`
+      : `They owe all of it, divided among ${who}.`;
+  }
+  const each = shares(minor, tab.split, tab.people);
+  const top = Math.max(...each);
+  const ours = minor - each.reduce((n, x) => n + x, 0);
+  return tab.split === 'equal'
+    ? `Split ${tab.people + 1} ways · each owes ${format(top)} · your share ${format(ours)}`
+    : `${who} owe ${format(top)} each · nothing of it is yours`;
 }

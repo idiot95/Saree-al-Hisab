@@ -1,6 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { cookies } from 'next/headers';
 import { rethrowControlFlow } from '@/lib/rethrow';
 import { redirect } from 'next/navigation';
 import { sql } from '@/db/client';
@@ -10,6 +11,7 @@ import { newLinkToken } from '@/lib/link-token';
 import { hashPassword, passwordProblem, verifyPassword } from '@/lib/password';
 import { seal, hint } from '@/lib/secretbox';
 import { testKey } from '@/db/gemini';
+import { THEMES, THEME_COOKIE } from '@/lib/theme';
 
 /* Every one of these is reachable by direct POST, so each re-establishes who
    is asking and what they are allowed to do. Hiding a button is presentation;
@@ -276,4 +278,28 @@ export async function removeGeminiKey(_prev: Result | null): Promise<Result> {
   revalidatePath('/household');
   revalidatePath('/scan');
   return { ok: true, message: 'Removed. Scanning is off.' };
+}
+
+/* ── Appearance ──────────────────────────────────────────────────────────
+   See lib/theme.ts. A viewer can set this — it changes what they see, not
+   what anyone owes. */
+export async function setTheme(_prev: Result | null, formData: FormData): Promise<Result> {
+  try { await currentActor(); } catch (e) { rethrowControlFlow(e); return { ok: false, error: (e as Error).message }; }
+
+  const theme = String(formData.get('theme') ?? '');
+  if (!(THEMES as readonly string[]).includes(theme)) {
+    return { ok: false, error: 'Choose light, dark, or follow the phone.' };
+  }
+
+  const jar = await cookies();
+  if (theme === 'system') {
+    jar.delete(THEME_COOKIE);
+  } else {
+    jar.set(THEME_COOKIE, theme, {
+      path: '/', sameSite: 'lax', maxAge: 60 * 60 * 24 * 365,
+      secure: process.env.NODE_ENV === 'production',
+    });
+  }
+  revalidatePath('/', 'layout');
+  return { ok: true };
 }

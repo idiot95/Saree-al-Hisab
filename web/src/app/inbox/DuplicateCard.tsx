@@ -23,7 +23,7 @@ export default function DuplicateCard({ low, high, reason }: {
     || (dropState && !dropState.ok && dropState.error);
 
   return (
-    <section className="el" style={{
+    <section className="el card" style={{
       margin: '0 var(--gutter) 14px', background: 'var(--c-card)', borderRadius: 18, padding: 16,
       display: 'flex', flexDirection: 'column', gap: 12,
     }}>
@@ -68,7 +68,7 @@ export default function DuplicateCard({ low, high, reason }: {
             <span className="t" style={{ fontSize: 'var(--step-0)' }}>{format(Number(s.amount))}</span>
             <form action={drop}>
               <input type="hidden" name="txnId" value={s.id} />
-              <button type="submit" disabled={dropping} style={{
+              <button className="cta" type="submit" disabled={dropping} style={{
                 minHeight: 44, padding: '0 11px', borderRadius: 10, fontSize: 'var(--step--1)',
                 fontWeight: 600, background: 'var(--c-danger-tint)', color: 'var(--c-danger)',
                 opacity: dropping ? 0.6 : 1,
@@ -85,7 +85,7 @@ export default function DuplicateCard({ low, high, reason }: {
       <form action={keep}>
         <input type="hidden" name="lowId" value={low.id} />
         <input type="hidden" name="highId" value={high.id} />
-        <button type="submit" disabled={keeping} style={{
+        <button className="cta" type="submit" disabled={keeping} style={{
           width: '100%', minHeight: 48, borderRadius: 12, fontSize: 'var(--step-0)', fontWeight: 600,
           background: 'var(--c-sunk)', color: 'var(--c-ink)', opacity: keeping ? 0.6 : 1,
         }}>{keeping ? 'Saving…' : 'They are both real — keep them'}</button>

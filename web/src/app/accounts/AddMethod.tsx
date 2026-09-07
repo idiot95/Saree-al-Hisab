@@ -30,7 +30,7 @@ export default function AddMethod({ accounts, startOpen = false }: { accounts: A
 
   if (!open) {
     return (
-      <button type="button" onClick={() => setOpen(true)} className="el" style={{
+      <button type="button" onClick={() => setOpen(true)} className="el card" style={{
         margin: '0 var(--gutter) 22px', width: 'calc(100% - 36px)', minHeight: 58, borderRadius: 16,
         display: 'flex', alignItems: 'center', gap: 11, padding: '0 var(--pad)',
         background: 'var(--c-card)', border: '1px dashed var(--c-dash)',
@@ -50,7 +50,7 @@ export default function AddMethod({ accounts, startOpen = false }: { accounts: A
   }
 
   return (
-    <form action={act} className="el" style={{
+    <form action={act} className="el card" style={{
       margin: '0 var(--gutter) 22px', background: 'var(--c-card)', borderRadius: 18, padding: 16,
       display: 'flex', flexDirection: 'column', gap: 13,
     }}>
@@ -107,13 +107,13 @@ export default function AddMethod({ accounts, startOpen = false }: { accounts: A
       {state && !state.ok && <ErrorNote>{state.error}</ErrorNote>}
 
       <div style={{ display: 'flex', gap: 9 }}>
-        <button type="button" onClick={() => setOpen(false)} style={{
+        <button className="cta" type="button" onClick={() => setOpen(false)} style={{
           minHeight: 50, padding: '0 16px', borderRadius: 13, fontSize: 'var(--step-0)', fontWeight: 600,
           background: 'var(--c-sunk)', color: 'var(--c-meta)',
         }}>Cancel</button>
-        <button type="submit" disabled={pending || allowed.length === 0} style={{
+        <button className="cta" type="submit" disabled={pending || allowed.length === 0} style={{
           flex: 1, minHeight: 50, borderRadius: 13, fontSize: 'var(--step-0)', fontWeight: 600,
-          background: 'var(--c-seagrass)', color: 'var(--c-on-fill)',
+          background: 'var(--g-primary)', color: 'var(--c-on-fill)',
           opacity: pending || allowed.length === 0 ? 0.65 : 1,
         }}>{pending ? 'Saving…' : 'Add payment method'}</button>
       </div>

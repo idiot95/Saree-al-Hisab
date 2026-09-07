@@ -23,7 +23,7 @@ export const TABS = [
    the tab they belong to and the tab that should be lit while you are in one. */
 export const OWNED_BY: Record<string, string> = {
   '/trends': '/', '/worth': '/', '/people': '/', '/household': '/',
-  '/schedules': '/', '/inbox': '/', '/guide': '/', '/books': '/',
+  '/schedules': '/', '/inbox': '/', '/guide': '/', '/tab': '/',
   '/scan': '/add', '/categories': '/budget',
 };
 

@@ -19,6 +19,38 @@
   --font-sans: var(--font-ui-loaded), var(--font-ui);
 }
 
+/* ── depth ───────────────────────────────────────────────────────────────
+   Gradients, kept to two ideas so they read as light rather than decoration.
+   A sheen is a soft light from the top-left laid over a filled control; an
+   edge is a hairline of that same light along the top of a raised surface.
+   Both are overlays on the palette, never colours of their own, so they
+   follow the theme without being redefined for it. The generated tokens
+   file is not touched: these live here because they are composition, not
+   palette. */
+:root {
+  --sheen: radial-gradient(120% 100% at 25% 0%, rgba(255,255,255,.24) 0%, rgba(255,255,255,0) 60%);
+  --shade: linear-gradient(180deg, rgba(23,43,55,0) 55%, rgba(23,43,55,.06) 100%);
+  --edge: rgba(255,255,255,.7);
+  /* The one filled button, lit. */
+  --g-primary: var(--sheen), linear-gradient(150deg, var(--c-seagrass-t) 0%, var(--c-seagrass) 52%, #55897A 100%);
+  /* The attention colour, for the raised Add button and anything pumpkin. */
+  --g-pumpkin: var(--sheen), linear-gradient(150deg, var(--c-pumpkin-t) 0%, var(--c-pumpkin) 55%, #E0691C 100%);
+  /* Progress fills: the same tint, lit from the top so a bar has a surface. */
+  --g-fill: linear-gradient(180deg, rgba(255,255,255,.28) 0%, rgba(255,255,255,0) 100%);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --sheen: radial-gradient(120% 100% at 25% 0%, rgba(255,255,255,.16) 0%, rgba(255,255,255,0) 60%);
+    --shade: linear-gradient(180deg, rgba(0,0,0,0) 55%, rgba(0,0,0,.18) 100%);
+    --edge: rgba(255,255,255,.07);
+  }
+}
+:root[data-theme="dark"] {
+  --sheen: radial-gradient(120% 100% at 25% 0%, rgba(255,255,255,.16) 0%, rgba(255,255,255,0) 60%);
+  --shade: linear-gradient(180deg, rgba(0,0,0,0) 55%, rgba(0,0,0,.18) 100%);
+  --edge: rgba(255,255,255,.07);
+}
+
 @layer base {
   /* ── the type scale ──────────────────────────────────────────────────────
      Every size is fluid between a 360px phone and a 480px one, so a small
@@ -100,6 +132,16 @@
   button {
     color: inherit; background: none; border: 0; padding: 0;
     cursor: pointer; text-align: left;
+  }
+
+  /* A call to action: a label centred in a pill. The reset above aligns a
+     button's text left, which is right for a row you tap (the label sits
+     beside its glyph) and wrong for Save, where a word hugging the left
+     edge of a wide green button reads as a mistake — which is exactly what
+     was reported. Any button that IS its label wears this. */
+  .cta {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    text-align: center;
   }
 
   /* ── figures ─────────────────────────────────────────────────────────────
@@ -217,8 +259,12 @@
     .shim { animation: none; background: var(--c-track); }
   }
 
-  .el  { box-shadow: var(--el); }
-  .el2 { box-shadow: var(--el2); }
+  .el  { box-shadow: inset 0 1px 0 var(--edge), var(--el); }
+  .el2 { box-shadow: inset 0 1px 0 var(--edge), var(--el2); }
+  /* A card's face: a whisper of shade toward the bottom edge, so a white
+     card on a pale ground has a surface rather than being a hole in it.
+     Inline styles set the colour; this only lays the light over it. */
+  .card { background-image: var(--shade) !important; }
 
   /* Anything pressable gives a little under the thumb. The phone's own
      buttons do this and a control that does not feels painted on. Short on

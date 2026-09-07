@@ -29,6 +29,8 @@ export type Pickers = {
   categories: { id: string; name: string; tint: string; icon: string }[];
   methods: { id: string; name: string; funds: string }[];
   accounts: { id: string; name: string; kind: string }[];
+  /** Absent on a device that last opened Add Entry before tabs existed. */
+  tabs?: { id: string; name: string; split: 'equal' | 'full'; people: number }[];
   savedAt: string;
 };
 

@@ -42,7 +42,7 @@ export default function Snack({ snack, onClose, ttl = 6000 }: {
         {snack.text}
       </span>
       {(snack.undo || snack.action) && (
-        <button type="button" style={{
+        <button className="cta" type="button" style={{
           minHeight: 44, padding: '0 14px', borderRadius: 10, fontSize: 'var(--step--1)',
           fontWeight: 700, color: 'var(--c-pollen)', letterSpacing: '.01em', flex: 'none',
         }} onClick={() => { haptic('select'); (snack.undo ?? snack.action?.run)?.(); onClose(); }}>

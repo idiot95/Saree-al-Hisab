@@ -16,7 +16,7 @@ export default function BooksSwitcher({ books, canRename }: { books: Book[]; can
   const [editing, setEditing] = useState(false);
 
   return (
-    <section className="el" style={{
+    <section className="el card" style={{
       margin: '0 var(--gutter) 22px', background: 'var(--c-card)', borderRadius: 18, padding: '0 var(--pad)',
     }}>
       {books.map((b, i) => (
@@ -47,7 +47,7 @@ export default function BooksSwitcher({ books, canRename }: { books: Book[]; can
           ) : (
             <form action={switchAct}>
               <input type="hidden" name="householdId" value={b.id} />
-              <button type="submit" style={{
+              <button className="cta" type="submit" style={{
                 minHeight: 44, padding: '0 13px', borderRadius: 10, fontSize: 'var(--step--1)',
                 fontWeight: 600, background: 'var(--c-sunk)', color: 'var(--c-ink)',
               }}>Open</button>
@@ -116,7 +116,7 @@ const ghost: React.CSSProperties = {
 };
 const solid: React.CSSProperties = {
   minHeight: 46, borderRadius: 11, fontSize: 'var(--step-0)', fontWeight: 600,
-  background: 'var(--c-seagrass)', color: 'var(--c-on-fill)',
+  background: 'var(--g-primary)', color: 'var(--c-on-fill)',
 };
 
 const icon = { width: 34, height: 34, flex: 'none', borderRadius: 999, display: 'flex',

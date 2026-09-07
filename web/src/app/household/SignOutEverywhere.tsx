@@ -38,11 +38,11 @@ export default function SignOutEverywhere() {
             <p role="alert" style={{ margin: 0, fontSize: 'var(--step--1)', color: 'var(--c-danger)' }}>{state.error}</p>
           )}
           <div style={{ display: 'flex', gap: 9 }}>
-            <button type="button" onClick={() => setSure(false)} style={{
+            <button className="cta" type="button" onClick={() => setSure(false)} style={{
               minHeight: 48, padding: '0 16px', borderRadius: 12, fontSize: 'var(--step-0)', fontWeight: 600,
               background: 'var(--c-sunk)', color: 'var(--c-meta)',
             }}>Cancel</button>
-            <button type="submit" disabled={pending} style={{
+            <button className="cta" type="submit" disabled={pending} style={{
               flex: 1, minHeight: 48, borderRadius: 12, fontSize: 'var(--step-0)', fontWeight: 600,
               background: 'var(--c-danger-tint)', color: 'var(--c-danger)',
               opacity: pending ? 0.65 : 1,

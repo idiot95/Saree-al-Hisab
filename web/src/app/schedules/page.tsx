@@ -27,9 +27,11 @@ export default async function Schedules() {
   const canWrite = actor.role !== 'viewer';
   const dues = outstandingDues(schedules, new Date(), 14);
   const byId = new Map(schedules.map((s) => [s.id, s]));
-  const monthly = schedules
-    .filter((s) => s.rrule?.includes('MONTHLY'))
+  const monthlyOf = (kind: 'expense' | 'income') => schedules
+    .filter((s) => s.kind === kind && s.rrule?.includes('MONTHLY'))
     .reduce((n, s) => n + Number(s.amount ?? 0), 0);
+  const out = monthlyOf('expense');
+  const income = monthlyOf('income');
 
   return (
     <Screen>
@@ -53,8 +55,11 @@ export default async function Schedules() {
           </h1>
           <p style={{ margin: 0, fontSize: 'var(--step--1)', color: 'rgba(255,255,255,.84)' }}>
             {schedules.length === 0
-              ? 'Rent, fees, an EMI — the things that come round whether you look or not.'
-              : `${format(monthly)} a month across ${schedules.length} ${schedules.length === 1 ? 'schedule' : 'schedules'}`}
+              ? 'Rent, fees, an EMI, a salary — the things that come round whether you look or not.'
+              : [out > 0 ? `${format(out)} a month goes out` : null,
+                 income > 0 ? `${format(income)} comes in` : null]
+                  .filter(Boolean).join(' · ')
+                || `${schedules.length} ${schedules.length === 1 ? 'schedule' : 'schedules'}`}
           </p>
         </header>
 
@@ -62,14 +67,14 @@ export default async function Schedules() {
           {dues.length > 0 && (
             <>
               <Head>Due now</Head>
-              <section className="el" style={{
+              <section className="el card" style={{
                 margin: '0 var(--gutter) 22px', background: 'var(--c-card)', borderRadius: 18, padding: '0 var(--gutter)',
               }}>
                 {dues.map((d) => {
                   const s = byId.get(d.scheduleId)!;
                   return (
                     <DueRow key={`${d.scheduleId}:${d.dueOn}`}
-                      scheduleId={d.scheduleId} name={s.name} dueOn={d.dueOn}
+                      scheduleId={d.scheduleId} name={s.name} kind={s.kind} dueOn={d.dueOn}
                       daysAway={d.daysAway} amount={Number(s.amount ?? 0)} category={s.category}
                         icon={s.icon} tint={s.tint} />
                   );
@@ -81,7 +86,7 @@ export default async function Schedules() {
           {schedules.length > 0 && (
             <>
               <Head>Every schedule</Head>
-              <section className="el" style={{
+              <section className="el card" style={{
                 margin: '0 var(--gutter) 22px', background: 'var(--c-card)', borderRadius: 18, padding: '0 var(--pad)',
               }}>
                 {schedules.map((s, i) => (
@@ -96,7 +101,9 @@ export default async function Schedules() {
                         {s.rrule && ` · next ${friendly(nextUnsettled(s.rrule, s.settled, new Date()) ?? undefined)}`}
                       </span>
                     </span>
-                    <span className="t amt" style={{ fontSize: 'var(--step-0)' }}>{format(Number(s.amount ?? 0))}</span>
+                    <span className="t amt" style={{
+                      fontSize: 'var(--step-0)', color: s.kind === 'income' ? 'var(--c-seagrass)' : undefined,
+                    }}>{s.kind === 'income' ? '+' : ''}{format(Number(s.amount ?? 0))}</span>
                     {canWrite && <StopSchedule scheduleId={s.id} name={s.name} />}
                   </div>
                 ))}
@@ -115,6 +122,7 @@ export default async function Schedules() {
           <p style={{ margin: '0 var(--gutter)', fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--c-meta)' }}>
             Nothing is recorded until you say so. A schedule is a reminder with the details
             already filled in, not a standing instruction that writes entries behind your back.
+            Income scheduled here is recorded as income when you say it came in.
           </p>
         </div>
         <TabBar current="/schedules" />
