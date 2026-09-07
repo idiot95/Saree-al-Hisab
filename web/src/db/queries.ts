@@ -237,7 +237,7 @@ export async function setupProgress(householdId: string) {
 
 export type BudgetRow = {
   category_id: string; name: string; icon: string; tint: string;
-  budget: string; spent: string;
+  budget: string; spent: string; archived: boolean;
 };
 
 /** Every category with what it was given this month and what has gone out of
@@ -246,6 +246,7 @@ export type BudgetRow = {
 export async function budgetFor(householdId: string, month: string) {
   return sql`
     select c.id as category_id, c.name, c.icon, c.tint,
+           (c.archived_at is not null) as archived,
            coalesce(b.amount, 0)::text as budget,
            coalesce((
              select sum(s.amount) from spend_txn s
@@ -255,7 +256,17 @@ export async function budgetFor(householdId: string, month: string) {
            ), 0)::text as spent
     from category c
     left join budget b on b.category_id = c.id and b.month = ${month}::date
-    where c.household_id = ${householdId} and c.archived_at is null
+    where c.household_id = ${householdId}
+      and (
+        c.archived_at is null
+        /* A retired category still belongs in a month it had money in.
+           Dropping it would leave the rows failing to add up to the total —
+           the same figure, disagreeing with itself on one screen. */
+        or b.amount is not null
+        or exists (select 1 from spend_txn s where s.category_id = c.id
+                     and s.occurred_on >= ${month}::date
+                     and s.occurred_on <  (${month}::date + interval '1 month'))
+      )
     order by coalesce(b.amount, 0) desc, c.sort_order
   ` as Promise<BudgetRow[]>;
 }
@@ -589,7 +600,10 @@ export async function categoryTrend(householdId: string, month: string) {
            coalesce((select b.amount from budget b
                      where b.category_id = c.id and b.month = ${month}::date), 0)::text as budget
     from category c
-    where c.household_id = ${householdId} and c.archived_at is null
+    where c.household_id = ${householdId}
+      and (c.archived_at is null
+           or exists (select 1 from spend_txn s where s.category_id = c.id
+                        and s.occurred_on >= (${month}::date - interval '1 month')))
     order by c.sort_order
   ` as Promise<{ id: string; name: string; tint: string; icon: string;
                  now: string; before: string; budget: string }[]>;
@@ -775,4 +789,26 @@ export async function scanningState(householdId: string) {
 export async function geminiKeyFor(householdId: string) {
   const [r] = await sql`select gemini_key from household where id = ${householdId}`;
   return (r?.gemini_key as string | null) ?? null;
+}
+
+/* ── categories ─────────────────────────────────────────────────────────── */
+
+export type CategoryRow = {
+  id: string; name: string; icon: string; tint: string; sort_order: number;
+  archived: boolean; entries: number; budgeted_months: number;
+};
+
+/** Every category, retired ones included, with how much is riding on each —
+ *  because "can I retire this" is answered by what is already filed under it. */
+export async function allCategories(householdId: string) {
+  return sql`
+    select c.id, c.name, c.icon, c.tint, c.sort_order,
+           (c.archived_at is not null) as archived,
+           (select count(*)::int from txn t
+             where t.category_id = c.id and t.deleted_at is null) as entries,
+           (select count(*)::int from budget b where b.category_id = c.id) as budgeted_months
+    from category c
+    where c.household_id = ${householdId}
+    order by (c.archived_at is not null), c.sort_order, c.name
+  ` as Promise<CategoryRow[]>;
 }

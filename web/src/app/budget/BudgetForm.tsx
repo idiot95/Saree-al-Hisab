@@ -9,7 +9,7 @@ import { format } from '@/lib/money';
 
 type Row = {
   category_id: string; name: string; tint: string; icon: string;
-  budget: string; spent: string;
+  budget: string; spent: string; archived: boolean;
 };
 
 const TINT: Record<string, [string, string]> = {
@@ -87,7 +87,16 @@ export default function BudgetForm({ month, rows, canEdit }: {
               <Chip icon={r.icon} tint={r.tint} size={38} />
 
               <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
-                <span style={{ fontSize: 15, fontWeight: 600 }}>{r.name}</span>
+                <span style={{ fontSize: 15, fontWeight: 600 }}>
+                  {r.name}
+                  {r.archived && (
+                    <span style={{
+                      marginLeft: 7, fontSize: 10.5, fontWeight: 700, letterSpacing: '.03em',
+                      padding: '3px 6px', borderRadius: 6,
+                      background: 'var(--c-sunk)', color: 'var(--c-meta)',
+                    }}>RETIRED</span>
+                  )}
+                </span>
                 {/* How close this category is to its own line, in its own
                     colour. A row of these is the quickest read on the screen:
                     you see which one is about to go over without comparing

@@ -214,6 +214,37 @@ ok(await spent() === beforeWriteOff + 600000,
 const [cleared] = await sql`select balance::bigint from counterparty_balance where name='Ahmed Raza'`;
 ok(Number(cleared.balance) === 0, 'and Ahmed now owes nothing');
 
+console.log('\nCATEGORIES — retiring one changes no figure');
+const [retiring] = await sql`insert into category ${sql({ household_id: hh.id, name: 'Sundries',
+  icon: 'tag', tint: 'neutral', sort_order: 99 })} returning id`;
+await sql`insert into budget ${sql({ household_id: hh.id, category_id: retiring.id,
+  month: '2026-09-01', amount: 300000 })}`;
+await txn({ kind: 'expense', account_id: spend, category_id: retiring.id, amount: 120000 });
+
+const budgetTotal = async () => Number((await sql`
+  select coalesce(sum(amount),0)::bigint as t from budget
+  where household_id = ${hh.id} and month = '2026-09-01'`)[0].t);
+const beforeB = await budgetTotal(), beforeS = await spent();
+
+await sql`update category set archived_at = now() where id = ${retiring.id}`;
+ok(await budgetTotal() === beforeB, 'retiring a category leaves the month\'s budget total alone');
+ok(await spent() === beforeS, 'and leaves what the month cost alone');
+const [{ n: kept }] = await sql`select count(*)::int as n from txn
+  where category_id = ${retiring.id} and deleted_at is null`;
+ok(kept === 1, 'and the entries filed under it stay filed under it');
+
+/* The row must still be OFFERED for that month, or the budget screen shows
+   lines that do not add up to its own total — the same figure disagreeing
+   with itself on one screen. */
+const [{ n: shown }] = await sql`
+  select count(*)::int as n from category c
+  left join budget b on b.category_id = c.id and b.month = '2026-09-01'
+  where c.household_id = ${hh.id} and c.id = ${retiring.id}
+    and (c.archived_at is null or b.amount is not null)`;
+ok(shown === 1, 'a retired category with a budget is still shown for that month');
+
+await sql`update category set archived_at = null where id = ${retiring.id}`;
+
 console.log('\nCLAIMS — a reimbursement is spending you expect back');
 const [dinner] = await txn({ kind: 'expense', account_id: spend, category_id: cat, amount: 200000 });
 const spentAfterDinner = await spent();

@@ -80,7 +80,7 @@ A repayment is `kind = 'claim_receipt'` — money in, but explicitly not income.
 ## Running it
 
     npm run migrate            # in filename order; --reset drops and rebuilds
-    npm run test:invariants    # 81 assertions against real Postgres
+    npm run test:invariants    # 85 assertions against real Postgres
     npm run test:lib           # money, password hashing and link tokens
     npm run tokens             # regenerate tokens.css from the canvas palette
 
@@ -92,7 +92,7 @@ because they are idempotent, so a changed view ships without a new file.
 ## Proven, not assumed
 
 `npm run test:invariants` tries to BREAK each rule and expects Postgres to
-refuse. 81 assertions currently pass, covering: a move can never look like
+refuse. 85 assertions currently pass, covering: a move can never look like
 spending, `spend_txn` is the only definition of spending, refunds net off in
 the month they land, a card purchase files itself into the right cycle, a
 payment method is a rail and not a balance, lending never touches the budget,
@@ -562,6 +562,33 @@ there is meaning: the inbox is the same pumpkin as over-budget.
 Payment rails are tinted per rail, and budget rows carry a bar in their own
 category's colour, so the row about to go over is visible without reading a
 figure.
+
+## Categories are editable
+
+`/categories` renames, recolours, re-icons, reorders, adds and retires them,
+from the 25-glyph picker and the 8 tints.
+
+**Renaming is safe in a way deleting is not**: every entry points at the
+category row, so they all follow the new name and no month changes value.
+Retiring is the same idea — the category stops being offered for new entries
+and nothing already filed under it moves.
+
+That last part exposed a real bug. `budgetFor` and `categoryTrend` filtered
+`archived_at is null`, so retiring a category with money in it made its row
+vanish from the budget while `monthTotals` still counted it — **the rows would
+stop adding up to the total on the same screen**, which is the exact class of
+disagreement that destroys trust in a ledger. Both now keep a retired category
+in any month it had a budget or spending, and the row says RETIRED. Four
+assertions cover it.
+
+Order matters because it is the order Add Entry offers them in, and `moveCategory`
+rewrites the whole run rather than swapping two values, so a list that has
+drifted into ties comes back tidy instead of refusing to move.
+
+**A `'use server'` module may only export async functions.** Putting the icon
+and tint lists in `actions.ts` passed the build and then failed at runtime with
+`m.map is not a function`, because what reached the client was not an array.
+They live in `options.ts` now.
 
 ## The UX laws, and where each one shows up
 

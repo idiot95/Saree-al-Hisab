@@ -104,6 +104,20 @@ export default async function Budget({ searchParams }: {
       </header>
 
       <div style={{ padding: '14px 0 0' }}>
+        <Link href="/categories" style={{
+          display: 'flex', alignItems: 'center', gap: 10, margin: '0 18px 14px',
+          minHeight: 50, padding: '0 15px', borderRadius: 14, textDecoration: 'none',
+          background: 'var(--c-card)', border: '1px solid var(--c-border)', color: 'var(--c-ink)',
+        }}>
+          <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="var(--c-meta)"
+            strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <path d="M3.5 11V4.5H10L20.5 15a1.6 1.6 0 0 1 0 2.3l-3.2 3.2a1.6 1.6 0 0 1-2.3 0z" />
+            <path d="M7 8v.01" />
+          </svg>
+          <span style={{ flex: 1, fontSize: 14.5, fontWeight: 600 }}>Edit categories</span>
+          <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="var(--c-off)"
+            strokeWidth={2} strokeLinecap="round" aria-hidden><path d="M9 5l7 7-7 7" /></svg>
+        </Link>
         {empty && previous && canEdit && (
           <CopyPrevious
             month={month}

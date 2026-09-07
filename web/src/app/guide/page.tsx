@@ -40,6 +40,16 @@ const SECTIONS = [
     ],
   },
   {
+    title: 'Categories are yours to shape',
+    href: '/categories', link: 'Edit categories',
+    lines: [
+      'Rename, recolour and re-icon any of them, or add your own.',
+      'Renaming is safe: every entry points at the category itself, so they all follow the new name and no month changes value.',
+      'Retiring one stops it being offered for new entries. Nothing already filed under it moves, and it still shows in the months it was used.',
+      'The order here is the order Add Entry offers them in, so the three you use daily are worth putting first.',
+    ],
+  },
+  {
     title: 'The budget is the point',
     href: '/budget', link: 'Open budget',
     lines: [
@@ -165,7 +175,7 @@ export default async function Guide() {
           How it works
         </h1>
         <p style={{ margin: 0, fontSize: 14, lineHeight: 1.5, color: 'rgba(255,255,255,.82)' }}>
-          Thirteen things worth knowing. Four minutes.
+          Fourteen things worth knowing. Five minutes.
         </p>
       </header>
 
