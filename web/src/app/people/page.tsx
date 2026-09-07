@@ -113,7 +113,7 @@ export default async function People() {
               }}>
                 People who owe you back — the flat, a trip, office petrol, medical bills an
                 insurer refunds. A cost put on a tab is claimed from them the moment you save
-                it, and the tab says whether costs on it were your spending or money you
+                it, and each cost says for itself whether it was your spending or money you
                 fronted.
               </p>
               {tabs.length > 0 && (

@@ -30,9 +30,19 @@ export async function updateEntry(_prev: Result | null, fd: FormData): Promise<R
 
   const id = String(fd.get('id') ?? '');
   const [existing] = await sql`
-    select id, kind from txn
-    where id = ${id} and household_id = ${actor.household_id} and deleted_at is null`;
+    select t.id, t.kind, t.counts_as_spend,
+           (t.book_id is not null or exists (select 1 from claim c where c.txn_id = t.id)) as owed
+    from txn t
+    where t.id = ${id} and t.household_id = ${actor.household_id} and t.deleted_at is null`;
   if (!existing) return { ok: false, error: 'That entry is not one of yours.' };
+
+  /* "Was this my spending" can only be revisited on a cost somebody owes back
+     for. On a plain expense the form never shows the question, and a direct
+     POST does not get to answer it either: an expense nobody owes for that is
+     also not yours would simply vanish from the month. */
+  const counts = existing.kind === 'expense' && existing.owed
+    ? fd.get('counts_as_spend') === 'on'
+    : existing.counts_as_spend;
 
   const minor = amount(fd.get('amount'));
   if (!Number.isSafeInteger(minor) || minor <= 0) return { ok: false, error: 'Enter an amount.' };
@@ -72,7 +82,7 @@ export async function updateEntry(_prev: Result | null, fd: FormData): Promise<R
     await sql`
       update txn set amount = ${minor}, occurred_on = ${occurredOn}::date,
                      category_id = ${categoryId}, merchant = ${merchant}, note = ${note},
-                     is_shared = ${isShared},
+                     is_shared = ${isShared}, counts_as_spend = ${counts},
                      payment_method_id = coalesce(${methodId}, payment_method_id)
       where id = ${id} and household_id = ${actor.household_id}`;
   } catch (e) {

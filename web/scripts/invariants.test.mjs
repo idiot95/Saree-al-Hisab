@@ -323,9 +323,11 @@ console.log('\nTABS — owed back, and separately, whether it was yours to spend
 const ahmedCp = (await sql`select id, account_id from counterparty where name='Ahmed Raza' and household_id = ${hh.id}`)[0];
 const zainAcc = await mk('Zain', 'person');
 const [zainCp] = await sql`insert into counterparty ${sql({ household_id: hh.id, name: 'Zain', account_id: zainAcc })} returning id, account_id`;
-const [office] = await sql`insert into ledger_book ${sql({ household_id: hh.id, name: 'Office', counts_as_spending: true })} returning id, counts_as_spending`;
-const [family] = await sql`insert into ledger_book ${sql({ household_id: hh.id, name: 'Family', counts_as_spending: false })} returning id`;
-ok(office.counts_as_spending === true, 'a tab says whether costs on it are your own spending');
+const [office] = await sql`insert into ledger_book ${sql({ household_id: hh.id, name: 'Office' })} returning id`;
+const [family] = await sql`insert into ledger_book ${sql({ household_id: hh.id, name: 'Family' })} returning id`;
+const [{ n: tabCols }] = await sql`select count(*)::int as n from information_schema.columns
+  where table_name = 'ledger_book' and column_name = 'counts_as_spending'`;
+ok(tabCols === 0, 'a tab does NOT say whether costs on it are your spending — each entry does');
 await sql`insert into book_member ${sql([{ book_id: office.id, counterparty_id: ahmedCp.id },
                                           { book_id: family.id, counterparty_id: zainCp.id }])}`;
 

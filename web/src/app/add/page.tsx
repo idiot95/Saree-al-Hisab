@@ -1,6 +1,8 @@
 import { redirect } from 'next/navigation';
 import AddEntry from './AddEntry';
-import { actorOrNull, categoriesFor, methodsFor, accountsFor, tabsForEntry } from '@/db/queries';
+import {
+  actorOrNull, categoriesFor, methodsFor, accountsFor, tabsForEntry, openClaimsFor,
+} from '@/db/queries';
 import Screen from '../Screen';
 
 export const metadata = { title: 'New entry · Saree al-Hisab' };
@@ -14,11 +16,12 @@ export default async function Page({ searchParams }: {
   if (!actor) redirect('/signin');
   if (!actor.household_id) redirect('/no-household');
   const household_id = actor.household_id;
-  const [categories, methods, accounts, tabs] = await Promise.all([
+  const [categories, methods, accounts, tabs, claims] = await Promise.all([
     categoriesFor(household_id),
     methodsFor(household_id),
     accountsFor(household_id),
     tabsForEntry(household_id),
+    openClaimsFor(household_id),
   ]);
   const today = new Date().toISOString().slice(0, 10);
 
@@ -52,6 +55,10 @@ export default async function Page({ searchParams }: {
         }))}
         accounts={accounts}
         tabs={tabs}
+        claims={claims.map((c) => ({
+          id: c.id, person: c.person, tint: c.tint, tab: c.tab, what: c.what,
+          on: new Date(c.occurred_on).toISOString().slice(0, 10), outstanding: Number(c.outstanding),
+        }))}
         today={today}
         householdId={household_id}
       />

@@ -28,14 +28,19 @@ const KINDS: { id: Kind; label: string }[] = [
 export type Category = { id: string; name: string; tint: string; icon: string };
 export type Method = { id: string; name: string; funds: string; kind: string; funds_id: string };
 export type Account = { id: string; name: string; kind: string };
-export type Tab = { id: string; name: string; people: number; counts_as_spending: boolean };
+export type Tab = { id: string; name: string; people: number; last_counts: boolean | null };
+/** An open claim, for the income screen to point money at. */
+export type Claim = {
+  id: string; person: string; tint: string; tab: string | null; what: string;
+  on: string; outstanding: number;
+};
 
 const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '00', '0', '.'];
 
 export default function AddEntry({
-  categories, methods, accounts, tabs = [], today, householdId, draft, offline = false, onQueued, children,
+  categories, methods, accounts, tabs = [], claims = [], today, householdId, draft, offline = false, onQueued, children,
 }: {
-  categories: Category[]; methods: Method[]; accounts: Account[]; tabs?: Tab[]; today: string;
+  categories: Category[]; methods: Method[]; accounts: Account[]; tabs?: Tab[]; claims?: Claim[]; today: string;
   householdId: string;
   draft?: {
     amountMinor: number | null; occurredOn: string | null; merchant: string | null;
@@ -71,8 +76,14 @@ export default function AddEntry({
   /* Blank means all of it comes back, which is the ordinary case. A figure
      here is the part that does, leaving the rest owed by nobody. */
   const [coveredKeys, setCoveredKeys] = useState('');
-  /* Null follows the tab's own answer; a value is this receipt overriding it. */
+  /* Asked of every cost on a tab. Null is "not answered yet", which follows
+     whatever the last cost on that tab said — petrol on the office tab is
+     petrol every week — and is your own spending on a tab with no history. */
   const [counts, setCounts] = useState<boolean | null>(draft?.countsAsSpend ?? null);
+  /* What this money clears, when it is money coming back. The claims are
+     never on the offline screen — they are amounts, and the phone keeps only
+     names — so a settlement waits for signal. */
+  const [settleIds, setSettleIds] = useState<Set<string>>(() => new Set());
   const [methodId, setMethodId] = useState(methods[0]?.id ?? '');
   const [counterId, setCounterId] = useState<string | null>(null);
   const [shared, setShared] = useState(true);
@@ -88,6 +99,11 @@ export default function AddEntry({
   const minor = fromKeys(keys);
   const method = methods.find((m) => m.id === methodId) ?? methods[0];
   const tab = tabs.find((t) => t.id === tabId) ?? null;
+  const mine = counts ?? tab?.last_counts ?? true;
+  const settling = kind === 'income' ? claims.filter((c) => settleIds.has(c.id)) : [];
+  const owedBack = settling.reduce((n, c) => n + c.outstanding, 0);
+  /* All of it is money back, so none of it needs a category. */
+  const allBack = settling.length > 0 && minor > 0 && minor <= owedBack;
 
   /* Prevention beats detection: ask what is already recorded while they are
      still typing, so the warning arrives at the moment of the decision rather
@@ -112,7 +128,8 @@ export default function AddEntry({
       counterAccountId: counterId, merchant, occurredOn, isShared: shared,
       tabId: kind === 'expense' ? tabId : null,
       tabCoveredMinor: kind === 'expense' && tabId && coveredKeys ? fromKeys(coveredKeys) : null,
-      countsAsSpend: kind === 'expense' && tabId ? counts : null,
+      countsAsSpend: kind === 'expense' && tabId ? mine : null,
+      settles: settling.map((c) => c.id),
     };
     const clear = () => { setKeys(''); setCategoryId(null); setMerchant(''); setDupe(null); };
     /* Kept on the phone: the same tick as a save, because from where the
@@ -137,7 +154,7 @@ export default function AddEntry({
   // A transfer moves money and can never wear a category — the same rule the
   // database enforces, applied here so the field simply is not offered.
   const wantsCategory = kind !== 'transfer';
-  const canSave = minor > 0 && (!wantsCategory || categoryId !== null)
+  const canSave = minor > 0 && (!wantsCategory || categoryId !== null || allBack)
     && (kind !== 'transfer' || counterId !== null) && !pending;
 
   return (
@@ -214,7 +231,7 @@ export default function AddEntry({
           not see that it had five at all. */}
       <div style={{ padding: '6px 18px 10px', display: 'flex', flexDirection: 'column', gap: 7 }}>
         <span style={{ fontSize: 'var(--step--2)', fontWeight: 600, color: 'var(--c-meta)' }}>
-          {kind === 'transfer' ? 'Out of' : 'Paid with'}
+          {kind === 'transfer' ? 'Out of' : kind === 'income' ? 'Came in by' : 'Paid with'}
         </span>
         <div style={{ display: 'flex', gap: 8, overflowX: 'auto', scrollbarWidth: 'none' }}>
           {methods.map((m) => {
@@ -340,6 +357,81 @@ export default function AddEntry({
         </div>
       )}
 
+      {kind === 'income' && claims.length > 0 && (
+        <div style={{ padding: '2px 18px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <span style={{ fontSize: 'var(--step--2)', fontWeight: 600, color: 'var(--c-meta)' }}>
+            Clears what is owed
+          </span>
+          <div role="group" aria-label="Which entries this money clears" style={{
+            display: 'flex', flexDirection: 'column', borderRadius: 14,
+            background: 'var(--c-card)', border: '1px solid var(--c-border)', overflow: 'hidden',
+          }}>
+            {claims.map((c, i) => {
+              const on = settleIds.has(c.id);
+              const [bg, ink] = tintOf(c.tint);
+              return (
+                <button key={c.id} type="button" aria-pressed={on}
+                  onClick={() => {
+                    haptic('select');
+                    setSettleIds((s) => { const n = new Set(s); if (on) n.delete(c.id); else n.add(c.id); return n; });
+                  }}
+                  style={{
+                    minHeight: 54, padding: '6px 12px', display: 'flex', alignItems: 'center', gap: 11,
+                    textAlign: 'left', background: on ? 'var(--c-teal-l)' : 'transparent',
+                    color: 'var(--c-ink)',
+                    borderTop: i === 0 ? undefined : '1px solid var(--c-rule)',
+                  }}>
+                  <span aria-hidden style={{
+                    width: 22, height: 22, flex: 'none', borderRadius: 7, display: 'flex',
+                    alignItems: 'center', justifyContent: 'center',
+                    background: on ? 'var(--c-primary-hi)' : 'var(--c-sunk2)',
+                    border: `1px solid ${on ? 'var(--c-primary-hi)' : 'var(--c-border)'}`,
+                    color: 'var(--c-on-primary)',
+                  }}>
+                    {on && <Icon name="check" size={15} strokeWidth={2.6} />}
+                  </span>
+                  <span style={{
+                    width: 30, height: 30, flex: 'none', borderRadius: 999, display: 'flex',
+                    alignItems: 'center', justifyContent: 'center', fontSize: 'var(--step--2)',
+                    fontWeight: 700, background: bg, color: ink,
+                  }}>{c.person.slice(0, 2).toUpperCase()}</span>
+                  <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    <span style={{
+                      fontSize: 'var(--step--1)', fontWeight: 600, overflow: 'hidden',
+                      textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                    }}>{c.person} · {c.what}</span>
+                    <span style={{ fontSize: 'var(--step--2)', color: 'var(--c-meta)' }}>
+                      {friendly(c.on)}{c.tab ? ` · ${c.tab}` : ''}
+                    </span>
+                  </span>
+                  <span className="t" style={{ fontSize: 'var(--step--1)', color: 'var(--c-in)' }}>
+                    {format(c.outstanding)}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          {settling.length > 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <p style={{ flex: 1, margin: 0, fontSize: 'var(--step--2)', lineHeight: 1.45, color: 'var(--c-meta)' }}>
+                {minor <= 0
+                  ? `${format(owedBack)} owed across ${settling.length === 1 ? 'this entry' : `these ${settling.length}`}.`
+                  : minor <= owedBack
+                    ? `All ${format(minor)} is money back${minor < owedBack ? `, oldest first — ${format(owedBack - minor)} stays owed` : ''}. No category needed.`
+                    : `${format(owedBack)} is money back · ${format(minor - owedBack)} is income and needs a category.`}
+              </p>
+              {minor !== owedBack && (
+                <button type="button" onClick={() => { haptic('select'); setKeys(String(owedBack / 100)); }} style={{
+                  minHeight: 40, padding: '0 12px', borderRadius: 999, flex: 'none',
+                  fontSize: 'var(--step--2)', fontWeight: 600,
+                  background: 'var(--c-sunk)', color: 'var(--c-ink)',
+                }}>Use {format(owedBack)}</button>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
       {kind === 'expense' && tabs.length > 0 && (
         <div style={{ padding: '2px 18px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
           <div style={{ display: 'flex', gap: 8, overflowX: 'auto', scrollbarWidth: 'none' }}>
@@ -384,19 +476,36 @@ export default function AddEntry({
                   }}
                 />
               </label>
-              <label style={{
-                display: 'flex', alignItems: 'center', gap: 10, minHeight: 44, padding: '0 2px',
-                cursor: 'pointer',
-              }}>
-                <input type="checkbox" checked={counts ?? tab.counts_as_spending}
-                  onChange={(e) => { haptic('select'); setCounts(e.target.checked); }}
-                  style={{ width: 20, height: 20, margin: 0, flex: 'none', accentColor: 'var(--c-seagrass)' }} />
-                <span style={{ fontSize: 'var(--step--1)', fontWeight: 600 }}>
-                  Counts as my spending
-                </span>
-              </label>
+              {/* Two answers, both on screen, because a tab carries both kinds:
+                  the petrol you burned and are paid back for, and the ticket
+                  you fronted that was never yours. */}
+              <div role="group" aria-label="Was this your spending?" style={{ display: 'flex', gap: 8 }}>
+                {([
+                  [true, 'receivable', 'Mine, paid back', 'In the month and the charts'],
+                  [false, 'person', 'Lent, not mine', 'Owed back, counted nowhere'],
+                ] as const).map(([v, icon, label, what]) => {
+                  const on = mine === v;
+                  return (
+                    <button key={String(v)} type="button" aria-pressed={on}
+                      onClick={() => { haptic('select'); setCounts(v); }}
+                      style={{
+                        flex: 1, minHeight: 56, padding: '8px 12px', borderRadius: 13, textAlign: 'left',
+                        display: 'flex', alignItems: 'center', gap: 9,
+                        background: on ? 'var(--cat-purple-ink)' : 'var(--c-card)',
+                        color: on ? '#fff' : 'var(--c-ink)',
+                        border: `1px solid ${on ? 'var(--cat-purple-ink)' : 'var(--c-border)'}`,
+                      }}>
+                      <Icon name={icon} size={17} strokeWidth={1.9} />
+                      <span style={{ display: 'flex', flexDirection: 'column', gap: 1, minWidth: 0 }}>
+                        <span style={{ fontSize: 'var(--step--1)', fontWeight: 600 }}>{label}</span>
+                        <span style={{ fontSize: 'var(--step--2)', opacity: on ? 0.82 : 0.7, lineHeight: 1.3 }}>{what}</span>
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
               <p style={{ margin: 0, fontSize: 'var(--step--2)', lineHeight: 1.45, color: 'var(--c-meta)' }}>
-                {tabNote(tab, minor, coveredKeys ? fromKeys(coveredKeys) : minor, counts ?? tab.counts_as_spending)}
+                {tabNote(tab, minor, coveredKeys ? fromKeys(coveredKeys) : minor, mine)}
               </p>
             </>
           )}
@@ -512,24 +621,6 @@ function friendly(iso: string) {
   const same = d.getTime() === today.getTime();
   const s = d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
   return same ? `Today, ${s}` : s;
-}
-
-function Row({ label, value, hint, last, muted, onClick }: {
-  label: string; value: string; hint?: string; last?: boolean; muted?: boolean; onClick?: () => void;
-}) {
-  return (
-    <button onClick={onClick} style={{
-      display: 'flex', alignItems: 'center', gap: 12, width: '100%', minHeight: 56,
-      borderBottom: last ? undefined : '1px solid var(--c-rule)',
-    }}>
-      <span style={{ width: 92, flex: 'none', fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)' }}>{label}</span>
-      <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
-        <span style={{ fontSize: 'var(--step-0)', fontWeight: 600, color: muted ? 'var(--c-ph)' : undefined }}>{value}</span>
-        {hint && <span style={{ fontSize: 'var(--step--2)', color: 'var(--c-meta)' }}>{hint}</span>}
-      </span>
-      <Glyph d="M9 5l7 7-7 7" size={18} colour="var(--c-faint)" />
-    </button>
-  );
 }
 
 function Glyph({ d, size = 21, w = 2, colour }: { d: string; size?: number; w?: number; colour?: string }) {

@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
-import { actorOrNull, methodsFor, peopleForTab, tabById, tabEntries } from '@/db/queries';
+import { actorOrNull, methodsFor, openClaimsFor, peopleForTab, tabById, tabEntries } from '@/db/queries';
 import { format } from '@/lib/money';
 import { headerBg } from '../../auth-ui';
 import { Chip, Icon } from '../../Icon';
@@ -25,10 +25,11 @@ export default async function Tab({ params }: { params: Promise<{ id: string }> 
 
   const tab = await tabById(actor.household_id, id);
   if (!tab) notFound();
-  const [people, entries, methods] = await Promise.all([
+  const [people, entries, methods, open] = await Promise.all([
     peopleForTab(actor.household_id, tab.id),
     tabEntries(actor.household_id, tab.id),
     methodsFor(actor.household_id),
+    openClaimsFor(actor.household_id, tab.id),
   ]);
 
   const members = people.filter((p) => p.on_tab);
@@ -97,8 +98,12 @@ export default async function Tab({ params }: { params: Promise<{ id: string }> 
 
           <TabPeople
             tabId={tab.id} tabName={tab.name} note={tab.note}
-            countsAsSpending={tab.counts_as_spending} people={people} closed={!!tab.closed_at} canEdit={canEdit}
+            people={people} closed={!!tab.closed_at} canEdit={canEdit}
             methods={methods.map((m) => ({ id: m.id, name: m.name, funds: m.funds }))}
+            open={open.map((c) => ({
+              id: c.id, person_id: c.counterparty_id, what: c.what,
+              on: new Date(c.occurred_on).toISOString().slice(0, 10), outstanding: Number(c.outstanding),
+            }))}
             today={today}
           />
 
@@ -153,12 +158,10 @@ export default async function Tab({ params }: { params: Promise<{ id: string }> 
           }}>
             A cost put on this tab is owed back in full unless you say otherwise, divided
             equally among the people on it, and each share becomes a claim the moment it is
-            saved. Whether the cost was <em>your</em> spending is a separate question:
-            {' '}{tab.counts_as_spending
-              ? 'these are counted, because you bought and used the thing and are simply being paid back for it.'
-              : 'these are not counted, because the money left your account but was never yours to spend.'}
-            {' '}Either way, taking money back here brings it into whichever of your accounts
-            it actually arrived in.
+            saved. Whether the cost was <em>your</em> spending is a separate question, asked
+            of each entry: petrol you burned and are paid back for counts in your month;
+            a ticket you fronted for someone else does not. Either way, taking money back
+            here brings it into whichever of your accounts it actually arrived in.
           </p>
         </div>
       </main>

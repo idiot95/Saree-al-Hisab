@@ -1,0 +1,1 @@
+ALTER TABLE "ledger_book" DROP COLUMN "counts_as_spending";

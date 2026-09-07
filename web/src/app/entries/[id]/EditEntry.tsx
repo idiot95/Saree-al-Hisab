@@ -25,6 +25,9 @@ export default function EditEntry({ entry, categories, methods, canEdit }: {
     id: string; kind: string; amount: string; occurred_on: string;
     merchant: string | null; note: string | null; is_shared: boolean;
     category_id: string | null; payment_method_id: string | null;
+    counts_as_spend: boolean;
+    /** Somebody owes for it — on a tab, or with a claim — so "was it mine" is a live question. */
+    owed: boolean;
   };
   categories: Cat[]; methods: Method[]; canEdit: boolean;
 }) {
@@ -121,6 +124,23 @@ export default function EditEntry({ entry, categories, methods, canEdit }: {
           disabled={!canEdit} maxLength={80} placeholder="Where it went" />
         <Field label="Note" name="note" defaultValue={entry.note ?? ''}
           disabled={!canEdit} maxLength={200} placeholder="Anything worth remembering" />
+
+        {entry.owed && (
+          <label style={{
+            display: 'flex', alignItems: 'flex-start', gap: 11, minHeight: 48, padding: '0 2px',
+          }}>
+            <input type="checkbox" name="counts_as_spend" defaultChecked={entry.counts_as_spend}
+              disabled={!canEdit}
+              style={{ width: 20, height: 20, marginTop: 2, flex: 'none', accentColor: 'var(--c-seagrass)' }} />
+            <span style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>Counts as my spending</span>
+              <span style={{ fontSize: 'var(--step--2)', lineHeight: 1.4, color: 'var(--c-meta)' }}>
+                Ticked, it sits in the month and the charts even though it comes back. Unticked,
+                it was never yours — money fronted, owed back, counted nowhere.
+              </span>
+            </span>
+          </label>
+        )}
 
         <label style={{
           display: 'flex', alignItems: 'center', gap: 11, minHeight: 48, padding: '0 2px',

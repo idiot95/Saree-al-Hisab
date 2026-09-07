@@ -9,19 +9,21 @@ import {
   addToTab, removeFromTab, renameTab, toggleTabClosed, deleteTab, settleTab,
 } from '../actions';
 import { format } from '@/lib/money';
-import CountsChoice from '../CountsChoice';
+import NewPeople from '../NewPeople';
 
 type Person = {
   id: string; name: string; tint: string; on_tab: boolean;
   owed_in_all: string; back: string; owed: string;
 };
 type Method = { id: string; name: string; funds: string };
+/** One open claim on this tab: an entry somebody still owes for. */
+type Open = { id: string; person_id: string; what: string; on: string; outstanding: number };
 
 export default function TabPeople({
-  tabId, tabName, note, countsAsSpending, people, closed, canEdit, methods, today,
+  tabId, tabName, note, people, closed, canEdit, methods, open = [], today,
 }: {
-  tabId: string; tabName: string; note: string | null; countsAsSpending: boolean;
-  people: Person[]; closed: boolean; canEdit: boolean; methods: Method[]; today: string;
+  tabId: string; tabName: string; note: string | null;
+  people: Person[]; closed: boolean; canEdit: boolean; methods: Method[]; open?: Open[]; today: string;
 }) {
   const [, add] = useActionState(addToTab, null);
   const [, drop] = useActionState(removeFromTab, null);
@@ -46,6 +48,7 @@ export default function TabPeople({
           {onTab.map((p, i) => (
             <Member key={p.id} p={p} last={i === onTab.length - 1 && owing.length === 0}
               tabId={tabId} methods={methods} today={today} canEdit={canEdit}
+              entries={open.filter((c) => c.person_id === p.id)}
               open={settling === p.id} onOpen={() => setSettling(settling === p.id ? null : p.id)}>
               {canEdit && Number(p.owed) === 0 && (
                 <form action={drop}>
@@ -59,6 +62,7 @@ export default function TabPeople({
           {owing.map((p, i) => (
             <Member key={p.id} p={p} last={i === owing.length - 1} left
               tabId={tabId} methods={methods} today={today} canEdit={canEdit}
+              entries={open.filter((c) => c.person_id === p.id)}
               open={settling === p.id} onOpen={() => setSettling(settling === p.id ? null : p.id)} />
           ))}
         </section>
@@ -66,6 +70,15 @@ export default function TabPeople({
 
       {canEdit && (adding ? (
         <section className="el card" style={{ ...card, paddingTop: 4, paddingBottom: 4 }}>
+          <form action={add} style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: '12px 0 14px',
+            borderBottom: rest.length ? '1px solid var(--c-rule)' : undefined }}>
+            <input type="hidden" name="tabId" value={tabId} />
+            <NewPeople known={people.map((p) => p.name)} />
+            <button className="cta" type="submit" style={{
+              minHeight: 46, borderRadius: 12, fontSize: 'var(--step--1)', fontWeight: 600,
+              background: 'var(--g-primary)', color: 'var(--c-on-primary)',
+            }}>Add them to this tab</button>
+          </form>
           {rest.length === 0 ? (
             <p style={{ margin: 0, padding: '18px 0', textAlign: 'center', fontSize: 'var(--step--1)', color: 'var(--c-meta)' }}>
               Everyone you know is already on it.
@@ -104,7 +117,7 @@ export default function TabPeople({
       {canEdit && (
         <div style={{ margin: '4px 18px 0', display: 'flex', flexDirection: 'column', gap: 10 }}>
           {editing ? (
-            <EditTab tabId={tabId} name={tabName} note={note} counts={countsAsSpending}
+            <EditTab tabId={tabId} name={tabName} note={note}
               onDone={() => setEditing(false)} />
           ) : (
             <button className="cta" type="button" onClick={() => setEditing(true)} style={{
@@ -112,7 +125,7 @@ export default function TabPeople({
               background: 'var(--c-sunk)', color: 'var(--c-ink)',
             }}>
               <Icon name="pencil" size={17} strokeWidth={2} />
-              Rename or change how it counts
+              Rename this tab
             </button>
           )}
 
@@ -166,15 +179,20 @@ export default function TabPeople({
 /* One person's row: what is still to come back from them on this tab, and a
    Settle up that opens the form in place. The amount is left blank on purpose
    — blank is "all of it", which is what settling up usually means. */
-function Member({ p, last, left, tabId, methods, today, canEdit, open, onOpen, children }: {
+function Member({ p, last, left, tabId, methods, today, canEdit, entries = [], open, onOpen, children }: {
   p: Person; last: boolean; left?: boolean; tabId: string; methods: Method[]; today: string;
-  canEdit: boolean; open: boolean; onOpen: () => void; children?: React.ReactNode;
+  canEdit: boolean; entries?: Open[]; open: boolean; onOpen: () => void; children?: React.ReactNode;
 }) {
   const owed = Number(p.owed);
   const all = Number(p.owed_in_all);
   const back = Number(p.back);
   const [state, act, pending] = useActionState(settleTab, null);
   useEffect(() => { if (state?.ok) onOpen(); }, [state]); // eslint-disable-line react-hooks/exhaustive-deps
+  /* Which of their entries this money is for. Nothing ticked is all of them,
+     oldest first — the ordinary case, so it needs no taps. */
+  const [ticked, setTicked] = useState<Set<string>>(() => new Set());
+  const chosen = entries.filter((e) => ticked.has(e.id));
+  const target = chosen.length ? chosen.reduce((n, e) => n + e.outstanding, 0) : owed;
 
   return (
     <div style={{
@@ -218,8 +236,34 @@ function Member({ p, last, left, tabId, methods, today, canEdit, open, onOpen, c
         }}>
           <input type="hidden" name="tabId" value={tabId} />
           <input type="hidden" name="counterpartyId" value={p.id} />
-          <Field label={`Amount — blank settles all ${format(owed)}`} name="amount"
-            inputMode="decimal" placeholder={format(owed)} />
+          {entries.length > 1 && (
+            <fieldset style={{ border: 0, padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <legend style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)', padding: 0, marginBottom: 6 }}>
+                For which entries — none ticked means all of them
+              </legend>
+              {entries.map((e) => {
+                const on = ticked.has(e.id);
+                return (
+                  <label key={e.id} style={{
+                    display: 'flex', alignItems: 'center', gap: 10, minHeight: 44, cursor: 'pointer',
+                    fontSize: 'var(--step--1)',
+                  }}>
+                    <input type="checkbox" name="claimId" value={e.id} checked={on}
+                      onChange={(ev) => setTicked((s) => {
+                        const n = new Set(s); if (ev.target.checked) n.add(e.id); else n.delete(e.id); return n;
+                      })}
+                      style={{ width: 18, height: 18, margin: 0, flex: 'none', accentColor: 'var(--c-seagrass)' }} />
+                    <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {e.what} <span style={{ color: 'var(--c-meta)' }}>· {new Date(e.on + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</span>
+                    </span>
+                    <span className="t" style={{ fontSize: 'var(--step--1)' }}>{format(e.outstanding)}</span>
+                  </label>
+                );
+              })}
+            </fieldset>
+          )}
+          <Field label={`Amount — blank settles all ${format(target)}`} name="amount"
+            inputMode="decimal" placeholder={format(target)} />
           <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)' }}>Came in by</span>
             <select name="methodId" required style={select}>
@@ -236,8 +280,8 @@ function Member({ p, last, left, tabId, methods, today, canEdit, open, onOpen, c
             {pending ? 'Recording…' : 'Record what came back'}
           </button>
           <p style={{ margin: 0, fontSize: 'var(--step--2)', lineHeight: 1.45, color: 'var(--c-meta)' }}>
-            Goes against their oldest entries on this tab first. Recorded as money coming
-            back, not income — the spending stays in the month it happened.
+            {chosen.length ? 'Goes against the entries ticked, oldest first.' : 'Goes against their oldest entries on this tab first.'}
+            {' '}Recorded as money coming back, not income — the spending stays in the month it happened.
           </p>
         </form>
       )}
@@ -245,8 +289,8 @@ function Member({ p, last, left, tabId, methods, today, canEdit, open, onOpen, c
   );
 }
 
-function EditTab({ tabId, name, note, counts, onDone }: {
-  tabId: string; name: string; note: string | null; counts: boolean; onDone: () => void;
+function EditTab({ tabId, name, note, onDone }: {
+  tabId: string; name: string; note: string | null; onDone: () => void;
 }) {
   const [state, act, pending] = useActionState(renameTab, null);
   useEffect(() => { if (state?.ok) onDone(); }, [state]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -257,7 +301,6 @@ function EditTab({ tabId, name, note, counts, onDone }: {
     }}>
       <input type="hidden" name="tabId" value={tabId} />
       <Field label="Name" name="name" defaultValue={name} required maxLength={60} autoFocus />
-      <CountsChoice value={counts} />
       <Field label="Note (optional)" name="note" defaultValue={note ?? ''} maxLength={200} />
       {state && !state.ok && <ErrorNote>{state.error}</ErrorNote>}
       <div style={{ display: 'flex', gap: 9 }}>

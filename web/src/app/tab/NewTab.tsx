@@ -4,7 +4,7 @@ import { useActionState, useState } from 'react';
 import { Field, ErrorNote } from '../auth-ui';
 import { Icon } from '../Icon';
 import { createTab } from './actions';
-import CountsChoice from './CountsChoice';
+import NewPeople from './NewPeople';
 
 type Person = { id: string; name: string; tint: string };
 
@@ -39,14 +39,14 @@ export default function NewTab({ people }: { people: Person[] }) {
       margin: '0 var(--gutter) 22px', background: 'var(--c-card)', borderRadius: 18, padding: 16,
       display: 'flex', flexDirection: 'column', gap: 13,
     }}>
-      <Field label="Name" name="name" required maxLength={60}
-        placeholder="Office expenses" autoFocus />
+      <Field label="Name" name="name" maxLength={60}
+        placeholder="Office expenses — or leave blank to name it after them" autoFocus />
 
       <fieldset style={{ border: 0, padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
         <legend style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)', padding: 0, marginBottom: 8 }}>
           Who owes it back
         </legend>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+        {people.length > 0 && <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
           {people.map((p) => {
             const on = ticked.has(p.id);
             return (
@@ -68,15 +68,16 @@ export default function NewTab({ people }: { people: Person[] }) {
               </label>
             );
           })}
-        </div>
+        </div>}
+        <NewPeople known={people.map((p) => p.name)} />
         <p style={{ margin: 0, fontSize: 'var(--step--2)', lineHeight: 1.45, color: 'var(--c-meta)' }}>
           {ticked.size === 0
-            ? 'Tick who this tab is for. You can add more later.'
+            ? (people.length ? 'Tick who this tab is for, or name someone new. You can add more later.'
+              : 'Name who this tab is for — the office, a cousin, the insurer. You can add more later.')
             : `A cost on this tab is owed back by ${ticked.size === 1 ? 'them' : `these ${ticked.size}, in equal shares`}.`}
         </p>
       </fieldset>
 
-      <CountsChoice value />
       <Field label="Note (optional)" name="note" maxLength={200} />
       {state && !state.ok && <ErrorNote>{state.error}</ErrorNote>}
       <div style={{ display: 'flex', gap: 9 }}>

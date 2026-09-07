@@ -451,10 +451,13 @@ conflating them is the whole reason this took two goes. Petrol you burn for work
 is *both* — you consumed it, and the office pays you back. Rent you front for a
 cousin is *neither* — the money left your account and was never yours to spend.
 So the claim answers the first question and `txn.counts_as_spend` answers the
-second, and `spend_txn` reads that flag. A tab carries the usual answer
-(`ledger_book.counts_as_spending`), because it is a property of the arrangement
-far more often than of the receipt, and Add Entry offers the other answer for
-the receipt that does not fit.
+second, and `spend_txn` reads that flag. **The flag lives on the entry and
+nowhere else** — a tab-level default was tried and dropped (0020), because the
+same office tab carries the petrol you burned and the colleague's ticket you
+fronted. Add Entry asks on every cost put on a tab, with two answers side by
+side; `tabsForEntry.last_counts` (the last cost's answer on that tab) preselects
+one, and the entry page lets you revisit it, but only on a cost somebody owes
+for — untick it on a plain expense and it would simply vanish from the month.
 
 **The reimbursement source is just a counterparty.** "Office" and "Insurer" are
 people as far as the ledger is concerned, which is why none of this needed new
@@ -469,6 +472,24 @@ oldest entries whole. A balance is still the sum of the entries beneath it,
 whatever they count as, so a cost carried for someone still empties the account
 it left. Leaving a tab leaves what you already owe standing; closing is filing,
 not settling; deleting takes only the tab.
+
+**People are named, not picked from a list.** Opening a tab (and "Add someone"
+on it) takes ticked existing people *and* typed names; `people/ensure.ts`
+finds-or-creates each name inside the caller's transaction — case-insensitive
+match on a non-archived counterparty, else a `person` account plus a `friend`
+counterparty. A tab with no name and exactly one person is named after them.
+The phone's address book comes through the Contact Picker API
+(`navigator.contacts.select`), which exists on Chrome for Android and nowhere
+else, so the "Contacts" button appears only when the API does
+(`useSyncExternalStore`, server snapshot false) and the typed name is the
+primary path, never a fallback.
+
+**Money coming in can clear what is owed.** The income screen lists every open
+claim (`openClaimsFor`); tick some and the amount is spread across them oldest
+first as `claim_receipt` rows, and only what is left over is recorded as
+`income` — which is why a category is required only when there *is* a leftover.
+The same receipt path serves the tab page, where "Settle up" can be told which
+entries (`claimId[]`) the money was for; none ticked means all of them.
 
 **A charge on a card is a charge whoever bears it.** `txn_apply_method` filed
 only expenses into a billing cycle, so a cost laid out on a credit card raised

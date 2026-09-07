@@ -26,10 +26,17 @@ export type Draft = {
   /** How much of the amount comes back. Absent means all of it, which is the
       ordinary case; less leaves the rest owed by nobody. */
   tabCoveredMinor?: number | null;
-  /** Whether this was money you bore. Absent takes the tab's own answer.
-      Independent of what comes back: petrol burnt for work is your spending
-      and reimbursed; rent fronted for a cousin is neither. */
+  /** Whether this was money you bore. Asked of every cost on a tab and
+      independent of what comes back: petrol burnt for work is your spending
+      and reimbursed; rent fronted for a cousin is neither. Absent — only an
+      entry queued by an older build — is taken as yours, the safer error,
+      because a cost that shows in the month gets noticed and a cost that
+      vanishes from it does not. */
   countsAsSpend?: boolean | null;
+  /** On an income: the open claims this money clears. Each gets a receipt
+      for what it is owed, oldest first, and only what is left over — if
+      anything — is recorded as earning. */
+  settles?: string[];
   /* Only on an entry that waited on the phone for signal. The reference makes
      a second delivery of the same entry harmless; the household id lets the
      server refuse an entry typed under one sign-in and sent under another. */
@@ -93,9 +100,34 @@ export async function saveEntry(d: Draft): Promise<SaveResult> {
     where id = ${d.methodId} and household_id = ${household_id} and archived_at is null`;
   if (!method) return { ok: false, error: 'That payment method is not one of yours.' };
 
+  /* Money arriving against what people owe. The claims are checked to be this
+     household's and still open; the amount is spread across them oldest first;
+     and whatever is left over is the only part that is income. */
+  let settles: { id: string; outstanding: number }[] = [];
+  let leftover = d.amountMinor;
+  if (d.settles?.length) {
+    if (d.kind !== 'income') return { ok: false, error: 'Only money coming in can settle what is owed.' };
+    if (d.settles.length > 50 || d.settles.some((id) => !UUID.test(id))) {
+      return { ok: false, error: 'Those entries could not be read.' };
+    }
+    const open = await sql`
+      select cs.id, cs.outstanding::bigint
+      from claim_state cs join txn t on t.id = cs.txn_id and t.deleted_at is null
+      where cs.household_id = ${household_id} and cs.id = any(${d.settles}::uuid[])
+        and cs.status in ('open', 'part_paid')
+      order by t.occurred_on, t.created_at`;
+    if (open.length !== new Set(d.settles).size) {
+      return { ok: false, error: 'One of those is already settled. Reload and try again.' };
+    }
+    settles = open.map((c) => ({ id: c.id as string, outstanding: Number(c.outstanding) }));
+    leftover = Math.max(0, d.amountMinor - settles.reduce((n, c) => n + c.outstanding, 0));
+  }
+
   let categoryId: string | null = null;
-  if (d.kind !== 'transfer') {
-    if (!d.categoryId) return { ok: false, error: 'Choose a category.' };
+  if (d.kind !== 'transfer' && !(settles.length && leftover === 0)) {
+    if (!d.categoryId) {
+      return { ok: false, error: settles.length ? 'Choose a category for the part that is income.' : 'Choose a category.' };
+    }
     const [cat] = await sql`
       select id from category
       where id = ${d.categoryId} and household_id = ${household_id} and archived_at is null`;
@@ -114,7 +146,7 @@ export async function saveEntry(d: Draft): Promise<SaveResult> {
     if (d.kind !== 'expense') return { ok: false, error: 'Only a cost can be put on a tab.' };
     if (!UUID.test(d.tabId)) return { ok: false, error: 'That tab could not be read.' };
     const [b] = await sql`
-      select id, closed_at, counts_as_spending from ledger_book
+      select id, closed_at from ledger_book
       where id = ${d.tabId} and household_id = ${household_id}`;
     if (!b) return { ok: false, error: 'That tab is not one of yours.' };
     if (b.closed_at) return { ok: false, error: 'That tab is closed. Reopen it under Lending first.' };
@@ -131,7 +163,7 @@ export async function saveEntry(d: Draft): Promise<SaveResult> {
     if (covered > d.amountMinor) {
       return { ok: false, error: 'That is more than the amount itself.' };
     }
-    counts = d.countsAsSpend ?? b.counts_as_spending;
+    counts = d.countsAsSpend ?? true;
     tab = { id: b.id, members: members.map((m) => m.id as string) };
   }
 
@@ -150,6 +182,38 @@ export async function saveEntry(d: Draft): Promise<SaveResult> {
 
   try {
     const row = await sql.begin(async (tx) => {
+      if (settles.length) {
+        /* Receipts first, one per claim, until the money runs out; then the
+           remainder as income. All of it in one transaction, and the client
+           reference on the first row written, so a retry of the same delivery
+           finds it and stops. */
+        let left = d.amountMinor;
+        let first: string | null = null;
+        for (const c of settles) {
+          if (left <= 0) break;
+          const part = Math.min(left, c.outstanding);
+          const ref = first ? null : clientRef;
+          const [r] = await tx`insert into txn ${sql({
+            household_id, created_by: user_id, kind: 'claim_receipt', amount: part, currency: 'INR',
+            occurred_on: d.occurredOn, account_id: method.funding_account_id,
+            payment_method_id: method.id, claim_id: c.id, source: 'manual', client_ref: ref,
+          })} on conflict (household_id, client_ref) where client_ref is not null do nothing
+             returning id`;
+          if (!r) return null;
+          first ??= r.id as string;
+          left -= part;
+        }
+        if (left > 0) {
+          const [r] = await tx`insert into txn ${sql({
+            household_id, created_by: user_id, kind: 'income', amount: left, currency: 'INR',
+            occurred_on: d.occurredOn, account_id: method.funding_account_id,
+            category_id: categoryId, payment_method_id: method.id,
+            merchant: String(d.merchant ?? '').trim() || null, is_shared: d.isShared, source: 'manual',
+          })} returning id`;
+          first ??= r.id as string;
+        }
+        return first ? { id: first } : null;
+      }
       const [entry] = await tx`insert into txn ${sql({
         household_id,
         created_by: user_id,
@@ -184,6 +248,7 @@ export async function saveEntry(d: Draft): Promise<SaveResult> {
       return entry;
     });
     if (tab) { revalidatePath(`/tab/${tab.id}`); revalidatePath('/people'); revalidatePath('/worth'); }
+    if (settles.length) { revalidatePath('/people'); revalidatePath('/worth'); revalidatePath('/entries'); }
     revalidatePath('/');
     if (row) return { ok: true, id: row.id };
     /* Lost the race with our own retry: the other delivery landed between

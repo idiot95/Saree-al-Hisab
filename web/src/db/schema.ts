@@ -195,12 +195,11 @@ export const counterparty = pgTable('counterparty', {
 export const ledgerBook = pgTable('ledger_book', {
   id: uuid('id').primaryKey().defaultRandom(),
   householdId: uuid('household_id').notNull().references(() => household.id, { onDelete: 'cascade' }),
-  /* What costs on this tab usually are. An office tab is things you bought and
-     used and will be paid back for, so they count; a tab for money fronted to
-     family is not your spending at all. Set once here, overridable on the
-     entry, because the answer is a property of the arrangement far more often
-     than of the individual receipt. */
-  countsAsSpending: boolean('counts_as_spending').notNull().default(true),
+  /* No "counts as spending" here on purpose. Whether a cost was yours is a
+     property of the receipt, not the arrangement — the same office tab carries
+     petrol you burned (yours, reimbursed) and a colleague's ticket you fronted
+     (not yours) — so the question lives on txn.counts_as_spend and is asked
+     every time. */
   name: text('name').notNull(),
   note: text('note'),
   closedAt: timestamp('closed_at', { withTimezone: true }),

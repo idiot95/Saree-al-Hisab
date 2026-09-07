@@ -70,6 +70,8 @@ export default async function Entry({ params }: { params: Promise<{ id: string }
               occurred_on: new Date(entry.occurred_on).toISOString().slice(0, 10),
               merchant: entry.merchant, note: entry.note, is_shared: entry.is_shared,
               category_id: entry.category_id, payment_method_id: entry.payment_method_id,
+              counts_as_spend: entry.counts_as_spend,
+              owed: entry.kind === 'expense' && (!!entry.book_id || claims.length > 0),
             }}
             categories={cats.map((c) => ({
               category_id: c.id, name: c.name, tint: c.tint, icon: c.icon,

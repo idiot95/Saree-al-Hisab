@@ -360,7 +360,7 @@ export async function entriesFor(
 export async function entryById(householdId: string, id: string) {
   const [r] = await sql`
     select t.id, t.kind, t.amount::text, t.occurred_on, t.merchant, t.note, t.is_shared,
-           t.category_id, t.payment_method_id, t.counter_account_id,
+           t.category_id, t.payment_method_id, t.counter_account_id, t.book_id, t.counts_as_spend,
            c.name as category, c.tint, m.name as method,
            a.name as account, ca.name as counter_account, u.name as who, t.created_at
     from txn t
@@ -371,7 +371,8 @@ export async function entryById(householdId: string, id: string) {
     join app_user u on u.id = t.created_by
     where t.id = ${id} and t.household_id = ${householdId} and t.deleted_at is null`;
   return (r ?? null) as null | (EntryRow & {
-    payment_method_id: string | null; counter_account_id: string | null });
+    payment_method_id: string | null; counter_account_id: string | null;
+    book_id: string | null; counts_as_spend: boolean });
 }
 
 /* ── the khata: money lent, money owed ──────────────────────────────────── */
@@ -492,7 +493,7 @@ export async function owedByPerson(householdId: string) {
 /* ── tabs: people you cover costs for ───────────────────────────────────── */
 
 export type TabRow = {
-  id: string; name: string; note: string | null; counts_as_spending: boolean;
+  id: string; name: string; note: string | null;
   closed_at: Date | null; people: number; entries: number; outstanding: string;
 };
 
@@ -502,7 +503,7 @@ export type TabRow = {
  *  khata, which is the same arithmetic without the tab in the way. */
 export async function tabList(householdId: string) {
   return sql`
-    select b.id, b.name, b.note, b.closed_at, b.counts_as_spending,
+    select b.id, b.name, b.note, b.closed_at,
            (select count(*)::int from book_member bm where bm.book_id = b.id) as people,
            (select count(*)::int from txn t
              where t.book_id = b.id and t.deleted_at is null) as entries,
@@ -516,24 +517,29 @@ export async function tabList(householdId: string) {
 
 export async function tabById(householdId: string, id: string) {
   const [b] = await sql`
-    select id, name, note, closed_at, counts_as_spending from ledger_book
+    select id, name, note, closed_at from ledger_book
     where id = ${id} and household_id = ${householdId}`;
   return (b ?? null) as null | {
-    id: string; name: string; note: string | null;
-    counts_as_spending: boolean; closed_at: Date | null };
+    id: string; name: string; note: string | null; closed_at: Date | null };
 }
 
 /** The open tabs a cost can be put on — only those with someone on them,
- *  because money laid out for nobody is not laid out. */
+ *  because money laid out for nobody is not laid out. `last_counts` is what
+ *  the most recent cost on the tab answered to "was this my spending?" — the
+ *  question is asked afresh on every entry, but the last answer is the best
+ *  guess at the next, because petrol on the office tab is petrol every week. */
 export async function tabsForEntry(householdId: string) {
   return sql`
-    select b.id, b.name, b.counts_as_spending,
-           (select count(*)::int from book_member bm where bm.book_id = b.id) as people
+    select b.id, b.name,
+           (select count(*)::int from book_member bm where bm.book_id = b.id) as people,
+           (select t.counts_as_spend from txn t
+             where t.book_id = b.id and t.deleted_at is null
+             order by t.occurred_on desc, t.created_at desc limit 1) as last_counts
     from ledger_book b
     where b.household_id = ${householdId} and b.closed_at is null
       and exists (select 1 from book_member bm where bm.book_id = b.id)
     order by b.name
-  ` as Promise<{ id: string; name: string; people: number; counts_as_spending: boolean }[]>;
+  ` as Promise<{ id: string; name: string; people: number; last_counts: boolean | null }[]>;
 }
 
 /** Everyone in the household, flagged for whether they are on this tab, with
@@ -594,6 +600,30 @@ export async function tabEntries(householdId: string, tabId: string) {
                  counts_as_spend: boolean; incoming: boolean; owed_in_all: string;
                  outstanding: string; who: string; category: string | null;
                  icon: string | null; tint: string | null; people: string | null }[]>;
+}
+
+/** Every claim still open, across every tab and every person, for the moment
+ *  money arrives: the income screen lists these so the ₹10,000 that landed can
+ *  be pointed at the three entries it clears. Oldest first, which is the order
+ *  a part payment is spread in. */
+export type OpenClaim = {
+  id: string; counterparty_id: string; person: string; tint: string; tab: string | null;
+  what: string; occurred_on: Date; outstanding: string;
+};
+export async function openClaimsFor(householdId: string, tabId?: string) {
+  return sql`
+    select cs.id, cs.counterparty_id, cp.name as person, cp.tint, b.name as tab,
+           coalesce(t.merchant, c.name, 'Cost') as what,
+           t.occurred_on, cs.outstanding::text
+    from claim_state cs
+    join txn t on t.id = cs.txn_id and t.deleted_at is null
+    join counterparty cp on cp.id = cs.counterparty_id
+    left join ledger_book b on b.id = t.book_id
+    left join category c on c.id = t.category_id
+    where cs.household_id = ${householdId} and cs.status in ('open', 'part_paid')
+      ${tabId ? sql`and t.book_id = ${tabId}` : sql``}
+    order by t.occurred_on, t.created_at
+  ` as Promise<OpenClaim[]>;
 }
 
 /* ── trends ─────────────────────────────────────────────────────────────── */
