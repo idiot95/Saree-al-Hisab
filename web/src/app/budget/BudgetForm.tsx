@@ -114,7 +114,7 @@ export default function BudgetForm({ month, rows, canEdit }: {
                   </span>
                 )}
                 {spent > 0 ? (
-                  <Link href={`/entries?m=${month}&c=${r.category_id}`} style={{
+                  <Link transitionTypes={['nav-forward']} href={`/entries?m=${month}&c=${r.category_id}`} style={{
                     fontSize: 'var(--step--2)', textDecoration: 'none',
                     color: over ? 'var(--c-danger)' : 'var(--c-meta)', fontWeight: 600,
                   }}>

@@ -6,6 +6,8 @@ import { format, monthKey } from '@/lib/money';
 import { headerBg } from '../auth-ui';
 import TabBar, { TAB_BAR_SPACE } from '../TabBar';
 import { MonthBars, CategoryDonut } from './charts';
+import Screen from '../Screen';
+import SwipeBack from '../SwipeBack';
 
 export const metadata = { title: 'Trends · Quiet Ledger' };
 export const dynamic = 'force-dynamic';
@@ -43,108 +45,111 @@ export default async function Trends() {
   const nothing = sliceTotal === 0 && withSpend.length === 0;
 
   return (
-    <main style={{ minHeight: '100dvh', background: 'var(--c-bg)', paddingBottom: TAB_BAR_SPACE }}>
-      <header className="el2" style={{
-        background: headerBg('green'), color: '#fff', borderRadius: '0 0 28px 28px',
-        padding: '18px 20px 26px', display: 'flex', flexDirection: 'column', gap: 11,
-      }}>
-        <Link href="/" aria-label="Back" style={{
-          width: 44, height: 44, marginLeft: -11, borderRadius: 999, display: 'flex',
-          alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,.92)',
+    <Screen>
+      <SwipeBack to="/" />
+      <main style={{ minHeight: '100dvh', background: 'var(--c-bg)', paddingBottom: TAB_BAR_SPACE }}>
+        <header className="el2" style={{
+          background: headerBg('green'), color: '#fff', borderRadius: '0 0 28px 28px',
+          padding: '18px 20px 26px', display: 'flex', flexDirection: 'column', gap: 11,
         }}>
-          <svg width={21} height={21} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-            strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-            <path d="M15 5l-7 7 7 7" />
-          </svg>
-        </Link>
-        <h1 className="t" style={{ margin: 0, fontSize: 'var(--step-3)', letterSpacing: '-.018em' }}>Trends</h1>
-        {!nothing && (
-          <p style={{ margin: 0, fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'rgba(255,255,255,.84)' }}>
-            {average > 0 && `${format(average)} a month on average`}
-            {lastMonth > 0 && thisMonth > 0 && (
-              thisMonth > lastMonth
-                ? ` · ${format(thisMonth - lastMonth)} more than last month`
-                : ` · ${format(lastMonth - thisMonth)} less than last month`
-            )}
+          <Link href="/" transitionTypes={['nav-back']} aria-label="Back" style={{
+            width: 44, height: 44, marginLeft: -11, borderRadius: 999, display: 'flex',
+            alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,.92)',
+          }}>
+            <svg width={21} height={21} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M15 5l-7 7 7 7" />
+            </svg>
+          </Link>
+          <h1 className="t" style={{ margin: 0, fontSize: 'var(--step-3)', letterSpacing: '-.018em' }}>Trends</h1>
+          {!nothing && (
+            <p style={{ margin: 0, fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'rgba(255,255,255,.84)' }}>
+              {average > 0 && `${format(average)} a month on average`}
+              {lastMonth > 0 && thisMonth > 0 && (
+                thisMonth > lastMonth
+                  ? ` · ${format(thisMonth - lastMonth)} more than last month`
+                  : ` · ${format(lastMonth - thisMonth)} less than last month`
+              )}
+            </p>
+          )}
+        </header>
+
+        {nothing ? (
+          <p style={{
+            margin: '40px 34px', textAlign: 'center', fontSize: 'var(--step-0)', lineHeight: 1.55,
+            color: 'var(--c-meta)',
+          }}>
+            Nothing to chart yet. Record a few entries and this fills in.
           </p>
-        )}
-      </header>
-
-      {nothing ? (
-        <p style={{
-          margin: '40px 34px', textAlign: 'center', fontSize: 'var(--step-0)', lineHeight: 1.55,
-          color: 'var(--c-meta)',
-        }}>
-          Nothing to chart yet. Record a few entries and this fills in.
-        </p>
-      ) : (
-        <div style={{ padding: '20px 0 0', display: 'flex', flexDirection: 'column', gap: 22 }}>
-          <Card title="Six months">
-            <MonthBars points={series} />
-            <Table rows={series.map((p) => ({
-              key: p.month,
-              left: new Date(p.month).toLocaleDateString('en-IN', { month: 'long' }),
-              right: Number(p.spent) === 0 ? '—' : format(Number(p.spent)),
-              /* A month with nothing recorded is not a month you came in
-                 under budget — you simply did not record anything, and saying
-                 otherwise turns a gap in the data into a compliment. */
-              note: p.entries === 0
-                ? 'nothing recorded'
-                : Number(p.budget) > 0
-                  ? (Number(p.spent) > Number(p.budget)
-                      ? `${format(Number(p.spent) - Number(p.budget))} over`
-                      : `${format(Number(p.budget) - Number(p.spent))} under`)
-                  : undefined,
-              bad: p.entries > 0 && Number(p.budget) > 0 && Number(p.spent) > Number(p.budget),
-            }))} />
-          </Card>
-
-          {slices.length > 0 && (
-            <Card title="Where it went this month">
-              <CategoryDonut slices={slices} total={sliceTotal} />
+        ) : (
+          <div style={{ padding: '20px 0 0', display: 'flex', flexDirection: 'column', gap: 22 }}>
+            <Card title="Six months">
+              <MonthBars points={series} />
+              <Table rows={series.map((p) => ({
+                key: p.month,
+                left: new Date(p.month).toLocaleDateString('en-IN', { month: 'long' }),
+                right: Number(p.spent) === 0 ? '—' : format(Number(p.spent)),
+                /* A month with nothing recorded is not a month you came in
+                   under budget — you simply did not record anything, and saying
+                   otherwise turns a gap in the data into a compliment. */
+                note: p.entries === 0
+                  ? 'nothing recorded'
+                  : Number(p.budget) > 0
+                    ? (Number(p.spent) > Number(p.budget)
+                        ? `${format(Number(p.spent) - Number(p.budget))} over`
+                        : `${format(Number(p.budget) - Number(p.spent))} under`)
+                    : undefined,
+                bad: p.entries > 0 && Number(p.budget) > 0 && Number(p.spent) > Number(p.budget),
+              }))} />
             </Card>
-          )}
 
-          {movers.length > 0 && (
-            <Card title="Biggest changes on last month">
-              <ul style={{
-                margin: 0, padding: 0, listStyle: 'none',
-                display: 'flex', flexDirection: 'column',
-              }}>
-                {movers.map((m, i) => (
-                  <li key={m.id} style={{
-                    display: 'flex', alignItems: 'center', gap: 12, minHeight: 56,
-                    borderBottom: i === movers.length - 1 ? undefined : '1px solid var(--c-rule)',
-                  }}>
-                    <Chip icon={m.icon} tint={m.tint} size={34} radius={9} iconSize={17} />
-                    <Link href={`/entries?c=${m.id}`} style={{
-                      flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2,
-                      textDecoration: 'none', color: 'var(--c-ink)',
+            {slices.length > 0 && (
+              <Card title="Where it went this month">
+                <CategoryDonut slices={slices} total={sliceTotal} />
+              </Card>
+            )}
+
+            {movers.length > 0 && (
+              <Card title="Biggest changes on last month">
+                <ul style={{
+                  margin: 0, padding: 0, listStyle: 'none',
+                  display: 'flex', flexDirection: 'column',
+                }}>
+                  {movers.map((m, i) => (
+                    <li key={m.id} style={{
+                      display: 'flex', alignItems: 'center', gap: 12, minHeight: 56,
+                      borderBottom: i === movers.length - 1 ? undefined : '1px solid var(--c-rule)',
                     }}>
-                      <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>{m.name}</span>
-                      <span style={{ fontSize: 'var(--step--2)', color: 'var(--c-meta)' }}>
-                        {format(Number(m.before))} → {format(Number(m.now))}
+                      <Chip icon={m.icon} tint={m.tint} size={34} radius={9} iconSize={17} />
+                      <Link transitionTypes={['nav-forward']} href={`/entries?c=${m.id}`} style={{
+                        flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2,
+                        textDecoration: 'none', color: 'var(--c-ink)',
+                      }}>
+                        <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>{m.name}</span>
+                        <span style={{ fontSize: 'var(--step--2)', color: 'var(--c-meta)' }}>
+                          {format(Number(m.before))} → {format(Number(m.now))}
+                        </span>
+                      </Link>
+                      <span className="amt" style={{
+                        display: 'flex', alignItems: 'center', gap: 5, fontSize: 'var(--step--1)', fontWeight: 600,
+                        color: m.delta > 0 ? 'var(--c-danger)' : 'var(--c-ok)',
+                      }}>
+                        <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                          strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                          <path d={m.delta > 0 ? 'M12 19V5M6 11l6-6 6 6' : 'M12 5v14M6 13l6 6 6-6'} />
+                        </svg>
+                        {format(Math.abs(m.delta))}
                       </span>
-                    </Link>
-                    <span className="amt" style={{
-                      display: 'flex', alignItems: 'center', gap: 5, fontSize: 'var(--step--1)', fontWeight: 600,
-                      color: m.delta > 0 ? 'var(--c-danger)' : 'var(--c-ok)',
-                    }}>
-                      <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                        strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                        <path d={m.delta > 0 ? 'M12 19V5M6 11l6-6 6 6' : 'M12 5v14M6 13l6 6 6-6'} />
-                      </svg>
-                      {format(Math.abs(m.delta))}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </Card>
-          )}
-        </div>
-      )}
-      <TabBar current="/trends" />
-    </main>
+                    </li>
+                  ))}
+                </ul>
+              </Card>
+            )}
+          </div>
+        )}
+        <TabBar current="/trends" />
+      </main>
+    </Screen>
   );
 }
 

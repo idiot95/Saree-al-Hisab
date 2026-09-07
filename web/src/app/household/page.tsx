@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { actorOrNull, membersOf, openInvitesOf, scanningState } from '@/db/queries';
@@ -10,6 +11,8 @@ import PasswordCard from './PasswordCard';
 import ScanKey from './ScanKey';
 import { headerBg } from '../auth-ui';
 import BooksSwitcher from './BooksSwitcher';
+import Screen from '../Screen';
+import SwipeBack from '../SwipeBack';
 
 export const metadata = { title: 'Household · Quiet Ledger' };
 export const dynamic = 'force-dynamic';
@@ -39,133 +42,136 @@ export default async function Household() {
   const live = invites.filter((i) => !i.expired);
 
   return (
-    <main style={{ minHeight: '100dvh', background: 'var(--c-bg)', paddingBottom: TAB_BAR_SPACE }}>
-      <header className="el2" style={{
-        background: headerBg('slate'),
-        color: '#fff', borderRadius: '0 0 28px 28px', padding: '18px 20px 26px',
-        display: 'flex', flexDirection: 'column', gap: 12,
-      }}>
-        <a href="/" aria-label="Back" style={{
-          width: 44, height: 44, marginLeft: -11, borderRadius: 999, display: 'flex',
-          alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,.92)',
+    <Screen>
+      <SwipeBack to="/" />
+      <main style={{ minHeight: '100dvh', background: 'var(--c-bg)', paddingBottom: TAB_BAR_SPACE }}>
+        <header className="el2" style={{
+          background: headerBg('slate'),
+          color: '#fff', borderRadius: '0 0 28px 28px', padding: '18px 20px 26px',
+          display: 'flex', flexDirection: 'column', gap: 12,
         }}>
-          <svg width={21} height={21} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-            strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-            <path d="M15 5l-7 7 7 7" />
-          </svg>
-        </a>
-        <h1 className="t" style={{ margin: 0, fontSize: 'var(--step-3)', letterSpacing: '-.018em' }}>{name}</h1>
-        <p style={{ margin: 0, fontSize: 'var(--step--1)', color: 'rgba(255,255,255,.84)' }}>
-          {members.length} {members.length === 1 ? 'member' : 'members'}
-          {live.length > 0 && ` · ${live.length} invited`}
-        </p>
-      </header>
-
-      <p style={{
-        display: 'flex', alignItems: 'flex-start', gap: 10, margin: '18px 18px 22px',
-        padding: '13px 14px', borderRadius: 14, background: 'var(--cat-cyan)',
-        color: 'var(--cat-cyan-ink)', fontSize: 'var(--step--1)', lineHeight: 1.5,
-      }}>
-        <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-          strokeWidth={1.9} strokeLinecap="round" style={{ flex: 'none', marginTop: 2 }} aria-hidden>
-          <rect x="4.5" y="10" width="15" height="10.5" rx="2.5" />
-          <path d="M8 10V7.5a4 4 0 0 1 8 0V10" />
-        </svg>
-        <span>
-          Everyone in a household sees every entry and every budget.
-        </span>
-      </p>
-
-      <Head>Members</Head>
-      <Card pad="0 16px">
-        {members.map((m, i) => (
-          <MemberRow
-            key={m.id}
-            member={m}
-            canManage={canManage}
-            origin={origin}
-            isSelf={m.id === actor.user_id}
-            last={i === members.length - 1}
-          />
-        ))}
-      </Card>
-
-      {canManage && <InviteForm origin={origin} />}
-
-      <Head>Your households</Head>
-      <BooksSwitcher books={books} canRename={canManage} />
-
-      {invites.length > 0 && (
-        <>
-          <Head>Invited</Head>
-          <Card pad="0 16px">
-            {invites.map((iv, i) => (
-              <div key={iv.id} style={{
-                display: 'flex', alignItems: 'center', gap: 12, minHeight: 74,
-                borderBottom: i === invites.length - 1 ? undefined : '1px solid var(--c-rule)',
-              }}>
-                <span style={{
-                  width: 42, height: 42, flex: 'none', borderRadius: 999, display: 'flex',
-                  alignItems: 'center', justifyContent: 'center',
-                  background: iv.expired ? 'var(--c-danger-tint)' : 'var(--c-warn-tint)',
-                  color: iv.expired ? 'var(--c-danger)' : 'var(--c-warn)',
-                }}>
-                  <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                    strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                    <circle cx="12" cy="12" r="8.5" /><path d="M12 7.5V12l3 1.8" />
-                  </svg>
-                </span>
-                <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
-                  <span style={{
-                    fontSize: 'var(--step-0)', fontWeight: 600, overflow: 'hidden',
-                    textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                  }}>{iv.email}</span>
-                  <span style={{
-                    fontSize: 'var(--step--1)', color: iv.expired ? 'var(--c-danger)' : 'var(--c-meta)',
-                  }}>
-                    {LABEL[iv.role]} · {iv.expired ? 'expired' : `expires ${when(iv.expires_at)}`}
-                  </span>
-                </span>
-                {canManage && <RevokeButton id={iv.id} />}
-              </div>
-            ))}
-          </Card>
-        </>
-      )}
-
-      {canManage && (
-        <>
-          <Head>Scanning receipts</Head>
-          <ScanKey hasKey={scanning.has_key} setOn={scanning.set_on} />
-        </>
-      )}
-
-      <Head>Your account</Head>
-      <PasswordCard />
-
-      <Head>What each role can do</Head>
-      <Card pad="4px 16px">
-        {(['owner', 'adult', 'viewer'] as const).map((r, i) => (
-          <div key={r} style={{
-            display: 'flex', flexDirection: 'column', gap: 4, padding: '14px 0',
-            borderBottom: i === 2 ? undefined : '1px solid var(--c-rule)',
+          <Link href="/" transitionTypes={['nav-back']} aria-label="Back" style={{
+            width: 44, height: 44, marginLeft: -11, borderRadius: 999, display: 'flex',
+            alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,.92)',
           }}>
-            <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>{LABEL[r]}</span>
-            <span style={{ fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--c-meta)' }}>{WHAT[r]}</span>
-          </div>
-        ))}
-      </Card>
+            <svg width={21} height={21} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M15 5l-7 7 7 7" />
+            </svg>
+          </Link>
+          <h1 className="t" style={{ margin: 0, fontSize: 'var(--step-3)', letterSpacing: '-.018em' }}>{name}</h1>
+          <p style={{ margin: 0, fontSize: 'var(--step--1)', color: 'rgba(255,255,255,.84)' }}>
+            {members.length} {members.length === 1 ? 'member' : 'members'}
+            {live.length > 0 && ` · ${live.length} invited`}
+          </p>
+        </header>
 
-      {!canManage && (
         <p style={{
-          margin: '0 20px', fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--c-meta)',
-          textAlign: 'center',
+          display: 'flex', alignItems: 'flex-start', gap: 10, margin: '18px 18px 22px',
+          padding: '13px 14px', borderRadius: 14, background: 'var(--cat-cyan)',
+          color: 'var(--cat-cyan-ink)', fontSize: 'var(--step--1)', lineHeight: 1.5,
         }}>
-          Only an owner can invite or remove people.
+          <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            strokeWidth={1.9} strokeLinecap="round" style={{ flex: 'none', marginTop: 2 }} aria-hidden>
+            <rect x="4.5" y="10" width="15" height="10.5" rx="2.5" />
+            <path d="M8 10V7.5a4 4 0 0 1 8 0V10" />
+          </svg>
+          <span>
+            Everyone in a household sees every entry and every budget.
+          </span>
         </p>
-      )}
-      <TabBar current="/household" />
-    </main>
+
+        <Head>Members</Head>
+        <Card pad="0 16px">
+          {members.map((m, i) => (
+            <MemberRow
+              key={m.id}
+              member={m}
+              canManage={canManage}
+              origin={origin}
+              isSelf={m.id === actor.user_id}
+              last={i === members.length - 1}
+            />
+          ))}
+        </Card>
+
+        {canManage && <InviteForm origin={origin} />}
+
+        <Head>Your households</Head>
+        <BooksSwitcher books={books} canRename={canManage} />
+
+        {invites.length > 0 && (
+          <>
+            <Head>Invited</Head>
+            <Card pad="0 16px">
+              {invites.map((iv, i) => (
+                <div key={iv.id} style={{
+                  display: 'flex', alignItems: 'center', gap: 12, minHeight: 74,
+                  borderBottom: i === invites.length - 1 ? undefined : '1px solid var(--c-rule)',
+                }}>
+                  <span style={{
+                    width: 42, height: 42, flex: 'none', borderRadius: 999, display: 'flex',
+                    alignItems: 'center', justifyContent: 'center',
+                    background: iv.expired ? 'var(--c-danger-tint)' : 'var(--c-warn-tint)',
+                    color: iv.expired ? 'var(--c-danger)' : 'var(--c-warn)',
+                  }}>
+                    <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                      strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                      <circle cx="12" cy="12" r="8.5" /><path d="M12 7.5V12l3 1.8" />
+                    </svg>
+                  </span>
+                  <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
+                    <span style={{
+                      fontSize: 'var(--step-0)', fontWeight: 600, overflow: 'hidden',
+                      textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                    }}>{iv.email}</span>
+                    <span style={{
+                      fontSize: 'var(--step--1)', color: iv.expired ? 'var(--c-danger)' : 'var(--c-meta)',
+                    }}>
+                      {LABEL[iv.role]} · {iv.expired ? 'expired' : `expires ${when(iv.expires_at)}`}
+                    </span>
+                  </span>
+                  {canManage && <RevokeButton id={iv.id} />}
+                </div>
+              ))}
+            </Card>
+          </>
+        )}
+
+        {canManage && (
+          <>
+            <Head>Scanning receipts</Head>
+            <ScanKey hasKey={scanning.has_key} setOn={scanning.set_on} />
+          </>
+        )}
+
+        <Head>Your account</Head>
+        <PasswordCard />
+
+        <Head>What each role can do</Head>
+        <Card pad="4px 16px">
+          {(['owner', 'adult', 'viewer'] as const).map((r, i) => (
+            <div key={r} style={{
+              display: 'flex', flexDirection: 'column', gap: 4, padding: '14px 0',
+              borderBottom: i === 2 ? undefined : '1px solid var(--c-rule)',
+            }}>
+              <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>{LABEL[r]}</span>
+              <span style={{ fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--c-meta)' }}>{WHAT[r]}</span>
+            </div>
+          ))}
+        </Card>
+
+        {!canManage && (
+          <p style={{
+            margin: '0 20px', fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--c-meta)',
+            textAlign: 'center',
+          }}>
+            Only an owner can invite or remove people.
+          </p>
+        )}
+        <TabBar current="/household" />
+      </main>
+    </Screen>
   );
 }
 

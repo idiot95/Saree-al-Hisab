@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import AddEntry from './AddEntry';
 import { actorOrNull, categoriesFor, methodsFor, accountsFor } from '@/db/queries';
+import Screen from '../Screen';
 
 export const metadata = { title: 'New entry · Quiet Ledger' };
 export const dynamic = 'force-dynamic';
@@ -35,14 +36,16 @@ export default async function Page({ searchParams }: {
   };
 
   return (
-    <AddEntry
-      draft={draft}
-      categories={categories.map((c) => ({
-        id: c.id, name: c.name, tint: c.tint, icon: c.icon,
-      }))}
-      methods={methods.map((m) => ({ id: m.id, name: m.name, funds: m.funds }))}
-      accounts={accounts}
-      today={today}
-    />
+    <Screen>
+      <AddEntry
+        draft={draft}
+        categories={categories.map((c) => ({
+          id: c.id, name: c.name, tint: c.tint, icon: c.icon,
+        }))}
+        methods={methods.map((m) => ({ id: m.id, name: m.name, funds: m.funds }))}
+        accounts={accounts}
+        today={today}
+      />
+    </Screen>
   );
 }

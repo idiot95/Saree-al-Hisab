@@ -148,7 +148,7 @@ function Row({ p, last, children }: { p: Person; last: boolean; children?: React
         alignItems: 'center', justifyContent: 'center', fontSize: 'var(--step--1)', fontWeight: 700,
         background: bg, color: ink,
       }}>{p.name.slice(0, 2).toUpperCase()}</span>
-      <Link href={`/people/${p.id}`} style={{
+      <Link transitionTypes={['nav-forward']} href={`/people/${p.id}`} style={{
         flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2,
         textDecoration: 'none', color: 'var(--c-ink)',
       }}>

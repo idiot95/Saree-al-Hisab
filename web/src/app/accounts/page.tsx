@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { Chip, RAIL_ICON, RAIL_TINT, ACCOUNT_ICON, ACCOUNT_TINT } from '../Icon';
 import {
@@ -9,6 +10,8 @@ import TabBar, { TAB_BAR_SPACE } from '../TabBar';
 import AddAccount from './AddAccount';
 import AddMethod from './AddMethod';
 import { RetireAccount, MethodControls } from './Retire';
+import Screen from '../Screen';
+import SwipeBack from '../SwipeBack';
 
 export const metadata = { title: 'Accounts · Quiet Ledger' };
 export const dynamic = 'force-dynamic';
@@ -54,184 +57,187 @@ export default async function Accounts() {
   const needsMethods = accounts.length > 1 && methods.length <= 1;
 
   return (
-    <main style={{ minHeight: '100dvh', background: 'var(--c-bg)', paddingBottom: TAB_BAR_SPACE }}>
-      <header className="el2" style={{
-        background: headerBg('blue'), color: '#fff', borderRadius: '0 0 28px 28px',
-        padding: '18px 20px 30px', display: 'flex', flexDirection: 'column', gap: 12,
-      }}>
-        <a href="/" aria-label="Back" style={{
-          width: 44, height: 44, marginLeft: -11, borderRadius: 999, display: 'flex',
-          alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,.92)',
+    <Screen>
+      <SwipeBack to="/" />
+      <main style={{ minHeight: '100dvh', background: 'var(--c-bg)', paddingBottom: TAB_BAR_SPACE }}>
+        <header className="el2" style={{
+          background: headerBg('blue'), color: '#fff', borderRadius: '0 0 28px 28px',
+          padding: '18px 20px 30px', display: 'flex', flexDirection: 'column', gap: 12,
         }}>
-          <svg width={21} height={21} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-            strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-            <path d="M15 5l-7 7 7 7" />
-          </svg>
-        </a>
-        <p style={{ margin: 0, fontSize: 'var(--step--1)', color: 'rgba(255,255,255,.72)' }}>{name}</p>
-        <h1 className="t" style={{ margin: 0, fontSize: 'var(--step-3)', letterSpacing: '-.018em' }}>
-          Accounts
-        </h1>
-        <div style={{ display: 'flex', gap: 22, marginTop: 4 }}>
-          <span style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-            <span style={{ fontSize: 'var(--step--2)', color: 'rgba(255,255,255,.66)', letterSpacing: '.04em' }}>
-              BALANCE
-            </span>
-            <span className="t" style={{ fontSize: 'var(--step-3)', letterSpacing: '-.02em' }}>{format(have)}</span>
-          </span>
-          {cards.length > 0 && (
+          <Link href="/" transitionTypes={['nav-back']} aria-label="Back" style={{
+            width: 44, height: 44, marginLeft: -11, borderRadius: 999, display: 'flex',
+            alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,.92)',
+          }}>
+            <svg width={21} height={21} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M15 5l-7 7 7 7" />
+            </svg>
+          </Link>
+          <p style={{ margin: 0, fontSize: 'var(--step--1)', color: 'rgba(255,255,255,.72)' }}>{name}</p>
+          <h1 className="t" style={{ margin: 0, fontSize: 'var(--step-3)', letterSpacing: '-.018em' }}>
+            Accounts
+          </h1>
+          <div style={{ display: 'flex', gap: 22, marginTop: 4 }}>
             <span style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
               <span style={{ fontSize: 'var(--step--2)', color: 'rgba(255,255,255,.66)', letterSpacing: '.04em' }}>
-                OWED ON CARDS
+                BALANCE
               </span>
-              <span className="t" style={{ fontSize: 'var(--step-3)', letterSpacing: '-.02em' }}>
-                {format(Math.abs(owed))}
+              <span className="t" style={{ fontSize: 'var(--step-3)', letterSpacing: '-.02em' }}>{format(have)}</span>
+            </span>
+            {cards.length > 0 && (
+              <span style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                <span style={{ fontSize: 'var(--step--2)', color: 'rgba(255,255,255,.66)', letterSpacing: '.04em' }}>
+                  OWED ON CARDS
+                </span>
+                <span className="t" style={{ fontSize: 'var(--step-3)', letterSpacing: '-.02em' }}>
+                  {format(Math.abs(owed))}
+                </span>
               </span>
-            </span>
-          )}
-        </div>
-      </header>
-
-      <Head>Bank and cash</Head>
-      <Card>
-        {holdings.map((a, i) => (
-          <div key={a.id} style={{
-            display: 'flex', alignItems: 'center', gap: 12, minHeight: 76,
-            borderBottom: i === holdings.length - 1 ? undefined : '1px solid var(--c-rule)',
-          }}>
-            <Chip icon={ACCOUNT_ICON[a.kind]} tint={ACCOUNT_TINT[a.kind]} />
-            <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
-              <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>{a.name}</span>
-              <span style={{ fontSize: 'var(--step--1)', color: 'var(--c-meta)' }}>
-                {KIND_LABEL[a.kind]}{a.last4 && ` · ends ${a.last4}`}
-                {a.kind === 'savings' && ' · outside the budget'}
-              </span>
-            </span>
-            <span style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <span className="t n" style={{
-                fontSize: 'var(--step-1)', letterSpacing: '-.01em',
-                color: Number(a.balance) < 0 ? 'var(--c-danger)' : 'var(--c-ink)',
-              }}>{format(Number(a.balance))}</span>
-              {canWrite && <RetireAccount id={a.id} name={a.name} blocked={a.methods} />}
-            </span>
+            )}
           </div>
-        ))}
-        {holdings.length === 0 && <Empty>No accounts yet.</Empty>}
-      </Card>
+        </header>
 
-      {cards.length > 0 && (
-        <>
-          <Head>Cards</Head>
-          <Card>
-            {cards.map((a, i) => {
-              const cyc = cycleFor(a.id);
-              const used = Math.abs(Number(a.balance));
-              const limit = a.credit_limit ? Number(a.credit_limit) : null;
-              return (
-                <div key={a.id} style={{
-                  display: 'flex', flexDirection: 'column', gap: 10, padding: '15px 0',
-                  borderBottom: i === cards.length - 1 ? undefined : '1px solid var(--c-rule)',
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <Chip icon={ACCOUNT_ICON.credit} tint={ACCOUNT_TINT.credit} />
-                    <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
-                      <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>{a.name}</span>
-                      <span style={{ fontSize: 'var(--step--1)', color: 'var(--c-meta)' }}>
-                        {a.last4 ? `ends ${a.last4} · ` : ''}
-                        statement {a.statement_day ? nth(a.statement_day) : '—'},
-                        {' '}due {a.due_day ? nth(a.due_day) : '—'}
-                      </span>
-                    </span>
-                    <span className="t" style={{ fontSize: 'var(--step-1)', letterSpacing: '-.01em' }}>
-                      {format(used)}
-                    </span>
-                  </div>
+        <Head>Bank and cash</Head>
+        <Card>
+          {holdings.map((a, i) => (
+            <div key={a.id} style={{
+              display: 'flex', alignItems: 'center', gap: 12, minHeight: 76,
+              borderBottom: i === holdings.length - 1 ? undefined : '1px solid var(--c-rule)',
+            }}>
+              <Chip icon={ACCOUNT_ICON[a.kind]} tint={ACCOUNT_TINT[a.kind]} />
+              <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
+                <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>{a.name}</span>
+                <span style={{ fontSize: 'var(--step--1)', color: 'var(--c-meta)' }}>
+                  {KIND_LABEL[a.kind]}{a.last4 && ` · ends ${a.last4}`}
+                  {a.kind === 'savings' && ' · outside the budget'}
+                </span>
+              </span>
+              <span style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <span className="t n" style={{
+                  fontSize: 'var(--step-1)', letterSpacing: '-.01em',
+                  color: Number(a.balance) < 0 ? 'var(--c-danger)' : 'var(--c-ink)',
+                }}>{format(Number(a.balance))}</span>
+                {canWrite && <RetireAccount id={a.id} name={a.name} blocked={a.methods} />}
+              </span>
+            </div>
+          ))}
+          {holdings.length === 0 && <Empty>No accounts yet.</Empty>}
+        </Card>
 
-                  {limit && (
-                    <span style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-                      <span style={{
-                        height: 7, borderRadius: 999, background: 'var(--c-track)', overflow: 'hidden',
-                      }}>
-                        <span style={{
-                          display: 'block', height: '100%', borderRadius: 999,
-                          width: `${Math.min(100, (used / limit) * 100)}%`,
-                          background: used / limit > 0.8 ? 'var(--c-danger-fill)'
-                            : used / limit > 0.5 ? 'var(--c-warn-fill)' : 'var(--c-ok-fill)',
-                        }} />
-                      </span>
-                      <span style={{ fontSize: 'var(--step--2)', color: 'var(--c-meta)' }}>
-                        {format(limit - used)} of {format(limit)} still available
-                      </span>
-                    </span>
-                  )}
-
-                  <span style={{
-                    display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px',
-                    borderRadius: 11, background: 'var(--c-sunk2)', fontSize: 'var(--step--1)',
-                    lineHeight: 1.45, color: 'var(--c-meta)',
+        {cards.length > 0 && (
+          <>
+            <Head>Cards</Head>
+            <Card>
+              {cards.map((a, i) => {
+                const cyc = cycleFor(a.id);
+                const used = Math.abs(Number(a.balance));
+                const limit = a.credit_limit ? Number(a.credit_limit) : null;
+                return (
+                  <div key={a.id} style={{
+                    display: 'flex', flexDirection: 'column', gap: 10, padding: '15px 0',
+                    borderBottom: i === cards.length - 1 ? undefined : '1px solid var(--c-rule)',
                   }}>
-                    {cyc ? (
-                      <>
-                        <b style={{ color: 'var(--c-ink)' }}>{format(Number(cyc.charged))}</b>
-                        {' '}on this cycle from {cyc.entries} {cyc.entries === 1 ? 'entry' : 'entries'},
-                        {' '}due {new Date(cyc.due_on).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}.
-                      </>
-                    ) : (
-                      <>Nothing on this cycle yet.</>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <Chip icon={ACCOUNT_ICON.credit} tint={ACCOUNT_TINT.credit} />
+                      <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
+                        <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>{a.name}</span>
+                        <span style={{ fontSize: 'var(--step--1)', color: 'var(--c-meta)' }}>
+                          {a.last4 ? `ends ${a.last4} · ` : ''}
+                          statement {a.statement_day ? nth(a.statement_day) : '—'},
+                          {' '}due {a.due_day ? nth(a.due_day) : '—'}
+                        </span>
+                      </span>
+                      <span className="t" style={{ fontSize: 'var(--step-1)', letterSpacing: '-.01em' }}>
+                        {format(used)}
+                      </span>
+                    </div>
+
+                    {limit && (
+                      <span style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                        <span style={{
+                          height: 7, borderRadius: 999, background: 'var(--c-track)', overflow: 'hidden',
+                        }}>
+                          <span style={{
+                            display: 'block', height: '100%', borderRadius: 999,
+                            width: `${Math.min(100, (used / limit) * 100)}%`,
+                            background: used / limit > 0.8 ? 'var(--c-danger-fill)'
+                              : used / limit > 0.5 ? 'var(--c-warn-fill)' : 'var(--c-ok-fill)',
+                          }} />
+                        </span>
+                        <span style={{ fontSize: 'var(--step--2)', color: 'var(--c-meta)' }}>
+                          {format(limit - used)} of {format(limit)} still available
+                        </span>
+                      </span>
                     )}
-                  </span>
 
-                  {canWrite && (
-                    <span style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                      <RetireAccount id={a.id} name={a.name} blocked={a.methods} />
+                    <span style={{
+                      display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px',
+                      borderRadius: 11, background: 'var(--c-sunk2)', fontSize: 'var(--step--1)',
+                      lineHeight: 1.45, color: 'var(--c-meta)',
+                    }}>
+                      {cyc ? (
+                        <>
+                          <b style={{ color: 'var(--c-ink)' }}>{format(Number(cyc.charged))}</b>
+                          {' '}on this cycle from {cyc.entries} {cyc.entries === 1 ? 'entry' : 'entries'},
+                          {' '}due {new Date(cyc.due_on).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}.
+                        </>
+                      ) : (
+                        <>Nothing on this cycle yet.</>
+                      )}
                     </span>
-                  )}
-                </div>
-              );
-            })}
-          </Card>
-        </>
-      )}
 
-      {canWrite && <AddAccount startOpen={needsAccounts} />}
+                    {canWrite && (
+                      <span style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                        <RetireAccount id={a.id} name={a.name} blocked={a.methods} />
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+            </Card>
+          </>
+        )}
 
-      <Head>Payment methods</Head>
-      <p style={{
-        margin: '-4px 20px 12px', fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--c-meta)',
-      }}>
-        Each one draws on a single account, so spending is recorded against the right balance.
-      </p>
-      <Card>
-        {methods.map((m, i) => (
-          <div key={m.id} style={{
-            display: 'flex', alignItems: 'center', gap: 12, minHeight: 76,
-            borderBottom: i === methods.length - 1 ? undefined : '1px solid var(--c-rule)',
-          }}>
-            <Chip icon={RAIL_ICON[m.kind] ?? 'tag'} tint={RAIL_TINT[m.kind] ?? 'neutral'} size={40} />
-            <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
-              <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>{m.name}</span>
-              <span style={{ fontSize: 'var(--step--1)', color: 'var(--c-meta)' }}>
-                {m.funds}{m.handle && ` · ${m.handle}`}
-              </span>
-            </span>
-            {canWrite && <MethodControls id={m.id} isDefault={m.is_default} />}
-          </div>
-        ))}
-        {methods.length === 0 && <Empty>No payment methods yet.</Empty>}
-      </Card>
+        {canWrite && <AddAccount startOpen={needsAccounts} />}
 
-      {canWrite && <AddMethod startOpen={needsMethods}
-        accounts={accounts.map((a) => ({ id: a.id, name: a.name, kind: a.kind }))} />}
-
-      {!canWrite && (
+        <Head>Payment methods</Head>
         <p style={{
-          margin: '0 20px', fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--c-meta)', textAlign: 'center',
+          margin: '-4px 20px 12px', fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--c-meta)',
         }}>
-          Only owners and contributing members can change accounts.
+          Each one draws on a single account, so spending is recorded against the right balance.
         </p>
-      )}
-      <TabBar current="/accounts" />
-    </main>
+        <Card>
+          {methods.map((m, i) => (
+            <div key={m.id} style={{
+              display: 'flex', alignItems: 'center', gap: 12, minHeight: 76,
+              borderBottom: i === methods.length - 1 ? undefined : '1px solid var(--c-rule)',
+            }}>
+              <Chip icon={RAIL_ICON[m.kind] ?? 'tag'} tint={RAIL_TINT[m.kind] ?? 'neutral'} size={40} />
+              <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
+                <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>{m.name}</span>
+                <span style={{ fontSize: 'var(--step--1)', color: 'var(--c-meta)' }}>
+                  {m.funds}{m.handle && ` · ${m.handle}`}
+                </span>
+              </span>
+              {canWrite && <MethodControls id={m.id} isDefault={m.is_default} />}
+            </div>
+          ))}
+          {methods.length === 0 && <Empty>No payment methods yet.</Empty>}
+        </Card>
+
+        {canWrite && <AddMethod startOpen={needsMethods}
+          accounts={accounts.map((a) => ({ id: a.id, name: a.name, kind: a.kind }))} />}
+
+        {!canWrite && (
+          <p style={{
+            margin: '0 20px', fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--c-meta)', textAlign: 'center',
+          }}>
+            Only owners and contributing members can change accounts.
+          </p>
+        )}
+        <TabBar current="/accounts" />
+      </main>
+    </Screen>
   );
 }
 

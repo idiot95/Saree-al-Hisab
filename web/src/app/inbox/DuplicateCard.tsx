@@ -53,7 +53,7 @@ export default function DuplicateCard({ low, high, reason }: {
             display: 'flex', alignItems: 'center', gap: 11, padding: '11px 12px',
             borderRadius: 13, background: 'var(--c-sunk2)', border: '1px solid var(--c-border)',
           }}>
-            <Link href={`/entries/${s.id}`} style={{
+            <Link transitionTypes={['nav-forward']} href={`/entries/${s.id}`} style={{
               flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3,
               textDecoration: 'none', color: 'var(--c-ink)',
             }}>

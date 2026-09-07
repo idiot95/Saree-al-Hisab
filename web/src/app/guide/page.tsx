@@ -3,6 +3,8 @@ import { redirect } from 'next/navigation';
 import { actorOrNull } from '@/db/queries';
 import TabBar, { TAB_BAR_SPACE } from '../TabBar';
 import { headerBg } from '../auth-ui';
+import Screen from '../Screen';
+import SwipeBack from '../SwipeBack';
 
 export const metadata = { title: 'How it works · Quiet Ledger' };
 export const dynamic = 'force-dynamic';
@@ -157,72 +159,75 @@ export default async function Guide() {
   if (!actor) redirect('/signin');
 
   return (
-    <main style={{ minHeight: '100dvh', background: 'var(--c-bg)', paddingBottom: TAB_BAR_SPACE }}>
-      <header className="el2" style={{
-        background: headerBg('slate'), color: '#fff', borderRadius: '0 0 28px 28px',
-        padding: '18px 20px 28px', display: 'flex', flexDirection: 'column', gap: 11,
-      }}>
-        <Link href="/" aria-label="Back" style={{
-          width: 44, height: 44, marginLeft: -11, borderRadius: 999, display: 'flex',
-          alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,.92)',
+    <Screen>
+      <SwipeBack to="/" />
+      <main style={{ minHeight: '100dvh', background: 'var(--c-bg)', paddingBottom: TAB_BAR_SPACE }}>
+        <header className="el2" style={{
+          background: headerBg('slate'), color: '#fff', borderRadius: '0 0 28px 28px',
+          padding: '18px 20px 28px', display: 'flex', flexDirection: 'column', gap: 11,
         }}>
-          <svg width={21} height={21} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-            strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-            <path d="M15 5l-7 7 7 7" />
-          </svg>
-        </Link>
-        <h1 className="t" style={{ margin: 0, fontSize: 'var(--step-3)', letterSpacing: '-.018em' }}>
-          How it works
-        </h1>
-        <p style={{ margin: 0, fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'rgba(255,255,255,.82)' }}>
-          Fourteen things worth knowing. Five minutes.
-        </p>
-      </header>
-
-      <ol style={{ margin: 0, padding: '20px 18px 0', listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 14 }}>
-        {SECTIONS.map((s, i) => (
-          <li key={s.title} className="el" style={{
-            background: 'var(--c-card)', borderRadius: 18, padding: 16,
-            display: 'flex', flexDirection: 'column', gap: 10,
+          <Link href="/" transitionTypes={['nav-back']} aria-label="Back" style={{
+            width: 44, height: 44, marginLeft: -11, borderRadius: 999, display: 'flex',
+            alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,.92)',
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span style={{
-                width: 26, height: 26, flex: 'none', borderRadius: 999, display: 'flex',
-                alignItems: 'center', justifyContent: 'center', fontSize: 'var(--step--1)', fontWeight: 700,
-                background: 'var(--c-teal-l)', color: 'var(--c-teal)',
-              }}>{i + 1}</span>
-              <h2 style={{ margin: 0, fontSize: 'var(--step-0)', fontWeight: 600, letterSpacing: '-.01em' }}>
-                {s.title}
-              </h2>
-            </div>
-            <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 7 }}>
-              {s.lines.map((l) => (
-                <li key={l} style={{ display: 'flex', gap: 9, fontSize: 'var(--step--1)', lineHeight: 1.5 }}>
-                  <span style={{
-                    width: 5, height: 5, borderRadius: 999, background: 'var(--c-off)',
-                    flex: 'none', marginTop: 7,
-                  }} />
-                  <span>{l}</span>
-                </li>
-              ))}
-            </ul>
-            <Link href={s.href} style={{
-              minHeight: 46, borderRadius: 12, display: 'flex', alignItems: 'center',
-              justifyContent: 'center', textDecoration: 'none', fontSize: 'var(--step-0)', fontWeight: 600,
-              background: 'var(--c-sunk)', color: 'var(--c-ink)',
-            }}>{s.link}</Link>
-          </li>
-        ))}
-      </ol>
+            <svg width={21} height={21} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M15 5l-7 7 7 7" />
+            </svg>
+          </Link>
+          <h1 className="t" style={{ margin: 0, fontSize: 'var(--step-3)', letterSpacing: '-.018em' }}>
+            How it works
+          </h1>
+          <p style={{ margin: 0, fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'rgba(255,255,255,.82)' }}>
+            Fourteen things worth knowing. Five minutes.
+          </p>
+        </header>
 
-      <Link href="/" style={{
-        display: 'flex', margin: '20px 18px 0', minHeight: 52, borderRadius: 14,
-        alignItems: 'center', justifyContent: 'center', textDecoration: 'none',
-        fontSize: 'var(--step-0)', fontWeight: 600, color: '#fff',
-        background: 'radial-gradient(120% 100% at 25% 0%, rgba(255,255,255,.18) 0%, rgba(255,255,255,0) 60%),'
-          + 'linear-gradient(145deg,#2C5063 0%,#1C3541 100%)',
-      }}>Back to home</Link>
-      <TabBar current="/guide" />
-    </main>
+        <ol style={{ margin: 0, padding: '20px 18px 0', listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 14 }}>
+          {SECTIONS.map((s, i) => (
+            <li key={s.title} className="el" style={{
+              background: 'var(--c-card)', borderRadius: 18, padding: 16,
+              display: 'flex', flexDirection: 'column', gap: 10,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{
+                  width: 26, height: 26, flex: 'none', borderRadius: 999, display: 'flex',
+                  alignItems: 'center', justifyContent: 'center', fontSize: 'var(--step--1)', fontWeight: 700,
+                  background: 'var(--c-teal-l)', color: 'var(--c-teal)',
+                }}>{i + 1}</span>
+                <h2 style={{ margin: 0, fontSize: 'var(--step-0)', fontWeight: 600, letterSpacing: '-.01em' }}>
+                  {s.title}
+                </h2>
+              </div>
+              <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 7 }}>
+                {s.lines.map((l) => (
+                  <li key={l} style={{ display: 'flex', gap: 9, fontSize: 'var(--step--1)', lineHeight: 1.5 }}>
+                    <span style={{
+                      width: 5, height: 5, borderRadius: 999, background: 'var(--c-off)',
+                      flex: 'none', marginTop: 7,
+                    }} />
+                    <span>{l}</span>
+                  </li>
+                ))}
+              </ul>
+              <Link href={s.href} style={{
+                minHeight: 46, borderRadius: 12, display: 'flex', alignItems: 'center',
+                justifyContent: 'center', textDecoration: 'none', fontSize: 'var(--step-0)', fontWeight: 600,
+                background: 'var(--c-sunk)', color: 'var(--c-ink)',
+              }}>{s.link}</Link>
+            </li>
+          ))}
+        </ol>
+
+        <Link transitionTypes={['nav-back']} href="/" style={{
+          display: 'flex', margin: '20px 18px 0', minHeight: 52, borderRadius: 14,
+          alignItems: 'center', justifyContent: 'center', textDecoration: 'none',
+          fontSize: 'var(--step-0)', fontWeight: 600, color: '#fff',
+          background: 'radial-gradient(120% 100% at 25% 0%, rgba(255,255,255,.18) 0%, rgba(255,255,255,0) 60%),'
+            + 'linear-gradient(145deg,#2C5063 0%,#1C3541 100%)',
+        }}>Back to home</Link>
+        <TabBar current="/guide" />
+      </main>
+    </Screen>
   );
 }

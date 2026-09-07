@@ -44,7 +44,7 @@ export default function Claims({ claims, methods, canEdit }: {
             borderBottom: i === claims.length - 1 ? undefined : '1px solid var(--c-rule)',
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <Link href={`/entries/${c.txn_id}`} style={{
+              <Link transitionTypes={['nav-forward']} href={`/entries/${c.txn_id}`} style={{
                 flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3,
                 textDecoration: 'none', color: 'var(--c-ink)',
               }}>

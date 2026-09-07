@@ -17,7 +17,7 @@ export default function ScanForm({ canScan }: { canScan: boolean }) {
           Scanning needs a Google AI key, which is free and takes a minute to get. An owner
           adds it once under Household.
         </p>
-        <Link href="/household" style={{
+        <Link transitionTypes={['nav-forward']} href="/household" style={{
           minHeight: 48, borderRadius: 12, display: 'flex', alignItems: 'center',
           justifyContent: 'center', textDecoration: 'none', fontSize: 'var(--step-0)', fontWeight: 600,
           background: 'var(--c-seagrass)', color: 'var(--c-on-fill)',

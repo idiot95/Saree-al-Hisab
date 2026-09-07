@@ -43,10 +43,10 @@ export default function MonthSoFar({ month, rows, budget, spent }: {
         <h2 style={{ fontSize: 'var(--step-2)', fontWeight: 600, flex: 1 }}>
           {start.toLocaleDateString('en-IN', { month: 'long' })} so far
         </h2>
-        <Link href="/trends" style={{
+        <Link transitionTypes={['nav-forward']} href="/trends" style={{
           fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-teal)', textDecoration: 'none',
         }}>Trends</Link>
-        <Link href="/budget" style={{
+        <Link transitionTypes={['nav-lateral']} href="/budget" style={{
           fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-teal)', textDecoration: 'none',
         }}>Budget</Link>
       </div>
@@ -108,7 +108,7 @@ export default function MonthSoFar({ month, rows, budget, spent }: {
             const isOver = s > b;
             return (
               <li key={r.category_id}>
-                <Link href={`/entries?c=${r.category_id}`} style={{
+                <Link transitionTypes={['nav-forward']} href={`/entries?c=${r.category_id}`} style={{
                   display: 'flex', alignItems: 'center', gap: 10, minHeight: 44,
                   textDecoration: 'none',
                 }}>

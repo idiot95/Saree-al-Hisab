@@ -6,6 +6,8 @@ import { headerBg } from '../auth-ui';
 import TabBar, { TAB_BAR_SPACE } from '../TabBar';
 import AddPerson from './AddPerson';
 import NewBook from '../books/NewBook';
+import Screen from '../Screen';
+import SwipeBack from '../SwipeBack';
 
 export const metadata = { title: 'People · Quiet Ledger' };
 export const dynamic = 'force-dynamic';
@@ -42,126 +44,129 @@ export default async function People() {
   const open = people.filter(outstanding);
 
   return (
-    <main style={{ minHeight: '100dvh', background: 'var(--c-bg)', paddingBottom: TAB_BAR_SPACE }}>
-      <header className="el2" style={{
-        background: headerBg('purple'), color: '#fff', borderRadius: '0 0 28px 28px',
-        padding: '18px 20px 26px', display: 'flex', flexDirection: 'column', gap: 12,
-      }}>
-        <Link href="/" aria-label="Back" style={{
-          width: 44, height: 44, marginLeft: -11, borderRadius: 999, display: 'flex',
-          alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,.92)',
+    <Screen>
+      <SwipeBack to="/" />
+      <main style={{ minHeight: '100dvh', background: 'var(--c-bg)', paddingBottom: TAB_BAR_SPACE }}>
+        <header className="el2" style={{
+          background: headerBg('purple'), color: '#fff', borderRadius: '0 0 28px 28px',
+          padding: '18px 20px 26px', display: 'flex', flexDirection: 'column', gap: 12,
         }}>
-          <svg width={21} height={21} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-            strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-            <path d="M15 5l-7 7 7 7" />
-          </svg>
-        </Link>
-        <h1 className="t" style={{ margin: 0, fontSize: 'var(--step-3)', letterSpacing: '-.018em' }}>
-          Lending
-        </h1>
-        <div style={{ display: 'flex', gap: 24, marginTop: 2 }}>
-          <span style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-            <span style={{ fontSize: 'var(--step--2)', color: 'rgba(255,255,255,.66)', letterSpacing: '.04em' }}>
-              OWED TO YOU
-            </span>
-            <span className="t" style={{ fontSize: 'var(--step-3)', letterSpacing: '-.02em' }}>
-              {format(owedToYou + claimsTotal)}
-            </span>
-          </span>
-          {youOwe < 0 && (
+          <Link href="/" transitionTypes={['nav-back']} aria-label="Back" style={{
+            width: 44, height: 44, marginLeft: -11, borderRadius: 999, display: 'flex',
+            alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,.92)',
+          }}>
+            <svg width={21} height={21} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M15 5l-7 7 7 7" />
+            </svg>
+          </Link>
+          <h1 className="t" style={{ margin: 0, fontSize: 'var(--step-3)', letterSpacing: '-.018em' }}>
+            Lending
+          </h1>
+          <div style={{ display: 'flex', gap: 24, marginTop: 2 }}>
             <span style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
               <span style={{ fontSize: 'var(--step--2)', color: 'rgba(255,255,255,.66)', letterSpacing: '.04em' }}>
-                YOU OWE
+                OWED TO YOU
               </span>
               <span className="t" style={{ fontSize: 'var(--step-3)', letterSpacing: '-.02em' }}>
-                {format(-youOwe)}
+                {format(owedToYou + claimsTotal)}
               </span>
             </span>
+            {youOwe < 0 && (
+              <span style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                <span style={{ fontSize: 'var(--step--2)', color: 'rgba(255,255,255,.66)', letterSpacing: '.04em' }}>
+                  YOU OWE
+                </span>
+                <span className="t" style={{ fontSize: 'var(--step-3)', letterSpacing: '-.02em' }}>
+                  {format(-youOwe)}
+                </span>
+              </span>
+            )}
+          </div>
+          <p style={{ margin: 0, fontSize: 'var(--step--1)', lineHeight: 1.45, color: 'rgba(255,255,255,.78)' }}>
+            {claimsTotal > 0
+              ? `${format(owedToYou)} lent · ${format(claimsTotal)} owed for things you paid for`
+              : 'Money lent is not spending. It sits here until it comes back — or until you decide it will not.'}
+          </p>
+        </header>
+
+        <div style={{ paddingTop: 20 }}>
+          {open.length > 0 && <Head>Outstanding</Head>}
+          {open.length > 0 && <List people={open} claimed={claimed} />}
+
+          {canWrite && <AddPerson startOpen={people.length === 0} />}
+
+          {settled.length > 0 && (
+            <>
+              <Head>Settled up</Head>
+              <List people={settled} claimed={claimed} />
+            </>
+          )}
+
+          {people.length > 0 && (
+            <>
+              <Head>Books</Head>
+              <p style={{
+                margin: '-4px 20px 12px', fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--c-meta)',
+              }}>
+                Folders for people — the flat, a trip, office lunches — so you can see where a
+                whole group stands without adding it up yourself.
+              </p>
+              {books.length > 0 && (
+                <section className="el" style={{
+                  margin: '0 18px 16px', background: 'var(--c-card)', borderRadius: 18, padding: '0 16px',
+                }}>
+                  {books.map((b, i) => {
+                    const t = Number(b.lent) + Number(b.claimed);
+                    return (
+                      <Link key={b.id} href={`/books/${b.id}`} transitionTypes={['nav-forward']} style={{
+                        display: 'flex', alignItems: 'center', gap: 12, minHeight: 72,
+                        textDecoration: 'none', color: 'var(--c-ink)',
+                        opacity: b.closed_at ? 0.55 : 1,
+                        borderBottom: i === books.length - 1 ? undefined : '1px solid var(--c-rule)',
+                      }}>
+                        <span style={{
+                          width: 40, height: 40, flex: 'none', borderRadius: 11, display: 'flex',
+                          alignItems: 'center', justifyContent: 'center',
+                          background: b.kind === 'loan' ? 'var(--cat-indigo)' : 'var(--cat-cyan)',
+                          color: b.kind === 'loan' ? 'var(--cat-indigo-ink)' : 'var(--cat-cyan-ink)',
+                        }}>
+                          <svg width={19} height={19} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                            <path d="M3.5 7.5a2 2 0 0 1 2-2h3.6l1.8 2h7.6a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z" />
+                          </svg>
+                        </span>
+                        <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
+                          <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>{b.name}</span>
+                          <span style={{ fontSize: 'var(--step--2)', color: 'var(--c-meta)' }}>
+                            {b.people} {b.people === 1 ? 'person' : 'people'}
+                            {b.closed_at ? ' · closed' : ''}
+                          </span>
+                        </span>
+                        <span className="t" style={{ fontSize: 'var(--step-0)', color: t === 0 ? 'var(--c-meta)' : 'var(--c-ink)' }}>
+                          {t === 0 ? '—' : format(Math.abs(t))}
+                        </span>
+                      </Link>
+                    );
+                  })}
+                </section>
+              )}
+              {canWrite && <NewBook />}
+            </>
+          )}
+
+          {people.length === 0 && (
+            <p style={{
+              margin: '0 34px', textAlign: 'center', fontSize: 'var(--step--1)', lineHeight: 1.55,
+              color: 'var(--c-meta)',
+            }}>
+              Add someone you lend to or borrow from, and every rupee between you is tracked here.
+            </p>
           )}
         </div>
-        <p style={{ margin: 0, fontSize: 'var(--step--1)', lineHeight: 1.45, color: 'rgba(255,255,255,.78)' }}>
-          {claimsTotal > 0
-            ? `${format(owedToYou)} lent · ${format(claimsTotal)} owed for things you paid for`
-            : 'Money lent is not spending. It sits here until it comes back — or until you decide it will not.'}
-        </p>
-      </header>
-
-      <div style={{ paddingTop: 20 }}>
-        {open.length > 0 && <Head>Outstanding</Head>}
-        {open.length > 0 && <List people={open} claimed={claimed} />}
-
-        {canWrite && <AddPerson startOpen={people.length === 0} />}
-
-        {settled.length > 0 && (
-          <>
-            <Head>Settled up</Head>
-            <List people={settled} claimed={claimed} />
-          </>
-        )}
-
-        {people.length > 0 && (
-          <>
-            <Head>Books</Head>
-            <p style={{
-              margin: '-4px 20px 12px', fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--c-meta)',
-            }}>
-              Folders for people — the flat, a trip, office lunches — so you can see where a
-              whole group stands without adding it up yourself.
-            </p>
-            {books.length > 0 && (
-              <section className="el" style={{
-                margin: '0 18px 16px', background: 'var(--c-card)', borderRadius: 18, padding: '0 16px',
-              }}>
-                {books.map((b, i) => {
-                  const t = Number(b.lent) + Number(b.claimed);
-                  return (
-                    <Link key={b.id} href={`/books/${b.id}`} style={{
-                      display: 'flex', alignItems: 'center', gap: 12, minHeight: 72,
-                      textDecoration: 'none', color: 'var(--c-ink)',
-                      opacity: b.closed_at ? 0.55 : 1,
-                      borderBottom: i === books.length - 1 ? undefined : '1px solid var(--c-rule)',
-                    }}>
-                      <span style={{
-                        width: 40, height: 40, flex: 'none', borderRadius: 11, display: 'flex',
-                        alignItems: 'center', justifyContent: 'center',
-                        background: b.kind === 'loan' ? 'var(--cat-indigo)' : 'var(--cat-cyan)',
-                        color: b.kind === 'loan' ? 'var(--cat-indigo-ink)' : 'var(--cat-cyan-ink)',
-                      }}>
-                        <svg width={19} height={19} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                          strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                          <path d="M3.5 7.5a2 2 0 0 1 2-2h3.6l1.8 2h7.6a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z" />
-                        </svg>
-                      </span>
-                      <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
-                        <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>{b.name}</span>
-                        <span style={{ fontSize: 'var(--step--2)', color: 'var(--c-meta)' }}>
-                          {b.people} {b.people === 1 ? 'person' : 'people'}
-                          {b.closed_at ? ' · closed' : ''}
-                        </span>
-                      </span>
-                      <span className="t" style={{ fontSize: 'var(--step-0)', color: t === 0 ? 'var(--c-meta)' : 'var(--c-ink)' }}>
-                        {t === 0 ? '—' : format(Math.abs(t))}
-                      </span>
-                    </Link>
-                  );
-                })}
-              </section>
-            )}
-            {canWrite && <NewBook />}
-          </>
-        )}
-
-        {people.length === 0 && (
-          <p style={{
-            margin: '0 34px', textAlign: 'center', fontSize: 'var(--step--1)', lineHeight: 1.55,
-            color: 'var(--c-meta)',
-          }}>
-            Add someone you lend to or borrow from, and every rupee between you is tracked here.
-          </p>
-        )}
-      </div>
-      <TabBar current="/people" />
-    </main>
+        <TabBar current="/people" />
+      </main>
+    </Screen>
   );
 }
 
@@ -186,7 +191,7 @@ function List({ people, claimed }: {
         const total = bal + (claimed.get(p.id) ?? 0);
         const [bg, ink] = TINT[p.tint] ?? ['var(--cat-neutral)', 'var(--cat-neutral-ink)'];
         return (
-          <Link key={p.id} href={`/people/${p.id}`} style={{
+          <Link key={p.id} href={`/people/${p.id}`} transitionTypes={['nav-forward']} style={{
             display: 'flex', alignItems: 'center', gap: 12, minHeight: 74,
             textDecoration: 'none', color: 'var(--c-ink)',
             borderBottom: i === people.length - 1 ? undefined : '1px solid var(--c-rule)',

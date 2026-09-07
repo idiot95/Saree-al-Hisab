@@ -5,6 +5,8 @@ import { actorOrNull, allBalances, owedByPerson, worthSeries } from '@/db/querie
 import { format } from '@/lib/money';
 import { headerBg } from '../auth-ui';
 import TabBar, { TAB_BAR_SPACE } from '../TabBar';
+import Screen from '../Screen';
+import SwipeBack from '../SwipeBack';
 
 export const metadata = { title: 'Net worth · Quiet Ledger' };
 export const dynamic = 'force-dynamic';
@@ -41,99 +43,102 @@ export default async function Worth() {
   const first = points[0], last = points[points.length - 1];
 
   return (
-    <main style={{ minHeight: '100dvh', background: 'var(--c-bg)', paddingBottom: TAB_BAR_SPACE }}>
-      <header className="el2" style={{
-        background: headerBg('green'), color: '#fff', borderRadius: '0 0 28px 28px',
-        padding: '18px 20px 26px', display: 'flex', flexDirection: 'column', gap: 10,
-      }}>
-        <Link href="/" aria-label="Back" style={{
-          width: 44, height: 44, marginLeft: -11, borderRadius: 999, display: 'flex',
-          alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,.92)',
+    <Screen>
+      <SwipeBack to="/" />
+      <main style={{ minHeight: '100dvh', background: 'var(--c-bg)', paddingBottom: TAB_BAR_SPACE }}>
+        <header className="el2" style={{
+          background: headerBg('green'), color: '#fff', borderRadius: '0 0 28px 28px',
+          padding: '18px 20px 26px', display: 'flex', flexDirection: 'column', gap: 10,
         }}>
-          <svg width={21} height={21} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-            strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-            <path d="M15 5l-7 7 7 7" />
-          </svg>
-        </Link>
-        <h1 style={{ margin: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <span style={{
-            fontSize: 'var(--step--2)', fontWeight: 600, letterSpacing: '.05em',
-            color: 'rgba(255,255,255,.66)',
-          }}>NET WORTH</span>
-          <span className="t" style={{
-            fontSize: 'var(--step-4)', letterSpacing: '-.024em', lineHeight: 1,
-            color: worth < 0 ? 'var(--c-danger-fill)' : '#fff',
-          }}>{format(worth)}</span>
-        </h1>
-        <p style={{ margin: 0, fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'rgba(255,255,255,.82)' }}>
-          Everything you hold, less everything you owe. Money lent to people counts as yours,
-          because it is.
-        </p>
-      </header>
-
-      <div style={{ paddingTop: 20, display: 'flex', flexDirection: 'column', gap: 22 }}>
-        {savings !== 0 && (
-          <section className="el" style={{
-            margin: '0 18px', background: 'var(--c-card)', borderRadius: 18, padding: 16,
-            display: 'flex', alignItems: 'center', gap: 14,
+          <Link href="/" transitionTypes={['nav-back']} aria-label="Back" style={{
+            width: 44, height: 44, marginLeft: -11, borderRadius: 999, display: 'flex',
+            alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,.92)',
           }}>
-            <Chip icon={ACCOUNT_ICON.savings} tint={ACCOUNT_TINT.savings} size={44} radius={12} />
-            <span style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 3 }}>
-              <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>In savings</span>
-              <span style={{ fontSize: 'var(--step--1)', lineHeight: 1.45, color: 'var(--c-meta)' }}>
-                Outside the monthly budget. Moving money here is not spending it.
-              </span>
-            </span>
-            <span className="t" style={{ fontSize: 'var(--step-2)' }}>{format(savings)}</span>
-          </section>
-        )}
-
-        <Section title="Held in accounts, month by month">
-          <Sparkline points={points} lo={lo} hi={hi} months={series.map((p) => p.month)} />
-          <p style={{
-            margin: '12px 0 0', fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--c-meta)',
-          }}>
-            {first === last
-              ? 'Level over the last six months.'
-              : last > first
-                ? `${format(last - first)} more than six months ago.`
-                : `${format(first - last)} less than six months ago.`}
-            {claims > 0 && ' Accounts only — money owed to you for shared costs is in the figure above but not in this line, because what was outstanding on a date months ago is not something the app kept.'}
+            <svg width={21} height={21} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M15 5l-7 7 7 7" />
+            </svg>
+          </Link>
+          <h1 style={{ margin: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <span style={{
+              fontSize: 'var(--step--2)', fontWeight: 600, letterSpacing: '.05em',
+              color: 'rgba(255,255,255,.66)',
+            }}>NET WORTH</span>
+            <span className="t" style={{
+              fontSize: 'var(--step-4)', letterSpacing: '-.024em', lineHeight: 1,
+              color: worth < 0 ? 'var(--c-danger-fill)' : '#fff',
+            }}>{format(worth)}</span>
+          </h1>
+          <p style={{ margin: 0, fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'rgba(255,255,255,.82)' }}>
+            Everything you hold, less everything you owe. Money lent to people counts as yours,
+            because it is.
           </p>
-        </Section>
+        </header>
 
-        <Section title="What you have">
-          <Rows rows={[
-            ...assets.map((a) => ({
-              key: a.id,
-              label: a.name,
-              note: GROUP[a.kind] ?? a.kind,
-              value: Number(a.balance),
-              icon: ACCOUNT_ICON[a.kind] ?? 'tag',
-              tint: ACCOUNT_TINT[a.kind] ?? 'neutral',
-            })),
-            ...(claims > 0 ? [{
-              key: 'claims', label: 'Owed for shared costs', note: 'People', value: claims,
-              icon: 'person', tint: 'indigo',
-            }] : []),
-          ]} total={assetTotal} />
-        </Section>
+        <div style={{ paddingTop: 20, display: 'flex', flexDirection: 'column', gap: 22 }}>
+          {savings !== 0 && (
+            <section className="el" style={{
+              margin: '0 18px', background: 'var(--c-card)', borderRadius: 18, padding: 16,
+              display: 'flex', alignItems: 'center', gap: 14,
+            }}>
+              <Chip icon={ACCOUNT_ICON.savings} tint={ACCOUNT_TINT.savings} size={44} radius={12} />
+              <span style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 3 }}>
+                <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>In savings</span>
+                <span style={{ fontSize: 'var(--step--1)', lineHeight: 1.45, color: 'var(--c-meta)' }}>
+                  Outside the monthly budget. Moving money here is not spending it.
+                </span>
+              </span>
+              <span className="t" style={{ fontSize: 'var(--step-2)' }}>{format(savings)}</span>
+            </section>
+          )}
 
-        {debts.length > 0 && (
-          <Section title="What you owe">
-            <Rows rows={debts.map((a) => ({
-              key: a.id,
-              label: a.name + (a.last4 ? ` · ${a.last4}` : ''),
-              note: GROUP[a.kind] ?? a.kind,
-              value: Number(a.balance),
-              icon: ACCOUNT_ICON[a.kind] ?? 'card',
-              tint: ACCOUNT_TINT[a.kind] ?? 'orange',
-            }))} total={debtTotal} negative />
+          <Section title="Held in accounts, month by month">
+            <Sparkline points={points} lo={lo} hi={hi} months={series.map((p) => p.month)} />
+            <p style={{
+              margin: '12px 0 0', fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--c-meta)',
+            }}>
+              {first === last
+                ? 'Level over the last six months.'
+                : last > first
+                  ? `${format(last - first)} more than six months ago.`
+                  : `${format(first - last)} less than six months ago.`}
+              {claims > 0 && ' Accounts only — money owed to you for shared costs is in the figure above but not in this line, because what was outstanding on a date months ago is not something the app kept.'}
+            </p>
           </Section>
-        )}
-      </div>
-      <TabBar current="/worth" />
-    </main>
+
+          <Section title="What you have">
+            <Rows rows={[
+              ...assets.map((a) => ({
+                key: a.id,
+                label: a.name,
+                note: GROUP[a.kind] ?? a.kind,
+                value: Number(a.balance),
+                icon: ACCOUNT_ICON[a.kind] ?? 'tag',
+                tint: ACCOUNT_TINT[a.kind] ?? 'neutral',
+              })),
+              ...(claims > 0 ? [{
+                key: 'claims', label: 'Owed for shared costs', note: 'People', value: claims,
+                icon: 'person', tint: 'indigo',
+              }] : []),
+            ]} total={assetTotal} />
+          </Section>
+
+          {debts.length > 0 && (
+            <Section title="What you owe">
+              <Rows rows={debts.map((a) => ({
+                key: a.id,
+                label: a.name + (a.last4 ? ` · ${a.last4}` : ''),
+                note: GROUP[a.kind] ?? a.kind,
+                value: Number(a.balance),
+                icon: ACCOUNT_ICON[a.kind] ?? 'card',
+                tint: ACCOUNT_TINT[a.kind] ?? 'orange',
+              }))} total={debtTotal} negative />
+            </Section>
+          )}
+        </div>
+        <TabBar current="/worth" />
+      </main>
+    </Screen>
   );
 }
 

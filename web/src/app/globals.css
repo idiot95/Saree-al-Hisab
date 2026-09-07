@@ -116,6 +116,71 @@
     font-variant-numeric: tabular-nums slashed-zero lining-nums;
   }
 
+  /* ── Motion ────────────────────────────────────────────────────────────
+     Route changes are animated with the browser's View Transitions API, so
+     the work is done by the compositor on snapshots the browser already
+     took. No animation library, no JS measuring positions on every frame,
+     and nothing to run on the main thread while a screen is arriving. */
+
+  /* The overlay swallows taps for as long as it is up. On a bank of tiles
+     people tap in quick succession, a quarter of a second of dead screen is
+     felt as the app being slow, so let clicks through to the live page. */
+  ::view-transition { pointer-events: none; }
+
+  /* The bar is the one fixed point on the screen. If it slid with the
+     content there would be nothing left to be oriented BY. */
+  ::view-transition-group(tab-bar) { animation: none; z-index: 100; }
+  ::view-transition-old(tab-bar)   { display: none; }
+  ::view-transition-new(tab-bar)   { animation: none; }
+
+  /* Asymmetric on purpose: the screen you are leaving goes quickly so it
+     stops competing for attention, and the one you are arriving at comes in
+     more slowly so there is time to read it. 60px is far enough to show a
+     direction and near enough that the eye is not asked to track it. */
+  ::view-transition-old(.nav-forward) {
+    --slide: -60px;
+    animation: 150ms ease-in both vt-fade reverse, 380ms ease-in-out both vt-slide reverse;
+  }
+  ::view-transition-new(.nav-forward) {
+    --slide: 60px;
+    animation: 210ms ease-out 130ms both vt-fade, 380ms ease-in-out both vt-slide;
+  }
+  ::view-transition-old(.nav-back) {
+    --slide: 60px;
+    animation: 150ms ease-in both vt-fade reverse, 380ms ease-in-out both vt-slide reverse;
+  }
+  ::view-transition-new(.nav-back) {
+    --slide: -60px;
+    animation: 210ms ease-out 130ms both vt-fade, 380ms ease-in-out both vt-slide;
+  }
+
+  /* Sideways, at the same depth. No horizontal travel at all, so it can
+     never be mistaken for going deeper or coming back — just a short lift
+     and a fade, which is the smallest movement that still registers. */
+  ::view-transition-old(.nav-lateral) {
+    animation: 120ms ease-in both vt-fade reverse, 220ms ease-in both vt-lift reverse;
+  }
+  ::view-transition-new(.nav-lateral) {
+    animation: 200ms ease-out 100ms both vt-fade, 280ms ease-out both vt-lift;
+  }
+
+  @keyframes vt-lift  { from { translate: 0 7px } to { translate: 0 } }
+  @keyframes vt-fade  { from { opacity: 0 } to { opacity: 1 } }
+  @keyframes vt-slide { from { translate: var(--slide) } to { translate: 0 } }
+
+  /* Movement across the viewport is the commonest trigger for motion
+     sickness, and this app is used by whoever is in the household — not
+     only by people who tolerate it. The setting is honoured completely:
+     content still swaps, it just stops travelling to get there. */
+  @media (prefers-reduced-motion: reduce) {
+    ::view-transition-group(*),
+    ::view-transition-old(*),
+    ::view-transition-new(*) {
+      animation-duration: 1ms !important;
+      animation-delay: 0ms !important;
+    }
+  }
+
   .el  { box-shadow: var(--el); }
   .el2 { box-shadow: var(--el2); }
 

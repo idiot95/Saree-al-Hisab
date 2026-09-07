@@ -6,6 +6,7 @@ import {
 import { headerBg } from '../../auth-ui';
 import EditEntry from './EditEntry';
 import OwedFor from './OwedFor';
+import Screen from '../../Screen';
 
 export const metadata = { title: 'Entry · Quiet Ledger' };
 export const dynamic = 'force-dynamic';
@@ -38,62 +39,64 @@ export default async function Entry({ params }: { params: Promise<{ id: string }
   });
 
   return (
-    <main style={{ minHeight: '100dvh', background: 'var(--c-bg)', paddingBottom: 44 }}>
-      <header className="el2" style={{
-        background: headerBg('indigo'), color: '#fff', borderRadius: '0 0 26px 26px',
-        padding: '18px 20px 22px', display: 'flex', flexDirection: 'column', gap: 10,
-      }}>
-        <Link href="/entries" aria-label="Back to entries" style={{
-          width: 44, height: 44, marginLeft: -11, borderRadius: 999, display: 'flex',
-          alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,.92)',
+    <Screen>
+      <main style={{ minHeight: '100dvh', background: 'var(--c-bg)', paddingBottom: 44 }}>
+        <header className="el2" style={{
+          background: headerBg('indigo'), color: '#fff', borderRadius: '0 0 26px 26px',
+          padding: '18px 20px 22px', display: 'flex', flexDirection: 'column', gap: 10,
         }}>
-          <svg width={21} height={21} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-            strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-            <path d="M15 5l-7 7 7 7" />
-          </svg>
-        </Link>
-        <h1 className="t" style={{ margin: 0, fontSize: 'var(--step-3)', letterSpacing: '-.018em' }}>
-          {KIND[entry.kind] ?? 'Entry'}
-        </h1>
-        <p style={{ margin: 0, fontSize: 'var(--step--1)', color: 'rgba(255,255,255,.76)' }}>
-          {entry.who} recorded this on {recorded}
-          {entry.account && ` · ${entry.account}`}
-        </p>
-      </header>
+          <Link transitionTypes={['nav-back']} href="/entries" aria-label="Back to entries" style={{
+            width: 44, height: 44, marginLeft: -11, borderRadius: 999, display: 'flex',
+            alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,.92)',
+          }}>
+            <svg width={21} height={21} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M15 5l-7 7 7 7" />
+            </svg>
+          </Link>
+          <h1 className="t" style={{ margin: 0, fontSize: 'var(--step-3)', letterSpacing: '-.018em' }}>
+            {KIND[entry.kind] ?? 'Entry'}
+          </h1>
+          <p style={{ margin: 0, fontSize: 'var(--step--1)', color: 'rgba(255,255,255,.76)' }}>
+            {entry.who} recorded this on {recorded}
+            {entry.account && ` · ${entry.account}`}
+          </p>
+        </header>
 
-      <div style={{ padding: '18px 0 0' }}>
-        <EditEntry
-          entry={{
-            id: entry.id, kind: entry.kind, amount: entry.amount,
-            occurred_on: new Date(entry.occurred_on).toISOString().slice(0, 10),
-            merchant: entry.merchant, note: entry.note, is_shared: entry.is_shared,
-            category_id: entry.category_id, payment_method_id: entry.payment_method_id,
-          }}
-          categories={cats.map((c) => ({
-            category_id: c.id, name: c.name, tint: c.tint, icon: c.icon,
-          }))}
-          methods={methods.map((m) => ({ id: m.id, name: m.name, funds: m.funds }))}
-          canEdit={actor.role !== 'viewer'}
-        />
-
-        {entry.kind === 'expense' && (
-          <OwedFor
-            txnId={entry.id} entryAmount={Number(entry.amount)}
-            people={people.map((p) => ({ id: p.id, name: p.name }))}
-            claims={claims} canEdit={actor.role !== 'viewer'}
+        <div style={{ padding: '18px 0 0' }}>
+          <EditEntry
+            entry={{
+              id: entry.id, kind: entry.kind, amount: entry.amount,
+              occurred_on: new Date(entry.occurred_on).toISOString().slice(0, 10),
+              merchant: entry.merchant, note: entry.note, is_shared: entry.is_shared,
+              category_id: entry.category_id, payment_method_id: entry.payment_method_id,
+            }}
+            categories={cats.map((c) => ({
+              category_id: c.id, name: c.name, tint: c.tint, icon: c.icon,
+            }))}
+            methods={methods.map((m) => ({ id: m.id, name: m.name, funds: m.funds }))}
+            canEdit={actor.role !== 'viewer'}
           />
-        )}
 
-        {/* Tesler: the shape rules are real and cannot be wished away, so the
-            app says which change it will not make rather than pretending. */}
-        <p style={{
-          margin: '18px 20px 0', fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--c-meta)',
-        }}>
-          To change what kind of entry this is, delete it and add it again — an expense and a
-          transfer follow different rules, and quietly rewriting one into the other is how a
-          ledger starts disagreeing with itself.
-        </p>
-      </div>
-    </main>
+          {entry.kind === 'expense' && (
+            <OwedFor
+              txnId={entry.id} entryAmount={Number(entry.amount)}
+              people={people.map((p) => ({ id: p.id, name: p.name }))}
+              claims={claims} canEdit={actor.role !== 'viewer'}
+            />
+          )}
+
+          {/* Tesler: the shape rules are real and cannot be wished away, so the
+              app says which change it will not make rather than pretending. */}
+          <p style={{
+            margin: '18px 20px 0', fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--c-meta)',
+          }}>
+            To change what kind of entry this is, delete it and add it again — an expense and a
+            transfer follow different rules, and quietly rewriting one into the other is how a
+            ledger starts disagreeing with itself.
+          </p>
+        </div>
+      </main>
+    </Screen>
   );
 }
