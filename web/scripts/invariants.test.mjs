@@ -78,6 +78,30 @@ await refuses('a foreign currency without a rate is refused',
 await refuses('a refund that reverses nothing is refused',
   () => txn({ kind: 'refund', account_id: spend, category_id: cat }));
 
+console.log('\nCURRENCY — the household\'s, unless an entry says otherwise and gives a rate');
+{
+  const [dirham] = await sql`insert into household ${sql({ name: 'Invariant test', base_currency: 'AED' })} returning id`;
+  const wallet = (await sql`insert into account ${sql({ household_id: dirham.id, name: 'Cash', kind: 'cash', currency: 'AED' })} returning id`)[0].id;
+  const put = (o) => sql`insert into txn ${sql({
+    household_id: dirham.id, created_by: user.id, occurred_on: '2026-09-01', amount: 5000, ...o })} returning currency`;
+  await refuses('a bad currency code on a household is refused',
+    () => sql`update household set base_currency = 'rupees' where id = ${dirham.id}`);
+  await allows('the currency can change while the books are empty',
+    () => sql`update household set base_currency = 'SAR' where id = ${dirham.id}`);
+  await sql`update household set base_currency = 'AED' where id = ${dirham.id}`;
+  const [filled] = await put({ kind: 'expense', account_id: wallet });
+  ok(filled.currency === 'AED', 'an entry that names no currency is in the household\'s');
+  await allows('an entry in the household\'s own currency needs no rate',
+    () => put({ kind: 'expense', account_id: wallet, currency: 'AED' }));
+  await refuses('rupees in a dirham household need a rate',
+    () => put({ kind: 'expense', account_id: wallet, currency: 'INR' }));
+  await allows('rupees with a rate are fine',
+    () => put({ kind: 'expense', account_id: wallet, currency: 'INR', fx_rate: 2270 }));
+  await refuses('the currency cannot change once there is an entry',
+    () => sql`update household set base_currency = 'USD' where id = ${dirham.id}`);
+  await sql`delete from household where id = ${dirham.id}`;
+}
+
 console.log('\nCOUNTING — spend_txn is the only definition of spending');
 const groceries = (await txn({ kind: 'expense', account_id: spend, category_id: cat, amount: 234000 }))[0].id;
 await txn({ kind: 'transfer', account_id: spend, counter_account_id: savings, amount: 5000000 });

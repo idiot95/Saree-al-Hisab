@@ -21,3 +21,4 @@ Run in filename order. The `01xx` files are idempotent (`CREATE OR REPLACE`,
 | A person's running balance | `0102` — `counterparty_balance` |
 | A purchase files into the right card cycle | `0103` — `txn_apply_method` trigger |
 | A payment method draws on a real account | `0103` — `method_funding_is_valid` trigger |
+| A foreign-currency entry carries a rate; the currency is fixed once entries exist | `0107` — `txn_currency_shape`, `household_currency_fixed` triggers |

@@ -43,8 +43,9 @@ export async function ensurePeople(
     const [{ n }] = await tx`
       select count(*)::int as n from counterparty where household_id = ${householdId}`;
     const [a] = await tx`
-      insert into account (household_id, name, kind, opening_balance)
-      values (${householdId}, ${p.name}, 'person', 0) returning id`;
+      insert into account (household_id, name, kind, currency, opening_balance)
+      values (${householdId}, ${p.name}, 'person',
+              (select base_currency from household where id = ${householdId}), 0) returning id`;
     const [c] = await tx`
       insert into counterparty (household_id, name, phone, relationship, tint, account_id)
       values (${householdId}, ${p.name}, ${p.phone}, 'friend', ${TINTS[n % TINTS.length]}, ${a.id})

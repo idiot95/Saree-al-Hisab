@@ -5,7 +5,7 @@ import { Chip, tintOf } from '../Icon';
 import { useActionState, useEffect, useState } from 'react';
 import { ErrorNote } from '../auth-ui';
 import { saveBudget } from './actions';
-import { format } from '@/lib/money';
+import { useMoney } from '@/app/currency';
 import { haptic } from '../haptics';
 
 type Row = {
@@ -30,6 +30,7 @@ const toField = (minor: string) => (Number(minor) === 0 ? '' : String(Number(min
 export default function BudgetForm({ month, rows, canEdit }: {
   month: string; rows: Row[]; canEdit: boolean;
 }) {
+  const { format } = useMoney();
   const [state, act, pending] = useActionState(saveBudget, null);
   const [draft, setDraft] = useState<Record<string, string>>(
     () => Object.fromEntries(rows.map((r) => [r.category_id, toField(r.budget)])),

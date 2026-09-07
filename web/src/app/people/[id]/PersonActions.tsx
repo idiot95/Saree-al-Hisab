@@ -3,7 +3,7 @@
 import { useActionState, useState } from 'react';
 import { Field, ErrorNote } from '../../auth-ui';
 import { lend, recordRepayment, writeOff } from '../actions';
-import { format } from '@/lib/money';
+import { useMoney } from '@/app/currency';
 
 type Method = { id: string; name: string; funds: string };
 type Cat = { id: string; name: string };
@@ -14,6 +14,7 @@ type Cat = { id: string; name: string };
 export default function PersonActions({ personId, name, balance, methods, categories }: {
   personId: string; name: string; balance: number; methods: Method[]; categories: Cat[];
 }) {
+  const { format } = useMoney();
   const [mode, setMode] = useState<null | 'lend' | 'back' | 'off'>(null);
   const today = new Date().toISOString().slice(0, 10);
 

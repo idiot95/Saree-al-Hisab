@@ -4,7 +4,7 @@ import { useActionState, useState, useTransition } from 'react';
 import { Icon } from '../Icon';
 import SwipeRow from '../SwipeRow';
 import { recordDue, skipDue, archiveSchedule } from './actions';
-import { format } from '@/lib/money';
+import { useMoney } from '@/app/currency';
 
 export default function DueRow({
   scheduleId, name, kind = 'expense', dueOn, daysAway, amount, category, icon, tint,
@@ -12,6 +12,7 @@ export default function DueRow({
   scheduleId: string; name: string; kind?: 'expense' | 'income'; dueOn: string; daysAway: number;
   amount: number; category: string | null; icon?: string | null; tint?: string | null;
 }) {
+  const { format } = useMoney();
   const income = kind === 'income';
   const [recState, record, recording] = useActionState(recordDue, null);
   const [, skip] = useActionState(skipDue, null);

@@ -11,6 +11,20 @@ assert.equal(format(234000), '₹2,340');
 assert.equal(format(-234000), '−₹2,340');
 assert.equal(format(12000000, 'INR', { sign: true }), '+₹1,20,000');
 assert.equal(format(50000, 'USD'), '$500');
+assert.equal(format(123456700, 'AED'), 'AED\u00a01,234,567');   // thousands, code as symbol
+assert.equal(format(123456700, 'PKR'), 'Rs\u00a012,34,567');    // lakhs beyond India too
+assert.equal(keysDisplay('1234567', 'GBP'), '1,234,567');
+
+// A bare format() means whatever the installed resolver says — the server
+// installs one per request; nothing installed means rupees.
+const { setCurrencyResolver, symbolOf, isCurrency } = await import(`${process.env.LIB}/money.js`);
+setCurrencyResolver(() => 'USD');
+assert.equal(format(50000), '$500');
+assert.equal(symbolOf(), '$');
+setCurrencyResolver(() => 'INR');
+assert.equal(format(50000), '₹500');
+assert.equal(isCurrency('KWD'), false);                    // three decimals: not offered
+assert.equal(isCurrency('SGD'), true);
 
 // The keypad builds paise from digits, never parses a float.
 assert.equal(fromKeys('2340'), 234000);
@@ -21,7 +35,7 @@ assert.equal(keysDisplay('0'), '0');
 assert.equal(keysDisplay(''), '0');
 assert.equal(keysDisplay('007'), '7');
 
-console.log('money: 15 assertions passed');
+console.log('money: 24 assertions passed');
 
 // Paise, and the guards around the keypad.
 const { pushKey, popKey } = await import(`${process.env.LIB}/money.js`);

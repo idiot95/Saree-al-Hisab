@@ -1,9 +1,11 @@
 import 'server-only';
+import { cache } from 'react';
 import { redirect } from 'next/navigation';
 import { sql } from './client';
 import { auth } from '@/auth';
 import { contextFor } from './membership';
 import { hashLinkToken } from '@/lib/link-token';
+import { setCurrencyResolver } from '@/lib/money';
 
 /* Who is asking, and what they may do — resolved on the server, on every
    request, in a single round trip.
@@ -16,21 +18,42 @@ import { hashLinkToken } from '@/lib/link-token';
        the next tap rather than at the next sign-in.
 
    A Server Action is reachable by direct POST, so the household a write lands
-   in is decided here and nowhere else. */
-export async function currentActor() {
+   in is decided here and nowhere else.
+
+   Resolved once per request, however many times it is asked for: the layout
+   wants the currency, the page wants the household, and React's cache() hands
+   both the same answer from the same round trip. */
+const resolve = cache(async () => {
   const session = await auth();
-  if (!session?.user?.id) redirect('/signin');
+  if (!session?.user?.id) return null;
   const c = await contextFor(session.user.id, session.issuedAt ?? 0);
+  if (!c || c.stale) return null;
+  requestCurrency().code = c.currency;
+  return { session, c };
+});
+
+/* The currency every bare format() in this request means. Per request, not
+   per process: cache() is scoped to the render, so two households served by
+   the same instance at the same moment never see each other's symbol. Client
+   components cannot reach this and read theirs from context instead
+   (app/currency.tsx). */
+const requestCurrency = cache(() => ({ code: '' }));
+setCurrencyResolver(() => requestCurrency().code || 'INR');
+
+export async function currentActor() {
+  const r = await resolve();
   // A cookie older than the account's session epoch is not an error to report,
   // it is somebody who has been signed out. Send them to sign in again.
-  if (!c || c.stale) redirect('/signin');
+  if (!r) redirect('/signin');
+  const { session, c } = r;
   if (!c.household_id) redirect('/no-household');
   return {
     household_id: c.household_id,
-    user_id: session.user.id,
+    user_id: session.user!.id!,
     role: c.role!,
-    user_name: session.user.name ?? '',
+    user_name: session.user?.name ?? '',
     household_name: c.household_name ?? 'Household',
+    currency: c.currency,
   };
 }
 
@@ -38,19 +61,26 @@ export async function currentActor() {
  *  without a household, and signed in with one. A stale cookie counts as
  *  signed out. */
 export async function actorOrNull() {
-  const session = await auth();
-  if (!session?.user?.id) return null;
-  const c = await contextFor(session.user.id, session.issuedAt ?? 0);
-  if (!c || c.stale) return null;
+  const r = await resolve();
+  if (!r) return null;
+  const { session, c } = r;
   return {
     household_id: c.household_id,
-    user_id: session.user.id,
+    user_id: session.user!.id!,
     role: c.role,
-    user_name: session.user.name ?? '',
+    user_name: session.user?.name ?? '',
     household_name: c.household_name ?? 'Household',
-    email: session.user.email ?? null,
-    image: session.user.image ?? null,
+    currency: c.currency,
+    email: session.user?.email ?? null,
+    image: session.user?.image ?? null,
   };
+}
+
+/** How many entries the books hold — the one number that decides whether
+ *  their currency may still change. */
+export async function entryCount(householdId: string) {
+  const [{ n }] = await sql`select count(*)::int as n from txn where household_id = ${householdId}`;
+  return n as number;
 }
 
 export async function categoriesFor(householdId: string) {

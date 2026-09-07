@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from 'next';
 import { cookies } from 'next/headers';
 import { forcedTheme, THEME_COOKIE } from '@/lib/theme';
+import { actorOrNull } from '@/db/queries';
+import { CurrencyProvider } from './currency';
 import RegisterSW from './RegisterSW';
 import SyncQueue from './SyncQueue';
 import { Inter } from 'next/font/google';
@@ -78,12 +80,19 @@ export default async function RootLayout({ children }: { children: React.ReactNo
      browser switches on for its own scrollbars and form controls. Both, or a
      dark page gets a light date picker. Absent, both follow the phone. */
   const forced = await chosenTheme();
+  /* The same lookup the page is about to make, answered once (db/queries
+     caches it per request): the household's currency has to reach client
+     components through context, and the layout is the one place above all
+     of them. Nobody signed in, or no household yet, and it is rupees. */
+  const actor = await actorOrNull();
   return (
     <html lang="en" className={inter.variable} data-theme={forced ?? undefined}
       style={forced ? { colorScheme: forced } : undefined}>
       <body>
-        {children}
-        <SyncQueue />
+        <CurrencyProvider currency={actor?.currency ?? 'INR'}>
+          {children}
+          <SyncQueue />
+        </CurrencyProvider>
         <RegisterSW />
       </body>
     </html>

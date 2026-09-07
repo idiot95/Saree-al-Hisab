@@ -4,7 +4,8 @@ import { useState, useTransition, useEffect } from 'react';
 import { Icon, RAIL_ICON, RAIL_TINT, ACCOUNT_ICON, ACCOUNT_TINT, tintOf } from '../Icon';
 import { HEADER_BG } from '../auth-ui';
 import { useRouter } from 'next/navigation';
-import { keysDisplay, pushKey, popKey, fromKeys, symbolOf, format } from '@/lib/money';
+import { pushKey, popKey, fromKeys } from '@/lib/money';
+import { useMoney } from '@/app/currency';
 import { saveEntry, checkDuplicate } from './actions';
 import { haptic } from '../haptics';
 import { enqueue, writePickers, type Queued } from './queue';
@@ -56,6 +57,7 @@ export default function AddEntry({
   /** Drawn between the form and the keypad — the offline screen's pending list. */
   children?: React.ReactNode;
 }) {
+  const { currency, format, symbol, keysDisplay } = useMoney();
   const router = useRouter();
   const [pending, start] = useTransition();
   const [kept, setKept] = useState<string | null>(null);
@@ -217,14 +219,20 @@ export default function AddEntry({
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, minWidth: 0 }}>
             <span className="n" style={{ fontSize: 'var(--step-3)', fontWeight: 500, color: 'rgba(255,255,255,.62)' }}>
-              {symbolOf('INR')}
+              {symbol}
             </span>
             <span className="n" aria-live="polite" style={{ fontSize: 'var(--step-4)', fontWeight: 600, letterSpacing: '-.036em', lineHeight: 1.05 }}>
               {keysDisplay(keys)}
             </span>
             <span style={{ width: 2, height: 34, background: 'rgba(255,255,255,.85)', marginLeft: 3, alignSelf: 'center' }} />
           </div>
-          <button style={{ ...chip, background: 'rgba(255,255,255,.16)', border: '1px solid rgba(255,255,255,.22)', color: '#fff' }}>INR</button>
+          {/* The code, for a symbol that does not spell it: ₹ says INR to one
+              household and nothing to a guest. AED already says AED. */}
+          {symbol.trim() !== currency && (
+            <span style={{ ...chip, background: 'rgba(255,255,255,.16)', border: '1px solid rgba(255,255,255,.22)', color: '#fff' }}>
+              {currency}
+            </span>
+          )}
         </div>
       </header>
 
@@ -508,7 +516,7 @@ export default function AddEntry({
                 })}
               </div>
               <p style={{ margin: 0, fontSize: 'var(--step--2)', lineHeight: 1.45, color: 'var(--c-meta)' }}>
-                {tabNote(tab, minor, coveredKeys ? fromKeys(coveredKeys) : minor, mine)}
+                {tabNote(tab, minor, coveredKeys ? fromKeys(coveredKeys) : minor, mine, format)}
               </p>
             </>
           )}
@@ -636,7 +644,7 @@ function Glyph({ d, size = 21, w = 2, colour }: { d: string; size?: number; w?: 
 }
 
 /** What putting this amount on the tab will do, in one line, before Save. */
-function tabNote(tab: Tab, minor: number, covered: number, counts: boolean): string {
+function tabNote(tab: Tab, minor: number, covered: number, counts: boolean, format: (n: number) => string): string {
   const who = `${tab.people} ${tab.people === 1 ? 'person' : 'people'}`;
   const mine = counts ? 'Counts as your spending' : 'Not your spending';
   if (minor <= 0) {

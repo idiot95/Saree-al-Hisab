@@ -25,6 +25,8 @@ export type PageContext = {
   household_id: string | null;
   role: Role | null;
   household_name: string | null;
+  /** The household's currency; rupees when there is no household on screen. */
+  currency: string;
   stale: boolean;
 };
 
@@ -36,7 +38,7 @@ export type PageContext = {
    door — every extra round trip is paid by whoever is furthest from it. */
 export async function contextFor(userId: string, tokenIssuedAt: number): Promise<PageContext | null> {
   const [row] = await sql`
-    select m.household_id, m.role, h.name as household_name,
+    select m.household_id, m.role, h.name as household_name, h.base_currency as currency,
            extract(epoch from u.sessions_valid_from) > ${tokenIssuedAt} as stale
     from app_user u
     left join member m
@@ -53,6 +55,7 @@ export async function contextFor(userId: string, tokenIssuedAt: number): Promise
     household_id: row.household_id ?? null,
     role: (row.role as Role) ?? null,
     household_name: row.household_name ?? null,
+    currency: row.currency ?? 'INR',
     stale: row.stale === true,
   };
 }
@@ -141,15 +144,17 @@ export const isLocked = (u: { locked_until: Date | null }) =>
 
 /* ── getting an account in the first place ──────────────────────────────── */
 
-/** Books of your own, opened with enough in them to record something today. */
-export async function createHousehold(userId: string, name: string) {
+/** Books of your own, opened with enough in them to record something today.
+ *  The currency is the caller's to validate (lib/money's list); the database
+ *  only insists it looks like one. */
+export async function createHousehold(userId: string, name: string, currency: string) {
   return sql.begin(async (tx) => {
     const [h] = await tx`
-      insert into household (name) values (${name.trim()}) returning id`;
+      insert into household (name, base_currency) values (${name.trim()}, ${currency}) returning id`;
     await tx`insert into member (household_id, user_id, role)
              values (${h.id}, ${userId}, 'owner')`;
     await tx`update app_user set active_household_id = ${h.id} where id = ${userId}`;
-    await starterKitFor(tx, h.id);
+    await starterKitFor(tx, h.id, currency);
     return { householdId: h.id as string };
   });
 }
@@ -159,25 +164,15 @@ export async function emailIsTaken(email: string) {
   return !!u;
 }
 
-/** An account and the books that come with it, in one go — or neither.
- *  Anybody may do this. Signing up gets you your OWN household and nobody
- *  else's; joining someone's books still takes an invitation from them. */
-export async function signUp(
-  email: string, name: string, passwordHash: string, householdName: string,
-) {
-  return sql.begin(async (tx) => {
-    const [u] = await tx`
-      insert into app_user (email, name, password_hash, password_set_at)
-      values (${email.trim().toLowerCase()}, ${name.trim()}, ${passwordHash}, now())
-      returning id`;
-    const [h] = await tx`
-      insert into household (name) values (${householdName.trim()}) returning id`;
-    await tx`insert into member (household_id, user_id, role)
-             values (${h.id}, ${u.id}, 'owner')`;
-    await tx`update app_user set active_household_id = ${h.id} where id = ${u.id}`;
-    await starterKitFor(tx, h.id);
-    return { userId: u.id as string, householdId: h.id as string };
-  });
+/** An account, and nothing else yet. Anybody may do this: the account is
+ *  in nobody's books until its owner sets up their own (/setup) or accepts an
+ *  invitation into someone else's. */
+export async function createAccount(email: string, name: string, passwordHash: string) {
+  const [u] = await sql`
+    insert into app_user (email, name, password_hash, password_set_at)
+    values (${email.trim().toLowerCase()}, ${name.trim()}, ${passwordHash}, now())
+    returning id`;
+  return { userId: u.id as string };
 }
 
 /** Create the account the invitation was addressed to, and spend the

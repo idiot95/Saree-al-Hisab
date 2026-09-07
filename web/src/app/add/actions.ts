@@ -194,7 +194,7 @@ export async function saveEntry(d: Draft): Promise<SaveResult> {
           const part = Math.min(left, c.outstanding);
           const ref = first ? null : clientRef;
           const [r] = await tx`insert into txn ${sql({
-            household_id, created_by: user_id, kind: 'claim_receipt', amount: part, currency: 'INR',
+            household_id, created_by: user_id, kind: 'claim_receipt', amount: part,
             occurred_on: d.occurredOn, account_id: method.funding_account_id,
             payment_method_id: method.id, claim_id: c.id, source: 'manual', client_ref: ref,
           })} on conflict (household_id, client_ref) where client_ref is not null do nothing
@@ -205,7 +205,7 @@ export async function saveEntry(d: Draft): Promise<SaveResult> {
         }
         if (left > 0) {
           const [r] = await tx`insert into txn ${sql({
-            household_id, created_by: user_id, kind: 'income', amount: left, currency: 'INR',
+            household_id, created_by: user_id, kind: 'income', amount: left,
             occurred_on: d.occurredOn, account_id: method.funding_account_id,
             category_id: categoryId, payment_method_id: method.id,
             merchant: String(d.merchant ?? '').trim() || null, is_shared: d.isShared, source: 'manual',
@@ -219,7 +219,6 @@ export async function saveEntry(d: Draft): Promise<SaveResult> {
         created_by: user_id,
         kind: d.kind,
         amount: d.amountMinor,
-        currency: 'INR',
         occurred_on: d.occurredOn,
         account_id: method.funding_account_id,
         counter_account_id: counter,

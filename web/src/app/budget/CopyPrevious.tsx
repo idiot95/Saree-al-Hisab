@@ -2,11 +2,12 @@
 
 import { useActionState } from 'react';
 import { copyPreviousMonth } from './actions';
-import { format } from '@/lib/money';
+import { useMoney } from '@/app/currency';
 
 export default function CopyPrevious({ month, from, total, categories }: {
   month: string; from: string; total: string; categories: number;
 }) {
+  const { format } = useMoney();
   const [state, act, pending] = useActionState(copyPreviousMonth, null);
 
   return (

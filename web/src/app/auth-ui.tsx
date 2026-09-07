@@ -2,6 +2,8 @@
    books. No hooks here on purpose, so the same pieces work in a server page
    and inside a client form. */
 
+import { CURRENCIES } from '@/lib/money';
+
 /* The one header background, used by every screen that has one.
 
    It used to carry a repeating 1px line every 26px, meant to read as ruled
@@ -110,6 +112,31 @@ export function Field({ label, name, type = 'text', hint, ...rest }: {
         }}
         {...rest}
       />
+      {hint && (
+        <span style={{ fontSize: 'var(--step--2)', lineHeight: 1.45, color: 'var(--c-meta)' }}>{hint}</span>
+      )}
+    </label>
+  );
+}
+
+/** Which currency a household keeps its books in. A native select on
+ *  purpose: eighteen options is a wheel on a phone, not a list of chips. The
+ *  symbol leads so the eye can find "₹" or "$" without reading. */
+export function CurrencyField({ defaultValue = 'INR', hint, ...rest }: {
+  defaultValue?: string; hint?: string;
+} & React.SelectHTMLAttributes<HTMLSelectElement>) {
+  return (
+    <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)' }}>Currency</span>
+      <select name="currency" defaultValue={defaultValue} style={{
+        minHeight: 52, borderRadius: 13, border: '1px solid var(--c-border)',
+        background: 'var(--c-card)', color: 'var(--c-ink)', fontSize: 'var(--step-0)',
+        padding: '0 14px', width: '100%', appearance: 'auto',
+      }} {...rest}>
+        {CURRENCIES.map((c) => (
+          <option key={c.code} value={c.code}>{c.symbol.trim()}  {c.name} · {c.code}</option>
+        ))}
+      </select>
       {hint && (
         <span style={{ fontSize: 'var(--step--2)', lineHeight: 1.45, color: 'var(--c-meta)' }}>{hint}</span>
       )}

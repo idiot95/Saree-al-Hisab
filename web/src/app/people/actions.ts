@@ -51,8 +51,8 @@ export async function addPerson(_prev: Result | null, fd: FormData): Promise<Res
 
   await sql.begin(async (tx) => {
     const [a] = await tx`
-      insert into account (household_id, name, kind, opening_balance)
-      values (${actor.household_id}, ${name}, 'person', 0) returning id`;
+      insert into account (household_id, name, kind, currency, opening_balance)
+      values (${actor.household_id}, ${name}, 'person', ${actor.currency}, 0) returning id`;
     await tx`
       insert into counterparty (household_id, name, phone, relationship, tint, account_id)
       values (${actor.household_id}, ${name}, ${phone}, ${relationship},

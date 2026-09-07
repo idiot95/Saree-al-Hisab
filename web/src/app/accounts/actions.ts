@@ -82,14 +82,14 @@ export async function addAccount(_prev: Result | null, fd: FormData): Promise<Re
     if (bad) return { ok: false, error: bad };
 
     await sql`
-      insert into account (household_id, name, kind, last4, opening_balance,
+      insert into account (household_id, name, kind, currency, last4, opening_balance,
                            credit_limit, statement_day, due_day)
-      values (${actor.household_id}, ${name}, 'credit', ${last4}, ${-Math.abs(opening)},
+      values (${actor.household_id}, ${name}, 'credit', ${actor.currency}, ${last4}, ${-Math.abs(opening)},
               ${limit || null}, ${Number(statement)}, ${Number(due)})`;
   } else {
     await sql`
-      insert into account (household_id, name, kind, last4, opening_balance)
-      values (${actor.household_id}, ${name}, ${kind}, ${last4}, ${opening})`;
+      insert into account (household_id, name, kind, currency, last4, opening_balance)
+      values (${actor.household_id}, ${name}, ${kind}, ${actor.currency}, ${last4}, ${opening})`;
   }
 
   revalidatePath('/accounts');

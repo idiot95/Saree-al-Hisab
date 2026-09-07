@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useActionState } from 'react';
 import { notDuplicate, dropDuplicate } from './actions';
-import { format } from '@/lib/money';
+import { useMoney } from '@/app/currency';
 
 type Side = {
   id: string; amount: string; on: string; merchant: string | null;
@@ -17,6 +17,7 @@ type Side = {
 export default function DuplicateCard({ low, high, reason }: {
   low: Side; high: Side; reason: 'same_account' | 'two_people';
 }) {
+  const { format } = useMoney();
   const [keepState, keep, keeping] = useActionState(notDuplicate, null);
   const [dropState, drop, dropping] = useActionState(dropDuplicate, null);
   const err = (keepState && !keepState.ok && keepState.error)

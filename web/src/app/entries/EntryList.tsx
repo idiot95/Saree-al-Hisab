@@ -6,7 +6,7 @@ import { useCallback, useState, useTransition } from 'react';
 import { Chip } from '../Icon';
 import SwipeRow from '../SwipeRow';
 import Snack, { type SnackState } from '../Snack';
-import { format } from '@/lib/money';
+import { useMoney } from '@/app/currency';
 import { removeEntry, restoreEntry } from './actions';
 
 export type Row = {
@@ -31,6 +31,7 @@ const INCOMING = new Set(['income', 'claim_receipt', 'refund']);
 export default function EntryList({ days, canEdit }: {
   days: { on: string; label: string; rows: Row[] }[]; canEdit: boolean;
 }) {
+  const { format } = useMoney();
   const router = useRouter();
   const [gone, setGone] = useState<Set<string>>(() => new Set());
   const [snack, setSnack] = useState<SnackState>(null);
@@ -90,6 +91,7 @@ export default function EntryList({ days, canEdit }: {
 }
 
 function Entry({ e, last }: { e: Row; last: boolean }) {
+  const { format } = useMoney();
   const move = MOVES.has(e.kind);
   const incoming = INCOMING.has(e.kind);
   const lent = move && e.to_person;

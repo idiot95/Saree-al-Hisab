@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useActionState, useState } from 'react';
 import { ErrorNote } from '../auth-ui';
 import { scan } from './actions';
-import { format } from '@/lib/money';
+import { useMoney } from '@/app/currency';
 
 export default function ScanForm({ canScan }: { canScan: boolean }) {
   const [state, act, pending] = useActionState(scan, null);
@@ -73,6 +73,7 @@ export default function ScanForm({ canScan }: { canScan: boolean }) {
 function Draft({ result }: {
   result: { scan: import('@/lib/receipt').Scanned; missing: string[]; suggestedCategoryId: string | null };
 }) {
+  const { format } = useMoney();
   const s = result.scan;
   const params = new URLSearchParams();
   if (s.amountMinor) params.set('amount', String(s.amountMinor));

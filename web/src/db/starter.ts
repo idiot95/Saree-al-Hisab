@@ -19,10 +19,10 @@ const CATEGORIES: [string, string, string][] = [
   ['Transport', 'car', 'blue'],
 ];
 
-export async function starterKitFor(tx: TransactionSql, householdId: string) {
+export async function starterKitFor(tx: TransactionSql, householdId: string, currency: string) {
   const [cash] = await tx`
-    insert into account (household_id, name, kind, opening_balance)
-    values (${householdId}, 'Cash', 'cash', 0) returning id`;
+    insert into account (household_id, name, kind, currency, opening_balance)
+    values (${householdId}, 'Cash', 'cash', ${currency}, 0) returning id`;
 
   await tx`
     insert into payment_method (household_id, name, kind, funding_account_id, is_default, sort_order)

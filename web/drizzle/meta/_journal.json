@@ -148,6 +148,13 @@
       "when": 1788816324132,
       "tag": "0020_tab_counts_gone",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1788819698706,
+      "tag": "0021_currency_is_the_households",
+      "breakpoints": true
     }
   ]
 }

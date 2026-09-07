@@ -12,6 +12,7 @@ import { hashPassword, passwordProblem, verifyPassword } from '@/lib/password';
 import { seal, hint } from '@/lib/secretbox';
 import { testKey } from '@/db/gemini';
 import { THEMES, THEME_COOKIE } from '@/lib/theme';
+import { isCurrency } from '@/lib/money';
 
 /* Every one of these is reachable by direct POST, so each re-establishes who
    is asking and what they are allowed to do. Hiding a button is presentation;
@@ -213,11 +214,29 @@ export async function startAnotherHousehold(
 ): Promise<Result> {
   const actor = await currentActor();
   const name = String(formData.get('name') ?? '').trim();
+  const currency = String(formData.get('currency') ?? '').trim();
   if (name.length < 2) return { ok: false, error: 'Give your household a name.' };
   if (name.length > 60) return { ok: false, error: 'Household names are 60 characters at most.' };
-  await createHousehold(actor.user_id, name);
+  if (!isCurrency(currency)) return { ok: false, error: 'Pick a currency from the list.' };
+  await createHousehold(actor.user_id, name, currency);
   revalidatePath('/', 'layout');
   redirect('/household');
+}
+
+/** The currency the books are kept in. Changeable only while they are empty:
+ *  once an entry exists, every amount would silently mean something else, and
+ *  the database refuses (0107) even if this check were skipped. */
+export async function setCurrency(_prev: Result | null, formData: FormData): Promise<Result> {
+  let actor;
+  try { actor = await mustManage(); } catch (e) { rethrowControlFlow(e); return { ok: false, error: (e as Error).message }; }
+  const currency = String(formData.get('currency') ?? '').trim();
+  if (!isCurrency(currency)) return { ok: false, error: 'Pick a currency from the list.' };
+  const [{ n }] = await sql`
+    select count(*)::int as n from txn where household_id = ${actor.household_id}`;
+  if (n > 0) return { ok: false, error: 'The books already hold entries, so their currency is fixed.' };
+  await sql`update household set base_currency = ${currency} where id = ${actor.household_id}`;
+  revalidatePath('/', 'layout');
+  return { ok: true, message: 'Changed.' };
 }
 
 export async function renameHousehold(_prev: Result | null, formData: FormData): Promise<Result> {

@@ -44,6 +44,11 @@ export const household = pgTable('household', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [
   check('month_start_valid', sql`${t.monthStartsOn} between 1 and 28`),
+  /* The currency the books are kept in, chosen when the household is set up
+     and fixed the moment it holds an entry (a trigger, 0107). Which codes
+     are offered is the app's business (lib/money); the shape is the
+     database's. */
+  check('base_currency_is_a_code', sql`${t.baseCurrency} ~ '^[A-Z]{3}$'`),
 ]);
 
 /* Email address plus a password we store the hash of — no third party stands
@@ -280,7 +285,11 @@ export const txn = pgTable('txn', {
   householdId: uuid('household_id').notNull().references(() => household.id, { onDelete: 'cascade' }),
   kind: txnKind('kind').notNull(),
   amount: bigint('amount', { mode: 'number' }).notNull(),
-  currency: text('currency').notNull().default('INR'),
+  /* No default: an entry that does not say its currency is in the
+     household's, and a trigger (0107) fills that in before NOT NULL is
+     checked. A column default could only ever have named one currency for
+     every household. */
+  currency: text('currency').notNull(),
   fxRate: integer('fx_rate'),
   occurredOn: date('occurred_on').notNull(),
   accountId: uuid('account_id').notNull().references(() => account.id, { onDelete: 'restrict' }),
@@ -346,8 +355,9 @@ export const txn = pgTable('txn', {
     ${t.kind} NOT IN ('card_payment','claim_receipt') OR ${t.categoryId} IS NULL`),
   check('no_self_transfer', sql`
     ${t.counterAccountId} IS NULL OR ${t.counterAccountId} <> ${t.accountId}`),
-  check('fx_rate_with_foreign_currency', sql`
-    ${t.currency} = 'INR' OR ${t.fxRate} IS NOT NULL`),
+  /* An entry in a currency other than the household's own must carry a rate
+     — enforced by a trigger (0107) rather than a CHECK, because "other than
+     the household's own" is a fact about another table. */
   // A refund undoes a specific purchase and carries that purchase's category,
   // so the reduction lands where the spending did.
   check('refund_points_at_a_purchase', sql`

@@ -4,7 +4,7 @@ import { useActionState, useState } from 'react';
 import { Icon } from '../../Icon';
 import { Field, ErrorNote } from '../../auth-ui';
 import { updateEntry, deleteEntry } from '../actions';
-import { format } from '@/lib/money';
+import { useMoney } from '@/app/currency';
 
 type Cat = { category_id: string; name: string; tint: string; icon: string };
 type Method = { id: string; name: string; funds: string };
@@ -31,6 +31,7 @@ export default function EditEntry({ entry, categories, methods, canEdit }: {
   };
   categories: Cat[]; methods: Method[]; canEdit: boolean;
 }) {
+  const { format } = useMoney();
   const [state, act, pending] = useActionState(updateEntry, null);
   const [del, remove, removing] = useActionState(deleteEntry, null);
   const [amount, setAmount] = useState(String(Number(entry.amount) / 100));

@@ -3,7 +3,7 @@
 import { useActionState, useState } from 'react';
 import { Field, ErrorNote } from '../../auth-ui';
 import { addClaim, abandonClaim } from '../../people/actions';
-import { format } from '@/lib/money';
+import { useMoney } from '@/app/currency';
 
 type Person = { id: string; name: string };
 type Claim = {
@@ -24,6 +24,7 @@ const WORD: Record<string, [string, string]> = {
 export default function OwedFor({ txnId, entryAmount, people, claims, canEdit }: {
   txnId: string; entryAmount: number; people: Person[]; claims: Claim[]; canEdit: boolean;
 }) {
+  const { format } = useMoney();
   const [state, act, pending] = useActionState(addClaim, null);
   const [, drop] = useActionState(abandonClaim, null);
   const [open, setOpen] = useState(false);

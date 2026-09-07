@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useActionState, useState } from 'react';
 import { Field, ErrorNote } from '../../auth-ui';
 import { settleClaim, abandonClaim } from '../actions';
-import { format } from '@/lib/money';
+import { useMoney } from '@/app/currency';
 
 type Claim = {
   id: string; txn_id: string; expected_amount: string; received: string;
@@ -16,6 +16,7 @@ type Method = { id: string; name: string; funds: string };
 export default function Claims({ claims, methods, canEdit }: {
   claims: Claim[]; methods: Method[]; canEdit: boolean;
 }) {
+  const { format } = useMoney();
   const [settling, setSettling] = useState<string | null>(null);
   const [state, act, pending] = useActionState(settleClaim, null);
   const [, drop] = useActionState(abandonClaim, null);

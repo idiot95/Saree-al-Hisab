@@ -8,7 +8,7 @@ import { haptic } from '../../haptics';
 import {
   addToTab, removeFromTab, renameTab, toggleTabClosed, deleteTab, settleTab,
 } from '../actions';
-import { format } from '@/lib/money';
+import { useMoney } from '@/app/currency';
 import NewPeople from '../NewPeople';
 
 type Person = {
@@ -183,6 +183,7 @@ function Member({ p, last, left, tabId, methods, today, canEdit, entries = [], o
   p: Person; last: boolean; left?: boolean; tabId: string; methods: Method[]; today: string;
   canEdit: boolean; entries?: Open[]; open: boolean; onOpen: () => void; children?: React.ReactNode;
 }) {
+  const { format } = useMoney();
   const owed = Number(p.owed);
   const all = Number(p.owed_in_all);
   const back = Number(p.back);

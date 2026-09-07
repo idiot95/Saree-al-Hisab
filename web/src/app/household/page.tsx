@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { cookies, headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { signOut } from '@/auth';
-import { actorOrNull, membersOf, openInvitesOf, scanningState } from '@/db/queries';
+import { actorOrNull, entryCount, membersOf, openInvitesOf, scanningState } from '@/db/queries';
 import { householdsOf } from '@/db/membership';
 import InviteForm from './InviteForm';
 import MemberRow from './MemberRow';
@@ -34,11 +34,12 @@ export default async function Household() {
   if (!actor.household_id) redirect('/no-household');
 
   const name = actor.household_name;
-  const [members, invites, books, scanning] = await Promise.all([
+  const [members, invites, books, scanning, entries] = await Promise.all([
     membersOf(actor.household_id),
     openInvitesOf(actor.household_id),
     householdsOf(actor.user_id),
     scanningState(actor.household_id),
+    entryCount(actor.household_id),
   ]);
   const canManage = actor.role === 'owner';
   const h = await headers();
@@ -103,7 +104,8 @@ export default async function Household() {
         {canManage && <InviteForm origin={origin} household={name} inviter={actor.user_name} />}
 
         <Head>Your households</Head>
-        <BooksSwitcher books={books} canRename={canManage} />
+        <BooksSwitcher books={books} canRename={canManage}
+          currency={actor.currency} currencyFixed={entries > 0} />
 
         {invites.length > 0 && (
           <>

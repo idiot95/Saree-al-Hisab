@@ -3,7 +3,7 @@ import { actorOrNull } from '@/db/queries';
 import { AuthShell, quietBtn } from '../auth-ui';
 import SignUpForm from './SignUpForm';
 
-export const metadata = { title: 'Start your books · Saree al-Hisab' };
+export const metadata = { title: 'Create your account · Saree al-Hisab' };
 export const dynamic = 'force-dynamic';
 
 /* Open to anyone, and safely so: signing up gets you your own empty household
@@ -11,12 +11,12 @@ export const dynamic = 'force-dynamic';
    still takes an invitation from them. */
 export default async function SignUp() {
   const actor = await actorOrNull();
-  if (actor?.household_id) redirect('/');
+  if (actor) redirect(actor.household_id ? '/' : '/setup');
 
   return (
     <AuthShell
-      title="Start your household"
-      blurb="Set a budget for the month, and everything you record reports against it."
+      title="Create your account"
+      blurb="You, first. Your household — its name and its currency — is the next screen."
     >
       <div style={{ padding: '26px var(--gutter) 30px', display: 'flex', flexDirection: 'column', gap: 14 }}>
         <SignUpForm />
@@ -31,7 +31,7 @@ export default async function SignUp() {
         <a href="/signin" style={quietBtn}>Sign in</a>
 
         <p style={{ margin: '4px 4px 0', fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--c-meta)' }}>
-          Signing up creates your own household. To join someone else&rsquo;s, you need an
+          Signing up gets you your own household. To join someone else&rsquo;s, you need an
           invitation from them.
         </p>
       </div>

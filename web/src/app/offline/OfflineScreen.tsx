@@ -3,7 +3,7 @@
 import { useEffect, useSyncExternalStore } from 'react';
 import AddEntry from '../add/AddEntry';
 import { subscribe, snapshotPickers, snapshotQueue, nothing, none, dequeue, type Queued } from '../add/queue';
-import { format } from '@/lib/money';
+import { useMoney } from '@/app/currency';
 import { haptic } from '../haptics';
 import { forcedTheme, THEME_COOKIE } from '@/lib/theme';
 
@@ -80,6 +80,7 @@ function Banner() {
 }
 
 function Pending({ queue }: { queue: Queued[] }) {
+  const { format } = useMoney();
   if (queue.length === 0) return null;
   return (
     <section aria-label="Waiting to be sent" className="el card" style={{

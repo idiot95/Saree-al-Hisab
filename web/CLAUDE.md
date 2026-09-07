@@ -67,10 +67,11 @@ A repayment is `kind = 'claim_receipt'` — money in, but explicitly not income.
   custom domain later resets every passkey, push subscription, install and
   stored Gemini key.
 - **No share-to-app parser.** Dropped: Android-only, and a parser per bank.
-- **Multi-currency is phase 4.** `currency` and `fx_rate` stay on `txn` and
-  cost nothing to leave; phases 1–3 are INR only. NOTE: the only savings-kind
-  account in the designs is Cash (USD), so seed an INR savings account or the
-  Savings screen opens empty.
+- **One currency per household, chosen at setup.** `household.base_currency`
+  is picked on `/setup` and can be changed on `/household` only until the first
+  entry; `txn.currency` and `fx_rate` stay so a foreign entry with a rate is
+  possible later. See "The household's currency" below for how it reaches the
+  screen.
 - **Scanning**: receipts and screenshots through the user's own Gemini key.
   Voice was dropped — microphone access is unreliable in an installed iPhone
   PWA. A scan always produces a DRAFT in the Inbox, never a posted entry, and
@@ -80,13 +81,17 @@ A repayment is `kind = 'claim_receipt'` — money in, but explicitly not income.
 ## Running it
 
     npm run migrate            # in filename order; --reset drops and rebuilds
-    npm run test:invariants    # 111 assertions against real Postgres
+    npm run test:invariants    # 118 assertions against real Postgres
     npm run test:lib           # money, password hashing and link tokens
     npm run test:contrast      # every ink/ground pair, both themes, WCAG
     npm run tokens             # regenerate tokens.css from the canvas palette
 
-Neon is provisioned through Vercel; `DATABASE_URL` lives in `.env.local`,
-which is gitignored. Migrations are tracked in a `_migration` table — the
+Neon is provisioned through Vercel. `.env.local` (gitignored) holds TWO
+stores: `APP_DATABASE_URL` is the real app database (`src/db/client.ts`
+prefers it); `DATABASE_URL` is a first-connected marketplace store nothing
+uses. The scripts prefer `DATABASE_URL` when it is in the *environment*, so
+with the file sourced run them as `env -u DATABASE_URL node scripts/migrate.mjs`
+(and the same for the invariants) or the migration lands on the wrong store. Migrations are tracked in a `_migration` table — the
 `00xx` files run once, the `01xx` views and triggers re-apply every run
 because they are idempotent, so a changed view ships without a new file.
 
@@ -233,6 +238,36 @@ which turns into a serialisation error at the worst possible moment. It did.
 `useActionState`. Not a formality: an action wrapped in a client closure loses
 its no-JS fallback, and the form then does nothing until the bundle has
 hydrated — a real window of vanishing taps on a slow phone.
+
+## The household's currency
+
+Every household keeps its books in one currency, chosen on `/setup` right after
+the account is created (`/signup` asks for you; `/setup` asks for the books —
+someone who was invited never sees the second screen). `CURRENCIES` in
+`lib/money.ts` is the whole list: two-decimal currencies only, because the
+ledger stores minor units and everything divides by a hundred. A currency with
+no symbol that reads on a phone uses its code, joined by a no-break space
+(`AED 1,250`), and the keypad shows the code chip only when the symbol does not
+already spell it.
+
+**Where the currency comes from depends on which side renders.** Client
+components call `useMoney()` from `app/currency.tsx` and get `{ currency,
+symbol, format, keysDisplay }` bound to the household — they render twice, so
+context is the only hydration-safe path; never import a bare `format` into a
+`'use client'` file. Server components call `format(minor)` bare: `db/queries`
+installs a resolver backed by React's per-request `cache()`, set when
+`currentActor`/`actorOrNull` resolve, so two households rendering at once on
+one Fluid instance never share a symbol. Tests and the client bundle before a
+provider fall back to rupees.
+
+**The database fills `txn.currency`, so no insert path has to.** The column
+has no default; trigger 0107 (`txn_currency_shape`) copies the household's
+`base_currency` onto a NULL, and refuses a different currency without an
+`fx_rate`. `household_currency_fixed` refuses changing `base_currency` once a
+single entry exists — the UI says "fixed, the books hold entries". Accounts
+carry `currency` explicitly on insert (starter kit, `/accounts`, person
+accounts) from `actor.currency`. `PageContext`/`currentActor` expose
+`currency`; `entryCount()` is what the settings row checks.
 
 ## Where the money sits
 
@@ -888,7 +923,8 @@ closes it; focus lands on the first choice and goes back where it was. The
 two file choices post straight to the existing `scan` action and land on
 `/add` prefilled only when nothing is missing; otherwise the reason floats
 as a fourth pill. Without JavaScript the button is still a link to `/add`.
-The offline page carries the bar, so this bumped the worker to v6.
+The offline page carries the bar, so this bumped the worker to v6; the keypad
+losing its hardcoded INR chip took it to v7.
 
 **Light and dark live in a cookie**, `ql.theme`, read in the root layout and
 stamped as `data-theme` on `<html>`; absent means follow the phone.

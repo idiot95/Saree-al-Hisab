@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Snack, { type SnackState } from './Snack';
 import { saveEntry } from './add/actions';
 import { drain, dequeue, readQueue } from './add/queue';
-import { format } from '@/lib/money';
+import { useMoney } from '@/app/currency';
 
 /* Sends what the phone kept while it had no signal.
 
@@ -19,6 +19,7 @@ import { format } from '@/lib/money';
 const NOT_HERE = /^\/(signin|signup|join|reset|offline)(\/|$)/;
 
 export default function SyncQueue() {
+  const { format } = useMoney();
   const router = useRouter();
   const [snack, setSnack] = useState<SnackState>(null);
   const closeSnack = useCallback(() => setSnack(null), []);
@@ -50,7 +51,7 @@ export default function SyncQueue() {
     go();
     addEventListener('online', go);
     return () => { live = false; removeEventListener('online', go); };
-  }, [router]);
+  }, [router, format]);
 
   return <Snack snack={snack} onClose={closeSnack} ttl={snack?.tone === 'error' ? 12000 : 6000} />;
 }

@@ -1,19 +1,31 @@
 'use client';
 
 import { useActionState, useState } from 'react';
-import { Field, ErrorNote } from '../auth-ui';
-import { startAnotherHousehold, switchTo, renameHousehold } from './actions';
+import { CurrencyField, Field, ErrorNote } from '../auth-ui';
+import { CURRENCIES } from '@/lib/money';
+import { setCurrency, startAnotherHousehold, switchTo, renameHousehold } from './actions';
 
 type Book = { id: string; name: string; role: 'owner' | 'adult' | 'viewer'; active: boolean; people: number };
 
 const ROLE = { owner: 'Owner', adult: 'Contributing member', viewer: 'Viewer' } as const;
 
-export default function BooksSwitcher({ books, canRename }: { books: Book[]; canRename: boolean }) {
+export default function BooksSwitcher({ books, canRename, currency, currencyFixed }: {
+  books: Book[];
+  canRename: boolean;
+  /** What the books on screen are kept in … */
+  currency: string;
+  /** … and whether that is still open to change (only while they are empty). */
+  currencyFixed: boolean;
+}) {
   const [, switchAct] = useActionState(switchTo, null);
   const [newState, startAct, starting] = useActionState(startAnotherHousehold, null);
   const [renameState, renameAct, renaming] = useActionState(renameHousehold, null);
+  const [ccyState, ccyAct, changingCcy] = useActionState(setCurrency, null);
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [choosing, setChoosing] = useState(false);
+  const ccy = CURRENCIES.find((c) => c.code === currency);
+  const ccyLabel = ccy ? `${ccy.name} · ${ccy.symbol.trim()}` : currency;
 
   return (
     <section className="el card" style={{
@@ -83,11 +95,55 @@ export default function BooksSwitcher({ books, canRename }: { books: Book[]; can
         </button>
       ))}
 
+      {/* The currency: a fact about the books, changeable only while they
+          are empty. Once fixed it is a row that says so rather than a
+          control that fails. */}
+      {canRename && !currencyFixed && choosing ? (
+        <form action={ccyAct} style={{
+          display: 'flex', flexDirection: 'column', gap: 10, padding: '14px 0',
+          borderBottom: '1px solid var(--c-rule)',
+        }}>
+          <CurrencyField defaultValue={currency} autoFocus
+            hint="Every entry is recorded in this. It is fixed the moment the books hold one." />
+          {ccyState && !ccyState.ok && <ErrorNote>{ccyState.error}</ErrorNote>}
+          <div style={{ display: 'flex', gap: 9 }}>
+            <button type="button" onClick={() => setChoosing(false)} style={ghost}>Cancel</button>
+            <button type="submit" disabled={changingCcy} style={{ ...solid, flex: 1 }}>
+              {changingCcy ? 'Saving…' : 'Save'}
+            </button>
+          </div>
+        </form>
+      ) : canRename && !currencyFixed ? (
+        <button type="button" onClick={() => setChoosing(true)} style={{
+          ...row, borderBottom: '1px solid var(--c-rule)',
+        }}>
+          <Coin />
+          <span style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <span>Currency</span>
+            <span style={{ fontSize: 'var(--step--2)', fontWeight: 500, color: 'var(--c-meta)' }}>{ccyLabel}</span>
+          </span>
+          {ccyState?.ok && (
+            <span style={{ fontSize: 'var(--step--2)', color: 'var(--c-ok)', fontWeight: 600 }}>done</span>
+          )}
+        </button>
+      ) : (
+        <div style={{ ...row, borderBottom: '1px solid var(--c-rule)', cursor: 'default' }}>
+          <Coin />
+          <span style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <span>Currency</span>
+            <span style={{ fontSize: 'var(--step--2)', fontWeight: 500, color: 'var(--c-meta)' }}>
+              {ccyLabel}{currencyFixed ? ' · fixed, the books hold entries' : ''}
+            </span>
+          </span>
+        </div>
+      )}
+
       {adding ? (
         <form action={startAct} style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: '14px 0' }}>
           <Field label="Household name" name="name" placeholder="The shop"
             required maxLength={60} autoFocus
             hint="A separate set of books. Nothing is shared between them." />
+          <CurrencyField defaultValue={currency} />
           {newState && !newState.ok && <ErrorNote>{newState.error}</ErrorNote>}
           <div style={{ display: 'flex', gap: 9 }}>
             <button type="button" onClick={() => setAdding(false)} style={ghost}>Cancel</button>
@@ -127,6 +183,14 @@ const Plus = () => (
   <span style={icon}>
     <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor"
       strokeWidth={2.2} strokeLinecap="round" aria-hidden><path d="M12 5v14M5 12h14" /></svg>
+  </span>
+);
+const Coin = () => (
+  <span style={icon}>
+    <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <circle cx="12" cy="12" r="8.5" /><path d="M9.5 9.5h4a1.75 1.75 0 0 1 0 3.5H9.5m0 0h5a1.75 1.75 0 0 1 0 3.5h-5M12 7.5v9" />
+    </svg>
   </span>
 );
 const Pencil = () => (
