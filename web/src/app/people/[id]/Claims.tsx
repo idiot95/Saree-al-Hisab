@@ -99,7 +99,7 @@ export default function Claims({ claims, methods, canEdit }: {
                     }}>Cancel</button>
                     <button className="cta" type="submit" disabled={pending} style={{
                       flex: 1, minHeight: 46, borderRadius: 11, fontSize: 'var(--step-0)', fontWeight: 600,
-                      background: 'var(--g-primary)', color: 'var(--c-on-fill)',
+                      background: 'var(--g-primary)', color: 'var(--c-on-primary)',
                       opacity: pending ? 0.6 : 1,
                     }}>{pending ? 'Saving…' : 'Record it'}</button>
                   </div>

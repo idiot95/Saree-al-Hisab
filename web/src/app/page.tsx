@@ -101,7 +101,7 @@ export default async function Home() {
               <span style={{
                 width: 34, height: 34, flex: 'none', borderRadius: 999, display: 'flex',
                 alignItems: 'center', justifyContent: 'center',
-                background: 'var(--c-warn-fill)', color: 'var(--c-on-fill)',
+                background: 'var(--c-warn-fill)', color: 'var(--c-on-warn)',
               }}>
                 <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="currentColor"
                   strokeWidth={2.1} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
@@ -156,9 +156,8 @@ function NoBudgetYet({ monthName, spent, entries }: {
   monthName: string; spent: number; entries: number;
 }) {
   return (
-    <section className="el card" style={{
-      background: 'var(--c-card)', borderRadius: 18, padding: 16,
-      display: 'flex', flexDirection: 'column', gap: 10,
+    <section className="el2 hero" style={{
+      borderRadius: 22, padding: '18px 17px', display: 'flex', flexDirection: 'column', gap: 10,
     }}>
       <h2 style={{ fontSize: 'var(--step-2)', fontWeight: 600 }}>{monthName} so far</h2>
       <span className="t" style={{ fontSize: 'var(--step-4)', lineHeight: 1 }}>{format(spent)}</span>
@@ -171,7 +170,7 @@ function NoBudgetYet({ monthName, spent, entries }: {
         minHeight: 48, borderRadius: 13, display: 'flex', alignItems: 'center',
         justifyContent: 'center', textDecoration: 'none',
         fontSize: 'var(--step-0)', fontWeight: 600,
-        background: 'var(--g-primary)', color: 'var(--c-on-fill)',
+        background: 'var(--g-primary)', color: 'var(--c-on-primary)',
       }}>Set this month&rsquo;s budget</Link>
     </section>
   );

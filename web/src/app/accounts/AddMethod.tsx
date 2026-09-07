@@ -113,7 +113,7 @@ export default function AddMethod({ accounts, startOpen = false }: { accounts: A
         }}>Cancel</button>
         <button className="cta" type="submit" disabled={pending || allowed.length === 0} style={{
           flex: 1, minHeight: 50, borderRadius: 13, fontSize: 'var(--step-0)', fontWeight: 600,
-          background: 'var(--g-primary)', color: 'var(--c-on-fill)',
+          background: 'var(--g-primary)', color: 'var(--c-on-primary)',
           opacity: pending || allowed.length === 0 ? 0.65 : 1,
         }}>{pending ? 'Saving…' : 'Add payment method'}</button>
       </div>

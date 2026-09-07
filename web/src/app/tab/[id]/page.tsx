@@ -86,7 +86,7 @@ export default async function Tab({ params }: { params: Promise<{ id: string }> 
           {canEdit && !tab.closed_at && (
             <Link href={`/add?tab=${tab.id}`} transitionTypes={['nav-forward']} className="el cta" style={{
               margin: '0 var(--gutter) 22px', width: 'calc(100% - 36px)', minHeight: 54, borderRadius: 15,
-              background: 'var(--g-primary)', color: 'var(--c-on-fill)',
+              background: 'var(--g-primary)', color: 'var(--c-on-primary)',
               fontSize: 'var(--step-0)', fontWeight: 600, textDecoration: 'none',
               opacity: members.length === 0 ? 0.5 : 1, pointerEvents: members.length === 0 ? 'none' : undefined,
             }}>
@@ -138,7 +138,7 @@ export default async function Tab({ params }: { params: Promise<{ id: string }> 
                     </span>
                     <span className="t" style={{
                       fontSize: 'var(--step-0)',
-                      color: e.incoming ? 'var(--c-seagrass)' : undefined,
+                      color: e.incoming ? 'var(--c-in)' : 'var(--c-out)',
                     }}>
                       {e.incoming ? '+' : ''}{format(Number(e.amount))}
                     </span>

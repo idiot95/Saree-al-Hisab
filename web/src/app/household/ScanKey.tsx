@@ -68,7 +68,7 @@ export default function ScanKey({ hasKey, setOn }: { hasKey: boolean; setOn: str
               }}>Cancel</button>
               <button className="cta" type="submit" disabled={saving} style={{
                 flex: 1, minHeight: 48, borderRadius: 12, fontSize: 'var(--step-0)', fontWeight: 600,
-                background: 'var(--g-primary)', color: 'var(--c-on-fill)',
+                background: 'var(--g-primary)', color: 'var(--c-on-primary)',
                 opacity: saving ? 0.6 : 1,
               }}>{saving ? 'Checking with Google…' : 'Check and save'}</button>
             </div>

@@ -69,7 +69,7 @@ export default function TabPeople({
           {rest.length === 0 ? (
             <p style={{ margin: 0, padding: '18px 0', textAlign: 'center', fontSize: 'var(--step--1)', color: 'var(--c-meta)' }}>
               Everyone you know is already on it.
-              {' '}<Link href="/people" style={{ color: 'var(--c-seagrass)', fontWeight: 600 }}>Add a person</Link>
+              {' '}<Link href="/people" style={{ color: 'var(--g-primary)', fontWeight: 600 }}>Add a person</Link>
             </p>
           ) : rest.map((p, i) => (
             <div key={p.id} style={{
@@ -83,7 +83,7 @@ export default function TabPeople({
                 <input type="hidden" name="counterpartyId" value={p.id} />
                 <button className="cta" type="submit" style={{
                   minHeight: 44, padding: '0 14px', borderRadius: 11, fontSize: 'var(--step--1)',
-                  fontWeight: 600, background: 'var(--g-primary)', color: 'var(--c-on-fill)',
+                  fontWeight: 600, background: 'var(--g-primary)', color: 'var(--c-on-primary)',
                 }}>Add</button>
               </form>
             </div>
@@ -204,8 +204,8 @@ function Member({ p, last, left, tabId, methods, today, canEdit, open, onOpen, c
           <button type="button" className="cta" aria-expanded={open}
             onClick={() => { haptic('select'); onOpen(); }} style={{
               minHeight: 44, padding: '0 14px', borderRadius: 11, fontSize: 'var(--step--1)', fontWeight: 600,
-              background: open ? 'var(--c-sunk)' : 'var(--c-seagrass)',
-              color: open ? 'var(--c-meta)' : 'var(--c-on-fill)',
+              background: open ? 'var(--c-sunk)' : 'var(--g-primary)',
+              color: open ? 'var(--c-meta)' : 'var(--c-on-primary)',
             }}>{open ? 'Cancel' : 'Settle up'}</button>
         )}
         {children}
@@ -230,7 +230,7 @@ function Member({ p, last, left, tabId, methods, today, canEdit, open, onOpen, c
           {state && !state.ok && <ErrorNote>{state.error}</ErrorNote>}
           <button className="cta" type="submit" disabled={pending} style={{
             minHeight: 50, borderRadius: 13, fontSize: 'var(--step-0)', fontWeight: 600,
-            background: 'var(--g-primary)', color: 'var(--c-on-fill)', opacity: pending ? 0.65 : 1,
+            background: 'var(--g-primary)', color: 'var(--c-on-primary)', opacity: pending ? 0.65 : 1,
           }}>
             <Icon name="check" size={18} strokeWidth={2.2} />
             {pending ? 'Recording…' : 'Record what came back'}
@@ -267,7 +267,7 @@ function EditTab({ tabId, name, note, counts, onDone }: {
         }}>Cancel</button>
         <button className="cta" type="submit" disabled={pending} style={{
           flex: 1, minHeight: 48, borderRadius: 12, fontSize: 'var(--step-0)', fontWeight: 600,
-          background: 'var(--g-primary)', color: 'var(--c-on-fill)', opacity: pending ? 0.65 : 1,
+          background: 'var(--g-primary)', color: 'var(--c-on-primary)', opacity: pending ? 0.65 : 1,
         }}>{pending ? 'Saving…' : 'Save'}</button>
       </div>
     </form>

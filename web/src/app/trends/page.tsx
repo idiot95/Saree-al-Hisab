@@ -133,7 +133,7 @@ export default async function Trends() {
                       </Link>
                       <span className="amt" style={{
                         display: 'flex', alignItems: 'center', gap: 5, fontSize: 'var(--step--1)', fontWeight: 600,
-                        color: m.delta > 0 ? 'var(--c-danger)' : 'var(--c-ok)',
+                        color: m.delta > 0 ? 'var(--c-out)' : 'var(--c-in)',
                       }}>
                         <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor"
                           strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" aria-hidden>

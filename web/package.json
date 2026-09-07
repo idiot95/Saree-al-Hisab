@@ -9,6 +9,7 @@
     "lint": "eslint",
     "migrate": "node scripts/migrate.mjs",
     "tokens": "node scripts/gen-tokens.mjs",
+    "test:contrast": "node scripts/contrast.test.mjs",
     "test:invariants": "node scripts/invariants.test.mjs",
     "seed": "node scripts/seed.mjs",
     "test:lib": "node scripts/lib.test.mjs",

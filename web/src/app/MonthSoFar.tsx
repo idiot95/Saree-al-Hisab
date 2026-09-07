@@ -35,21 +35,15 @@ export default function MonthSoFar({ month, rows, budget, spent }: {
   const top = [...withBudget].sort((a, b) => Number(b.spent) - Number(a.spent)).slice(0, 4);
 
   return (
-    <section className="el card" style={{
-      background: 'var(--c-card)', borderRadius: 18, padding: 16,
-      display: 'flex', flexDirection: 'column', gap: 13,
+    <section className="el2 hero" style={{
+      borderRadius: 22, padding: '18px 17px', display: 'flex', flexDirection: 'column', gap: 13,
     }}>
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
-        <h2 style={{ fontSize: 'var(--step-2)', fontWeight: 600, flex: 1 }}>
-          {start.toLocaleDateString('en-IN', { month: 'long' })} so far
-        </h2>
-        <Link transitionTypes={['nav-forward']} href="/trends" style={{
-          fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-teal)', textDecoration: 'none',
-        }}>Trends</Link>
-        <Link transitionTypes={['nav-lateral']} href="/budget" style={{
-          fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-teal)', textDecoration: 'none',
-        }}>Budget</Link>
-      </div>
+      {/* No links here any more. Budget is a tab and Trends is a tile four
+          inches below; two more ways to leave were competing with the one
+          thing this card exists to say. */}
+      <h2 style={{ fontSize: 'var(--step-2)', fontWeight: 600 }}>
+        {start.toLocaleDateString('en-IN', { month: 'long' })} so far
+      </h2>
 
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
         <span className="t" style={{ fontSize: 'var(--step-4)', lineHeight: 1 }}>

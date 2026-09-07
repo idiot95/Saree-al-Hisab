@@ -20,7 +20,7 @@ export default function ScanForm({ canScan }: { canScan: boolean }) {
         <Link transitionTypes={['nav-forward']} href="/household" style={{
           minHeight: 48, borderRadius: 12, display: 'flex', alignItems: 'center',
           justifyContent: 'center', textDecoration: 'none', fontSize: 'var(--step-0)', fontWeight: 600,
-          background: 'var(--g-primary)', color: 'var(--c-on-fill)',
+          background: 'var(--g-primary)', color: 'var(--c-on-primary)',
         }}>Go to Household</Link>
       </div>
     );

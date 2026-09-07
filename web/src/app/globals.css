@@ -31,24 +31,65 @@
   --sheen: radial-gradient(120% 100% at 25% 0%, rgba(255,255,255,.24) 0%, rgba(255,255,255,0) 60%);
   --shade: linear-gradient(180deg, rgba(23,43,55,0) 55%, rgba(23,43,55,.06) 100%);
   --edge: rgba(255,255,255,.7);
-  /* The one filled button, lit. */
-  --g-primary: var(--sheen), linear-gradient(150deg, var(--c-seagrass-t) 0%, var(--c-seagrass) 52%, #55897A 100%);
-  /* The attention colour, for the raised Add button and anything pumpkin. */
-  --g-pumpkin: var(--sheen), linear-gradient(150deg, var(--c-pumpkin-t) 0%, var(--c-pumpkin) 55%, #E0691C 100%);
+  /* The one filled button, lit. Darker than the brand green looks on the
+     canvas, and deliberately: with the generated dark ink on it the old ramp
+     measured 3.56:1, so the ground went down and the label went white. The
+     sheen is weaker here than elsewhere for the same reason — a highlight
+     that lifts the ground also eats the contrast under it. */
+  --g-lift: radial-gradient(120% 100% at 25% 0%, rgba(255,255,255,.10) 0%, rgba(255,255,255,0) 62%);
+  /* Named ends, so the contrast test can measure the ramp rather than trust it. */
+  --c-primary-lo: #35705F;
+  --c-primary-hi: #2A5C4E;
+  --g-primary: var(--g-lift), linear-gradient(150deg, var(--c-primary-lo) 0%, var(--c-primary-hi) 100%);
+  /* The attention colour, for the raised Add button and anything pumpkin. It
+     keeps the brand orange exactly — darkening it enough for a white glyph
+     turned it brown, and Pumpkin Spice IS the add button. The glyph went dark
+     instead, which measures 7:1 rather than the 2.97:1 white managed. */
+  --c-pumpkin-lo: #FE8C42;
+  --c-pumpkin-hi: #E86A1A;
+  --g-pumpkin: var(--g-lift), linear-gradient(150deg, var(--c-pumpkin-lo) 0%, var(--c-pumpkin-hi) 100%);
   /* Progress fills: the same tint, lit from the top so a bar has a surface. */
   --g-fill: linear-gradient(180deg, rgba(255,255,255,.28) 0%, rgba(255,255,255,0) 100%);
+
+  /* Money has a direction, and a figure should say so before its sign does.
+     Deliberately NOT the status triad: over-budget is an alarm and an ordinary
+     expense is not, so these are quieter than danger red and ok green while
+     still clearing 4.5:1 on every surface they land on. Proven rather than
+     asserted — scripts/contrast.test.mjs measures every pair in both themes. */
+  --c-out: #A2372B;
+  --c-in: #126642;
+  /* Labels on the filled controls, where the generated --c-on-fill is wrong:
+     it is dark ink, which is right on pollen and unreadable on the brand
+     green or on pollen in the dark theme. */
+  --c-on-primary: #FFFFFF;
+  --c-on-pumpkin: #12212A;
+  /* The hero's ground: the card, warmed towards the brand teal so the one
+     figure that matters is not sitting on the same white as everything else. */
+  --g-hero: linear-gradient(158deg, var(--c-card) 0%, var(--c-teal-l) 165%);
+  --c-on-warn: #233D4D;
+  --c-on-danger: #3B120E;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --sheen: radial-gradient(120% 100% at 25% 0%, rgba(255,255,255,.16) 0%, rgba(255,255,255,0) 60%);
     --shade: linear-gradient(180deg, rgba(0,0,0,0) 55%, rgba(0,0,0,.18) 100%);
     --edge: rgba(255,255,255,.07);
+    --c-out: #F58F7E;
+    --c-in: #5FCB93;
+    --c-on-warn: #FDF1D5;
+    --c-on-danger: #FCE7E3;
+    --g-hero: linear-gradient(158deg, var(--c-card) 0%, var(--c-teal-l) 150%);
   }
 }
 :root[data-theme="dark"] {
   --sheen: radial-gradient(120% 100% at 25% 0%, rgba(255,255,255,.16) 0%, rgba(255,255,255,0) 60%);
   --shade: linear-gradient(180deg, rgba(0,0,0,0) 55%, rgba(0,0,0,.18) 100%);
   --edge: rgba(255,255,255,.07);
+  --c-out: #F58F7E;
+  --c-in: #5FCB93;
+  --c-on-warn: #FDF1D5;
+  --c-on-danger: #FCE7E3;
+  --g-hero: linear-gradient(158deg, var(--c-card) 0%, var(--c-teal-l) 150%);
 }
 
 @layer base {
@@ -261,6 +302,27 @@
 
   .el  { box-shadow: inset 0 1px 0 var(--edge), var(--el); }
   .el2 { box-shadow: inset 0 1px 0 var(--edge), var(--el2); }
+
+  /* ── surfaces, in three weights ───────────────────────────────────────
+     A screen built from one card repeated has no foreground: everything asks
+     for attention equally, so nothing gets it. A screen should rarely need
+     more than two of these at once.
+
+       .hero   the one answer this screen exists to give — its own tinted
+               ground, a wider radius and the deeper shadow.
+       .card   an ordinary raised surface, and the default.
+       .quiet  supporting material: a note, a list nobody is reading yet.
+               Recessed rather than raised, so it sits behind the rest. */
+  .hero {
+    background-color: var(--c-card);
+    background-image: var(--g-hero);
+    border: 1px solid var(--c-teal-l);
+  }
+  .quiet {
+    background: var(--c-sunk2);
+    border: 1px solid var(--c-border);
+    box-shadow: none;
+  }
   /* A card's face: a whisper of shade toward the bottom edge, so a white
      card on a pale ground has a surface rather than being a hole in it.
      Inline styles set the colour; this only lays the light over it. */

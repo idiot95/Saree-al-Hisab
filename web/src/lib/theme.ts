@@ -13,12 +13,3 @@ export const THEME_COOKIE = 'ql.theme';
 export function forcedTheme(value: string | undefined): 'light' | 'dark' | null {
   return value === 'light' || value === 'dark' ? value : null;
 }
-
-/** Stamp the choice on the document at once, from a click, so the page
- *  changes under the thumb rather than after the round trip. Only ever
- *  called in the browser. */
-export function applyTheme(t: Theme) {
-  const root = document.documentElement;
-  if (t === 'system') { delete root.dataset.theme; root.style.colorScheme = ''; }
-  else { root.dataset.theme = t; root.style.colorScheme = t; }
-}

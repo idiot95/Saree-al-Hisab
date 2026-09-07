@@ -141,5 +141,5 @@ const ghost: React.CSSProperties = {
 };
 const solid: React.CSSProperties = {
   flex: 1, minHeight: 50, borderRadius: 13, fontSize: 'var(--step-0)', fontWeight: 600,
-  background: 'var(--g-primary)', color: 'var(--c-on-fill)',
+  background: 'var(--g-primary)', color: 'var(--c-on-primary)',
 };

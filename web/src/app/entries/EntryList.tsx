@@ -142,8 +142,10 @@ function Entry({ e, last }: { e: Row; last: boolean }) {
       </span>
       <span className="t amt" style={{
         fontSize: 'var(--step-0)', letterSpacing: '-.01em',
-        color: incoming || cameBack ? 'var(--c-ok)'
-          : move && !lent ? 'var(--c-meta)' : 'var(--c-ink)',
+        /* Money in is green, money out is red, and a move between your own
+           accounts is neither — it is the same money in a different pocket. */
+        color: incoming || cameBack ? 'var(--c-in)'
+          : move ? 'var(--c-meta)' : 'var(--c-out)',
       }}>
         {incoming || cameBack ? '+' : ''}{format(Number(e.amount))}
       </span>

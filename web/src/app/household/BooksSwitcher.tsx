@@ -116,7 +116,7 @@ const ghost: React.CSSProperties = {
 };
 const solid: React.CSSProperties = {
   minHeight: 46, borderRadius: 11, fontSize: 'var(--step-0)', fontWeight: 600,
-  background: 'var(--g-primary)', color: 'var(--c-on-fill)',
+  background: 'var(--g-primary)', color: 'var(--c-on-primary)',
 };
 
 const icon = { width: 34, height: 34, flex: 'none', borderRadius: 999, display: 'flex',

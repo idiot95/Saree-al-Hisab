@@ -40,7 +40,7 @@ export default function DueRow({
             {category && ` · ${category}`}
           </span>
         </span>
-        <span className="t" style={{ fontSize: 'var(--step-1)', color: income ? 'var(--c-seagrass)' : undefined }}>
+        <span className="t" style={{ fontSize: 'var(--step-1)', color: income ? 'var(--c-in)' : 'var(--c-out)' }}>
           {income ? '+' : ''}{format(amount)}
         </span>
       </div>
@@ -49,7 +49,7 @@ export default function DueRow({
         <div style={{ display: 'flex', gap: 8 }}>
           <button className="cta" type="button" onClick={() => setOpen(true)} style={{
             flex: 1, minHeight: 44, borderRadius: 11, fontSize: 'var(--step--1)', fontWeight: 600,
-            background: 'var(--g-primary)', color: 'var(--c-on-fill)',
+            background: 'var(--g-primary)', color: 'var(--c-on-primary)',
           }}>{income ? 'It came in' : 'Record it'}</button>
           <form action={skip}>
             <input type="hidden" name="scheduleId" value={scheduleId} />
@@ -87,7 +87,7 @@ export default function DueRow({
             }}>Cancel</button>
             <button className="cta" type="submit" disabled={recording} style={{
               flex: 1, minHeight: 46, borderRadius: 11, fontSize: 'var(--step-0)', fontWeight: 600,
-              background: 'var(--g-primary)', color: 'var(--c-on-fill)',
+              background: 'var(--g-primary)', color: 'var(--c-on-primary)',
               opacity: recording ? 0.6 : 1,
             }}>{recording ? 'Saving…' : 'Record the payment'}</button>
           </div>

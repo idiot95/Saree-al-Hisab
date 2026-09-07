@@ -102,7 +102,7 @@ export default async function Schedules() {
                       </span>
                     </span>
                     <span className="t amt" style={{
-                      fontSize: 'var(--step-0)', color: s.kind === 'income' ? 'var(--c-seagrass)' : undefined,
+                      fontSize: 'var(--step-0)', color: s.kind === 'income' ? 'var(--c-in)' : 'var(--c-out)',
                     }}>{s.kind === 'income' ? '+' : ''}{format(Number(s.amount ?? 0))}</span>
                     {canWrite && <StopSchedule scheduleId={s.id} name={s.name} />}
                   </div>

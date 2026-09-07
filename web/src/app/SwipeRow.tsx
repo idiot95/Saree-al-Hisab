@@ -35,10 +35,13 @@ const LOCK = 8;          // px of travel before a drag decides which axis it is 
 const OPEN_AT = 0.45;    // fraction of the actions' width past which it snaps open
 const FULL_AT = 0.56;    // fraction of the row's width past which the last action fires
 
+/* A label on a filled action. --c-on-fill is dark ink, which is right on the
+   light theme's salmon and unreadable on the dark theme's deep red, so danger
+   carries its own ink that flips with the scheme. */
 const TONE = {
   neutral: ['var(--c-sunk2)', 'var(--c-ink)'],
-  primary: ['var(--c-teal)', '#fff'],
-  danger: ['var(--c-danger-fill)', 'var(--c-on-fill)'],
+  primary: ['var(--c-primary-hi)', 'var(--c-on-primary)'],
+  danger: ['var(--c-danger-fill)', 'var(--c-on-danger)'],
 } as const;
 
 /* The one open row, so opening another closes it. Module state on purpose:

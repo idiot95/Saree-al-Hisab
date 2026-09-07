@@ -80,8 +80,9 @@ A repayment is `kind = 'claim_receipt'` — money in, but explicitly not income.
 ## Running it
 
     npm run migrate            # in filename order; --reset drops and rebuilds
-    npm run test:invariants    # 85 assertions against real Postgres
+    npm run test:invariants    # 111 assertions against real Postgres
     npm run test:lib           # money, password hashing and link tokens
+    npm run test:contrast      # every ink/ground pair, both themes, WCAG
     npm run tokens             # regenerate tokens.css from the canvas palette
 
 Neon is provisioned through Vercel; `DATABASE_URL` lives in `.env.local`,
@@ -733,7 +734,9 @@ They live in `options.ts` now.
 - **Gestalt** — common region (cards), proximity (a category's name, spend and
   amount on one row), similarity (one tint per category everywhere).
 - **Serial position** — home leads with the month and ends with one quiet link.
-- **Von Restorff** — over-budget is the only red; Add is the only filled tab.
+- **Von Restorff** — Add is the only filled tab. Red now has two jobs and they
+  are kept apart by weight: `--c-out` is an ordinary expense, `--c-danger` is
+  over budget, and the second is the louder of the two.
 - **Postel** — amount fields accept `₹`, commas and spaces and keep the digits.
 - **Aesthetic-usability** — one token set, one header background, one card
   shape. The header's ruled-paper stripes were removed: on a phone they read as

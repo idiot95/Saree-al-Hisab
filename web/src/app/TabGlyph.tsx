@@ -24,7 +24,7 @@ export function TabGlyph({ t, on, here, add }: {
            not look like the four things done occasionally. */
         width: 46, height: 46, borderRadius: 999, marginTop: -14,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        color: '#fff',
+        color: 'var(--c-on-pumpkin)',
         background: 'var(--g-pumpkin)',
         boxShadow: 'inset 0 1px 0 rgba(255,255,255,.35), 0 6px 16px -4px rgba(254,127,45,.55)',
       } : {

@@ -24,7 +24,7 @@ export default function CopyPrevious({ month, from, total, categories }: {
       )}
       <button className="cta" type="submit" disabled={pending} style={{
         minHeight: 48, borderRadius: 12, fontSize: 'var(--step-0)', fontWeight: 600,
-        background: 'var(--g-primary)', color: 'var(--c-on-fill)', opacity: pending ? 0.65 : 1,
+        background: 'var(--g-primary)', color: 'var(--c-on-primary)', opacity: pending ? 0.65 : 1,
       }}>{pending ? 'Copying…' : `Start from ${from}`}</button>
     </form>
   );

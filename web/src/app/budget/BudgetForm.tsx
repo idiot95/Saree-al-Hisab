@@ -67,8 +67,8 @@ export default function BudgetForm({ month, rows, canEdit }: {
         {canEdit && (
           <button className="cta" type="submit" disabled={pending || !changed} style={{
             minHeight: 46, padding: '0 18px', borderRadius: 12, fontSize: 'var(--step-0)', fontWeight: 600,
-            background: changed ? 'var(--c-seagrass)' : 'var(--c-sunk)',
-            color: changed ? 'var(--c-on-fill)' : 'var(--c-meta)',
+            background: changed ? 'var(--g-primary)' : 'var(--c-sunk)',
+            color: changed ? 'var(--c-on-primary)' : 'var(--c-meta)',
             opacity: pending ? 0.6 : 1,
           }}>
             {pending ? 'Saving…' : changed ? 'Save' : 'Saved'}
