@@ -39,6 +39,9 @@ export default function MonthSoFar({ month, rows, budget, spent }: {
         <h2 style={{ margin: 0, fontSize: 16.5, fontWeight: 600, flex: 1 }}>
           {start.toLocaleDateString('en-IN', { month: 'long' })} so far
         </h2>
+        <Link href="/trends" style={{
+          fontSize: 13, fontWeight: 600, color: 'var(--c-teal)', textDecoration: 'none',
+        }}>Trends</Link>
         <Link href="/budget" style={{
           fontSize: 13, fontWeight: 600, color: 'var(--c-teal)', textDecoration: 'none',
         }}>Budget</Link>

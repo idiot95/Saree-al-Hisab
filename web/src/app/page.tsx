@@ -67,6 +67,26 @@ export default async function Home() {
             Household on every screen, so repeating them here is only more to
             read past. Home shows what only home can show, plus one quiet way
             back to the explanation. */}
+        <Link href="/trends" className="el" style={{
+          minHeight: 58, borderRadius: 15, display: 'flex', alignItems: 'center', gap: 12,
+          padding: '0 16px', textDecoration: 'none', background: 'var(--c-card)',
+          border: '1px solid var(--c-border)', color: 'var(--c-ink)',
+        }}>
+          <span style={{
+            width: 34, height: 34, flex: 'none', borderRadius: 999, display: 'flex',
+            alignItems: 'center', justifyContent: 'center',
+            background: 'var(--c-sunk)', color: 'var(--c-meta)',
+          }}>
+            <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M4 18l5-5 3.5 3.5L20 8" /><path d="M15 8h5v5" />
+            </svg>
+          </span>
+          <span style={{ flex: 1, fontSize: 15, fontWeight: 600 }}>Trends</span>
+          <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="var(--c-off)"
+            strokeWidth={2} strokeLinecap="round" aria-hidden><path d="M9 5l7 7-7 7" /></svg>
+        </Link>
+
         <Link href="/people" className="el" style={{
           minHeight: 58, borderRadius: 15, display: 'flex', alignItems: 'center', gap: 12,
           padding: '0 16px', textDecoration: 'none', background: 'var(--c-card)',

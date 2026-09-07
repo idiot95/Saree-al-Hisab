@@ -535,3 +535,61 @@ export async function peopleForBook(householdId: string, bookId: string) {
   ` as Promise<{ id: string; name: string; tint: string; in_book: boolean;
                  lent: string; claimed: string; open_claims: number }[]>;
 }
+
+/* ── trends ─────────────────────────────────────────────────────────────── */
+
+export type MonthPoint = {
+  month: string; spent: string; income: string; budget: string; entries: number;
+};
+
+/** The last N months, including ones with nothing in them — a gap in the bars
+ *  is information, and dropping empty months would quietly close it up. */
+export async function monthlySeries(householdId: string, months = 6) {
+  return sql`
+    with span as (
+      select generate_series(
+        date_trunc('month', current_date) - make_interval(months => ${months - 1}),
+        date_trunc('month', current_date),
+        interval '1 month')::date as month
+    )
+    select to_char(s.month, 'YYYY-MM-DD') as month,
+           coalesce((select sum(amount) from spend_txn t
+                     where t.household_id = ${householdId}
+                       and t.occurred_on >= s.month
+                       and t.occurred_on <  (s.month + interval '1 month')), 0)::text as spent,
+           coalesce((select sum(amount) from income_txn t
+                     where t.household_id = ${householdId}
+                       and t.occurred_on >= s.month
+                       and t.occurred_on <  (s.month + interval '1 month')), 0)::text as income,
+           coalesce((select sum(amount) from budget b
+                     where b.household_id = ${householdId} and b.month = s.month), 0)::text as budget,
+           (select count(*)::int from txn t
+             where t.household_id = ${householdId} and t.deleted_at is null
+               and t.occurred_on >= s.month
+               and t.occurred_on <  (s.month + interval '1 month')) as entries
+    from span s
+    order by s.month
+  ` as Promise<MonthPoint[]>;
+}
+
+/** What each category came to in a month, and what it came to the month
+ *  before — the comparison is the point, so both are fetched together. */
+export async function categoryTrend(householdId: string, month: string) {
+  return sql`
+    select c.id, c.name, c.tint,
+           coalesce((select sum(s.amount) from spend_txn s
+                     where s.category_id = c.id
+                       and s.occurred_on >= ${month}::date
+                       and s.occurred_on <  (${month}::date + interval '1 month')), 0)::text as now,
+           coalesce((select sum(s.amount) from spend_txn s
+                     where s.category_id = c.id
+                       and s.occurred_on >= (${month}::date - interval '1 month')
+                       and s.occurred_on <  ${month}::date), 0)::text as before,
+           coalesce((select b.amount from budget b
+                     where b.category_id = c.id and b.month = ${month}::date), 0)::text as budget
+    from category c
+    where c.household_id = ${householdId} and c.archived_at is null
+    order by c.sort_order
+  ` as Promise<{ id: string; name: string; tint: string;
+                 now: string; before: string; budget: string }[]>;
+}

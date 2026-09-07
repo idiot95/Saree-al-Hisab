@@ -59,6 +59,16 @@ const SECTIONS = [
     ],
   },
   {
+    title: 'Seeing the shape of it',
+    href: '/trends', link: 'Open trends',
+    lines: [
+      'Six months of spending as bars, with the budget marked on each one.',
+      'This month broken down by category, with the amounts written out beside it.',
+      'The biggest changes on last month, so a jump is visible before the statement arrives.',
+      'Tap any category to see the entries behind the number.',
+    ],
+  },
+  {
     title: 'Everything you have recorded',
     href: '/entries', link: 'Open entries',
     lines: [
@@ -115,7 +125,7 @@ export default async function Guide() {
           How it works
         </h1>
         <p style={{ margin: 0, fontSize: 14, lineHeight: 1.5, color: 'rgba(255,255,255,.82)' }}>
-          Eight things worth knowing. Three minutes.
+          Nine things worth knowing. Three minutes.
         </p>
       </header>
 
