@@ -6,6 +6,7 @@ import { HEADER_BG } from '../auth-ui';
 import { useRouter } from 'next/navigation';
 import { keysDisplay, pushKey, popKey, fromKeys, symbolOf, format } from '@/lib/money';
 import { saveEntry, checkDuplicate } from './actions';
+import { haptic } from '../haptics';
 
 /* Add Entry — the screen the whole product rests on.
    With no bank feed and no SMS, this is how nearly everything gets in, so it
@@ -74,8 +75,8 @@ export default function AddEntry({
         kind, amountMinor: minor, categoryId, methodId,
         counterAccountId: counterId, merchant, occurredOn, isShared: shared,
       });
-      if (r.ok) { setKeys(''); setCategoryId(null); setDupe(null); router.push('/'); }
-      else setError(r.error);
+      if (r.ok) { haptic('success'); setKeys(''); setCategoryId(null); setDupe(null); router.push('/'); }
+      else { haptic('warn'); setError(r.error); }
     });
   }
   // A transfer moves money and can never wear a category — the same rule the
@@ -275,13 +276,13 @@ export default function AddEntry({
       <div style={{ marginTop: 'auto', padding: '10px 14px 18px', background: 'var(--c-card)', borderTop: '1px solid var(--c-border)', display: 'flex', gap: 9 }}>
         <div style={{ flex: 1, display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0,1fr))', gap: 9 }}>
           {KEYS.map((k) => (
-            <button key={k} className="n" onClick={() => setKeys((s) => pushKey(s, k))} style={key}>
+            <button key={k} className="n press" onClick={() => { haptic('tap'); setKeys((s) => pushKey(s, k)); }} style={key}>
               {k}
             </button>
           ))}
         </div>
         <div style={{ width: 92, flex: 'none', display: 'flex', flexDirection: 'column', gap: 9 }}>
-          <button aria-label="Delete" onClick={() => setKeys(popKey)} style={{ ...key, background: 'var(--c-sunk)', color: 'var(--c-meta)' }}>
+          <button aria-label="Delete" className="press" onClick={() => { haptic('tap'); setKeys(popKey); }} style={{ ...key, background: 'var(--c-sunk)', color: 'var(--c-meta)' }}>
             <Glyph d="M9.5 5.5h9a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-9L3 12Z M13 9.5l4 5 M17 9.5l-4 5" size={23} />
           </button>
           <button

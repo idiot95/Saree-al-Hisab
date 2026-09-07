@@ -4,7 +4,8 @@ import { actorOrNull, categoriesFor, methodsFor, schedulesFor } from '@/db/queri
 import { format } from '@/lib/money';
 import { describeRule, nextUnsettled, outstandingDues } from '@/lib/recur';
 import { headerBg } from '../auth-ui';
-import TabBar, { TAB_BAR_SPACE } from '../TabBar';
+import TabBar from '../TabBar';
+import { TAB_BAR_SPACE } from '../tabs';
 import NewSchedule from './NewSchedule';
 import DueRow, { StopSchedule } from './DueRow';
 import Screen from '../Screen';

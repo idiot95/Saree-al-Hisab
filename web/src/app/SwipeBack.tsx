@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { haptic } from './haptics';
 
 /* Swipe from the left edge to go back.
 
@@ -68,7 +69,8 @@ export default function SwipeBack({ to }: { to: string }) {
       const dy = Math.abs(t.clientY - sy);
       if (dx < TRAVEL || dx < dy * SLOPE) return;
       // The same motion the Back arrow produces, so the gesture and the
-      // button are visibly the same move.
+      // button are visibly the same move — and a tick to say it took.
+      haptic('select');
       router.push(to, { transitionTypes: ['nav-back'] });
     };
 

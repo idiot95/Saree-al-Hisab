@@ -1,5 +1,6 @@
 import { headerBg, type Accent } from './auth-ui';
-import TabBar, { TAB_BAR_SPACE } from './TabBar';
+import { TABS, BAR_STYLE, TAB_BAR_SPACE, tabLook, tabStyle } from './tabs';
+import { TabGlyph } from './TabGlyph';
 
 /* What a screen looks like in the moment between the tap and the data.
 
@@ -60,7 +61,31 @@ export default function Skeleton({ accent, title, current, rows = 4 }: {
           </div>
         ))}
       </div>
-      <TabBar current={current} />
+      <StillTabBar current={current} />
     </main>
+  );
+}
+
+/* The tab bar, drawn but not wired. It is on screen for the two hundred
+   milliseconds before the real one arrives with the page, and it shares the
+   real one's view-transition name so the swap is invisible.
+
+   Why not the real one: TabBar is a client component, and a client component
+   inside a loading boundary makes Next write its chunk into the page as a
+   plain <script> that never gets the CSP nonce — which the policy then
+   refuses, correctly, and logs. A bar made of nothing but markup has no
+   chunk to write. */
+function StillTabBar({ current }: { current: string }) {
+  return (
+    <nav aria-hidden style={BAR_STYLE}>
+      {TABS.map((t) => {
+        const { on, here, add } = tabLook(t, current);
+        return (
+          <span key={t.href} style={tabStyle(on, add)}>
+            <TabGlyph t={t} on={on} here={here} add={add} />
+          </span>
+        );
+      })}
+    </nav>
   );
 }

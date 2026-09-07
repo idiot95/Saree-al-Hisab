@@ -1,12 +1,13 @@
 import Link from 'next/link';
-import { Chip } from '../Icon';
 import { redirect } from 'next/navigation';
 import { actorOrNull, budgetFor, entriesFor } from '@/db/queries';
 import { format, monthKey } from '@/lib/money';
 import { headerBg } from '../auth-ui';
-import TabBar, { TAB_BAR_SPACE } from '../TabBar';
+import TabBar from '../TabBar';
+import { TAB_BAR_SPACE } from '../tabs';
 import Screen from '../Screen';
 import SwipeBack from '../SwipeBack';
+import EntryList, { type Row } from './EntryList';
 
 export const metadata = { title: 'Entries · Quiet Ledger' };
 export const dynamic = 'force-dynamic';
@@ -17,17 +18,6 @@ const monthLabel = (m: string) =>
 const shift = (m: string, by: number) => {
   const d = new Date(m);
   return monthKey(new Date(d.getFullYear(), d.getMonth() + by, 1));
-};
-
-const TINT: Record<string, [string, string]> = {
-  green: ['var(--cat-green)', 'var(--cat-green-ink)'],
-  orange: ['var(--cat-orange)', 'var(--cat-orange-ink)'],
-  blue: ['var(--cat-blue)', 'var(--cat-blue-ink)'],
-  purple: ['var(--cat-purple)', 'var(--cat-purple-ink)'],
-  pink: ['var(--cat-pink)', 'var(--cat-pink-ink)'],
-  cyan: ['var(--cat-cyan)', 'var(--cat-cyan-ink)'],
-  rust: ['var(--cat-rust)', 'var(--cat-rust-ink)'],
-  indigo: ['var(--cat-indigo)', 'var(--cat-indigo-ink)'],
 };
 
 const MOVES = new Set(['transfer', 'card_payment']);
@@ -51,12 +41,17 @@ export default async function Entries({ searchParams }: {
   const filtered = categories.find((x) => x.category_id === categoryId);
 
   // Grouped by day: Gestalt proximity does the work a date column would.
-  const days: { on: string; rows: typeof entries }[] = [];
+  const days: { on: string; label: string; rows: Row[] }[] = [];
   for (const e of entries) {
     const key = new Date(e.occurred_on).toISOString().slice(0, 10);
+    const row: Row = {
+      id: e.id, kind: e.kind, amount: e.amount, merchant: e.merchant, category: e.category,
+      method: e.method, account: e.account, counter_account: e.counter_account,
+      icon: e.icon, tint: e.tint, is_shared: e.is_shared,
+    };
     const last = days[days.length - 1];
-    if (last && last.on === key) last.rows.push(e);
-    else days.push({ on: key, rows: [e] });
+    if (last && last.on === key) last.rows.push(row);
+    else days.push({ on: key, label: dayLabel(key), rows: [row] });
   }
 
   const spent = entries
@@ -126,69 +121,7 @@ export default async function Entries({ searchParams }: {
             Nothing recorded for {monthLabel(month)}{filtered ? ` under ${filtered.name}` : ''} yet.
           </p>
         ) : (
-          <div style={{ padding: '18px 0 0' }}>
-            {days.map((d) => (
-              <section key={d.on} style={{ marginBottom: 18 }}>
-                <h2 style={{
-                  margin: '0 var(--gutter) 8px', fontSize: 'var(--step--1)', fontWeight: 700, letterSpacing: '.03em',
-                  color: 'var(--c-meta)',
-                }}>{dayLabel(d.on)}</h2>
-                <div className="el" style={{
-                  margin: '0 var(--gutter)', background: 'var(--c-card)', borderRadius: 16, padding: '0 var(--gutter)',
-                }}>
-                  {d.rows.map((e, i) => {
-                    const move = MOVES.has(e.kind);
-                    const incoming = INCOMING.has(e.kind);
-                    return (
-                      <Link key={e.id} href={`/entries/${e.id}`} transitionTypes={['nav-forward']} style={{
-                        display: 'flex', alignItems: 'center', gap: 12, minHeight: 68,
-                        textDecoration: 'none', color: 'var(--c-ink)',
-                        borderBottom: i === d.rows.length - 1 ? undefined : '1px solid var(--c-rule)',
-                      }}>
-                        {move ? (
-                          <span style={{
-                            width: 38, height: 38, flex: 'none', borderRadius: 11, display: 'flex',
-                            alignItems: 'center', justifyContent: 'center',
-                            background: 'var(--c-sunk)', color: 'var(--c-meta)',
-                          }}>
-                            <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                              strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                              <path d="M7 8h13l-3-3M17 16H4l3 3" />
-                            </svg>
-                          </span>
-                        ) : (
-                          <Chip icon={e.icon} tint={e.tint} size={38} />
-                        )}
-                        <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
-                          <span style={{
-                            fontSize: 'var(--step-0)', fontWeight: 600, overflow: 'hidden',
-                            textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                          }}>
-                            {e.merchant || e.category || (move ? 'Transfer' : 'Entry')}
-                          </span>
-                          <span style={{
-                            fontSize: 'var(--step--2)', color: 'var(--c-meta)', overflow: 'hidden',
-                            textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                          }}>
-                            {move && e.counter_account
-                              ? `${e.account} → ${e.counter_account}`
-                              : [e.category, e.method].filter(Boolean).join(' · ')}
-                            {e.is_shared && ' · shared'}
-                          </span>
-                        </span>
-                        <span className="t amt" style={{
-                          fontSize: 'var(--step-0)', letterSpacing: '-.01em',
-                          color: incoming ? 'var(--c-ok)' : move ? 'var(--c-meta)' : 'var(--c-ink)',
-                        }}>
-                          {incoming ? '+' : ''}{format(Number(e.amount))}
-                        </span>
-                      </Link>
-                    );
-                  })}
-                </div>
-              </section>
-            ))}
-          </div>
+          <EntryList days={days} canEdit={actor.role !== 'viewer'} />
         )}
         <TabBar current="/entries" />
       </main>

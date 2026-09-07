@@ -1,6 +1,5 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { signOut } from '@/auth';
 import {
   actorOrNull, budgetFor, inboxCount, monthTotals, peopleFor, schedulesFor, setupProgress,
 } from '@/db/queries';
@@ -10,7 +9,8 @@ import { headerBg } from './auth-ui';
 import { Icon } from './Icon';
 import GettingStarted from './GettingStarted';
 import MonthSoFar from './MonthSoFar';
-import TabBar, { TAB_BAR_SPACE } from './TabBar';
+import TabBar from './TabBar';
+import { TAB_BAR_SPACE } from './tabs';
 import Screen from './Screen';
 
 export const dynamic = 'force-dynamic';
@@ -47,37 +47,42 @@ export default async function Home() {
   return (
     <Screen>
       <main style={{ minHeight: '100dvh', background: 'var(--c-bg)', paddingBottom: TAB_BAR_SPACE }}>
+        {/* The header is the door to Settings. Where every app keeps it — your
+            name and picture at the top, a cog at the far end — because "where
+            do I manage my household" was being answered by a tile at the
+            bottom of the grid, wearing the same icon as Lending. */}
         <header className="el2" style={{
           background: headerBg('teal'), color: '#fff', borderRadius: '0 0 26px 26px',
-          padding: '18px var(--gutter) 22px', display: 'flex', alignItems: 'center', gap: 12,
+          padding: '12px var(--gutter) 16px',
         }}>
-          <span style={{
-            width: 38, height: 38, flex: 'none', borderRadius: 999, display: 'flex',
-            alignItems: 'center', justifyContent: 'center',
-            fontSize: 'var(--step--1)', fontWeight: 700,
-            background: 'rgba(255,255,255,.16)', border: '1px solid rgba(255,255,255,.22)',
-          }}>{(actor.user_name || '?').slice(0, 2).toUpperCase()}</span>
-          <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1 }}>
-            <h1 style={{
-              fontSize: 'var(--step-1)', fontWeight: 600, overflow: 'hidden',
-              textOverflow: 'ellipsis', whiteSpace: 'nowrap', letterSpacing: '-.01em',
-            }}>{name}</h1>
-            <span style={{ fontSize: 'var(--step--1)', color: 'rgba(255,255,255,.72)' }}>
-              {actor.user_name} · {actor.role ? ROLE[actor.role] : ''}
-            </span>
-          </span>
-          <form action={async () => { 'use server'; await signOut({ redirectTo: '/signin' }); }}>
-            <button type="submit" aria-label="Sign out" style={{
-              width: 44, height: 44, borderRadius: 999, display: 'flex',
-              alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,.9)',
+          <Link href="/household" transitionTypes={['nav-forward']} className="press"
+            aria-label="Household and settings" style={{
+              display: 'flex', alignItems: 'center', gap: 12, minHeight: 50,
+              textDecoration: 'none', color: '#fff', borderRadius: 14,
             }}>
-              <svg width={19} height={19} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                <path d="M15 16.5 19.5 12 15 7.5" /><path d="M19 12H9" />
-                <path d="M12 4.5H6.5A1.5 1.5 0 0 0 5 6v12a1.5 1.5 0 0 0 1.5 1.5H12" />
-              </svg>
-            </button>
-          </form>
+            <span style={{
+              width: 38, height: 38, flex: 'none', borderRadius: 999, display: 'flex',
+              alignItems: 'center', justifyContent: 'center',
+              fontSize: 'var(--step--1)', fontWeight: 700,
+              background: 'rgba(255,255,255,.16)', border: '1px solid rgba(255,255,255,.22)',
+            }}>{(actor.user_name || '?').slice(0, 2).toUpperCase()}</span>
+            <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1 }}>
+              <h1 style={{
+                fontSize: 'var(--step-1)', fontWeight: 600, overflow: 'hidden',
+                textOverflow: 'ellipsis', whiteSpace: 'nowrap', letterSpacing: '-.01em',
+              }}>{name}</h1>
+              <span style={{ fontSize: 'var(--step--1)', color: 'rgba(255,255,255,.72)' }}>
+                {actor.user_name} · {actor.role ? ROLE[actor.role] : ''}
+              </span>
+            </span>
+            <span aria-hidden style={{
+              width: 44, height: 44, flex: 'none', borderRadius: 999, display: 'flex',
+              alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,.92)',
+              background: 'rgba(255,255,255,.12)',
+            }}>
+              <Icon name="settings" size={21} strokeWidth={1.9} />
+            </span>
+          </Link>
         </header>
 
         <div style={{ padding: '18px var(--gutter) 0', display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -134,7 +139,7 @@ export default async function Home() {
               note={schedules.length ? `${schedules.length} set` : 'Rent, fees, EMIs'} />
             <Tile href="/people" icon="person" tint="purple" label="Lending"
               note={lent !== 0 ? format(Math.abs(lent)) : 'Who owes what'} />
-            <Tile href="/household" icon="person" tint="blue" label="Household"
+            <Tile href="/household" icon="settings" tint="blue" label="Household & settings"
               note={`${progress.members} ${progress.members === 1 ? 'member' : 'members'}`} />
             <Tile href="/guide" icon="book" tint="neutral" label="How it works" note="A walkthrough" />
           </nav>
@@ -176,7 +181,7 @@ function Tile({ href, icon, tint, label, note }: {
   href: string; icon: string; tint: string; label: string; note: string;
 }) {
   return (
-    <Link transitionTypes={['nav-forward']} href={href} className="el" style={{
+    <Link transitionTypes={['nav-forward']} href={href} className="el press" style={{
       minHeight: 92, borderRadius: 16, display: 'flex', flexDirection: 'column',
       justifyContent: 'space-between', gap: 8, padding: '12px 13px', textDecoration: 'none',
       background: 'var(--c-card)', border: '1px solid var(--c-border)', color: 'var(--c-ink)',

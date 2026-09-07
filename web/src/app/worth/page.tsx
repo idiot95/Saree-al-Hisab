@@ -4,7 +4,8 @@ import { redirect } from 'next/navigation';
 import { actorOrNull, allBalances, owedByPerson, worthSeries } from '@/db/queries';
 import { format } from '@/lib/money';
 import { headerBg } from '../auth-ui';
-import TabBar, { TAB_BAR_SPACE } from '../TabBar';
+import TabBar from '../TabBar';
+import { TAB_BAR_SPACE } from '../tabs';
 import Screen from '../Screen';
 import SwipeBack from '../SwipeBack';
 

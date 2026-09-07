@@ -2,10 +2,11 @@
 
 import Link from 'next/link';
 import { Chip, tintOf } from '../Icon';
-import { useActionState, useState } from 'react';
+import { useActionState, useEffect, useState } from 'react';
 import { ErrorNote } from '../auth-ui';
 import { saveBudget } from './actions';
 import { format } from '@/lib/money';
+import { haptic } from '../haptics';
 
 type Row = {
   category_id: string; name: string; tint: string; icon: string;
@@ -33,6 +34,9 @@ export default function BudgetForm({ month, rows, canEdit }: {
   const [draft, setDraft] = useState<Record<string, string>>(
     () => Object.fromEntries(rows.map((r) => [r.category_id, toField(r.budget)])),
   );
+
+  // Saved or refused, the phone says which before the eye finds the note.
+  useEffect(() => { if (state) haptic(state.ok ? 'success' : 'warn'); }, [state]);
 
   const total = rows.reduce((n, r) => n + Math.round((Number(draft[r.category_id]) || 0) * 100), 0);
   const changed = rows.some((r) => (draft[r.category_id] ?? '') !== toField(r.budget));

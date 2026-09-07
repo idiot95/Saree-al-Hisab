@@ -156,3 +156,41 @@ export async function moveCategory(_prev: Result | null, fd: FormData): Promise<
   revalidatePath('/add');
   return { ok: true };
 }
+
+/** The whole order at once, from a drag. The client sends the ids it thinks
+ *  are in use, in the order it wants; the server insists that this is
+ *  EXACTLY the household's live set — nothing missing, nothing extra, nothing
+ *  belonging to anyone else — before writing a single row. A list that has
+ *  changed under the drag (someone retired one meanwhile) is refused whole,
+ *  and the screen simply refreshes to what is true. */
+export async function reorderCategories(ids: unknown): Promise<Result> {
+  let actor;
+  try { actor = await mustWrite(); }
+  catch (e) { rethrowControlFlow(e); return { ok: false, error: (e as Error).message }; }
+
+  if (!Array.isArray(ids) || ids.length === 0 || ids.length > 200
+      || !ids.every((x) => typeof x === 'string' && /^[0-9a-f-]{36}$/.test(x))
+      || new Set(ids).size !== ids.length) {
+    return { ok: false, error: 'That order could not be read.' };
+  }
+
+  const rows = await sql`
+    select id from category
+    where household_id = ${actor.household_id} and archived_at is null`;
+  const mine = new Set(rows.map((r) => r.id as string));
+  if (mine.size !== ids.length || !ids.every((id) => mine.has(id))) {
+    revalidatePath('/categories');
+    return { ok: false, error: 'The list changed. Try again.' };
+  }
+
+  await sql.begin(async (tx) => {
+    for (const [k, id] of (ids as string[]).entries()) {
+      await tx`update category set sort_order = ${k}
+               where id = ${id} and household_id = ${actor.household_id}`;
+    }
+  });
+
+  revalidatePath('/categories');
+  revalidatePath('/add');
+  return { ok: true };
+}

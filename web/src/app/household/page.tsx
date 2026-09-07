@@ -1,12 +1,14 @@
 import Link from 'next/link';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
+import { signOut } from '@/auth';
 import { actorOrNull, membersOf, openInvitesOf, scanningState } from '@/db/queries';
 import { householdsOf } from '@/db/membership';
 import InviteForm from './InviteForm';
 import MemberRow from './MemberRow';
 import RevokeButton from './RevokeButton';
-import TabBar, { TAB_BAR_SPACE } from '../TabBar';
+import TabBar from '../TabBar';
+import { TAB_BAR_SPACE } from '../tabs';
 import PasswordCard from './PasswordCard';
 import ScanKey from './ScanKey';
 import { headerBg } from '../auth-ui';
@@ -61,7 +63,7 @@ export default async function Household() {
           </Link>
           <h1 className="t" style={{ margin: 0, fontSize: 'var(--step-3)', letterSpacing: '-.018em' }}>{name}</h1>
           <p style={{ margin: 0, fontSize: 'var(--step--1)', color: 'rgba(255,255,255,.84)' }}>
-            {members.length} {members.length === 1 ? 'member' : 'members'}
+            Household &amp; settings · {members.length} {members.length === 1 ? 'member' : 'members'}
             {live.length > 0 && ` · ${live.length} invited`}
           </p>
         </header>
@@ -147,6 +149,34 @@ export default async function Household() {
 
         <Head>Your account</Head>
         <PasswordCard />
+        {/* Signing out lives here, with the rest of the account — not on the
+            Home header, where it was the only button and the wrong one to
+            press by accident with a thumb. */}
+        <form action={async () => { 'use server'; await signOut({ redirectTo: '/signin' }); }}
+          className="el" style={{ margin: '-8px var(--gutter) 22px', borderRadius: 18 }}>
+          <button type="submit" className="press" style={{
+            width: '100%', minHeight: 56, padding: '0 var(--pad)', borderRadius: 18,
+            display: 'flex', alignItems: 'center', gap: 11, background: 'var(--c-card)',
+          }}>
+            <span style={{
+              width: 38, height: 38, flex: 'none', borderRadius: 999, display: 'flex',
+              alignItems: 'center', justifyContent: 'center',
+              background: 'var(--c-sunk)', color: 'var(--c-meta)',
+            }}>
+              <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <path d="M15 16.5 19.5 12 15 7.5" /><path d="M19 12H9" />
+                <path d="M12 4.5H6.5A1.5 1.5 0 0 0 5 6v12a1.5 1.5 0 0 0 1.5 1.5H12" />
+              </svg>
+            </span>
+            <span style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>Sign out</span>
+              <span style={{ fontSize: 'var(--step--2)', color: 'var(--c-meta)' }}>On this phone only</span>
+            </span>
+            <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="var(--c-meta)"
+              strokeWidth={2} strokeLinecap="round" aria-hidden><path d="M9 5l7 7-7 7" /></svg>
+          </button>
+        </form>
 
         <Head>What each role can do</Head>
         <Card pad="4px 16px">

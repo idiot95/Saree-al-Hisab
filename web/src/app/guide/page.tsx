@@ -1,7 +1,8 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { actorOrNull } from '@/db/queries';
-import TabBar, { TAB_BAR_SPACE } from '../TabBar';
+import TabBar from '../TabBar';
+import { TAB_BAR_SPACE } from '../tabs';
 import { headerBg } from '../auth-ui';
 import Screen from '../Screen';
 import SwipeBack from '../SwipeBack';

@@ -107,3 +107,46 @@ export async function deleteEntry(_prev: Result | null, fd: FormData): Promise<R
   revalidatePath('/accounts');
   redirect('/entries');
 }
+
+/* The same soft delete, for a swipe in the list. No redirect — the list is
+   already on screen and the row has already gone from it — and no dialog,
+   because the safeguard is a better one: Undo. */
+export async function removeEntry(id: unknown): Promise<Result> {
+  let actor;
+  try { actor = await mustWrite(); }
+  catch (e) { rethrowControlFlow(e); return { ok: false, error: (e as Error).message }; }
+  if (typeof id !== 'string' || !/^[0-9a-f-]{36}$/.test(id)) {
+    return { ok: false, error: 'That entry could not be read.' };
+  }
+  const done = await sql`
+    update txn set deleted_at = now()
+    where id = ${id} and household_id = ${actor.household_id} and deleted_at is null
+    returning id`;
+  if (!done.length) return { ok: false, error: 'That entry is not one of yours.' };
+  revalidatePath('/entries');
+  revalidatePath('/');
+  revalidatePath('/accounts');
+  return { ok: true };
+}
+
+/* Undo, and only undo: a row this household deleted in the last quarter of an
+   hour. Anything older stays where the ledger put it — this is the safety net
+   under a swipe, not a way to resurrect history. */
+export async function restoreEntry(id: unknown): Promise<Result> {
+  let actor;
+  try { actor = await mustWrite(); }
+  catch (e) { rethrowControlFlow(e); return { ok: false, error: (e as Error).message }; }
+  if (typeof id !== 'string' || !/^[0-9a-f-]{36}$/.test(id)) {
+    return { ok: false, error: 'That entry could not be read.' };
+  }
+  const done = await sql`
+    update txn set deleted_at = null
+    where id = ${id} and household_id = ${actor.household_id}
+      and deleted_at is not null and deleted_at > now() - interval '15 minutes'
+    returning id`;
+  if (!done.length) return { ok: false, error: 'That entry could not be brought back.' };
+  revalidatePath('/entries');
+  revalidatePath('/');
+  revalidatePath('/accounts');
+  return { ok: true };
+}

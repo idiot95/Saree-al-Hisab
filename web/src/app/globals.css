@@ -220,6 +220,23 @@
   .el  { box-shadow: var(--el); }
   .el2 { box-shadow: var(--el2); }
 
+  /* Anything pressable gives a little under the thumb. The phone's own
+     buttons do this and a control that does not feels painted on. Short on
+     purpose: a press that lingers reads as lag. Only the release animates,
+     so the press itself is instant. */
+  .press, button:not(:disabled) {
+    transition: transform .14s cubic-bezier(.2,.8,.2,1);
+  }
+  .press:active, button:not(:disabled):active {
+    transform: scale(.972);
+    transition-duration: .05s;
+  }
+
+  /* The undo bar rises from the bottom edge — from where the tab bar is,
+     which is where the thumb already is. */
+  .snack { animation: snack-in .22s cubic-bezier(.2,.8,.2,1); }
+  @keyframes snack-in { from { opacity: 0; translate: 0 14px } to { opacity: 1; translate: 0 } }
+
   /* Focus has to be visible for anyone on a keyboard, and must not be a ring
      that vanishes against a dark header. */
   :focus-visible {

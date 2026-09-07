@@ -4,7 +4,7 @@ import {
   IconBook, IconCoffee, IconScissors, IconTools, IconPaw, IconBarbell, IconMusic, IconWifi,
   IconShieldCheck, IconHeartHandshake, IconCashBanknote, IconTrendingUp, IconTag,
   IconBuildingBank, IconCash, IconPigMoney, IconCreditCard, IconUser, IconQrcode,
-  IconDeviceLaptop, IconWallet, IconRepeat, IconReceipt,
+  IconDeviceLaptop, IconWallet, IconRepeat, IconReceipt, IconSettings,
   type Icon as TablerIcon,
 } from '@tabler/icons-react';
 
@@ -57,6 +57,7 @@ const SET: Record<string, TablerIcon> = {
   cheque: IconReceipt,
   wallet: IconWallet,
   autodebit: IconRepeat,
+  settings: IconSettings,
 };
 
 export function Icon({ name, size = 19, strokeWidth = 1.8, ...rest }: {

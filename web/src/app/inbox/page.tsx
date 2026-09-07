@@ -4,7 +4,8 @@ import { actorOrNull, billsDue, duplicatesFor, schedulesFor } from '@/db/queries
 import { outstandingDues } from '@/lib/recur';
 import { format } from '@/lib/money';
 import { headerBg } from '../auth-ui';
-import TabBar, { TAB_BAR_SPACE } from '../TabBar';
+import TabBar from '../TabBar';
+import { TAB_BAR_SPACE } from '../tabs';
 import DuplicateCard from './DuplicateCard';
 import DueRow from '../schedules/DueRow';
 import Screen from '../Screen';

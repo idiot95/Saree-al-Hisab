@@ -616,6 +616,45 @@ They live in `options.ts` now.
   banding, and a texture that looks like a rendering fault costs more trust
   than it buys.
 
+## Gestures, and the phone answering back
+
+**Haptics** (`src/app/haptics.ts`): four feels — tap, select, success, warn —
+on tab taps, keypad keys, a back swipe that took, a save, an error, and every
+threshold of a swipe or drag. Android is `navigator.vibrate`; iOS has no such
+API, so the fallback clicks a hidden `<input type="checkbox" switch>`, which
+Safari 18+ ticks natively. Both need a user gesture, so a haptic is only ever
+called from a pointer or click handler — never from an effect that could fire
+on load.
+
+**Swipe rows** (`src/app/SwipeRow.tsx`): drag a row left for its actions,
+all the way across to fire the last one. Pointer Events with `touch-action:
+pan-y` and an 8px axis lock, so a vertical scroll that starts on a row is a
+scroll. One row open at a time, a tap outside closes it, and a drag never
+turns into the row's tap. Entries: Edit, Delete. Categories: Edit, Retire,
+plus a grip to drag the order. **Nothing is gesture-only**: every row still
+opens on tap, and the edit panel offers Move up / Move down / Retire as
+buttons, because a gesture nobody discovers is a feature nobody has.
+
+**Undo instead of "Are you sure"** (`src/app/Snack.tsx`): delete and retire
+happen at once and can be taken back for fifteen minutes — `removeEntry` sets
+`deleted_at`, `restoreEntry` clears it only inside that window. A dialog is
+read by nobody; a bar that says what just happened, with Undo on it, is.
+`reorderCategories` refuses any list that is not exactly the household's live
+categories, so a stale screen cannot write a partial order.
+
+**The loading skeletons draw a still tab bar** (`Skeleton.tsx`,
+`StillTabBar`), not the real one. A client component inside a `loading.tsx`
+boundary makes Next write its chunk as a plain `<script>` with no nonce
+(`create-component-styles-and-scripts.js` never receives one), which the CSP
+then refuses and logs on every page. Tab data lives in `tabs.ts` and the
+glyph in `TabGlyph.tsx` — both plain modules — so the still and the live bar
+are one drawing. Re-check with the crawl: every `<script>` on every dynamic
+route carries the response's nonce.
+
+**Settings has a door**: the Home header — your initials, the household, a
+cog — opens `/household`, and Sign out lives there under "Your account". A
+tile at the bottom of the grid wearing Lending's icon was not a door.
+
 ## Teaching the app
 
 There is no coach-mark tour. Two things do the job instead:
