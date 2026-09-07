@@ -481,3 +481,57 @@ export async function owedByPerson(householdId: string) {
   ` as Promise<{ id: string; name: string; tint: string; lent: string;
                  claimed: string; open_claims: number }[]>;
 }
+
+/* ── books: folders for people ──────────────────────────────────────────── */
+
+export type BookRow = {
+  id: string; kind: 'loan' | 'reimbursement'; name: string; note: string | null;
+  closed_at: Date | null; people: number; lent: string; claimed: string;
+};
+
+/** Every book with what its members come to, both kinds of debt kept apart.
+ *  The sums are over DISTINCT members, so a person in a book contributes once
+ *  however many claims they have open. */
+export async function bookList(householdId: string) {
+  return sql`
+    select b.id, b.kind, b.name, b.note, b.closed_at,
+           count(bm.counterparty_id)::int as people,
+           coalesce(sum(cb.balance), 0)::text as lent,
+           coalesce(sum(cc.owed), 0)::text as claimed
+    from ledger_book b
+    left join book_member bm on bm.book_id = b.id
+    left join counterparty_balance cb on cb.counterparty_id = bm.counterparty_id
+    left join counterparty_claims cc on cc.counterparty_id = bm.counterparty_id
+    where b.household_id = ${householdId}
+    group by b.id
+    order by (b.closed_at is not null), b.name
+  ` as Promise<BookRow[]>;
+}
+
+export async function bookById(householdId: string, id: string) {
+  const [b] = await sql`
+    select id, kind, name, note, closed_at from ledger_book
+    where id = ${id} and household_id = ${householdId}`;
+  return (b ?? null) as null | {
+    id: string; kind: 'loan' | 'reimbursement'; name: string;
+    note: string | null; closed_at: Date | null };
+}
+
+/** Everyone in the household, flagged for whether they are in this book — one
+ *  query, so the member list and the "add someone" picker cannot disagree. */
+export async function peopleForBook(householdId: string, bookId: string) {
+  return sql`
+    select cp.id, cp.name, cp.tint,
+           (bm.book_id is not null) as in_book,
+           cb.balance::text as lent,
+           cc.owed::text as claimed,
+           cc.open_claims
+    from counterparty cp
+    join counterparty_balance cb on cb.counterparty_id = cp.id
+    join counterparty_claims cc on cc.counterparty_id = cp.id
+    left join book_member bm on bm.counterparty_id = cp.id and bm.book_id = ${bookId}
+    where cp.household_id = ${householdId} and cp.archived_at is null
+    order by (bm.book_id is null), cp.name
+  ` as Promise<{ id: string; name: string; tint: string; in_book: boolean;
+                 lent: string; claimed: string; open_claims: number }[]>;
+}

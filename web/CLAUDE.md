@@ -396,8 +396,25 @@ Proven end to end: a ₹2,000 dinner with ₹1,000 claimed, settled in two
 payments. Month spending stays ₹2,000 throughout, income never moves, and cash
 ends at −₹1,000 — what you actually bore.
 
-`ledger_book` and `book_member` exist for grouping people into named books; the
-screens for them are not built yet.
+### Books are folders for people
+
+`/books/[id]` groups people into a named book — the Pune flat, a trip, office
+lunches — so a household can answer "where do we stand on this" without adding
+rows up in its head. A book has a kind, loan or shared costs, and both totals
+are shown separately because they are different debts.
+
+**A book changes nothing about the arithmetic.** It holds no entries and owns
+no money: the same loans and the same claims, summed in one place. Taking
+someone out of a book removes them from the folder and nothing else. Closing a
+book is filing, not settling — a closed book with money still outstanding is an
+ordinary thing to have — and deleting one takes only the folder.
+
+Both ids are checked against the household before they are joined, or a book
+here could be pointed at a person there.
+
+Proven: three people lent ₹5,000, ₹10,000 and ₹15,000; a book with two of them
+totals ₹15,000 and leaves the third out; closing it changes no balance and no
+entry.
 
 ## The UX laws, and where each one shows up
 

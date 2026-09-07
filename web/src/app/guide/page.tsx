@@ -77,6 +77,7 @@ const SECTIONS = [
       'Money coming back is not income either — it was never spending in the first place.',
       'Writing off what someone owes IS spending, counted in the month you forgive it. That is the moment the money is actually gone.',
       'Paying for something someone else owes part of is different again: open the entry and record who owes you. Your spending stays as it was — you did pay for it — and what comes back is tracked separately.',
+      'Books are folders for people — a flat, a trip, office lunches — so you can see where a whole group stands without adding it up yourself.',
     ],
   },
   {
