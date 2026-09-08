@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { sql, withHousehold } from '@/db/client';
 import { currentActor } from '@/db/queries';
+import { resolvePayment } from '@/db/payment';
 import { fromKeys } from '@/lib/money';
 import { buildRule, parseRule, nextDates, maxDay, rewriteRuleTo, ruleOf, describeRule, friendlyDate, type Calendar } from '@/lib/recur';
 import { rethrowControlFlow } from '@/lib/rethrow';
@@ -82,12 +83,10 @@ export async function createSchedule(_prev: Result | null, fd: FormData): Promis
     const minor = amount(fd.get('amount'));
     if (!Number.isSafeInteger(minor) || minor <= 0) return { ok: false, error: 'Enter an amount.' };
 
-    // The method decides the account, exactly as it does everywhere else.
-    const [m] = await sql`
-      select funding_account_id from payment_method
-      where id = ${String(fd.get('methodId') ?? '')} and household_id = ${actor.household_id}
-        and archived_at is null`;
-    if (!m) return { ok: false, error: kind === 'income' ? 'Choose where it arrives.' : 'Choose how it is paid.' };
+    // A schedule names the account the money moves through; a rail picked
+    // here resolves to the account it draws on, exactly as an entry does.
+    const paid = await resolvePayment(actor.household_id, String(fd.get('paidWith') ?? ''));
+    if (!paid) return { ok: false, error: kind === 'income' ? 'Choose where it arrives.' : 'Choose how it is paid.' };
 
     const [cat] = await sql`
       select id from category
@@ -101,7 +100,7 @@ export async function createSchedule(_prev: Result | null, fd: FormData): Promis
       insert into schedule (household_id, name, kind, amount, amount_from_statement,
                             account_id, category_id, rrule, hijri_rule)
       values (${actor.household_id}, ${name}, ${kind}, ${minor}, false,
-              ${m.funding_account_id}, ${cat.id},
+              ${paid.account_id}, ${cat.id},
               ${cal === 'gregorian' ? rule : null}, ${cal === 'hijri' ? rule : null})`;
 
     revalidatePath('/schedules');

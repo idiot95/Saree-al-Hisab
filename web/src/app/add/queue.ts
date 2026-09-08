@@ -1,4 +1,5 @@
 import type { Draft } from './actions';
+import type { Way } from '@/lib/pay';
 
 /* Entries recorded with no signal, kept on the phone until they can be sent.
 
@@ -29,8 +30,10 @@ export type Pickers = {
   /** parent fields are absent on a device that last opened Add Entry before
       categories could nest; such a row simply stands on its own. */
   categories: { id: string; name: string; tint: string; icon: string; parent_id?: string | null; parent?: string | null }[];
-  methods: { id: string; name: string; funds: string; kind: string; funds_id: string }[];
-  accounts: { id: string; name: string; kind: string }[];
+  /** Every account with its rails. Absent on a device that last opened Add
+      Entry when only the rails were kept; such a phone shows the bare
+      screen until it opens Add Entry with signal once more. */
+  ways?: Way[];
   /** Absent on a device that last opened Add Entry before tabs existed. */
   tabs?: { id: string; name: string; people: number; last_counts: boolean | null }[];
   savedAt: string;

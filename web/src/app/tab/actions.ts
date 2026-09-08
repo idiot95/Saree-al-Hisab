@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { sql, withHousehold } from '@/db/client';
 import { currentActor } from '@/db/queries';
+import { resolvePayment } from '@/db/payment';
 import { fromKeys } from '@/lib/money';
 import { rethrowControlFlow } from '@/lib/rethrow';
 import { ensurePeople, readNames } from '../people/ensure';
@@ -230,11 +231,8 @@ export async function settleTab(_prev: Result | null, fd: FormData): Promise<Res
     const on = String(fd.get('occurred_on') ?? '');
     if (!/^\d{4}-\d{2}-\d{2}$/.test(on)) return { ok: false, error: 'That date is not valid.' };
 
-    const [m] = await sql`
-      select funding_account_id from payment_method
-      where id = ${String(fd.get('methodId') ?? '')} and household_id = ${actor.household_id}
-        and archived_at is null`;
-    if (!m) return { ok: false, error: 'Choose where the money went.' };
+    const paid = await resolvePayment(actor.household_id, String(fd.get('paidWith') ?? ''));
+    if (!paid) return { ok: false, error: 'Choose where the money went.' };
 
     /* Which of their entries: the ones ticked, or all of them. Either way only
        this person's open claims on this tab qualify, whatever ids were sent. */
@@ -266,9 +264,9 @@ export async function settleTab(_prev: Result | null, fd: FormData): Promise<Res
           const part = Math.min(left, Number(c.outstanding));
           await tx`
             insert into txn (household_id, created_by, kind, amount, occurred_on,
-                             account_id, claim_id, source)
+                             account_id, payment_method_id, claim_id, source)
             values (${actor.household_id}, ${actor.user_id}, 'claim_receipt', ${part}, ${on}::date,
-                    ${m.funding_account_id}, ${c.id}, 'manual')`;
+                    ${paid.account_id}, ${paid.payment_method_id}, ${c.id}, 'manual')`;
           left -= part;
         }
       });

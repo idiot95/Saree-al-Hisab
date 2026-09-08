@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
-import { actorOrNull, methodsFor, openClaimsFor, peopleForTab, tabById, tabEntries } from '@/db/queries';
+import { actorOrNull, openClaimsFor, peopleForTab, tabById, tabEntries } from '@/db/queries';
+import { waysToPay } from '@/db/payment';
 import { format } from '@/lib/money';
 import { headerBg } from '../../auth-ui';
 import { Chip, Icon } from '../../Icon';
@@ -27,10 +28,10 @@ export default async function Tab({ params }: { params: Promise<{ id: string }> 
 
   const tab = await tabById(actor.household_id, id);
   if (!tab) notFound();
-  const [people, entries, methods, open] = await Promise.all([
+  const [people, entries, ways, open] = await Promise.all([
     peopleForTab(actor.household_id, tab.id),
     tabEntries(actor.household_id, tab.id),
-    methodsFor(actor.household_id),
+    waysToPay(actor.household_id),
     openClaimsFor(actor.household_id, tab.id),
   ]);
 
@@ -101,7 +102,7 @@ export default async function Tab({ params }: { params: Promise<{ id: string }> 
           <TabPeople
             tabId={tab.id} tabName={tab.name} note={tab.note}
             people={people} closed={!!tab.closed_at} canEdit={canEdit}
-            methods={methods.map((m) => ({ id: m.id, name: m.name, funds: m.funds }))}
+            ways={ways}
             open={open.map((c) => ({
               id: c.id, person_id: c.counterparty_id, what: c.what,
               on: new Date(c.occurred_on).toISOString().slice(0, 10), outstanding: Number(c.outstanding),

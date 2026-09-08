@@ -5,9 +5,10 @@ import { Icon } from '../../Icon';
 import { Field, ErrorNote } from '../../auth-ui';
 import { updateEntry, deleteEntry } from '../actions';
 import { useMoney } from '@/app/currency';
+import { PaySelect } from '@/app/PaySelect';
+import { accountRef, railRef, type Way } from '@/lib/pay';
 
 type Cat = { category_id: string; name: string; tint: string; icon: string };
-type Method = { id: string; name: string; funds: string };
 
 const TINT: Record<string, [string, string]> = {
   green: ['var(--cat-green)', 'var(--cat-green-ink)'],
@@ -20,16 +21,16 @@ const TINT: Record<string, [string, string]> = {
   indigo: ['var(--cat-indigo)', 'var(--cat-indigo-ink)'],
 };
 
-export default function EditEntry({ entry, categories, methods, canEdit }: {
+export default function EditEntry({ entry, categories, ways, canEdit }: {
   entry: {
     id: string; kind: string; amount: string; occurred_on: string;
     merchant: string | null; note: string | null; is_shared: boolean;
-    category_id: string | null; payment_method_id: string | null;
+    category_id: string | null; account_id: string; payment_method_id: string | null;
     counts_as_spend: boolean;
     /** Somebody owes for it — on a tab, or with a claim — so "was it mine" is a live question. */
     owed: boolean;
   };
-  categories: Cat[]; methods: Method[]; canEdit: boolean;
+  categories: Cat[]; ways: Way[]; canEdit: boolean;
 }) {
   const { format } = useMoney();
   const [state, act, pending] = useActionState(updateEntry, null);
@@ -102,21 +103,20 @@ export default function EditEntry({ entry, categories, methods, canEdit }: {
           </fieldset>
         )}
 
-        {methods.length > 0 && (
+        {ways.length > 0 && (
           <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)' }}>Paid with</span>
-            <select name="payment_method_id" defaultValue={entry.payment_method_id ?? ''}
+            <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)' }}>
+              {entry.kind === 'income' ? 'Came in by' : entry.kind === 'transfer' ? 'Out of' : 'Paid with'}
+            </span>
+            <PaySelect name="paid_with" ways={ways}
+              defaultValue={entry.payment_method_id ? railRef(entry.payment_method_id) : accountRef(entry.account_id)}
               disabled={!canEdit} style={{
                 minHeight: 52, borderRadius: 13, border: '1px solid var(--c-border)',
                 background: 'var(--c-card)', color: 'var(--c-ink)', fontSize: 'var(--field)',
                 fontWeight: 600, padding: '0 12px',
-              }}>
-              {methods.map((m) => (
-                <option key={m.id} value={m.id}>{m.name} — {m.funds}</option>
-              ))}
-            </select>
+              }} />
             <span style={{ fontSize: 'var(--step--2)', lineHeight: 1.4, color: 'var(--c-meta)' }}>
-              Changing this moves the money to the account behind it.
+              Changing this moves the money to the account it names.
             </span>
           </label>
         )}

@@ -40,11 +40,12 @@ export default function OfflineScreen() {
     document.documentElement.style.colorScheme = forced;
   }, []);
 
-  if (!pickers || pickers.methods.length === 0) return <Bare queue={queue} />;
+  const ways = pickers?.ways ?? [];
+  if (!pickers || ways.length === 0) return <Bare queue={queue} />;
 
   return (
     <AddEntry offline
-      categories={pickers.categories} methods={pickers.methods} accounts={pickers.accounts}
+      categories={pickers.categories} ways={ways}
       tabs={pickers.tabs ?? []}
       householdId={pickers.householdId} today={localToday()}
       onQueued={() => { /* the store's own event re-renders the list below */ }}

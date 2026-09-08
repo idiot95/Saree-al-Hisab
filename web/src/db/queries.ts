@@ -101,30 +101,8 @@ export async function categoriesFor(householdId: string) {
   });
 }
 
-export async function methodsFor(householdId: string) {
-  return withHousehold(householdId, async () => {
-    return sql`
-      select m.id, m.name, m.kind, m.handle, m.funding_account_id as funds_id,
-             a.name as funds, a.kind as funds_kind
-      from payment_method m
-      join account a on a.id = m.funding_account_id
-      where m.household_id = ${householdId} and m.archived_at is null
-      order by m.sort_order` as Promise<
-        { id: string; name: string; kind: string; handle: string | null;
-          funds_id: string; funds: string; funds_kind: string }[]>;
-  });
-}
-
-export async function accountsFor(householdId: string) {
-  return withHousehold(householdId, async () => {
-    // Person accounts are how the ledger models who owes you. They must never
-    // appear in a picker, which is what the real_account view is for.
-    return sql`
-      select id, name, kind from real_account
-      where household_id = ${householdId} and archived_at is null
-      order by kind, name` as Promise<{ id: string; name: string; kind: string }[]>;
-  });
-}
+/* The pickers' accounts and rails live in db/payment.ts: every real account
+   is a way to pay, with the rails that draw on it nested under it. */
 
 /* Prevention beats detection. Before Save, show what a household member has
    already recorded that this could be a second copy of — the same ±1% and
@@ -454,7 +432,7 @@ export async function entryById(householdId: string, id: string) {
   return withHousehold(householdId, async () => {
     const [r] = await sql`
       select t.id, t.kind, t.amount::text, t.occurred_on, t.merchant, t.note, t.is_shared,
-             t.category_id, t.payment_method_id, t.counter_account_id, t.book_id, t.counts_as_spend,
+             t.category_id, t.account_id, t.payment_method_id, t.counter_account_id, t.book_id, t.counts_as_spend,
              c.name as category, c.tint, m.name as method,
              a.name as account, ca.name as counter_account, u.name as who, t.created_at
       from txn t
@@ -465,7 +443,7 @@ export async function entryById(householdId: string, id: string) {
       join app_user u on u.id = t.created_by
       where t.id = ${id} and t.household_id = ${householdId} and t.deleted_at is null`;
     return (r ?? null) as null | (EntryRow & {
-      payment_method_id: string | null; counter_account_id: string | null;
+      account_id: string; payment_method_id: string | null; counter_account_id: string | null;
       book_id: string | null; counts_as_spend: boolean });
   });
 }

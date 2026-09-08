@@ -10,20 +10,21 @@ import {
 } from '../actions';
 import { useMoney } from '@/app/currency';
 import NewPeople from '../NewPeople';
+import { PaySelect } from '../../PaySelect';
+import { defaultRef, type Way } from '@/lib/pay';
 
 type Person = {
   id: string; name: string; tint: string; on_tab: boolean;
   owed_in_all: string; back: string; owed: string;
 };
-type Method = { id: string; name: string; funds: string };
 /** One open claim on this tab: an entry somebody still owes for. */
 type Open = { id: string; person_id: string; what: string; on: string; outstanding: number };
 
 export default function TabPeople({
-  tabId, tabName, note, people, closed, canEdit, methods, open = [], today,
+  tabId, tabName, note, people, closed, canEdit, ways, open = [], today,
 }: {
   tabId: string; tabName: string; note: string | null;
-  people: Person[]; closed: boolean; canEdit: boolean; methods: Method[]; open?: Open[]; today: string;
+  people: Person[]; closed: boolean; canEdit: boolean; ways: Way[]; open?: Open[]; today: string;
 }) {
   const [, add] = useActionState(addToTab, null);
   const [, drop] = useActionState(removeFromTab, null);
@@ -47,7 +48,7 @@ export default function TabPeople({
         <section className="el card" style={card}>
           {onTab.map((p, i) => (
             <Member key={p.id} p={p} last={i === onTab.length - 1 && owing.length === 0}
-              tabId={tabId} methods={methods} today={today} canEdit={canEdit}
+              tabId={tabId} ways={ways} today={today} canEdit={canEdit}
               entries={open.filter((c) => c.person_id === p.id)}
               open={settling === p.id} onOpen={() => setSettling(settling === p.id ? null : p.id)}>
               {canEdit && Number(p.owed) === 0 && (
@@ -61,7 +62,7 @@ export default function TabPeople({
           ))}
           {owing.map((p, i) => (
             <Member key={p.id} p={p} last={i === owing.length - 1} left
-              tabId={tabId} methods={methods} today={today} canEdit={canEdit}
+              tabId={tabId} ways={ways} today={today} canEdit={canEdit}
               entries={open.filter((c) => c.person_id === p.id)}
               open={settling === p.id} onOpen={() => setSettling(settling === p.id ? null : p.id)} />
           ))}
@@ -179,8 +180,8 @@ export default function TabPeople({
 /* One person's row: what is still to come back from them on this tab, and a
    Settle up that opens the form in place. The amount is left blank on purpose
    — blank is "all of it", which is what settling up usually means. */
-function Member({ p, last, left, tabId, methods, today, canEdit, entries = [], open, onOpen, children }: {
-  p: Person; last: boolean; left?: boolean; tabId: string; methods: Method[]; today: string;
+function Member({ p, last, left, tabId, ways, today, canEdit, entries = [], open, onOpen, children }: {
+  p: Person; last: boolean; left?: boolean; tabId: string; ways: Way[]; today: string;
   canEdit: boolean; entries?: Open[]; open: boolean; onOpen: () => void; children?: React.ReactNode;
 }) {
   const { format } = useMoney();
@@ -267,9 +268,7 @@ function Member({ p, last, left, tabId, methods, today, canEdit, entries = [], o
             inputMode="decimal" placeholder={format(target)} />
           <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)' }}>Came in by</span>
-            <select name="methodId" required style={select}>
-              {methods.map((m) => <option key={m.id} value={m.id}>{m.name === m.funds ? m.name : `${m.name} — ${m.funds}`}</option>)}
-            </select>
+            <PaySelect name="paidWith" ways={ways} defaultValue={defaultRef(ways)} required style={select} />
           </label>
           <Field label="On" name="occurred_on" type="date" defaultValue={today} required />
           {state && !state.ok && <ErrorNote>{state.error}</ErrorNote>}

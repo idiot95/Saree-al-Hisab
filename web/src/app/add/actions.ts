@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { sql, withHousehold } from '@/db/client';
 import { currentActor, possibleDuplicate } from '@/db/queries';
+import { resolvePayment } from '@/db/payment';
 import { shares } from '../tab/splits';
 
 /* A Server Action is reachable by direct POST, not only through the UI, so
@@ -15,7 +16,12 @@ export type Draft = {
   kind: 'expense' | 'income' | 'transfer';
   amountMinor: number;
   categoryId: string | null;
-  methodId: string;
+  /** How it was paid: `a:<account id>` for an account paid from directly,
+      `m:<rail id>` for a rail — GPay, a card, net banking — whose account
+      follows from it. See src/lib/pay.ts. */
+  paidWith?: string;
+  /** What an older build queued: a rail id on its own. */
+  methodId?: string;
   counterAccountId: string | null;
   merchant: string;
   occurredOn: string;
@@ -94,12 +100,11 @@ export async function saveEntry(d: Draft): Promise<SaveResult> {
       if (dup) return { ok: true, id: dup.id };
     }
 
-    // The method decides the account, so the client never names one. This is
-    // also what keeps "paid by GPay" leaving the bank GPay draws on.
-    const [method] = await sql`
-      select id, funding_account_id from payment_method
-      where id = ${d.methodId} and household_id = ${household_id} and archived_at is null`;
-    if (!method) return { ok: false, error: 'That payment method is not one of yours.' };
+    // A rail decides its account, so the client never pairs the two itself.
+    // That is what keeps "paid by GPay" leaving the bank GPay draws on; an
+    // account paid from directly carries no rail at all.
+    const paid = await resolvePayment(household_id, d.paidWith ?? d.methodId);
+    if (!paid) return { ok: false, error: 'Choose how it was paid: that is not one of your accounts.' };
 
     /* Money arriving against what people owe. The claims are checked to be this
        household's and still open; the amount is spread across them oldest first;
@@ -175,7 +180,7 @@ export async function saveEntry(d: Draft): Promise<SaveResult> {
         select id from real_account
         where id = ${d.counterAccountId} and household_id = ${household_id} and archived_at is null`;
       if (!acc) return { ok: false, error: 'That account is not one of yours.' };
-      if (acc.id === method.funding_account_id) {
+      if (acc.id === paid.account_id) {
         return { ok: false, error: 'An account cannot transfer to itself.' };
       }
       counter = acc.id;
@@ -196,8 +201,8 @@ export async function saveEntry(d: Draft): Promise<SaveResult> {
             const ref = first ? null : clientRef;
             const [r] = await tx`insert into txn ${sql({
               household_id, created_by: user_id, kind: 'claim_receipt', amount: part,
-              occurred_on: d.occurredOn, account_id: method.funding_account_id,
-              payment_method_id: method.id, claim_id: c.id, source: 'manual', client_ref: ref,
+              occurred_on: d.occurredOn, account_id: paid.account_id,
+              payment_method_id: paid.payment_method_id, claim_id: c.id, source: 'manual', client_ref: ref,
             })} on conflict (household_id, client_ref) where client_ref is not null do nothing
                returning id`;
             if (!r) return null;
@@ -207,8 +212,8 @@ export async function saveEntry(d: Draft): Promise<SaveResult> {
           if (left > 0) {
             const [r] = await tx`insert into txn ${sql({
               household_id, created_by: user_id, kind: 'income', amount: left,
-              occurred_on: d.occurredOn, account_id: method.funding_account_id,
-              category_id: categoryId, payment_method_id: method.id,
+              occurred_on: d.occurredOn, account_id: paid.account_id,
+              category_id: categoryId, payment_method_id: paid.payment_method_id,
               merchant: String(d.merchant ?? '').trim() || null, is_shared: d.isShared, source: 'manual',
             })} returning id`;
             first ??= r.id as string;
@@ -221,10 +226,10 @@ export async function saveEntry(d: Draft): Promise<SaveResult> {
           kind: d.kind,
           amount: d.amountMinor,
           occurred_on: d.occurredOn,
-          account_id: method.funding_account_id,
+          account_id: paid.account_id,
           counter_account_id: counter,
           category_id: categoryId,
-          payment_method_id: method.id,
+          payment_method_id: paid.payment_method_id,
           merchant: String(d.merchant ?? '').trim() || null,
           is_shared: d.isShared,
           source: 'manual',

@@ -4,15 +4,16 @@ import { useActionState, useState } from 'react';
 import { Field, ErrorNote } from '../../auth-ui';
 import { lend, recordRepayment, writeOff } from '../actions';
 import { useMoney } from '@/app/currency';
+import { PaySelect } from '../../PaySelect';
+import { defaultRef, type Way } from '@/lib/pay';
 
-type Method = { id: string; name: string; funds: string };
 type Cat = { id: string; name: string };
 
 /* Three actions, three shapes, and the copy says which is which — because the
    difference between them is the entire point. Lending and repayment move
    money without spending it. Writing off is the moment it becomes spending. */
-export default function PersonActions({ personId, name, balance, methods, categories }: {
-  personId: string; name: string; balance: number; methods: Method[]; categories: Cat[];
+export default function PersonActions({ personId, name, balance, ways, categories }: {
+  personId: string; name: string; balance: number; ways: Way[]; categories: Cat[];
 }) {
   const { format } = useMoney();
   const [mode, setMode] = useState<null | 'lend' | 'back' | 'off'>(null);
@@ -48,8 +49,7 @@ export default function PersonActions({ personId, name, balance, methods, catego
           <Title>Lend to {name}</Title>
           <Explain>Not spending. The money moves from your account into theirs.</Explain>
           {common}
-          <Select label="Out of" name="methodId" options={methods.map((m) => ({
-            value: m.id, label: `${m.name} — ${m.funds}` }))} />
+          <PayField label="Out of" ways={ways} />
           <Field label="Note (optional)" name="note" maxLength={200} />
           {lendState && !lendState.ok && <ErrorNote>{lendState.error}</ErrorNote>}
           <Row onCancel={() => setMode(null)} pending={lending} label="Record loan" />
@@ -61,8 +61,7 @@ export default function PersonActions({ personId, name, balance, methods, catego
           <Title>{name} paid you back</Title>
           <Explain>Not income either — it was never spending, so getting it back is not earning.</Explain>
           {common}
-          <Select label="Into" name="methodId" options={methods.map((m) => ({
-            value: m.id, label: `${m.name} — ${m.funds}` }))} />
+          <PayField label="Into" ways={ways} />
           <Field label="Note (optional)" name="note" maxLength={200} />
           {backState && !backState.ok && <ErrorNote>{backState.error}</ErrorNote>}
           <Row onCancel={() => setMode(null)} pending={paying} label="Record repayment" />
@@ -108,19 +107,28 @@ function Explain({ children }: { children: React.ReactNode }) {
     <p style={{ margin: 0, fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--c-meta)' }}>{children}</p>
   );
 }
+const SELECT: React.CSSProperties = {
+  minHeight: 52, borderRadius: 13, border: '1px solid var(--c-border)',
+  background: 'var(--c-card)', color: 'var(--c-ink)', fontSize: 'var(--field)',
+  fontWeight: 600, padding: '0 12px',
+};
 function Select({ label, name, options }: {
   label: string; name: string; options: { value: string; label: string }[];
 }) {
   return (
     <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
       <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)' }}>{label}</span>
-      <select name={name} required style={{
-        minHeight: 52, borderRadius: 13, border: '1px solid var(--c-border)',
-        background: 'var(--c-card)', color: 'var(--c-ink)', fontSize: 'var(--field)',
-        fontWeight: 600, padding: '0 12px',
-      }}>
+      <select name={name} required style={SELECT}>
         {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
       </select>
+    </label>
+  );
+}
+function PayField({ label, ways }: { label: string; ways: Way[] }) {
+  return (
+    <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)' }}>{label}</span>
+      <PaySelect name="paidWith" ways={ways} defaultValue={defaultRef(ways)} required style={SELECT} />
     </label>
   );
 }

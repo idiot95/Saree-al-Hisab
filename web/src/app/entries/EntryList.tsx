@@ -137,7 +137,7 @@ function Entry({ e, last }: { e: Row; last: boolean }) {
               ? `into ${(move ? e.counter_account : e.account) ?? e.account}`
             : move && e.counter_account
               ? `${e.account} → ${e.counter_account}`
-              : [e.category, e.method].filter(Boolean).join(' · ')}
+              : [e.category, e.method ?? e.account].filter(Boolean).join(' · ')}
           {carried && ' · not your spending'}
           {e.is_shared && !carried && ' · shared'}
         </span>

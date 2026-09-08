@@ -6,8 +6,9 @@ import { buildRule, describeRule, friendlyDay, maxDay, nextDates, type Calendar 
 import { HIJRI_MONTHS_SHORT, formatHijri, toHijri } from '@/lib/hijri';
 import { DateChips, DayOfMonth, MonthOfYear, Segmented } from '../DatePick';
 import { createSchedule } from './actions';
+import { PaySelect } from '../PaySelect';
+import { defaultRef, type Way } from '@/lib/pay';
 
-type Method = { id: string; name: string; funds: string };
 type Cat = { id: string; name: string };
 
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -25,8 +26,8 @@ const ENDS = [['never', 'Never'], ['after', 'After a number'], ['on', 'On a date
    the rule will be and when it first lands. The end is one line, "Ends
    never", until someone wants otherwise. */
 
-export default function NewSchedule({ methods, categories, startOpen = false }: {
-  methods: Method[]; categories: Cat[]; startOpen?: boolean;
+export default function NewSchedule({ ways, categories, startOpen = false }: {
+  ways: Way[]; categories: Cat[]; startOpen?: boolean;
 }) {
   const [state, act, pending] = useActionState(createSchedule, null);
   const [open, setOpen] = useState(startOpen);
@@ -195,9 +196,7 @@ export default function NewSchedule({ methods, categories, startOpen = false }: 
         <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)' }}>
           {kind === 'income' ? 'Arrives by' : 'Paid with'}
         </span>
-        <select name="methodId" required style={select}>
-          {methods.map((m) => <option key={m.id} value={m.id}>{m.name} — {m.funds}</option>)}
-        </select>
+        <PaySelect name="paidWith" ways={ways} defaultValue={defaultRef(ways)} required style={select} />
       </label>
       <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)' }}>Category</span>

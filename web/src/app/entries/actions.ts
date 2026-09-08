@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { sql, withHousehold } from '@/db/client';
 import { currentActor } from '@/db/queries';
+import { resolvePayment } from '@/db/payment';
 import { fromKeys } from '@/lib/money';
 import { rethrowControlFlow } from '@/lib/rethrow';
 
@@ -67,24 +68,22 @@ export async function updateEntry(_prev: Result | null, fd: FormData): Promise<R
       categoryId = cat.id;
     }
 
-    // The method decides the account, so the client still never names one — the
-    // trigger restamps it, and re-files or clears the card cycle.
-    const rawMethod = String(fd.get('payment_method_id') ?? '');
-    let methodId: string | null = null;
-    if (rawMethod) {
-      const [m] = await sql`
-        select id from payment_method
-        where id = ${rawMethod} and household_id = ${actor.household_id} and archived_at is null`;
-      if (!m) return { ok: false, error: 'That payment method is not one of yours.' };
-      methodId = m.id;
+    // How it was paid, when the form offers the choice. A rail decides its
+    // account and an account paid from directly carries no rail; either way
+    // the trigger re-files or clears the card cycle from the account written.
+    const rawPaid = String(fd.get('paid_with') ?? '');
+    let paid: { account_id: string; payment_method_id: string | null } | null = null;
+    if (rawPaid) {
+      paid = await resolvePayment(actor.household_id, rawPaid);
+      if (!paid) return { ok: false, error: 'That account is not one of yours.' };
     }
 
     try {
       await sql`
         update txn set amount = ${minor}, occurred_on = ${occurredOn}::date,
                        category_id = ${categoryId}, merchant = ${merchant}, note = ${note},
-                       is_shared = ${isShared}, counts_as_spend = ${counts},
-                       payment_method_id = coalesce(${methodId}, payment_method_id)
+                       ${paid ? sql`account_id = ${paid.account_id}, payment_method_id = ${paid.payment_method_id},` : sql``}
+                       is_shared = ${isShared}, counts_as_spend = ${counts}
         where id = ${id} and household_id = ${actor.household_id}`;
     } catch (e) {
       const pg = e as { code?: string; constraint_name?: string };

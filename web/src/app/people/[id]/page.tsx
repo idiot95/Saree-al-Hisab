@@ -1,8 +1,9 @@
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import {
-  actorOrNull, categoriesFor, claimsFor, methodsFor, personById, personLedger,
+  actorOrNull, categoriesFor, claimsFor, personById, personLedger,
 } from '@/db/queries';
+import { waysToPay } from '@/db/payment';
 import { format } from '@/lib/money';
 import { headerBg } from '../../auth-ui';
 import PersonActions from './PersonActions';
@@ -31,9 +32,9 @@ export default async function Person({ params }: { params: Promise<{ id: string 
   const person = await personById(actor.household_id, id);
   if (!person) notFound();
 
-  const [ledger, methods, cats, claims] = await Promise.all([
+  const [ledger, ways, cats, claims] = await Promise.all([
     personLedger(actor.household_id, person.account_id),
-    methodsFor(actor.household_id),
+    waysToPay(actor.household_id),
     categoriesFor(actor.household_id),
     claimsFor(actor.household_id, person.id),
   ]);
@@ -85,7 +86,7 @@ export default async function Person({ params }: { params: Promise<{ id: string 
           {canWrite && (
             <PersonActions
               personId={person.id} name={person.name} balance={balance}
-              methods={methods.map((m) => ({ id: m.id, name: m.name, funds: m.funds }))}
+              ways={ways}
               categories={cats.map((c) => ({ id: c.id, name: c.parent ? `${c.parent} › ${c.name}` : c.name }))}
             />
           )}
@@ -97,7 +98,7 @@ export default async function Person({ params }: { params: Promise<{ id: string 
               note: c.note, merchant: c.merchant, category: c.category,
               occurred_on: new Date(c.occurred_on).toISOString().slice(0, 10),
             }))}
-            methods={methods.map((m) => ({ id: m.id, name: m.name, funds: m.funds }))}
+            ways={ways}
             canEdit={canWrite}
           />
 

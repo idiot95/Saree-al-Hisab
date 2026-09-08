@@ -2,6 +2,7 @@
 
 import { useState, useTransition, useEffect } from 'react';
 import { Icon, RAIL_ICON, RAIL_TINT, ACCOUNT_ICON, ACCOUNT_TINT, tintOf } from '../Icon';
+import { defaultRef, findRef, payLabel, pickWay, refOf, viaRails, type Way } from '@/lib/pay';
 import { HEADER_BG } from '../auth-ui';
 import { useRouter } from 'next/navigation';
 import { pushKey, popKey, fromKeys } from '@/lib/money';
@@ -16,10 +17,18 @@ import CategoryFinder from './CategoryFinder';
 
 /* Add Entry — the screen the whole product rests on.
    With no bank feed and no SMS, this is how nearly everything gets in, so it
-   is built for three taps: amount, category chip, Save. The keypad is drawn
+   is built for three taps: amount, category tile, Save. The keypad is drawn
    in rather than borrowed from the system, because Save has to sit inside it —
    a pinned button at the bottom of the page ends up underneath the OS
-   keyboard, which was the blocking finding in the audit.                     */
+   keyboard, which was the blocking finding in the audit.
+
+   The screen is three fixed bands: the amount above, the keypad below, and
+   between them the questions, which scroll on their own. Save is therefore
+   always on screen, and every question wears its name, in the same small
+   capitals, in the order it is usually answered: what for, paid how, when.
+   Every choice is laid out in full — tiles for categories, wrapping chips for
+   accounts — because a row that scrolls sideways hides what is past its edge
+   and gives no sign that anything is there.                                  */
 
 type Kind = 'expense' | 'income' | 'transfer';
 
@@ -35,8 +44,7 @@ export type Category = {
       search drawer shows everyone. */
   parent_id?: string | null; parent?: string | null;
 };
-export type Method = { id: string; name: string; funds: string; kind: string; funds_id: string };
-export type Account = { id: string; name: string; kind: string };
+export type { Way };
 export type Tab = { id: string; name: string; people: number; last_counts: boolean | null };
 /** An open claim, for the income screen to point money at. */
 export type Claim = {
@@ -47,9 +55,12 @@ export type Claim = {
 const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '00', '0', '.'];
 
 export default function AddEntry({
-  categories, methods, accounts, tabs = [], claims = [], today, householdId, draft, offline = false, onQueued, children,
+  categories, ways, tabs = [], claims = [], today, householdId, draft, offline = false, onQueued, children,
 }: {
-  categories: Category[]; methods: Method[]; accounts: Account[]; tabs?: Tab[]; claims?: Claim[]; today: string;
+  categories: Category[];
+  /** Every real account, each with the rails that draw on it. See src/lib/pay.ts. */
+  ways: Way[];
+  tabs?: Tab[]; claims?: Claim[]; today: string;
   householdId: string;
   draft?: {
     amountMinor: number | null; occurredOn: string | null; merchant: string | null;
@@ -75,8 +86,8 @@ export default function AddEntry({
      only, no amounts, no entries — and it is replaced on every visit. */
   useEffect(() => {
     if (offline) return;
-    writePickers({ householdId, categories, methods, accounts, tabs, savedAt: new Date().toISOString() });
-  }, [offline, householdId, categories, methods, accounts, tabs]);
+    writePickers({ householdId, categories, ways, tabs, savedAt: new Date().toISOString() });
+  }, [offline, householdId, categories, ways, tabs]);
   /* A scan hands its draft over here rather than saving anything itself. The
      keypad is seeded with the amount so it stays the same control, correctable
      the same way — a scanned figure is a suggestion, not a fact. */
@@ -85,13 +96,17 @@ export default function AddEntry({
     draft?.amountMinor ? String(draft.amountMinor / 100) : '');
   const [categoryId, setCategoryId] = useState<string | null>(draft?.categoryId ?? null);
   const [finding, setFinding] = useState(false);
-  /* The strip holds the top level; a child that was chosen from the drawer
-     takes the first place in it as "Groceries › Milk", so what is selected
-     is always in view. The drawer is offered once there is more than the
-     strip can show at a glance, or anything nested to reach. */
+  /* The grid holds the top level, two rows of four. When there is more than
+     that, or anything nested, the last tile opens the finder; whatever was
+     chosen there takes the first tile, so what is selected is always in
+     view. */
   const strip = categories.filter((c) => !c.parent_id);
   const chosen = categories.find((c) => c.id === categoryId);
-  const findable = categories.length > 8 || categories.length !== strip.length;
+  const findable = strip.length > 8 || categories.length !== strip.length;
+  const seats = findable ? 7 : 8;
+  const tiles = chosen && !strip.slice(0, seats).some((c) => c.id === chosen.id)
+    ? [chosen, ...strip.slice(0, seats - 1)]
+    : strip.slice(0, seats);
   const [tabId, setTabId] = useState<string | null>(draft?.tabId ?? null);
   /* Blank means all of it comes back, which is the ordinary case. A figure
      here is the part that does, leaving the rest owed by nobody. */
@@ -104,8 +119,13 @@ export default function AddEntry({
      never on the offline screen — they are amounts, and the phone keeps only
      names — so a settlement waits for signal. */
   const [settleIds, setSettleIds] = useState<Set<string>>(() => new Set());
-  const [methodId, setMethodId] = useState(
-    methods.find((m) => m.funds_id === draft?.fromAccountId)?.id ?? methods[0]?.id ?? '');
+  /* How it was paid, as one reference: an account, or a rail on one. A draft
+     that names the account it leaves — a swipe on the accounts screen —
+     lands on that account's usual rail. */
+  const [paid, setPaid] = useState(() => {
+    const from = ways.find((w) => w.id === draft?.fromAccountId);
+    return from ? pickWay(from) : defaultRef(ways);
+  });
   const [counterId, setCounterId] = useState<string | null>(draft?.toAccountId ?? null);
   const [shared, setShared] = useState(true);
   const [occurredOn, setOccurredOn] = useState(draft?.occurredOn ?? today);
@@ -118,7 +138,8 @@ export default function AddEntry({
   } | null>(null);
 
   const minor = fromKeys(keys);
-  const method = methods.find((m) => m.id === methodId) ?? methods[0];
+  const paying = findRef(ways, paid);
+  const way = paying?.way ?? ways[0];
   const tab = tabs.find((t) => t.id === tabId) ?? null;
   const mine = counts ?? tab?.last_counts ?? true;
   const settling = kind === 'income' ? claims.filter((c) => settleIds.has(c.id)) : [];
@@ -145,7 +166,7 @@ export default function AddEntry({
     setError(null);
     setKept(null);
     const draft = {
-      kind, amountMinor: minor, categoryId, methodId,
+      kind, amountMinor: minor, categoryId, paidWith: paid,
       counterAccountId: counterId, merchant, occurredOn, isShared: shared,
       tabId: kind === 'expense' ? tabId : null,
       tabCoveredMinor: kind === 'expense' && tabId && coveredKeys ? fromKeys(coveredKeys) : null,
@@ -179,17 +200,16 @@ export default function AddEntry({
     && (kind !== 'transfer' || counterId !== null) && !pending;
 
   return (
-    <main style={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column', background: 'var(--c-bg)' }}>
+    <main style={{
+      height: '100dvh', display: 'flex', flexDirection: 'column', overflow: 'hidden',
+      background: 'var(--c-bg)',
+    }}>
       <header
         className="el2"
         style={{
-          background: HEADER_BG,
-          color: '#fff',
-          borderRadius: '0 0 26px 26px',
-          padding: '18px var(--gutter) 22px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 16,
+          flex: 'none', background: HEADER_BG, color: '#fff',
+          borderRadius: '0 0 22px 22px', padding: '8px var(--gutter) 16px',
+          display: 'flex', flexDirection: 'column', gap: 10, position: 'relative', zIndex: 1,
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
@@ -252,55 +272,78 @@ export default function AddEntry({
         </div>
       </header>
 
-      {/* Every way to pay, at once. This was a row that advanced to the next
-          method on each tap, which meant a household with five of them could
-          only find the fifth by tapping four times past the others — and could
-          not see that it had five at all. */}
-      <div style={{ padding: '6px 18px 10px', display: 'flex', flexDirection: 'column', gap: 7 }}>
-        <span style={{ fontSize: 'var(--step--2)', fontWeight: 600, color: 'var(--c-meta)' }}>
-          {kind === 'transfer' ? 'Out of' : kind === 'income' ? 'Came in by' : 'Paid with'}
-        </span>
-        <div style={{ display: 'flex', gap: 8, overflowX: 'auto', scrollbarWidth: 'none' }}>
-          {methods.map((m) => {
-            const on = m.id === methodId;
-            const [bg, ink] = tintOf(RAIL_TINT[m.kind]);
-            return (
-              <button
-                key={m.id}
-                onClick={() => { haptic('select'); setMethodId(m.id); }}
-                aria-pressed={on}
-                title={m.funds === m.name ? m.name : `${m.name} — leaves ${m.funds}`}
-                style={{
-                  minHeight: 44, padding: '0 13px 0 9px', display: 'flex', alignItems: 'center', gap: 8,
-                  borderRadius: 999, flex: 'none', whiteSpace: 'nowrap',
-                  fontSize: 'var(--step--1)', fontWeight: 600,
-                  background: on ? ink : bg,
-                  color: on ? '#fff' : ink,
-                  border: `1px solid ${on ? ink : 'transparent'}`,
-                  transition: 'background .15s, color .15s',
-                }}
-              >
-                <Icon name={RAIL_ICON[m.kind] ?? 'wallet'} size={17} strokeWidth={1.9} />
-                {m.name}
+      {/* The questions, between the amount and the keypad, scrolling on their
+          own so Save never leaves the screen. */}
+      <div style={{
+        flex: 1, minHeight: 0, overflowY: 'auto', overscrollBehavior: 'contain',
+        WebkitOverflowScrolling: 'touch', display: 'flex', flexDirection: 'column', gap: 18,
+        padding: '16px var(--gutter) 14px',
+      }}>
+
+      {wantsCategory && (
+        <section aria-labelledby="add-category" style={SECTION}>
+          <Eyebrow id="add-category" hint={chosen ? (chosen.parent ? `${chosen.parent} › ${chosen.name}` : chosen.name) : undefined}>
+            {kind === 'income' ? 'What for' : 'Category'}
+          </Eyebrow>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 8 }}>
+            {tiles.map((c) => {
+              const on = c.id === categoryId;
+              return (
+                <button
+                  key={c.id}
+                  onClick={() => { haptic('select'); setCategoryId(on ? null : c.id); }}
+                  aria-pressed={on}
+                  style={{
+                    ...TILE,
+                    background: on ? `var(--cat-${c.tint}-ink)` : `var(--cat-${c.tint})`,
+                    color: on ? '#fff' : `var(--cat-${c.tint}-ink)`,
+                    boxShadow: on ? `inset 0 0 0 2px var(--cat-${c.tint}-ink)` : 'none',
+                  }}
+                >
+                  <Icon name={c.icon} size={21} strokeWidth={1.9} />
+                  <span style={TILE_LABEL}>
+                    {c.parent && <span style={{ display: 'block', opacity: .75, fontWeight: 600 }}>{c.parent} ›</span>}
+                    {c.name}
+                  </span>
+                </button>
+              );
+            })}
+            {findable && (
+              <button type="button" onClick={() => { haptic('tap'); setFinding(true); }}
+                aria-label="All categories" style={{
+                  ...TILE, background: 'transparent', color: 'var(--c-teal)',
+                  border: '1px dashed var(--c-dash)',
+                }}>
+                <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                  strokeWidth={2.2} strokeLinecap="round" aria-hidden>
+                  <circle cx="10.5" cy="10.5" r="6.5" /><path d="M20 20l-4.5-4.5" />
+                </svg>
+                <span style={TILE_LABEL}>All…</span>
               </button>
-            );
-          })}
-        </div>
-        {method && method.funds !== method.name && (
-          <span style={{ fontSize: 'var(--step--2)', color: 'var(--c-meta)' }}>
-            Leaves {method.funds}
-          </span>
-        )}
-      </div>
+            )}
+          </div>
+        </section>
+      )}
+
+      {/* Every way to pay, in full: each account as a chip, and under the one
+          chosen, the rails that draw on it. An account with no rail is paid
+          from directly — before, such an account could not be chosen at all,
+          and a row that scrolled sideways hid the ones past its edge. */}
+      <section aria-labelledby="add-paid" style={SECTION}>
+        <Eyebrow id="add-paid" hint={paying ? payLabel(paying.way, paying.rail) : undefined}>
+          {kind === 'transfer' ? 'Out of' : kind === 'income' ? 'Came in by' : 'Paid with'}
+        </Eyebrow>
+        <PayPicker ways={ways} value={paid} onChange={setPaid} />
+      </section>
 
       {/* Where a transfer lands, on the same terms: every account visible.
           The date used to be REPLACED by this row, so a transfer could only
           ever be recorded as happening today. */}
       {kind === 'transfer' && (
-        <div style={{ padding: '0 18px 10px', display: 'flex', flexDirection: 'column', gap: 7 }}>
-          <span style={{ fontSize: 'var(--step--2)', fontWeight: 600, color: 'var(--c-meta)' }}>Into</span>
-          <div style={{ display: 'flex', gap: 8, overflowX: 'auto', scrollbarWidth: 'none' }}>
-            {accounts.filter((a) => a.id !== method?.funds_id).map((a) => {
+        <section aria-labelledby="add-into" style={SECTION}>
+          <Eyebrow id="add-into" hint={ways.find((a) => a.id === counterId)?.name}>Into</Eyebrow>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            {ways.filter((a) => a.id !== way?.id).map((a) => {
               const on = a.id === counterId;
               const [bg, ink] = tintOf(ACCOUNT_TINT[a.kind]);
               return (
@@ -309,86 +352,45 @@ export default function AddEntry({
                   onClick={() => { haptic('select'); setCounterId(a.id); }}
                   aria-pressed={on}
                   style={{
-                    minHeight: 44, padding: '0 13px 0 9px', display: 'flex', alignItems: 'center', gap: 8,
-                    borderRadius: 999, flex: 'none', whiteSpace: 'nowrap',
-                    fontSize: 'var(--step--1)', fontWeight: 600,
+                    ...CHIP,
                     background: on ? ink : bg, color: on ? '#fff' : ink,
                     border: `1px solid ${on ? ink : 'transparent'}`,
-                    transition: 'background .15s, color .15s',
                   }}
                 >
                   <Icon name={ACCOUNT_ICON[a.kind] ?? 'bank'} size={17} strokeWidth={1.9} />
-                  {a.name}
+                  <span style={CHIP_TEXT}>{a.name}</span>
                 </button>
               );
             })}
           </div>
-        </div>
+        </section>
       )}
 
       {/* Which day, as chips: today, yesterday, the few before — and any
           other day one tap further, on a grid. Never a day ahead: nothing
           can be recorded as having happened tomorrow. */}
-      <div style={{ padding: '0 18px 12px', display: 'flex', flexDirection: 'column', gap: 7 }}>
-        <span style={{ fontSize: 'var(--step--2)', fontWeight: 600, color: 'var(--c-meta)' }}>
-          When
-        </span>
+      <section aria-labelledby="add-when" style={SECTION}>
+        <Eyebrow id="add-when">When</Eyebrow>
         <DateChips value={occurredOn} onChange={setOccurredOn} today={today} dir="past" max={today}
           label="Which day was it" />
-      </div>
+      </section>
 
       {wantsCategory && (
-        <div style={{ padding: '0 18px 12px' }}>
+        <section style={SECTION}>
+          <Eyebrow id="add-where">{kind === 'income' ? 'From whom' : 'Where'}</Eyebrow>
           <input
             value={merchant} onChange={(e) => setMerchant(e.target.value.slice(0, 60))}
-            placeholder="Where was it" maxLength={60}
+            aria-labelledby="add-where"
+            placeholder={kind === 'income' ? 'Who paid it (optional)' : 'The shop or place (optional)'} maxLength={60}
             style={{
-              width: '100%', minHeight: 50, borderRadius: 13, padding: '0 14px',
+              width: '100%', minHeight: 48, borderRadius: 13, padding: '0 14px',
               border: '1px solid var(--c-border)', background: 'var(--c-card)',
               color: 'var(--c-ink)', fontSize: 'var(--field)',
             }}
           />
-        </div>
+        </section>
       )}
 
-      {wantsCategory && (
-        <div style={{ display: 'flex', gap: 8, padding: '0 18px 10px', overflowX: 'auto', scrollbarWidth: 'none' }}>
-          {findable && (
-            <button type="button" onClick={() => { haptic('tap'); setFinding(true); }}
-              aria-label="Find a category" style={{
-                width: 44, minHeight: 44, flex: 'none', borderRadius: 999,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                background: 'var(--c-sunk)', color: 'var(--c-ink)',
-              }}>
-              <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                strokeWidth={2.2} strokeLinecap="round" aria-hidden>
-                <circle cx="10.5" cy="10.5" r="6.5" /><path d="M20 20l-4.5-4.5" />
-              </svg>
-            </button>
-          )}
-          {[...(chosen && chosen.parent_id ? [chosen] : []), ...strip].map((c) => {
-            const on = c.id === categoryId;
-            return (
-              <button
-                key={c.id}
-                onClick={() => setCategoryId(on ? null : c.id)}
-                aria-pressed={on}
-                style={{
-                  minHeight: 44, padding: '0 14px', display: 'flex', alignItems: 'center',
-                  borderRadius: 999, flex: 'none', whiteSpace: 'nowrap', fontSize: 'var(--step--1)', fontWeight: 600,
-                  scrollSnapAlign: 'start',
-                  gap: 7,
-                  background: on ? `var(--cat-${c.tint}-ink)` : `var(--cat-${c.tint})`,
-                  color: on ? '#fff' : `var(--cat-${c.tint}-ink)`,
-                }}
-              >
-                <Icon name={c.icon} size={16} strokeWidth={1.9} />
-                {c.parent ? `${c.parent} › ${c.name}` : c.name}
-              </button>
-            );
-          })}
-        </div>
-      )}
       {wantsCategory && findable && (
         <CategoryFinder open={finding} onClose={() => setFinding(false)}
           categories={categories} selected={categoryId}
@@ -396,10 +398,8 @@ export default function AddEntry({
       )}
 
       {kind === 'income' && claims.length > 0 && (
-        <div style={{ padding: '2px 18px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <span style={{ fontSize: 'var(--step--2)', fontWeight: 600, color: 'var(--c-meta)' }}>
-            Clears what is owed
-          </span>
+        <section aria-labelledby="add-claims" style={SECTION}>
+          <Eyebrow id="add-claims" hint={settling.length ? format(owedBack) : undefined}>Clears what is owed</Eyebrow>
           <div role="group" aria-label="Which entries this money clears" style={{
             display: 'flex', flexDirection: 'column', borderRadius: 14,
             background: 'var(--c-card)', border: '1px solid var(--c-border)', overflow: 'hidden',
@@ -467,12 +467,13 @@ export default function AddEntry({
               )}
             </div>
           )}
-        </div>
+        </section>
       )}
 
       {kind === 'expense' && tabs.length > 0 && (
-        <div style={{ padding: '2px 18px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <div style={{ display: 'flex', gap: 8, overflowX: 'auto', scrollbarWidth: 'none' }}>
+        <section aria-labelledby="add-tab" style={SECTION}>
+          <Eyebrow id="add-tab" hint={tab?.name}>On a tab</Eyebrow>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
             {tabs.map((t) => {
               const on = t.id === tabId;
               return (
@@ -481,16 +482,14 @@ export default function AddEntry({
                   onClick={() => { haptic('select'); setTabId(on ? null : t.id); }}
                   aria-pressed={on}
                   style={{
-                    minHeight: 44, padding: '0 14px 0 11px', display: 'flex', alignItems: 'center', gap: 7,
-                    borderRadius: 999, flex: 'none', whiteSpace: 'nowrap',
-                    fontSize: 'var(--step--1)', fontWeight: 600,
+                    ...CHIP,
                     background: on ? 'var(--cat-purple-ink)' : 'var(--c-card)',
                     color: on ? '#fff' : 'var(--c-ink)',
                     border: `1px ${on ? 'solid' : 'dashed'} ${on ? 'var(--cat-purple-ink)' : 'var(--c-dash)'}`,
                   }}
                 >
                   <Icon name="tab" size={16} strokeWidth={1.9} />
-                  {t.name}
+                  <span style={CHIP_TEXT}>{t.name}</span>
                 </button>
               );
             })}
@@ -547,12 +546,12 @@ export default function AddEntry({
               </p>
             </>
           )}
-        </div>
+        </section>
       )}
 
       {shownDupe && (
         <div style={{
-          display: 'flex', alignItems: 'flex-start', gap: 10, margin: '0 var(--gutter) 12px',
+          display: 'flex', alignItems: 'flex-start', gap: 10,
           padding: '13px 15px', borderRadius: 14, background: 'var(--c-pollen)', color: 'var(--c-on-fill)',
         }}>
           <Glyph d="M12 7.5v5.5 M12 16.6v.1 M20.5 12a8.5 8.5 0 1 1-17 0 8.5 8.5 0 0 1 17 0" size={17} w={1.9} />
@@ -566,7 +565,7 @@ export default function AddEntry({
 
       {kept && (
         <div role="status" style={{
-          display: 'flex', alignItems: 'center', gap: 10, margin: '0 var(--gutter) 12px',
+          display: 'flex', alignItems: 'center', gap: 10,
           padding: '13px 15px', borderRadius: 14, background: 'var(--c-teal-l)', color: 'var(--c-ink)',
           fontSize: 'var(--step--1)', fontWeight: 600, lineHeight: 1.4,
         }}>
@@ -577,7 +576,7 @@ export default function AddEntry({
 
       {error && (
         <div role="alert" style={{
-          display: 'flex', alignItems: 'center', gap: 10, margin: '0 var(--gutter) 12px',
+          display: 'flex', alignItems: 'center', gap: 10,
           padding: '13px 15px', borderRadius: 14, background: 'var(--c-danger-tint)', color: 'var(--c-danger)',
           fontSize: 'var(--step--1)', fontWeight: 600,
         }}>
@@ -586,35 +585,41 @@ export default function AddEntry({
         </div>
       )}
 
+      {/* A quiet row, not a card: it is the one question with a right answer
+          nearly every time, so it should never outrank the ones above it. */}
       <button
-        onClick={() => setShared((s) => !s)}
+        role="switch" aria-checked={shared}
+        onClick={() => { haptic('select'); setShared((s) => !s); }}
         style={{
-          display: 'flex', alignItems: 'center', gap: 12, margin: '0 var(--gutter) 12px',
-          minHeight: 56, padding: '0 16px', borderRadius: 16,
-          background: 'var(--c-card)', border: '1px solid var(--c-border)',
+          display: 'flex', alignItems: 'center', gap: 12, minHeight: 44, padding: '0 2px',
+          borderTop: '1px solid var(--c-rule)', color: 'var(--c-ink)',
         }}
       >
-        <span style={{ flex: 1, fontSize: 'var(--step-0)', fontWeight: 600 }}>Shared with the household</span>
-        <span style={{
-          width: 50, height: 30, borderRadius: 999, flex: 'none', padding: 3, display: 'flex',
+        <span style={{ flex: 1, fontSize: 'var(--step--1)', fontWeight: 600 }}>Shared with the household</span>
+        <span aria-hidden style={{
+          width: 42, height: 26, borderRadius: 999, flex: 'none', padding: 3, display: 'flex',
           justifyContent: shared ? 'flex-end' : 'flex-start',
-          background: shared ? 'var(--c-seagrass)' : 'var(--c-off)',
+          background: shared ? 'var(--c-seagrass)' : 'var(--c-off)', transition: 'background .15s',
         }}>
-          <span style={{ width: 24, height: 24, borderRadius: 999, background: '#fff' }} />
+          <span style={{ width: 20, height: 20, borderRadius: 999, background: '#fff' }} />
         </span>
       </button>
 
       {children}
+      </div>
 
-      <div style={{ marginTop: 'auto', padding: '10px 14px 18px', background: 'var(--c-card)', borderTop: '1px solid var(--c-border)', display: 'flex', gap: 9 }}>
-        <div style={{ flex: 1, display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0,1fr))', gap: 9 }}>
+      <div style={{
+        flex: 'none', padding: '8px 12px calc(12px + env(safe-area-inset-bottom))', background: 'var(--c-card)',
+        borderTop: '1px solid var(--c-border)', display: 'flex', gap: 8,
+      }}>
+        <div style={{ flex: 1, display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0,1fr))', gap: 8 }}>
           {KEYS.map((k) => (
             <button key={k} className="n press" onClick={() => { haptic('tap'); setKeys((s) => pushKey(s, k)); }} style={key}>
               {k}
             </button>
           ))}
         </div>
-        <div style={{ width: 92, flex: 'none', display: 'flex', flexDirection: 'column', gap: 9 }}>
+        <div style={{ width: 88, flex: 'none', display: 'flex', flexDirection: 'column', gap: 8 }}>
           <button aria-label="Delete" className="press" onClick={() => { haptic('tap'); setKeys(popKey); }} style={{ ...key, background: 'var(--c-sunk)', color: 'var(--c-meta)' }}>
             <Glyph d="M9.5 5.5h9a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-9L3 12Z M13 9.5l4 5 M17 9.5l-4 5" size={23} />
           </button>
@@ -623,7 +628,7 @@ export default function AddEntry({
             disabled={!canSave}
             className="el2"
             style={{
-              flex: 1, minHeight: 169, display: 'flex', flexDirection: 'column', alignItems: 'center',
+              flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
               justifyContent: 'center', gap: 6, borderRadius: 14, fontSize: 'var(--step-0)', fontWeight: 600,
               color: '#fff', opacity: canSave ? 1 : 0.45,
               background:
@@ -649,9 +654,127 @@ const chip: React.CSSProperties = {
   borderRadius: 999, fontSize: 'var(--step--1)', fontWeight: 600, flex: 'none',
 };
 const key: React.CSSProperties = {
-  minHeight: 56, display: 'flex', alignItems: 'center', justifyContent: 'center',
-  borderRadius: 14, background: 'var(--c-sunk2)', fontSize: 'var(--step-3)', fontWeight: 600, color: 'var(--c-ink)',
+  minHeight: 48, display: 'flex', alignItems: 'center', justifyContent: 'center',
+  borderRadius: 13, background: 'var(--c-sunk2)', fontSize: 'var(--step-2)', fontWeight: 600, color: 'var(--c-ink)',
 };
+const SECTION: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: 9 };
+/** A chip with room for its name: wraps into the next row rather than past
+ *  the edge of the screen. */
+const CHIP: React.CSSProperties = {
+  minHeight: 44, maxWidth: '100%', padding: '0 13px 0 10px', display: 'flex', alignItems: 'center',
+  gap: 7, borderRadius: 999, fontSize: 'var(--step--1)', fontWeight: 600,
+  transition: 'background .15s, color .15s',
+};
+const CHIP_TEXT: React.CSSProperties = { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' };
+const TILE: React.CSSProperties = {
+  minHeight: 66, padding: '8px 6px', borderRadius: 14, display: 'flex', flexDirection: 'column',
+  alignItems: 'center', justifyContent: 'center', gap: 5, textAlign: 'center',
+  transition: 'background .15s, color .15s',
+};
+const TILE_LABEL: React.CSSProperties = {
+  fontSize: 'var(--step--2)', fontWeight: 700, lineHeight: 1.15, maxWidth: '100%',
+  overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
+  overflowWrap: 'anywhere',
+};
+
+/** The name of a question, in small capitals, with what is answered so far
+ *  at the other end of the line. */
+function Eyebrow({ id, hint, children }: { id: string; hint?: string; children: React.ReactNode }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, minWidth: 0 }}>
+      <span id={id} style={{
+        fontSize: 'var(--step--2)', fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase',
+        color: 'var(--c-meta)', flex: 'none',
+      }}>{children}</span>
+      {hint && (
+        <span style={{
+          fontSize: 'var(--step--2)', fontWeight: 600, color: 'var(--c-ink)', minWidth: 0,
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+        }}>{hint}</span>
+      )}
+    </div>
+  );
+}
+
+/* Every account as a chip; under the chosen one, the rails that draw on it,
+   plus "Directly" for money that left the account with no app in between.
+   Tapping an account lands on its usual rail — the one marked default, or
+   its only one — so the common case is one tap, and the account with no rail
+   at all is simply itself. A rail named after its account (the card on the
+   card) is the account and is not offered twice. */
+function PayPicker({ ways, value, onChange }: {
+  ways: Way[]; value: string; onChange: (ref: string) => void;
+}) {
+  const hit = findRef(ways, value);
+  const way = hit?.way ?? null;
+  const via = way ? viaRails(way) : [];
+  if (ways.length === 0) {
+    return (
+      <p style={{ margin: 0, fontSize: 'var(--step--1)', color: 'var(--c-meta)' }}>
+        No accounts yet — add one under Accounts first.
+      </p>
+    );
+  }
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div role="radiogroup" aria-label="Which account" style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+        {ways.map((w) => {
+          const on = w.id === way?.id;
+          const [bg, ink] = tintOf(ACCOUNT_TINT[w.kind]);
+          return (
+            <button key={w.id} type="button" role="radio" aria-checked={on}
+              onClick={() => { haptic('select'); onChange(pickWay(w)); }}
+              style={{
+                ...CHIP, background: on ? ink : bg, color: on ? '#fff' : ink,
+                border: `1px solid ${on ? ink : 'transparent'}`,
+              }}>
+              <Icon name={ACCOUNT_ICON[w.kind] ?? 'bank'} size={17} strokeWidth={1.9} />
+              <span style={CHIP_TEXT}>{w.name}</span>
+            </button>
+          );
+        })}
+      </div>
+      {way && via.length > 0 && (
+        <div role="radiogroup" aria-label={`How, from ${way.name}`}
+          style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6 }}>
+          <span style={{ fontSize: 'var(--step--2)', fontWeight: 600, color: 'var(--c-meta)', padding: '0 4px 0 2px' }}>
+            via
+          </span>
+          {via.map((r) => {
+            const on = hit?.rail?.id === r.id;
+            const [bg, ink] = tintOf(RAIL_TINT[r.kind]);
+            return (
+              <button key={r.id} type="button" role="radio" aria-checked={on}
+                onClick={() => { haptic('select'); onChange(refOf(way, r)); }}
+                style={{
+                  ...CHIP, minHeight: 40, padding: '0 11px 0 9px', fontSize: 'var(--step--2)',
+                  background: on ? ink : bg, color: on ? '#fff' : ink,
+                  border: `1px solid ${on ? ink : 'transparent'}`,
+                }}>
+                <Icon name={RAIL_ICON[r.kind] ?? 'wallet'} size={15} strokeWidth={1.9} />
+                <span style={CHIP_TEXT}>{r.name}</span>
+              </button>
+            );
+          })}
+          {(() => {
+            const on = !!hit && (hit.rail === null || !via.some((r) => r.id === hit.rail?.id));
+            return (
+              <button type="button" role="radio" aria-checked={on}
+                onClick={() => { haptic('select'); onChange(refOf(way, way.rails.find((r) => !via.includes(r)) ?? null)); }}
+                style={{
+                  ...CHIP, minHeight: 40, padding: '0 11px', fontSize: 'var(--step--2)',
+                  background: on ? 'var(--c-ink)' : 'var(--c-sunk)', color: on ? 'var(--c-bg)' : 'var(--c-ink)',
+                  border: `1px solid ${on ? 'var(--c-ink)' : 'transparent'}`,
+                }}>
+                Directly
+              </button>
+            );
+          })()}
+        </div>
+      )}
+    </div>
+  );
+}
 
 /** "today", "yesterday", "on Sun 6 Sep" — a day inside a sentence. */
 function onDay(iso: string, today: string) {

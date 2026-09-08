@@ -5,16 +5,17 @@ import { useActionState, useState } from 'react';
 import { Field, ErrorNote } from '../../auth-ui';
 import { settleClaim, abandonClaim } from '../actions';
 import { useMoney } from '@/app/currency';
+import { PaySelect } from '../../PaySelect';
+import { defaultRef, type Way } from '@/lib/pay';
 
 type Claim = {
   id: string; txn_id: string; expected_amount: string; received: string;
   outstanding: string; status: string; note: string | null;
   merchant: string | null; category: string | null; occurred_on: string;
 };
-type Method = { id: string; name: string; funds: string };
 
-export default function Claims({ claims, methods, canEdit }: {
-  claims: Claim[]; methods: Method[]; canEdit: boolean;
+export default function Claims({ claims, ways, canEdit }: {
+  claims: Claim[]; ways: Way[]; canEdit: boolean;
 }) {
   const { format } = useMoney();
   const [settling, setSettling] = useState<string | null>(null);
@@ -82,15 +83,11 @@ export default function Claims({ claims, methods, canEdit }: {
                   <Field label="Date" name="occurred_on" type="date" defaultValue={today} required />
                   <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                     <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)' }}>Into</span>
-                    <select name="methodId" required style={{
+                    <PaySelect name="paidWith" ways={ways} defaultValue={defaultRef(ways)} required style={{
                       minHeight: 50, borderRadius: 12, border: '1px solid var(--c-border)',
                       background: 'var(--c-card)', color: 'var(--c-ink)', fontSize: 'var(--field)',
                       fontWeight: 600, padding: '0 12px',
-                    }}>
-                      {methods.map((m) => (
-                        <option key={m.id} value={m.id}>{m.name} — {m.funds}</option>
-                      ))}
-                    </select>
+                    }} />
                   </label>
                   {state && !state.ok && <ErrorNote>{state.error}</ErrorNote>}
                   <div style={{ display: 'flex', gap: 9 }}>

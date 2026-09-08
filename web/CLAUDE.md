@@ -142,18 +142,41 @@ link to the household is its parent.
 `/add` is wired end to end: real categories, ways to pay and accounts come out
 of Postgres, and Save writes a row through `saveEntry`.
 
-**Every way to pay is on screen at once**, as a strip of chips tinted and
-iconed per rail. It used to be a row that advanced to the NEXT method on each
-tap, which meant a household with six of them could only reach the sixth by
-tapping five times past the others — and could not see that it had six at all.
-The same row also swapped itself for "Into" on a transfer, so a transfer could
-only ever be recorded as happening today; the date is its own row now and the
-destination account is a strip of its own, minus the account the chosen method
-already empties, since an account cannot transfer to itself. Paying by GPay leaves
-HDFC Savings, because the METHOD decides the account — the client never names
-one. Before Save, a debounced `checkDuplicate` shows what a household member
-already recorded within ±1% and ±2 days, which is the prevention half of the
-duplicate rule; the Inbox card is only the fallback.
+**Every account is a way to pay, and every one of them is on screen.** The
+first cut of `/add` offered only the *rails* — GPay, the card, net banking — so
+a household whose recurring deposit or second savings account had no rail of
+its own could never record money leaving it, and the ones it could reach sat in
+a strip that scrolled sideways past the edge. Now `/add` is three bands: a
+header that stays put, one scrolling column of eyebrow-labelled sections in
+the order the questions get asked ("What for" · "Paid with" · "When" · "Where"
+· "On a tab" · Shared), and a keypad with Save pinned to the bottom. Categories
+are a four-across grid of tinted tiles with a dashed "All…" that opens the
+finder; every other choice is a wrapping row of chips — nothing scrolls
+sideways, so what is offered can be counted. "Paid with" is `PayPicker`:
+a chip per account (cash, spending, credit, savings in that order), and under
+the chosen one a "via" row of the rails that draw on it plus "Directly" for
+paying from the account itself. Picking an account pre-selects its default
+rail, else the rail that shares its name, else the account outright. The
+transfer form's "Into" leaves out the account the money is leaving.
+
+The client sends `paidWith`, a string reference from `src/lib/pay.ts`:
+`a:<account id>` means paid straight from the account (`txn.account_id` set,
+`payment_method_id` NULL) and `m:<rail id>` means paid over the rail, whose
+account follows from it. A bare uuid is an old queued draft and is read as a
+rail. `waysToPay(householdId)` in `src/db/payment.ts` is the one query that
+lists accounts with their rails nested, and `resolvePayment(householdId, ref)`
+is the one place a reference becomes `{ account_id, payment_method_id }` — it
+returns null for anything that is not this household's, and every action that
+takes a payment goes through it (`saveEntry`, `updateEntry`, `createSchedule`,
+`settleTab`, `lend`, `recordRepayment`, `settleClaim`). The flat forms —
+EditEntry, NewSchedule, the tab and person sheets — use `PaySelect`, a
+`<select>` with an `<optgroup>` per account that has rails ("GPay · HDFC
+Savings" under HDFC Savings) and a single option for one that does not. The
+entries list shows the rail when there is one and the account when there is
+not. `sw.js` is v11 for the layout change. Before Save, a debounced
+`checkDuplicate` shows what a household member already recorded within ±1% and
+±2 days, which is the prevention half of the duplicate rule; the Inbox card is
+only the fallback.
 
 A Server Action is reachable by direct POST, not just through the UI, so
 `saveEntry` resolves the household and author on the SERVER and re-checks that
@@ -298,6 +321,11 @@ owe ₹X"; the arithmetic stays honest.
 on a bank or cash account, nothing draws on a person. The form only offers
 pairings the database will accept, and `railProblem()` says the same rule in
 words, because being told off after the fact teaches the rule the hard way.
+A rail is optional: an account with none is still a way to pay, and an entry
+paid from it directly carries `account_id` with `payment_method_id` NULL.
+`txn_apply_method()` only overwrites `account_id` from a rail when a non-null
+rail is set on the row, so a direct payment is left alone and a later edit
+that swaps the rail for an account moves the money (and clears the card cycle).
 
 **A card's statement day is what does the work.** Punch it in and every
 purchase files itself into the right billing cycle through `txn_apply_method()`.
@@ -794,8 +822,8 @@ yesterday · overdue", and a schedule row reads "Every month on the 12th" then
 "Next Sat 12 Sep · 1 Rabi II 1448 · in 4 days". The schedule form is two
 `Segmented` rows, the month and day grids, one summary sentence ("Every year
 on 1 Ramadaan. First on Sat 6 Feb 2027 · 1 Ramadaan 1448.") and a collapsed
-"Ends never · Change" that opens the end choices only when asked. `sw.js` is
-v10 for the Add Entry change.
+"Ends never · Change" that opens the end choices only when asked. `sw.js` was
+v10 for this change.
 
 ## Net worth
 

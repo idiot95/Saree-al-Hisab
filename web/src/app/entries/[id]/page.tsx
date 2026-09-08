@@ -1,8 +1,9 @@
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import {
-  actorOrNull, categoriesFor, claimsOnEntry, entryById, methodsFor, peopleFor,
+  actorOrNull, categoriesFor, claimsOnEntry, entryById, peopleFor,
 } from '@/db/queries';
+import { waysToPay } from '@/db/payment';
 import { headerBg } from '../../auth-ui';
 import EditEntry from './EditEntry';
 import OwedFor from './OwedFor';
@@ -27,9 +28,9 @@ export default async function Entry({ params }: { params: Promise<{ id: string }
   const entry = await entryById(actor.household_id, id);
   if (!entry) notFound();
 
-  const [cats, methods, people, claims] = await Promise.all([
+  const [cats, ways, people, claims] = await Promise.all([
     categoriesFor(actor.household_id),
-    methodsFor(actor.household_id),
+    waysToPay(actor.household_id),
     peopleFor(actor.household_id),
     claimsOnEntry(actor.household_id, entry.id),
   ]);
@@ -69,14 +70,15 @@ export default async function Entry({ params }: { params: Promise<{ id: string }
               id: entry.id, kind: entry.kind, amount: entry.amount,
               occurred_on: new Date(entry.occurred_on).toISOString().slice(0, 10),
               merchant: entry.merchant, note: entry.note, is_shared: entry.is_shared,
-              category_id: entry.category_id, payment_method_id: entry.payment_method_id,
+              category_id: entry.category_id, account_id: entry.account_id,
+              payment_method_id: entry.payment_method_id,
               counts_as_spend: entry.counts_as_spend,
               owed: entry.kind === 'expense' && (!!entry.book_id || claims.length > 0),
             }}
             categories={cats.map((c) => ({
               category_id: c.id, name: c.parent ? `${c.parent} › ${c.name}` : c.name, tint: c.tint, icon: c.icon,
             }))}
-            methods={methods.map((m) => ({ id: m.id, name: m.name, funds: m.funds }))}
+            ways={ways}
             canEdit={actor.role !== 'viewer'}
           />
 

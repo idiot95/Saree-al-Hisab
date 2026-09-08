@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { sql, withHousehold } from '@/db/client';
 import { currentActor } from '@/db/queries';
+import { resolvePayment } from '@/db/payment';
 import { fromKeys } from '@/lib/money';
 import { rethrowControlFlow } from '@/lib/rethrow';
 
@@ -72,12 +73,11 @@ async function personAccount(householdId: string, id: string) {
   return p as undefined | { id: string; name: string; account_id: string };
 }
 
-async function fundingAccount(householdId: string, methodId: string) {
-  const [m] = await sql`
-    select funding_account_id from payment_method
-    where id = ${methodId} and household_id = ${householdId} and archived_at is null`;
-  return m?.funding_account_id as string | undefined;
-}
+/** The account and rail a form's "paid with" names, or null for one that is
+ *  not this household's. An account can be named directly; a rail brings the
+ *  account it draws on. */
+const paidWith = (householdId: string, fd: FormData) =>
+  resolvePayment(householdId, String(fd.get('paidWith') ?? ''));
 
 /* Lending is a TRANSFER, not spending. The money has not gone anywhere: it has
    moved from your account into theirs, and the ledger says so. This is the
@@ -96,14 +96,14 @@ export async function lend(_prev: Result | null, fd: FormData): Promise<Result> 
     const on = String(fd.get('occurred_on') ?? '');
     if (!/^\d{4}-\d{2}-\d{2}$/.test(on)) return { ok: false, error: 'That date is not valid.' };
 
-    const from = await fundingAccount(actor.household_id, String(fd.get('methodId') ?? ''));
+    const from = await paidWith(actor.household_id, fd);
     if (!from) return { ok: false, error: 'Choose where the money came from.' };
 
     await sql`
       insert into txn (household_id, created_by, kind, amount, occurred_on,
                        account_id, counter_account_id, payment_method_id, note, source)
       values (${actor.household_id}, ${actor.user_id}, 'transfer', ${minor}, ${on}::date,
-              ${from}, ${person.account_id}, ${String(fd.get('methodId'))},
+              ${from.account_id}, ${person.account_id}, ${from.payment_method_id},
               ${String(fd.get('note') ?? '').trim() || null}, 'manual')`;
 
     revalidatePath('/people');
@@ -128,14 +128,17 @@ export async function recordRepayment(_prev: Result | null, fd: FormData): Promi
     const on = String(fd.get('occurred_on') ?? '');
     if (!/^\d{4}-\d{2}-\d{2}$/.test(on)) return { ok: false, error: 'That date is not valid.' };
 
-    const into = await fundingAccount(actor.household_id, String(fd.get('methodId') ?? ''));
+    // Money coming back is a transfer out of the person: the account it lands
+    // in is the counter side, so no rail is stamped — the trigger would read
+    // one as the side the money left.
+    const into = await paidWith(actor.household_id, fd);
     if (!into) return { ok: false, error: 'Choose where the money went.' };
 
     await sql`
       insert into txn (household_id, created_by, kind, amount, occurred_on,
                        account_id, counter_account_id, note, source)
       values (${actor.household_id}, ${actor.user_id}, 'transfer', ${minor}, ${on}::date,
-              ${person.account_id}, ${into},
+              ${person.account_id}, ${into.account_id},
               ${String(fd.get('note') ?? '').trim() || null}, 'manual')`;
 
     revalidatePath('/people');
@@ -248,14 +251,14 @@ export async function settleClaim(_prev: Result | null, fd: FormData): Promise<R
     const on = String(fd.get('occurred_on') ?? '');
     if (!/^\d{4}-\d{2}-\d{2}$/.test(on)) return { ok: false, error: 'That date is not valid.' };
 
-    const into = await fundingAccount(actor.household_id, String(fd.get('methodId') ?? ''));
+    const into = await paidWith(actor.household_id, fd);
     if (!into) return { ok: false, error: 'Choose where the money went.' };
 
     await sql`
       insert into txn (household_id, created_by, kind, amount, occurred_on,
-                       account_id, claim_id, source)
+                       account_id, payment_method_id, claim_id, source)
       values (${actor.household_id}, ${actor.user_id}, 'claim_receipt', ${minor}, ${on}::date,
-              ${into}, ${c.id}, 'manual')`;
+              ${into.account_id}, ${into.payment_method_id}, ${c.id}, 'manual')`;
 
     revalidatePath('/people');
     revalidatePath('/accounts');

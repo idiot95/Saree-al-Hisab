@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { actorOrNull, categoriesFor, methodsFor, schedulesFor, type ScheduleRow } from '@/db/queries';
+import { actorOrNull, categoriesFor, schedulesFor, type ScheduleRow } from '@/db/queries';
+import { waysToPay } from '@/db/payment';
 import { formatHijri, toHijri } from '@/lib/hijri';
 import { format } from '@/lib/money';
 import { daysBetween, describeRule, friendlyDay, inWords, isFinished, nextUnsettled, outstandingDues, parseRule, ruleOf } from '@/lib/recur';
@@ -23,9 +24,9 @@ export default async function Schedules() {
   if (!actor) redirect('/signin');
   if (!actor.household_id) redirect('/no-household');
 
-  const [schedules, methods, cats] = await Promise.all([
+  const [schedules, ways, cats] = await Promise.all([
     schedulesFor(actor.household_id),
-    methodsFor(actor.household_id),
+    waysToPay(actor.household_id),
     categoriesFor(actor.household_id),
   ]);
   const canWrite = actor.role !== 'viewer';
@@ -129,7 +130,7 @@ export default async function Schedules() {
           {canWrite && (
             <NewSchedule
               startOpen={schedules.length === 0}
-              methods={methods.map((m) => ({ id: m.id, name: m.name, funds: m.funds }))}
+              ways={ways}
               categories={cats.map((c) => ({ id: c.id, name: c.parent ? `${c.parent} › ${c.name}` : c.name }))}
             />
           )}

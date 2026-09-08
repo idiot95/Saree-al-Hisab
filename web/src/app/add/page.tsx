@@ -1,8 +1,7 @@
 import { redirect } from 'next/navigation';
 import AddEntry from './AddEntry';
-import {
-  actorOrNull, categoriesFor, methodsFor, accountsFor, tabsForEntry, openClaimsFor,
-} from '@/db/queries';
+import { actorOrNull, categoriesFor, tabsForEntry, openClaimsFor } from '@/db/queries';
+import { waysToPay } from '@/db/payment';
 import Screen from '../Screen';
 
 export const metadata = { title: 'New entry · Saree al-Hisab' };
@@ -16,10 +15,9 @@ export default async function Page({ searchParams }: {
   if (!actor) redirect('/signin');
   if (!actor.household_id) redirect('/no-household');
   const household_id = actor.household_id;
-  const [categories, methods, accounts, tabs, claims] = await Promise.all([
+  const [categories, ways, tabs, claims] = await Promise.all([
     categoriesFor(household_id),
-    methodsFor(household_id),
-    accountsFor(household_id),
+    waysToPay(household_id),
     tabsForEntry(household_id),
     openClaimsFor(household_id),
   ]);
@@ -42,8 +40,8 @@ export default async function Page({ searchParams }: {
     tabCoveredMinor: null,
     countsAsSpend: null,
     // A card bill from the inbox, or a swipe on an account: only this household's.
-    toAccountId: accounts.some((a) => a.id === q.to) ? q.to! : null,
-    fromAccountId: methods.some((m) => m.funds_id === q.from) ? q.from! : null,
+    toAccountId: ways.some((a) => a.id === q.to) ? q.to! : null,
+    fromAccountId: ways.some((a) => a.id === q.from) ? q.from! : null,
   };
 
   return (
@@ -53,10 +51,7 @@ export default async function Page({ searchParams }: {
         categories={categories.map((c) => ({
           id: c.id, name: c.name, tint: c.tint, icon: c.icon, parent_id: c.parent_id, parent: c.parent,
         }))}
-        methods={methods.map((m) => ({
-          id: m.id, name: m.name, funds: m.funds, kind: m.kind, funds_id: m.funds_id,
-        }))}
-        accounts={accounts}
+        ways={ways}
         tabs={tabs}
         claims={claims.map((c) => ({
           id: c.id, person: c.person, tint: c.tint, tab: c.tab, what: c.what,
