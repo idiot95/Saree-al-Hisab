@@ -50,7 +50,7 @@ export default function PersonActions({ personId, name, balance, ways, categorie
           <Title>Lend to {name}</Title>
           <Explain>Not spending. The money moves from your account into theirs.</Explain>
           {common}
-          <PayField label="Out of" ways={ways} />
+          <PayField label="How you sent it" ways={ways} />
           <Field label="Note (optional)" name="note" maxLength={200} />
           {lendState && !lendState.ok && <ErrorNote>{lendState.error}</ErrorNote>}
           <Row onCancel={() => setMode(null)} pending={lending} label="Record loan" />
@@ -62,7 +62,7 @@ export default function PersonActions({ personId, name, balance, ways, categorie
           <Title>{name} paid you back</Title>
           <Explain>Not income either — it was never spending, so getting it back is not earning.</Explain>
           {common}
-          <PayField label="Into" ways={ways} />
+          <PayField label="How it came back" ways={ways} />
           <Field label="Note (optional)" name="note" maxLength={200} />
           {backState && !backState.ok && <ErrorNote>{backState.error}</ErrorNote>}
           <Row onCancel={() => setMode(null)} pending={paying} label="Record repayment" />

@@ -197,7 +197,7 @@ export default function NewSchedule({ ways, categories, startOpen = false }: {
 
       <div role="group" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)' }}>
-          {kind === 'income' ? 'Arrives by' : 'Paid with'}
+          {kind === 'income' ? 'How it comes in' : 'How it is paid'}
         </span>
         <PayPicker name="paidWith" ways={ways} defaultValue={defaultRef(ways)} />
       </div>

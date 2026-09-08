@@ -34,6 +34,14 @@ assert.equal(defaultRef([]), '');
 assert.equal(ownRail(cash), cash.rails[0]);
 assert.equal(ownRail(card), card.rails[0]);
 assert.equal(ownRail(hdfc), null);
+// The card rail on a credit card is the card, whatever it is called.
+const amazon = { id: 'A5', name: 'ICICI Amazon Pay', kind: 'credit', rails: [
+  { id: 'R5', name: 'Amazon Pay card', kind: 'card' }, { id: 'R6', name: 'Auto-debit', kind: 'autodebit' },
+] };
+assert.equal(ownRail(amazon), amazon.rails[0]);
+assert.deepEqual(viaRails(amazon), [amazon.rails[1]]);
+assert.equal(payLabel(amazon, amazon.rails[0]), 'ICICI Amazon Pay');
+assert.equal(ownRail({ ...hdfc, rails: [{ id: 'R7', name: 'Debit card', kind: 'card' }] }), null); // a card on a bank is a rail
 assert.deepEqual(viaRails(hdfc), hdfc.rails);
 assert.deepEqual(viaRails(cash), []);
 
@@ -51,3 +59,24 @@ assert.equal(payLabel(cash, cash.rails[0]), 'Cash');
 assert.equal(accountRef('A9'), 'a:A9');
 assert.equal(railRef('R9'), 'm:R9');
 console.log('  ok   ways to pay');
+
+// The flat list: each account's apps and cards, then the account itself,
+// the household's default first; an account and its own-named rail are one.
+{
+  const { flatWays, isFlat } = await import(`${process.env.LIB}/pay.js`);
+  const flat = flatWays(ways);
+  assert.deepEqual(flat.map((f) => f.ref), ['m:R1', 'm:R2', 'a:A1', 'a:A2', 'm:R3', 'm:R4']);
+  assert.equal(flat[0].rail, hdfc.rails[0]);
+  assert.equal(flat[4].way, cash);
+  assert.ok(isFlat(findRef(ways, 'm:R3'), flat[4]));
+  assert.ok(isFlat(findRef(ways, 'a:A3'), flat[4]));   // the account spelling of the same thing
+  assert.ok(isFlat(findRef(ways, 'a:A1'), flat[2]));
+  assert.ok(!isFlat(findRef(ways, 'a:A1'), flat[0]));  // directly is not GPay
+  assert.ok(!isFlat(null, flat[0]));
+  assert.deepEqual(flatWays([]), []);
+  // No default marked: whatever defaultRef picks (any rail before a bare
+  // account) still leads, then the accounts' own order.
+  const plain = [{ ...icici }, { ...cash }];
+  assert.deepEqual(flatWays(plain).map((f) => f.ref), ['m:R3', 'a:A2']);
+  assert.deepEqual(flatWays([{ ...icici }]).map((f) => f.ref), ['a:A2']);
+}

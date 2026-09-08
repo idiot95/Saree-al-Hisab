@@ -54,10 +54,15 @@ export function defaultRef(ways: Way[]): string {
 }
 
 /** A rail that carries its account's own name — "Cash" on Cash, the card on
- *  the card — is the account, not a second way of reaching it. It is chosen
- *  with the account and never offered beside it. */
+ *  the card — is the account, not a second way of reaching it. So is the
+ *  card rail on a credit card whatever it was named ("Amazon Pay card" on
+ *  "ICICI Amazon Pay"), and a cash rail on the cash account: to the person
+ *  paying they are one thing. It is chosen with the account and never
+ *  offered beside it. */
 export const ownRail = (way: Way) =>
-  way.rails.find((r) => r.name.trim().toLowerCase() === way.name.trim().toLowerCase()) ?? null;
+  way.rails.find((r) => r.name.trim().toLowerCase() === way.name.trim().toLowerCase())
+  ?? way.rails.find((r) => (way.kind === 'credit' && r.kind === 'card') || (way.kind === 'cash' && r.kind === 'cash'))
+  ?? null;
 
 /** The rails offered under a chosen account, besides paying from it directly. */
 export const viaRails = (way: Way) => way.rails.filter((r) => r !== ownRail(way));
@@ -73,4 +78,34 @@ export function pickWay(way: Way): string {
 export function payLabel(way: Way, rail: Rail | null): string {
   if (!rail || rail === ownRail(way)) return way.name;
   return `${rail.name} · ${way.name}`;
+}
+
+/* One flat list of every concrete way to pay, which is how a person names
+   it: "GPay", "the Amazon card", "cash", "ICICI directly". The old picker
+   asked for the account first and the app second, which put a credit card
+   beside a savings account on one row and GPay on another — the ledger's
+   shape, not the person's. Here each account contributes its rails (the app,
+   the card) and then itself, in the order the accounts come, and the
+   household's default way goes first of all. */
+export type Flat = { ref: string; way: Way; rail: Rail | null };
+
+export function flatWays(ways: Way[]): Flat[] {
+  const out: Flat[] = [];
+  for (const way of ways) {
+    for (const r of viaRails(way)) out.push({ ref: railRef(r.id), way, rail: r });
+    const own = ownRail(way);
+    out.push({ ref: refOf(way, own), way, rail: own });
+  }
+  const first = out.findIndex((o) => o.ref === defaultRef(ways));
+  if (first > 0) out.unshift(...out.splice(first, 1));
+  return out;
+}
+
+/** Whether a picked reference is this flat option. An account paid from
+ *  directly and its own-named rail are one choice, whichever spelling the
+ *  reference used. */
+export function isFlat(hit: { way: Way; rail: Rail | null } | null, opt: Flat): boolean {
+  if (!hit || hit.way.id !== opt.way.id) return false;
+  const direct = (r: Rail | null) => r === null || r === ownRail(opt.way);
+  return direct(hit.rail) && direct(opt.rail) ? true : hit.rail?.id === opt.rail?.id;
 }

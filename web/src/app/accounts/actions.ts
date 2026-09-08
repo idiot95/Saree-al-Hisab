@@ -30,7 +30,7 @@ const RAILS = ['upi', 'card', 'netbanking', 'cash', 'cheque', 'wallet', 'autodeb
    in words a person can act on. The trigger is what makes it true; this is
    what makes it kind. */
 function railProblem(rail: string, accountKind: string): string | null {
-  if (accountKind === 'person') return 'A payment method cannot draw on a person.';
+  if (accountKind === 'person') return 'A way to pay cannot be linked to a person.';
   if (rail === 'card' && accountKind !== 'credit') {
     return 'A card must draw on a credit card account.';
   }
@@ -196,7 +196,7 @@ export async function archiveAccount(_prev: Result | null, fd: FormData): Promis
       select count(*)::int as n from payment_method
       where funding_account_id = ${id} and household_id = ${actor.household_id} and archived_at is null`;
     if (rails > 0) {
-      return { ok: false, error: `Archive the ${rails === 1 ? 'payment method that draws' : `${rails} payment methods that draw`} on this first.` };
+      return { ok: false, error: `Archive the ${rails === 1 ? 'way to pay linked' : `${rails} ways to pay linked`} to this first.` };
     }
 
     /* Archived, never deleted. Entries keep pointing at it, so the months it
@@ -218,8 +218,8 @@ export async function addMethod(_prev: Result | null, fd: FormData): Promise<Res
     const accountId = String(fd.get('funding_account_id') ?? '');
     const handle = String(fd.get('handle') ?? '').trim() || null;
 
-    if (name.length < 2) return { ok: false, error: 'Give the payment method a name.' };
-    if (!(RAILS as readonly string[]).includes(rail)) return { ok: false, error: 'Choose a payment method type.' };
+    if (name.length < 2) return { ok: false, error: 'Give it a name — GPay, Debit card, Net banking.' };
+    if (!(RAILS as readonly string[]).includes(rail)) return { ok: false, error: 'Choose what kind of way to pay it is.' };
 
     const [acc] = await sql`
       select id, kind, name from real_account
@@ -234,7 +234,7 @@ export async function addMethod(_prev: Result | null, fd: FormData): Promise<Res
     const [clash] = await sql`
       select 1 from payment_method where household_id = ${actor.household_id}
         and lower(name) = ${name.toLowerCase()} and archived_at is null`;
-    if (clash) return { ok: false, error: 'You already have a payment method with that name.' };
+    if (clash) return { ok: false, error: 'You already have a way to pay with that name.' };
 
     const [{ n }] = await sql`
       select count(*)::int as n from payment_method where household_id = ${actor.household_id}`;
@@ -263,7 +263,7 @@ export async function archiveMethod(_prev: Result | null, fd: FormData): Promise
       select count(*)::int as n from payment_method
       where household_id = ${actor.household_id} and archived_at is null`;
     if (n <= 1) {
-      return { ok: false, error: 'This is your last payment method. Add another one first.' };
+      return { ok: false, error: 'This is your last way to pay. Add another one first.' };
     }
 
     await sql`update payment_method set archived_at = now(), is_default = false

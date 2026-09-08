@@ -54,7 +54,7 @@ export function DateChips({ value, onChange, today, from = today, dir, min, max,
           const on = q.iso === value;
           return (
             <button key={q.iso} type="button" role="radio" aria-checked={on} onClick={() => pick(q.iso)}
-              style={{ ...chip, ...choice(on, 'var(--c-seagrass)') }}>
+              style={{ ...chip, ...choice(on) }}>
               {q.label}
             </button>
           );
@@ -144,7 +144,7 @@ export function MonthGrid({ value, today, min, max, onPick }: {
               aria-label={`${d} ${MONTHS[m - 1]}, ${formatHijri(h, true)}`} onClick={() => onPick(iso)} style={{
                 minHeight: 50, borderRadius: 10, padding: '5px 0 4px',
                 display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
-                background: on ? 'var(--c-seagrass)' : 'transparent',
+                background: on ? 'var(--c-primary-hi)' : 'transparent',
                 color: on ? 'var(--c-on-primary)' : 'var(--c-ink)',
                 boxShadow: isToday && !on ? 'inset 0 0 0 2px var(--c-seagrass)' : undefined,
                 opacity: off ? 0.3 : 1,
@@ -178,7 +178,7 @@ export function DayOfMonth({ value, top, onPick, label = 'Day of the month' }: {
           <button key={d} type="button" role="radio" aria-checked={on} onClick={() => { haptic('select'); onPick(d); }}
             className="t" style={{
               minHeight: 44, borderRadius: 10, textAlign: 'center', fontSize: 'var(--step-0)', fontWeight: on ? 700 : 500,
-              background: on ? 'var(--c-seagrass)' : 'var(--c-sunk2)',
+              background: on ? 'var(--c-primary-hi)' : 'var(--c-sunk2)',
               color: on ? 'var(--c-on-primary)' : 'var(--c-ink)',
             }}>
             {d}
@@ -201,7 +201,7 @@ export function MonthOfYear({ value, names, onPick, label = 'Month' }: {
           <button key={name} type="button" role="radio" aria-checked={on} onClick={() => { haptic('select'); onPick(i + 1); }} style={{
             minHeight: 44, borderRadius: 10, padding: '0 4px', textAlign: 'center', fontSize: 'var(--step--1)', fontWeight: on ? 700 : 600,
             lineHeight: 1.15, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-            background: on ? 'var(--c-seagrass)' : 'var(--c-sunk2)',
+            background: on ? 'var(--c-primary-hi)' : 'var(--c-sunk2)',
             color: on ? 'var(--c-on-primary)' : 'var(--c-ink)',
           }}>
             {name}

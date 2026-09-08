@@ -142,7 +142,7 @@ function Panel({ account: a, last, onDone }: { account: Editable; last: boolean;
         )}
         <span style={{ fontSize: 'var(--step--2)', lineHeight: 1.45, color: 'var(--c-meta)' }}>
           {a.methods > 0
-            ? `${a.methods === 1 ? 'One payment method draws' : `${a.methods} payment methods draw`} on this — archive ${a.methods === 1 ? 'it' : 'them'} first.`
+            ? `${a.methods === 1 ? 'One way to pay is' : `${a.methods} ways to pay are`} linked to this — archive ${a.methods === 1 ? 'it' : 'them'} first.`
             : 'It leaves the pickers. Every entry already on it stays, and no month changes value.'}
         </span>
       </form>

@@ -147,24 +147,39 @@ first cut of `/add` offered only the *rails* — GPay, the card, net banking —
 a household whose recurring deposit or second savings account had no rail of
 its own could never record money leaving it, and the ones it could reach sat in
 a strip that scrolled sideways past the edge. Now `/add` is a two-step
-wizard. **Step 1** — the header (kind tabs and the amount) plus "Paid with" and
-"When"; **Step 2** — "Category" (a four-across grid of parents with a search
+wizard. **Step 1** — the header (kind tabs and the amount) plus "How did you
+pay" and "When"; **Step 2** — "Category" (a four-across grid of parents with a search
 box; a chosen family shows its children as a chip row beneath, and the parent
 tile goes to a wash so the solid chip is the one thing selected), "Where",
 "On a tab", Shared, and Save. Transfer has no category, so it is one step
-with "Into" under "Out of". Step 2's header is a one-line summary of step 1
+with "To which account" under "From which account". Step 2's header is a one-line summary of step 1
 with "Change", so nothing decided is out of sight. **There is no drawn
 keypad**: the amount is a plain `<input inputMode="decimal">` that takes the
 phone's own keyboard and formats as it is typed — `typed()` tidies what the
 keyboard gave, `keysDisplay()` groups the rupees and leaves the paise exactly
 as typed (`2,340.5` mid-entry), `settle()` fills the minor digits on blur
 (`2,340.50`). Every choice is a wrapping row of chips — nothing scrolls
-sideways, so what is offered can be counted. "Paid with" is `PayPicker`:
-a chip per account (cash, spending, credit, savings in that order), and under
-the chosen one a "via" row of the rails that draw on it plus "Directly" for
-paying from the account itself. Picking an account pre-selects its default
-rail, else the rail that shares its name, else the account outright. The
-transfer form's "Into" leaves out the account the money is leaving.
+sideways, so what is offered can be counted. "How did you pay" is
+`PayPicker`, **one question with one flat list of concrete answers** in the
+words a person uses. It used to be two rows — accounts (a credit card beside a
+savings account, which reads as two kinds of thing on one row) and then a
+"via" row of apps — and nobody thinks of paying that way. Now `flatWays()` in
+`src/lib/pay.ts` lays out, for each account, every rail that draws on it and
+then the account itself; `describe()` in `PayPicker.tsx` turns each into a
+`WayTile` — the rail's icon, its name in bold and small print saying what
+stands behind it ("GPay / ICICI Savings", "Cash / Cash in hand", "ICICI
+Savings / Debit card or NEFT", "ICICI Amazon Pay / Credit card"). One tap
+settles both the account and the rail the ledger writes. **A credit card is
+one tile, never two**: `ownRail()` treats a rail that shares the account's
+name, a `card` rail on a `credit` account, or a `cash` rail on a `cash`
+account as the account itself, so the tile's reference is that rail and the
+card's cycle still files it. The default rail's tile leads; `isFlat()` keeps
+a tile lit whether the stored reference names the account or its own rail.
+The transfer form's "To which account" is the same tiles for accounts alone,
+leaving out the one the money is leaving. The Accounts screen tells the same
+story: each bank or cash row lists "Paid through GPay, PhonePe", the rails
+live under "Ways to pay" with a plain-words explanation, and every string
+says "way to pay", "linked to", "takes money from" — never "payment method".
 
 The client sends `paidWith`, a string reference from `src/lib/pay.ts`:
 `a:<account id>` means paid straight from the account (`txn.account_id` set,
@@ -182,8 +197,8 @@ hidden input; there is no `<select>` of payment modes anywhere, because one
 listing every rail under every account showed "ICICI Amazon Pay" twice and
 read as nonsense. Wrap it in a `<div role="group">`, never a `<label>` — a
 label around buttons activates the first chip. The entries list shows the
-rail when there is one and the account when there is not. `sw.js` is v12 for
-the picker and scope changes. Before Save, a debounced
+rail when there is one and the account when there is not. `sw.js` is v14 for
+the flat picker. Before Save, a debounced
 `checkDuplicate` shows what a household member already recorded within ±1% and
 ±2 days, which is the prevention half of the duplicate rule; the Inbox card is
 only the fallback.
@@ -990,7 +1005,7 @@ storage after it opens. The design, in the order the pieces matter:
   person decides. Stuck entries are never retried on their own.
 - **`/offline` is `force-dynamic`** though it reads nothing, because every
   script tag carries the request's CSP nonce and a prerendered page ships
-  with none. The worker (`public/sw.js`, `VERSION = 'v13'`) fetches it once at
+  with none. The worker (`public/sw.js`, `VERSION = 'v14'`) fetches it once at
   install, `credentials: 'omit'`, together with every `/_next/static/` script
   and stylesheet the markup names, so the cached copy is a self-consistent
   snapshot: the nonce in its cached headers is the nonce in its cached
@@ -1248,9 +1263,16 @@ inside `.el`/`.el2`. Each has a dark-mode value under the same guards
 **Grey until chosen.** Every choice control — account and rail chips, date
 chips, category tiles and chips, tab and role toggles — is drawn from one
 rule in `src/app/choice.ts`: `OFF` (sunk grey, meta text) until selected,
-`on(ink)` (the option's own ink, white text) when it is. The colour *is* the
+`on(ink)` (the option's own ink) when it is. The colour *is* the
 confirmation, so no eyebrow hint or "Chosen: …" caption repeats it. An action
-that opens more ("Another day…") is dashed and grey, not a choice.
+that opens more ("Another day…") is dashed and grey, not a choice. The label
+on a lit chip is `--c-on-tint` (`globals.css`): white in the light theme,
+where the category inks are deep, and the dark ground itself in the dark one,
+where they are pastel — white on `#DE93CC` measured 2:1. The brand green is
+dark in both themes, so `on(PRIMARY)` keeps `--c-on-primary`. Chosen dates
+wear the brand green, not seagrass (white on seagrass was 3.2:1).
+`scripts/contrast.test.mjs` measures `--c-on-tint` on every category ink,
+and every ink on its own wash, in both themes.
 
 **Settings has a door**: the Home header — your initials, the household, a
 cog — opens `/household`, and Sign out lives there under "Your account". A

@@ -77,7 +77,7 @@ export default function EditEntry({ entry, categories, ways, canEdit }: {
         {ways.length > 0 && (
           <div role="group" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)' }}>
-              {entry.kind === 'income' ? 'Came in by' : entry.kind === 'transfer' ? 'Out of' : 'Paid with'}
+              {entry.kind === 'income' ? 'How it came in' : entry.kind === 'transfer' ? 'From which account' : 'How you paid'}
             </span>
             <PayPicker name="paid_with" ways={ways}
               defaultValue={entry.payment_method_id ? railRef(entry.payment_method_id) : accountRef(entry.account_id)}

@@ -83,7 +83,7 @@ export default function NewPeople({ known = [] }: { known?: string[] }) {
             <span key={p.name.toLowerCase()} style={{
               minHeight: 44, padding: '0 4px 0 14px', borderRadius: 999, display: 'flex',
               alignItems: 'center', gap: 4, fontSize: 'var(--step--1)', fontWeight: 600,
-              background: 'var(--cat-indigo-ink)', color: '#fff',
+              background: 'var(--cat-indigo-ink)', color: 'var(--c-on-tint)',
             }}>
               <input type="hidden" name="newName" value={p.name} />
               <input type="hidden" name="newPhone" value={p.phone ?? ''} />

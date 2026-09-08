@@ -25,11 +25,11 @@ const SECTIONS = [
     ],
   },
   {
-    title: 'Payment methods decide where spending lands',
+    title: 'Say how you paid, and the right balance moves',
     href: '/accounts', link: 'Open accounts',
     lines: [
-      'GPay, a card, net banking, cash. Each one draws on exactly one account.',
-      'When you record an expense you choose the payment method, not the account — so paying by GPay takes the money out of the bank behind it.',
+      'GPay, PhonePe, net banking and a debit card are each linked to the one bank account they take money from. Cash and a credit card are ways to pay on their own.',
+      'When you record an expense you pick one tile — "GPay", "Cash", the card, or the bank directly — and the money comes off the account behind it.',
       'This is why you never have to remember which app pulls from which bank.',
     ],
   },

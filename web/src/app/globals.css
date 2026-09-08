@@ -63,6 +63,12 @@
      green or on pollen in the dark theme. */
   --c-on-primary: #FFFFFF;
   --c-on-pumpkin: #12212A;
+  /* The label on a chosen chip or tile, which wears one of the category inks.
+     Those inks are deep in the light theme and pastel in the dark one, so the
+     label is white on the first and the dark ground itself on the second —
+     white on a pastel measured 2:1. The brand green is dark in both themes
+     and keeps --c-on-primary. */
+  --c-on-tint: #FFFFFF;
   /* The hero's ground: the card, warmed towards the brand teal so the one
      figure that matters is not sitting on the same white as everything else. */
   --g-hero: linear-gradient(158deg, var(--c-card) 0%, var(--c-teal-l) 165%);
@@ -78,6 +84,7 @@
     --c-in: #5FCB93;
     --c-on-warn: #FDF1D5;
     --c-on-danger: #FCE7E3;
+    --c-on-tint: #0D171E;
     --g-hero: linear-gradient(158deg, var(--c-card) 0%, var(--c-teal-l) 150%);
   }
 }
@@ -89,6 +96,7 @@
   --c-in: #5FCB93;
   --c-on-warn: #FDF1D5;
   --c-on-danger: #FCE7E3;
+  --c-on-tint: #0D171E;
   --g-hero: linear-gradient(158deg, var(--c-card) 0%, var(--c-teal-l) 150%);
 }
 

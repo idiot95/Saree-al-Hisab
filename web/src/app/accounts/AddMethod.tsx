@@ -44,7 +44,7 @@ export default function AddMethod({ accounts, startOpen = false }: { accounts: A
           <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor"
             strokeWidth={2.2} strokeLinecap="round" aria-hidden><path d="M12 5v14M5 12h14" /></svg>
         </span>
-        Add a payment method
+        Add a way to pay — GPay, a debit card, net banking
       </button>
     );
   }
@@ -56,7 +56,7 @@ export default function AddMethod({ accounts, startOpen = false }: { accounts: A
     }}>
       <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)' }}>
-          Draws on
+          Takes money from
         </span>
         <select name="funding_account_id" value={accountId}
           onChange={(e) => setAccountId(e.target.value)}
@@ -95,7 +95,7 @@ export default function AddMethod({ accounts, startOpen = false }: { accounts: A
         </div>
         {allowed.length === 0 && (
           <span style={{ fontSize: 'var(--step--1)', color: 'var(--c-meta)' }}>
-            No payment method can draw on that account type.
+            That account is a way to pay by itself — nothing else needs linking to it.
           </span>
         )}
       </fieldset>
@@ -115,7 +115,7 @@ export default function AddMethod({ accounts, startOpen = false }: { accounts: A
           flex: 1, minHeight: 50, borderRadius: 13, fontSize: 'var(--step-0)', fontWeight: 600,
           background: 'var(--g-primary)', color: 'var(--c-on-primary)',
           opacity: pending || allowed.length === 0 ? 0.65 : 1,
-        }}>{pending ? 'Saving…' : 'Add payment method'}</button>
+        }}>{pending ? 'Saving…' : 'Add way to pay'}</button>
       </div>
     </form>
   );

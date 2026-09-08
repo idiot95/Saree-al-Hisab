@@ -66,6 +66,8 @@ const lit = (h) => {
   return `#${[up(r), up(g), up(b)].map((v) => v.toString(16).padStart(2, '0')).join('')}`;
 };
 
+const TINTS = ['green', 'orange', 'blue', 'purple', 'pink', 'cyan', 'rust', 'indigo', 'neutral'];
+
 /* [ink, grounds, minimum]. 4.5:1 is body text; 3:1 is the bar for an icon or
    any other non-text part of the interface. */
 const PAIRS = [
@@ -86,6 +88,11 @@ const PAIRS = [
   ['c-on-warn', ['c-warn-fill']],
   ['c-on-danger', ['c-danger-fill']],
   ['c-on-fill', ['c-pollen']],
+  // the label on a chosen chip or tile, on every category ink it can wear —
+  // and each ink as text on its own pale tint, the "wash" a family shows
+  // while one of its children is the answer
+  ['c-on-tint', TINTS.map((t) => `cat-${t}-ink`)],
+  ...TINTS.map((t) => [`cat-${t}-ink`, [`cat-${t}`]]),
 ];
 
 const MIN = 4.5;

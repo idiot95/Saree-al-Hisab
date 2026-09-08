@@ -267,7 +267,7 @@ function Member({ p, last, left, tabId, ways, today, canEdit, entries = [], open
           <Field label={`Amount — blank settles all ${format(target)}`} name="amount"
             inputMode="decimal" placeholder={format(target)} />
           <div role="group" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)' }}>Came in by</span>
+            <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)' }}>How it came in</span>
             <PayPicker name="paidWith" ways={ways} defaultValue={defaultRef(ways)} />
           </div>
           <Field label="On" name="occurred_on" type="date" defaultValue={today} required />

@@ -82,7 +82,7 @@ export default function Claims({ claims, ways, canEdit }: {
                     autoFocus defaultValue={toKeys(Number(c.outstanding))} />
                   <Field label="Date" name="occurred_on" type="date" defaultValue={today} required />
                   <div role="group" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)' }}>Into</span>
+                    <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)' }}>How it came back</span>
                     <PayPicker name="paidWith" ways={ways} defaultValue={defaultRef(ways)} />
                   </div>
                   {state && !state.ok && <ErrorNote>{state.error}</ErrorNote>}

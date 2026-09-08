@@ -10,9 +10,14 @@ export const OFF: CSSProperties = {
   background: 'var(--c-sunk)', color: 'var(--c-meta)', border: '1px solid transparent',
 };
 
+/** The brand green: dark in both themes, so its label is always white. Every
+ *  other ink is a category tint — deep in light, pastel in dark — and takes
+ *  --c-on-tint, which flips with the theme. */
+export const PRIMARY = 'var(--c-primary-hi)';
+
 export const on = (ink: string): CSSProperties => ({
-  background: ink, color: '#fff', border: `1px solid ${ink}`,
+  background: ink, color: ink === PRIMARY ? 'var(--c-on-primary)' : 'var(--c-on-tint)', border: `1px solid ${ink}`,
 });
 
 /** The chip's look for whether it is chosen, in the ink it wears when it is. */
-export const choice = (isOn: boolean, ink = 'var(--c-primary-hi)'): CSSProperties => (isOn ? on(ink) : OFF);
+export const choice = (isOn: boolean, ink = PRIMARY): CSSProperties => (isOn ? on(ink) : OFF);

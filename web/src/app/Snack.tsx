@@ -35,7 +35,8 @@ export default function Snack({ snack, onClose, ttl = 6000 }: {
       bottom: 'calc(84px + env(safe-area-inset-bottom, 0px))',
       minHeight: 52, display: 'flex', alignItems: 'center', gap: 12,
       padding: '0 6px 0 16px', borderRadius: 14,
-      background: err ? 'var(--c-danger)' : 'var(--c-ink)', color: '#fff',
+      background: err ? 'var(--c-danger-fill)' : 'var(--c-ink)',
+      color: err ? 'var(--c-on-danger)' : 'var(--c-bg)',
       boxShadow: '0 8px 24px -8px rgba(35,61,77,.45)',
     }}>
       <span style={{ flex: 1, fontSize: 'var(--step--1)', fontWeight: 600, lineHeight: 1.35 }}>
@@ -44,7 +45,8 @@ export default function Snack({ snack, onClose, ttl = 6000 }: {
       {(snack.undo || snack.action) && (
         <button className="cta" type="button" style={{
           minHeight: 44, padding: '0 14px', borderRadius: 10, fontSize: 'var(--step--1)',
-          fontWeight: 700, color: 'var(--c-pollen)', letterSpacing: '.01em', flex: 'none',
+          fontWeight: 700, color: 'inherit', textDecoration: 'underline', textUnderlineOffset: 3,
+          letterSpacing: '.01em', flex: 'none',
         }} onClick={() => { haptic('select'); (snack.undo ?? snack.action?.run)?.(); onClose(); }}>
           {snack.undo ? 'Undo' : snack.action?.label}
         </button>

@@ -25,9 +25,9 @@ export default function GettingStarted({ progress }: {
       href: '/accounts', cta: 'Add accounts', done: progress.accounts > 1,
     },
     {
-      title: 'Add how you pay',
-      blurb: 'GPay, a card, net banking.',
-      href: '/accounts', cta: 'Add a payment method', done: progress.methods > 1,
+      title: 'Link how you pay',
+      blurb: 'GPay, PhonePe, a debit card, net banking.',
+      href: '/accounts', cta: 'Add a way to pay', done: progress.methods > 1,
     },
     {
       title: 'Set this month’s budget',

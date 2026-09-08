@@ -45,6 +45,11 @@ export default async function Accounts() {
   const have = holdings.reduce((n, a) => n + Number(a.balance), 0);
   const owed = cards.reduce((n, a) => n + Number(a.balance), 0); // negative when owing
   const cycleFor = (id: string) => cycles.find((c) => c.account_id === id);
+  /* The apps and cards that take money from an account, named on its row, so
+     the two sections of this screen are visibly one story: GPay is not a
+     third kind of account, it is how the ICICI account gets spent. */
+  const railsOn = (id: string) => methods.filter((m) => m.account_id === id
+    && m.name.trim().toLowerCase() !== accounts.find((a) => a.id === id)?.name.trim().toLowerCase()).map((m) => m.name);
   /* Straight out of sign-up they have the starter kit and nothing else, so the
      relevant form opens itself rather than making them tap "add" on an empty
      screen. Each has its own condition: the account form while they still only
@@ -110,6 +115,11 @@ export default async function Accounts() {
                   {KIND_LABEL[a.kind]}{a.last4 && ` · ends ${a.last4}`}
                   {a.kind === 'savings' && ' · outside the budget'}
                 </span>
+                {railsOn(a.id).length > 0 && (
+                  <span style={{ fontSize: 'var(--step--2)', color: 'var(--c-meta)' }}>
+                    Paid through {railsOn(a.id).join(', ')}
+                  </span>
+                )}
               </span>
               <span style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', gap: 2 }}>
                 <span className="t n" style={{
@@ -194,11 +204,13 @@ export default async function Accounts() {
         )}
         {canWrite && <AddAccount startOpen={needsAccounts} />}
 
-        <Head>Payment methods</Head>
+        <Head>Ways to pay</Head>
         <p style={{
           margin: '-4px 20px 12px', fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--c-meta)',
         }}>
-          Each one draws on a single account, so spending is recorded against the right balance.
+          GPay, PhonePe, net banking, a debit card — each is linked to the account it takes money
+          from, so what you spend through it comes off the right balance. Cash and credit cards are
+          ways to pay on their own.
         </p>
         <Card>
           {methods.map((m, i) => (
@@ -210,13 +222,16 @@ export default async function Accounts() {
               <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
                 <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>{m.name}</span>
                 <span style={{ fontSize: 'var(--step--1)', color: 'var(--c-meta)' }}>
-                  {m.funds}{m.handle && ` · ${m.handle}`}
+                  {(m.kind === 'card' && m.funds_kind === 'credit') || (m.kind === 'cash' && m.funds_kind === 'cash')
+                    ? `${m.funds} — the ${m.kind === 'card' ? 'card' : 'cash'} itself`
+                    : `Takes money from ${m.funds}`}
+                  {m.handle && ` · ${m.handle}`}
                 </span>
               </span>
               {canWrite && <MethodControls id={m.id} isDefault={m.is_default} />}
             </div>
           ))}
-          {methods.length === 0 && <Empty>No payment methods yet.</Empty>}
+          {methods.length === 0 && <Empty>No apps or cards linked yet.</Empty>}
         </Card>
 
         {canWrite && <AddMethod startOpen={needsMethods}

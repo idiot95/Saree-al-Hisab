@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useTransition, useEffect, useRef } from 'react';
-import { Icon, ACCOUNT_ICON, ACCOUNT_TINT, tintOf } from '../Icon';
+import { Icon, tintOf } from '../Icon';
 import { defaultRef, findRef, payLabel, pickWay, type Way } from '@/lib/pay';
-import PayPicker, { CHIP, CHIP_TEXT } from '../PayPicker';
+import PayPicker, { CHIP, CHIP_TEXT, TILE_GRID, WayTile, describe } from '../PayPicker';
 import { HEADER_BG } from '../auth-ui';
 import { useRouter } from 'next/navigation';
 import { DateChips } from '../DatePick';
@@ -336,11 +336,12 @@ export default function AddEntry({
 
       {step === 1 && (
         <>
-          {/* Every way to pay, in full: each account as a chip, and under the
-              one chosen, the rails that draw on it. */}
+          {/* One question, asked the way a person would: every concrete way
+              to pay as a tile, and one tap settles both the account and the
+              rail. */}
           <section aria-labelledby="add-paid" style={SECTION}>
             <Eyebrow id="add-paid">
-              {kind === 'transfer' ? 'Out of' : kind === 'income' ? 'Came in by' : 'Paid with'}
+              {kind === 'transfer' ? 'From which account' : kind === 'income' ? 'How did it come in' : 'How did you pay'}
             </Eyebrow>
             <PayPicker ways={ways} value={paid} onChange={setPaid} />
           </section>
@@ -348,20 +349,13 @@ export default function AddEntry({
           {/* Where a transfer lands, on the same terms: every account visible. */}
           {kind === 'transfer' && (
             <section aria-labelledby="add-into" style={SECTION}>
-              <Eyebrow id="add-into">Into</Eyebrow>
-              <div role="radiogroup" aria-label="Into which account" style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              <Eyebrow id="add-into">To which account</Eyebrow>
+              <div role="radiogroup" aria-label="To which account" style={TILE_GRID}>
                 {ways.filter((a) => a.id !== way?.id).map((a) => {
-                  const isOn = a.id === counterId;
-                  const [, ink] = tintOf(ACCOUNT_TINT[a.kind]);
+                  const d = describe({ ref: '', way: a, rail: null });
                   return (
-                    <button
-                      key={a.id} type="button" role="radio" aria-checked={isOn}
-                      onClick={() => { haptic('select'); setCounterId(a.id); }}
-                      style={{ ...CHIP, ...choice(isOn, ink) }}
-                    >
-                      <Icon name={ACCOUNT_ICON[a.kind] ?? 'bank'} size={17} strokeWidth={1.9} />
-                      <span style={CHIP_TEXT}>{a.name}</span>
-                    </button>
+                    <WayTile key={a.id} {...d} on={a.id === counterId}
+                      onClick={() => { haptic('select'); setCounterId(a.id); }} />
                   );
                 })}
               </div>
