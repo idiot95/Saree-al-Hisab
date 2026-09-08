@@ -21,17 +21,17 @@ export default function EditEntry({ entry, categories, ways, canEdit }: {
   };
   categories: Category[]; ways: Way[]; canEdit: boolean;
 }) {
-  const { format } = useMoney();
+  const { format, toKeys, fromKeys } = useMoney();
   const [state, act, pending] = useActionState(updateEntry, null);
   const [del, remove, removing] = useActionState(deleteEntry, null);
-  const [amount, setAmount] = useState(String(Number(entry.amount) / 100));
+  const [amount, setAmount] = useState(toKeys(Number(entry.amount)));
   const [categoryId, setCategoryId] = useState(entry.category_id ?? '');
   const [confirming, setConfirming] = useState(false);
 
   const wantsCategory = !['transfer', 'card_payment', 'claim_receipt'].includes(entry.kind);
   // An entry keeps its kind, so the list is the categories that file it.
   const offered = categories.filter((c) => fits(c.scope, entry.kind));
-  const minor = Math.round((Number(amount) || 0) * 100);
+  const minor = fromKeys(amount.replace(/[^0-9.]/g, ''));
 
   return (
     <>

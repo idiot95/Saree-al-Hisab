@@ -12,6 +12,7 @@ import {
 import { ICONS, TINTS } from './options';
 import { Segmented } from '../DatePick';
 import { SCOPE_LABEL, type Scope } from '@/lib/scope';
+import Suggested from './Suggested';
 
 type Cat = {
   id: string; name: string; icon: string; tint: string; scope: Scope; parent_id: string | null;
@@ -373,6 +374,12 @@ export default function CategoryEditor({ categories, canEdit }: {
             Add a category
           </button>
         ))}
+
+      <Suggested have={categories.map((c) => c.name)} canEdit={canEdit}
+        onResult={(r) => {
+          haptic(r.ok ? 'success' : 'warn');
+          setSnack(r.ok ? { text: r.message ?? 'Added.' } : { text: r.error, tone: 'error' });
+        }} />
 
       {retired.length > 0 && (
         <>

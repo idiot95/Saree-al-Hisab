@@ -30,12 +30,14 @@ Return JSON with exactly these keys:
 
 Do not guess. A null is better than a plausible invention. Return only the JSON.`;
 
-const MAX_RUPEES = 100_000_000;
+import { fromKeys, typed } from './money.ts';
+
+const MAX_WHOLE = 100_000_000;
 
 /** Parse a model reply into something the ledger could accept, or explain why
  *  it cannot. Fields that do not survive validation become null rather than
  *  being coerced — a wrong amount that looks right is worse than a blank. */
-export function readScan(raw: string): Scanned | { error: string } {
+export function readScan(raw: string, currency?: string): Scanned | { error: string } {
   const text = raw.trim().replace(/^```(?:json)?/i, '').replace(/```$/, '').trim();
   let j: Record<string, unknown>;
   try {
@@ -47,12 +49,18 @@ export function readScan(raw: string): Scanned | { error: string } {
 
   const kind = j.kind === 'expense' || j.kind === 'income' ? j.kind : 'unknown';
 
+  /* The figure goes through the same helpers as a typed one, so a currency
+     with three minor digits or none is read the same way here as in a field.
+     A minus, or a whole part past nine digits, is refused outright. */
   let amountMinor: number | null = null;
-  const rupees = typeof j.amount === 'number' ? j.amount
-    : typeof j.amount === 'string' ? Number(j.amount.replace(/[^0-9.]/g, ''))
-    : NaN;
-  if (Number.isFinite(rupees) && rupees > 0 && rupees < MAX_RUPEES) {
-    amountMinor = Math.round(rupees * 100);
+  const figure = typeof j.amount === 'number' ? (Number.isFinite(j.amount) ? j.amount.toFixed(3) : '')
+    : typeof j.amount === 'string' ? j.amount
+    : '';
+  const clean = figure.replace(/[^0-9.-]/g, '');
+  const wholeDigits = clean.split('.')[0].replace(/^0+/, '');
+  if (clean !== '' && !clean.includes('-') && wholeDigits.length <= 9 && Number(wholeDigits || 0) < MAX_WHOLE) {
+    const minor = fromKeys(typed(clean, currency), currency);
+    if (minor > 0) amountMinor = minor;
   }
 
   let occurredOn: string | null = null;

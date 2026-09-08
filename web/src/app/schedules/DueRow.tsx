@@ -24,7 +24,7 @@ export default function DueRow({
   /** A due months away can be moved or skipped, but not recorded yet. */
   canRecord?: boolean;
 }) {
-  const { format } = useMoney();
+  const { format, toKeys } = useMoney();
   const income = kind === 'income';
   const [recState, record, recording] = useActionState(recordDue, null);
   const [, skip] = useActionState(skipDue, null);
@@ -90,7 +90,7 @@ export default function DueRow({
             <span style={{ fontSize: 'var(--step--2)', fontWeight: 600, color: 'var(--c-meta)' }}>
               Amount — change it if this month differed
             </span>
-            <input name="amount" inputMode="decimal" defaultValue={String(amount / 100)}
+            <input name="amount" inputMode="decimal" defaultValue={toKeys(amount)}
               style={{
                 minHeight: 48, borderRadius: 12, border: '1px solid var(--c-border)',
                 background: 'var(--c-card)', color: 'var(--c-ink)', fontSize: 'var(--field)',

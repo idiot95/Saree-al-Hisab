@@ -17,7 +17,7 @@ type Claim = {
 export default function Claims({ claims, ways, canEdit }: {
   claims: Claim[]; ways: Way[]; canEdit: boolean;
 }) {
-  const { format } = useMoney();
+  const { format, toKeys } = useMoney();
   const [settling, setSettling] = useState<string | null>(null);
   const [state, act, pending] = useActionState(settleClaim, null);
   const [, drop] = useActionState(abandonClaim, null);
@@ -79,7 +79,7 @@ export default function Claims({ claims, ways, canEdit }: {
                 <form action={act} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   <input type="hidden" name="claimId" value={c.id} />
                   <Field label="How much came back" name="amount" inputMode="decimal" required
-                    autoFocus defaultValue={String(Number(c.outstanding) / 100)} />
+                    autoFocus defaultValue={toKeys(Number(c.outstanding))} />
                   <Field label="Date" name="occurred_on" type="date" defaultValue={today} required />
                   <div role="group" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                     <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)' }}>Into</span>

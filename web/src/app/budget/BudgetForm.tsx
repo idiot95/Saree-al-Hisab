@@ -26,13 +26,14 @@ const TINT: Record<string, [string, string]> = {
   indigo: ['var(--cat-indigo)', 'var(--cat-indigo-ink)'],
 };
 
-/** Rupees in the box, paise in the ledger. */
-const toField = (minor: string) => (Number(minor) === 0 ? '' : String(Number(minor) / 100));
 
 export default function BudgetForm({ month, rows, canEdit }: {
   month: string; rows: Row[]; canEdit: boolean;
 }) {
-  const { format } = useMoney();
+  const { format, toKeys, fromKeys } = useMoney();
+  /* Whole units in the box, minor units in the ledger. */
+  const toField = (minor: string) => (Number(minor) === 0 ? '' : toKeys(Number(minor)));
+  const ofField = (s: string | undefined) => fromKeys((s ?? '').replace(/[^0-9.]/g, ''));
   const [state, act, pending] = useActionState(saveBudget, null);
   const [draft, setDraft] = useState<Record<string, string>>(
     () => Object.fromEntries(rows.map((r) => [r.category_id, toField(r.budget)])),
@@ -41,7 +42,7 @@ export default function BudgetForm({ month, rows, canEdit }: {
   // Saved or refused, the phone says which before the eye finds the note.
   useEffect(() => { if (state) haptic(state.ok ? 'success' : 'warn'); }, [state]);
 
-  const total = rows.reduce((n, r) => n + Math.round((Number(draft[r.category_id]) || 0) * 100), 0);
+  const total = rows.reduce((n, r) => n + ofField(draft[r.category_id]), 0);
   const changed = rows.some((r) => (draft[r.category_id] ?? '') !== toField(r.budget));
 
   return (
@@ -84,7 +85,7 @@ export default function BudgetForm({ month, rows, canEdit }: {
       }}>
         {rows.map((r, i) => {
           const spent = Number(r.spent);
-          const budget = Math.round((Number(draft[r.category_id]) || 0) * 100);
+          const budget = ofField(draft[r.category_id]);
           const over = budget > 0 && spent > budget;
           return (
             <div key={r.category_id} style={{

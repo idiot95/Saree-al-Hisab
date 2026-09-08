@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useMemo, type ReactNode } from 'react';
-import { format, keysDisplay, symbolOf } from '@/lib/money';
+import { digitsOf, format, fromKeys, keysDisplay, settleKeys, symbolOf, toKeys, typed } from '@/lib/money';
 
 /* The household's currency, for client components.
 
@@ -19,13 +19,20 @@ export function CurrencyProvider({ currency, children }: { currency: string; chi
 
 export const useCurrency = () => useContext(CurrencyContext);
 
-/** format(), keysDisplay() and the symbol, bound to the household's currency. */
+/** format() and the keys helpers, bound to the household's currency — the
+ *  symbol, how many minor digits it has, and both directions between what a
+ *  field holds and what the ledger stores. */
 export function useMoney() {
   const currency = useContext(CurrencyContext);
   return useMemo(() => ({
     currency,
     symbol: symbolOf(currency),
+    digits: digitsOf(currency),
     format: (minor: number, opts?: { sign?: boolean; paise?: boolean }) => format(minor, currency, opts),
     keysDisplay: (keys: string) => keysDisplay(keys, currency),
+    fromKeys: (keys: string) => fromKeys(keys, currency),
+    toKeys: (minor: number) => toKeys(minor, currency),
+    typed: (raw: string) => typed(raw, currency),
+    settle: (keys: string) => settleKeys(keys, currency),
   }), [currency]);
 }

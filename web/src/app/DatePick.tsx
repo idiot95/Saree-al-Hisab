@@ -3,6 +3,7 @@
 import { useCallback, useState } from 'react';
 import Sheet from './Sheet';
 import { haptic } from './haptics';
+import { choice } from './choice';
 import { HIJRI_MONTHS_SHORT, formatHijri, toHijri } from '@/lib/hijri';
 import { friendlyDay, shiftDay } from '@/lib/recur';
 
@@ -52,16 +53,14 @@ export function DateChips({ value, onChange, today, from = today, dir, min, max,
         {chips.map((q) => {
           const on = q.iso === value;
           return (
-            <button key={q.iso} type="button" role="radio" aria-checked={on} onClick={() => pick(q.iso)} style={{
-              ...chip, background: on ? 'var(--c-seagrass)' : 'var(--c-sunk2)',
-              color: on ? 'var(--c-on-primary)' : 'var(--c-ink)',
-            }}>
+            <button key={q.iso} type="button" role="radio" aria-checked={on} onClick={() => pick(q.iso)}
+              style={{ ...chip, ...choice(on, 'var(--c-seagrass)') }}>
               {q.label}
             </button>
           );
         })}
         <button type="button" onClick={() => { haptic('tap'); setOpen(true); }} style={{
-          ...chip, background: 'transparent', color: 'var(--c-teal)', border: '1px dashed var(--c-dash)',
+          ...chip, background: 'transparent', color: 'var(--c-meta)', border: '1px dashed var(--c-dash)',
         }}>
           Another day…
         </button>

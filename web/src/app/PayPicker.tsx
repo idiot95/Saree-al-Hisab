@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Icon, RAIL_ICON, RAIL_TINT, ACCOUNT_ICON, ACCOUNT_TINT, tintOf } from './Icon';
 import { defaultRef, findRef, pickWay, refOf, viaRails, type Way } from '@/lib/pay';
 import { haptic } from './haptics';
+import { choice } from './choice';
 
 /* The one way to choose a way to pay, on every form that asks.
 
@@ -57,14 +58,11 @@ export default function PayPicker({ ways, value, onChange, name, defaultValue, d
       <div role="radiogroup" aria-label={label} style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
         {ways.map((w) => {
           const on = w.id === way?.id;
-          const [bg, ink] = tintOf(ACCOUNT_TINT[w.kind]);
+          const [, ink] = tintOf(ACCOUNT_TINT[w.kind]);
           return (
             <button key={w.id} type="button" role="radio" aria-checked={on}
               onClick={() => pick(pickWay(w))} disabled={disabled}
-              style={{
-                ...CHIP, background: on ? ink : bg, color: on ? '#fff' : ink,
-                border: `1px solid ${on ? ink : 'transparent'}`,
-              }}>
+              style={{ ...CHIP, ...choice(on, ink) }}>
               <Icon name={ACCOUNT_ICON[w.kind] ?? 'bank'} size={17} strokeWidth={1.9} />
               <span style={CHIP_TEXT}>{w.name}</span>
             </button>
@@ -79,14 +77,13 @@ export default function PayPicker({ ways, value, onChange, name, defaultValue, d
           </span>
           {via.map((r) => {
             const on = hit?.rail?.id === r.id;
-            const [bg, ink] = tintOf(RAIL_TINT[r.kind]);
+            const [, ink] = tintOf(RAIL_TINT[r.kind]);
             return (
               <button key={r.id} type="button" role="radio" aria-checked={on}
                 onClick={() => pick(refOf(way, r))} disabled={disabled}
                 style={{
                   ...CHIP, minHeight: 40, padding: '0 11px 0 9px', fontSize: 'var(--step--2)',
-                  background: on ? ink : bg, color: on ? '#fff' : ink,
-                  border: `1px solid ${on ? ink : 'transparent'}`,
+                  ...choice(on, ink),
                 }}>
                 <Icon name={RAIL_ICON[r.kind] ?? 'wallet'} size={15} strokeWidth={1.9} />
                 <span style={CHIP_TEXT}>{r.name}</span>
@@ -100,8 +97,7 @@ export default function PayPicker({ ways, value, onChange, name, defaultValue, d
                 onClick={() => pick(refOf(way, way.rails.find((r) => !via.includes(r)) ?? null))} disabled={disabled}
                 style={{
                   ...CHIP, minHeight: 40, padding: '0 11px', fontSize: 'var(--step--2)',
-                  background: on ? 'var(--c-ink)' : 'var(--c-sunk)', color: on ? 'var(--c-bg)' : 'var(--c-ink)',
-                  border: `1px solid ${on ? 'var(--c-ink)' : 'transparent'}`,
+                  ...choice(on, 'var(--c-ink)'), color: on ? 'var(--c-bg)' : 'var(--c-meta)',
                 }}>
                 Directly
               </button>

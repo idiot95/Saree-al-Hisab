@@ -146,12 +146,19 @@ of Postgres, and Save writes a row through `saveEntry`.
 first cut of `/add` offered only the *rails* — GPay, the card, net banking — so
 a household whose recurring deposit or second savings account had no rail of
 its own could never record money leaving it, and the ones it could reach sat in
-a strip that scrolled sideways past the edge. Now `/add` is three bands: a
-header that stays put, one scrolling column of eyebrow-labelled sections in
-the order the questions get asked ("What for" · "Paid with" · "When" · "Where"
-· "On a tab" · Shared), and a keypad with Save pinned to the bottom. Categories
-are a four-across grid of tinted tiles with a dashed "All…" that opens the
-finder; every other choice is a wrapping row of chips — nothing scrolls
+a strip that scrolled sideways past the edge. Now `/add` is a two-step
+wizard. **Step 1** — the header (kind tabs and the amount) plus "Paid with" and
+"When"; **Step 2** — "Category" (a four-across grid of parents with a search
+box; a chosen family shows its children as a chip row beneath, and the parent
+tile goes to a wash so the solid chip is the one thing selected), "Where",
+"On a tab", Shared, and Save. Transfer has no category, so it is one step
+with "Into" under "Out of". Step 2's header is a one-line summary of step 1
+with "Change", so nothing decided is out of sight. **There is no drawn
+keypad**: the amount is a plain `<input inputMode="decimal">` that takes the
+phone's own keyboard and formats as it is typed — `typed()` tidies what the
+keyboard gave, `keysDisplay()` groups the rupees and leaves the paise exactly
+as typed (`2,340.5` mid-entry), `settle()` fills the minor digits on blur
+(`2,340.50`). Every choice is a wrapping row of chips — nothing scrolls
 sideways, so what is offered can be counted. "Paid with" is `PayPicker`:
 a chip per account (cash, spending, credit, savings in that order), and under
 the chosen one a "via" row of the rails that draw on it plus "Directly" for
@@ -281,11 +288,16 @@ hydrated — a real window of vanishing taps on a slow phone.
 Every household keeps its books in one currency, chosen on `/setup` right after
 the account is created (`/signup` asks for you; `/setup` asks for the books —
 someone who was invited never sees the second screen). `CURRENCIES` in
-`lib/money.ts` is the whole list: two-decimal currencies only, because the
-ledger stores minor units and everything divides by a hundred. A currency with
-no symbol that reads on a phone uses its code, joined by a no-break space
-(`AED 1,250`), and the keypad shows the code chip only when the symbol does not
-already spell it.
+`lib/money.ts` is the whole list — 57 of them, and **each carries its own
+count of minor-unit digits**: two for nearly all, three for the dinars and the
+Omani rial (1.500 KD is 1500 fils), none for the yen, won, dong and Ugandan
+shilling. The ledger stores minor units whatever the currency, so **nothing
+outside `money.ts` multiplies or divides by a hundred** — `digitsOf`, `unitOf`,
+`toKeys`, `fromKeys` are the only way between a figure and its minor units,
+and `useMoney()` binds them all to the household. A currency with no symbol
+that reads on a phone uses its code, joined by a no-break space
+(`AED 1,250`); the amount field shows the code beside the symbol only when
+the symbol does not already spell it.
 
 **Where the currency comes from depends on which side renders.** Client
 components call `useMoney()` from `app/currency.tsx` and get `{ currency,
@@ -785,9 +797,17 @@ the same UPDATE (one `now()`), and restoring it brings back exactly the
 children that share that timestamp — a child retired earlier on its own stays
 retired; restoring a child restores its parent. `sort_order` runs among
 siblings; `reorderCategories` takes the top-level set only and the family
-drags as one block. Add Entry's strip shows the top level; a magnifier chip
-opens `CategoryFinder` (a `Sheet`) with a client-side filter over rows already
-in memory, and a chosen child takes the first place as "Groceries › Milk".
+drags as one block. Add Entry's step 2 is `CategoryGrid`
+(`src/app/add/CategoryGrid.tsx`): the top level as tiles, the chosen family's
+children as chips beneath, and a search box over the rows already in memory
+that lists matches as "Groceries › Milk" rows. **Categories has a
+"Suggested" section** (`categories/Suggested.tsx`, `lib/taxonomy.ts`): a
+Fold-style library of 28 groups and 150 sub-categories with the Bohra
+household's own names (Wajebaat & sabeel, FMB thaali, Niyaz & majlis, Eidi…),
+added one group at a time or all at once by `adoptSuggested`. Adoption never
+renames or moves anything the household already has: a namesake that exists
+is left alone (retired or nested ones too), only the missing parent and
+children are inserted, and a group already fully owned is not offered.
 Every other category field — NewSchedule, EditEntry, a write-off — is
 `CategoryPick` (`src/app/CategoryPick.tsx`): one row showing the pick with
 its icon that opens the same `CategoryFinder`, so a category is found by
@@ -970,7 +990,7 @@ storage after it opens. The design, in the order the pieces matter:
   person decides. Stuck entries are never retried on their own.
 - **`/offline` is `force-dynamic`** though it reads nothing, because every
   script tag carries the request's CSP nonce and a prerendered page ships
-  with none. The worker (`public/sw.js`, `VERSION = 'v3'`) fetches it once at
+  with none. The worker (`public/sw.js`, `VERSION = 'v13'`) fetches it once at
   install, `credentials: 'omit'`, together with every `/_next/static/` script
   and stylesheet the markup names, so the cached copy is a self-consistent
   snapshot: the nonce in its cached headers is the nonce in its cached
@@ -1224,6 +1244,13 @@ surfaces, `--g-fill` on progress bars, and a hairline `--edge` highlight
 inside `.el`/`.el2`. Each has a dark-mode value under the same guards
 `tokens.css` uses. `.card` is a separate class from `.el` on purpose:
 `.el` also dresses buttons whose background is the gradient.
+
+**Grey until chosen.** Every choice control — account and rail chips, date
+chips, category tiles and chips, tab and role toggles — is drawn from one
+rule in `src/app/choice.ts`: `OFF` (sunk grey, meta text) until selected,
+`on(ink)` (the option's own ink, white text) when it is. The colour *is* the
+confirmation, so no eyebrow hint or "Chosen: …" caption repeats it. An action
+that opens more ("Another day…") is dashed and grey, not a choice.
 
 **Settings has a door**: the Home header — your initials, the household, a
 cog — opens `/household`, and Sign out lives there under "Your account". A

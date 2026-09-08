@@ -68,6 +68,9 @@ export async function generateViewport(): Promise<Viewport> {
     width: 'device-width',
     initialScale: 1,
     viewportFit: 'cover',
+    // The phone's keyboard shrinks the page rather than covering it, so a
+    // button pinned to the bottom rises above the keys where the phone allows.
+    interactiveWidget: 'resizes-content',
     themeColor: forced ? HEADER[forced] : [
       { media: '(prefers-color-scheme: light)', color: HEADER.light },
       { media: '(prefers-color-scheme: dark)', color: HEADER.dark },

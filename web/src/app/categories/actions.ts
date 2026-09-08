@@ -6,6 +6,7 @@ import { currentActor } from '@/db/queries';
 import { rethrowControlFlow } from '@/lib/rethrow';
 import { ICONS, TINTS } from './options';
 import { isScope, type Scope } from '@/lib/scope';
+import { LIBRARY, suggestedGroup } from '@/lib/taxonomy';
 
 export type Result = { ok: true; message?: string } | { ok: false; error: string };
 
@@ -312,5 +313,70 @@ export async function reorderCategories(ids: unknown): Promise<Result> {
     revalidatePath('/categories');
     revalidatePath('/add');
     return { ok: true };
+  });
+}
+
+/* Adopt a group from the library — or all of it. A parent the household
+   already has (by name, any case) is kept as it is and only the children it
+   lacks are added beneath it, in its own colour; a child whose name is
+   already taken anywhere is skipped, because names are unique across the
+   household. A retired or nested namesake is left alone rather than
+   guessed at. Nothing is ever changed or removed here: only added. */
+export async function adoptSuggested(_prev: Result | null, fd: FormData): Promise<Result> {
+  let actor;
+  try { actor = await mustWrite(); }
+  catch (e) { rethrowControlFlow(e); return { ok: false, error: (e as Error).message }; }
+  const want = String(fd.get('group') ?? '').trim();
+  const one = suggestedGroup(want);
+  const groups = want.toLowerCase() === 'all' ? LIBRARY : one ? [one] : [];
+  if (groups.length === 0) return { ok: false, error: 'That is not one of the suggested groups.' };
+  const hid = actor.household_id;
+
+  return withHousehold(hid, async () => {
+    type Row = { id: string; name: string; parent_id: string | null; archived_at: string | null; tint: string; scope: Scope };
+    const rows = await sql<Row[]>`
+      select id, name, parent_id, archived_at, tint, scope from category where household_id = ${hid}`;
+    const byName = new Map(rows.map((r) => [r.name.toLowerCase(), r]));
+    let added = 0, had = 0, left = 0;
+
+    for (const g of groups) {
+      let parent = byName.get(g.name.toLowerCase()) ?? null;
+      if (parent && (parent.archived_at || parent.parent_id)) { left += 1 + g.children.length; continue; }
+      if (!parent) {
+        const [{ n }] = await sql`
+          select coalesce(max(sort_order), -1) + 1 as n from category
+          where household_id = ${hid} and parent_id is null`;
+        try {
+          const [p] = await sql<Row[]>`
+            insert into category (household_id, name, icon, tint, scope, sort_order, parent_id)
+            values (${hid}, ${g.name}, ${g.icon}, ${g.tint}, ${g.scope}, ${n}, null)
+            returning id, name, parent_id, archived_at, tint, scope`;
+          parent = p; byName.set(g.name.toLowerCase(), p); added++;
+        } catch { left += 1 + g.children.length; continue; }
+      } else had++;
+
+      const [{ k }] = await sql`
+        select coalesce(max(sort_order), -1) + 1 as k from category
+        where household_id = ${hid} and parent_id = ${parent.id}::uuid`;
+      let order = Number(k);
+      for (const c of g.children) {
+        if (byName.has(c.name.toLowerCase())) { had++; continue; }
+        try {
+          const [row] = await sql<Row[]>`
+            insert into category (household_id, name, icon, tint, scope, sort_order, parent_id)
+            values (${hid}, ${c.name}, ${c.icon}, ${parent.tint}, ${parent.scope}, ${order++}, ${parent.id}::uuid)
+            returning id, name, parent_id, archived_at, tint, scope`;
+          byName.set(c.name.toLowerCase(), row); added++;
+        } catch { left++; }
+      }
+    }
+
+    revalidatePath('/categories');
+    revalidatePath('/budget');
+    revalidatePath('/add');
+    const bits = [`${added} added`];
+    if (had) bits.push(`${had} already there`);
+    if (left) bits.push(`${left} left alone`);
+    return { ok: true, message: bits.join(' · ') + '.' };
   });
 }

@@ -24,7 +24,7 @@ const WORD: Record<string, [string, string]> = {
 export default function OwedFor({ txnId, entryAmount, people, claims, canEdit }: {
   txnId: string; entryAmount: number; people: Person[]; claims: Claim[]; canEdit: boolean;
 }) {
-  const { format } = useMoney();
+  const { format, toKeys } = useMoney();
   const [state, act, pending] = useActionState(addClaim, null);
   const [, drop] = useActionState(abandonClaim, null);
   const [open, setOpen] = useState(false);
@@ -90,7 +90,7 @@ export default function OwedFor({ txnId, entryAmount, people, claims, canEdit }:
             </select>
           </label>
           <Field label="How much of it" name="amount" inputMode="decimal" required
-            defaultValue={String(Math.round(entryAmount / 2) / 100)}
+            defaultValue={toKeys(Math.round(entryAmount / 2))}
             hint={`The entry came to ${format(entryAmount)}.`} />
           <Field label="Note (optional)" name="note" maxLength={200} />
           {state && !state.ok && <ErrorNote>{state.error}</ErrorNote>}

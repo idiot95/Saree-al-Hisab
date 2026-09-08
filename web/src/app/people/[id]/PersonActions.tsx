@@ -16,7 +16,7 @@ import { fits } from '@/lib/scope';
 export default function PersonActions({ personId, name, balance, ways, categories }: {
   personId: string; name: string; balance: number; ways: Way[]; categories: Category[];
 }) {
-  const { format } = useMoney();
+  const { format, toKeys } = useMoney();
   const [mode, setMode] = useState<null | 'lend' | 'back' | 'off'>(null);
   const today = new Date().toISOString().slice(0, 10);
 
@@ -78,7 +78,7 @@ export default function PersonActions({ personId, name, balance, ways, categorie
           </Explain>
           <input type="hidden" name="personId" value={personId} />
           <Field label="Amount" name="amount" inputMode="decimal" required autoFocus
-            defaultValue={balance > 0 ? String(balance / 100) : ''} />
+            defaultValue={balance > 0 ? toKeys(balance) : ''} />
           <Field label="Date" name="occurred_on" type="date" defaultValue={today} required />
           {/* A write-off is spending, so only a category for spending will do. */}
           <CategoryPick label="Count it under" name="categoryId"
