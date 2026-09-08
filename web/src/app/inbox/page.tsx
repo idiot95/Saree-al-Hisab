@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { actorOrNull, billsDue, duplicatesFor, schedulesFor } from '@/db/queries';
-import { outstandingDues } from '@/lib/recur';
+import { outstandingDues, ruleOf } from '@/lib/recur';
 import { format } from '@/lib/money';
 import { headerBg } from '../auth-ui';
 import TabBar from '../TabBar';
@@ -29,7 +29,9 @@ export default async function Inbox() {
     schedulesFor(actor.household_id),
   ]);
   const canWrite = actor.role !== 'viewer';
-  const dues = outstandingDues(schedules, new Date(), 7);
+  const now = new Date();
+  const dues = outstandingDues(schedules, now, 7);
+  const today = [now.getFullYear(), String(now.getMonth() + 1).padStart(2, '0'), String(now.getDate()).padStart(2, '0')].join('-');
   const byId = new Map(schedules.map((x) => [x.id, x]));
   const count = dupes.length + bills.length + dues.length;
 
@@ -88,8 +90,9 @@ export default async function Inbox() {
                     return (
                       <DueRow key={`${d.scheduleId}:${d.dueOn}`}
                         scheduleId={d.scheduleId} name={s.name} kind={s.kind} dueOn={d.dueOn}
+                        on={d.on} movedFrom={d.movedFrom}
                         daysAway={d.daysAway} amount={Number(s.amount ?? 0)} category={s.category}
-                        icon={s.icon} tint={s.tint} />
+                        icon={s.icon} tint={s.tint} rule={ruleOf(s)?.rule} cal={ruleOf(s)?.cal} today={today} />
                     );
                   })}
                 </section>

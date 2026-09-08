@@ -423,6 +423,10 @@ export const schedule = pgTable('schedule', {
      not present for. Without it, a schedule added today would immediately
      claim you had failed to pay last month's rent. */
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  /* When the rule was last rewritten — "make the 10th the day, every month".
+     Dates the new rule would put before this belong to the rule it replaced,
+     and are not owed; what was recorded under the old rule stays as it was. */
+  ruleSince: date('rule_since'),
   archivedAt: timestamp('archived_at', { withTimezone: true }),
 }, (t) => [
   // Either you know the amount or it comes off a statement — never neither.
@@ -437,10 +441,16 @@ export const occurrence = pgTable('occurrence', {
   dueOn: date('due_on').notNull(),
   status: dueStatus('status').notNull().default('pending'),
   txnId: uuid('txn_id').references(() => txn.id, { onDelete: 'set null' }),
+  /* "Not the 5th this month — the 10th." due_on stays the rule's date, which
+     is the occurrence's identity; this is the day it was moved to, and where
+     the calendar draws it. A pending row exists only to record a move. */
+  shiftedTo: date('shifted_to'),
 }, (t) => [
   uniqueIndex('occurrence_unique').on(t.scheduleId, t.dueOn),
   index('occurrence_due').on(t.status, t.dueOn),
   check('paid_has_txn', sql`${t.status} <> 'paid' OR ${t.txnId} IS NOT NULL`),
+  check('pending_is_a_move', sql`${t.status} <> 'pending' OR ${t.shiftedTo} IS NOT NULL`),
+  check('moved_elsewhere', sql`${t.shiftedTo} IS NULL OR ${t.shiftedTo} <> ${t.dueOn}`),
 ]);
 
 export const inboxItem = pgTable('inbox_item', {

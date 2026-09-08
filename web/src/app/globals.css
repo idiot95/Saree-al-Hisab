@@ -399,6 +399,12 @@
     to   { opacity: 1; translate: 0; scale: 1 }
   }
 
+  /* A drawer rises from the bottom edge over the veil: the day you tapped
+     is still there above it, softened, and the drawer's handle says it can
+     be pushed back down. */
+  .sheet { animation: sheet-in .26s cubic-bezier(.2,.8,.2,1) both; }
+  @keyframes sheet-in { from { translate: 0 40px; opacity: 0 } to { translate: 0; opacity: 1 } }
+
   /* Focus has to be visible for anyone on a keyboard, and must not be a ring
      that vanishes against a dark header. */
   :focus-visible {

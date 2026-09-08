@@ -171,8 +171,14 @@ export type Schedulish = {
   id: string; rrule: string | null; hijri_rule?: string | null; settled: string[];
   /** When the schedule started existing. Dues before it are not missed. */
   since?: string | null;
+  /** Rule dates moved to another day and not yet dealt with. */
+  moved?: { from: string; to: string }[] | null;
 };
-export type Due = { scheduleId: string; dueOn: string; daysAway: number };
+/** One thing owed. `dueOn` is the rule's date and the occurrence's identity;
+ *  `on` is the day it is actually expected — the same, unless it was moved. */
+export type Due = {
+  scheduleId: string; dueOn: string; on: string; daysAway: number; movedFrom?: string;
+};
 
 /** Whichever calendar a schedule is written on. The table's CHECK keeps one
  *  of the two present; if both ever were, the Gregorian one wins here. */
@@ -196,26 +202,34 @@ export function outstandingDues<T extends Schedulish>(
   const back = new Date(today); back.setDate(back.getDate() - lookBackDays);
   const out: Due[] = [];
 
+  const horizon = addDays(today, horizonDays);
+
   for (const s of schedules) {
     const r = ruleOf(s);
     if (!r) continue;
     const done = new Set(s.settled ?? []);
+    const moves = new Map((s.moved ?? []).map((m) => [m.from, m.to]));
     const since = s.since ?? null;
     // Start far enough back to catch anything missed, then walk forward.
     for (const d of nextDates(r.rule, back, 24, r.cal)) {
-      const when = new Date(d);
-      if (when > addDays(today, horizonDays)) break;
+      if (new Date(d) > horizon) break;
       if (done.has(d)) continue;
       // Nothing is owed for a date the schedule did not yet exist on.
       if (since && d < since) continue;
+      // A moved due is owed on the day it was moved to, not the rule's day.
+      const on = moves.get(d) ?? d;
+      const when = new Date(on);
+      if (when > horizon) continue;
       out.push({
         scheduleId: s.id,
         dueOn: d,
+        on,
         daysAway: Math.round((when.getTime() - today.getTime()) / 86400000),
+        ...(on !== d ? { movedFrom: d } : {}),
       });
     }
   }
-  return out.sort((a, b) => a.dueOn.localeCompare(b.dueOn));
+  return out.sort((a, b) => a.on.localeCompare(b.on));
 }
 
 function addDays(d: Date, n: number) {
@@ -226,10 +240,37 @@ function addDays(d: Date, n: number) {
  *  "next" should say next month — not repeat today back at you. Null once
  *  the rule has run out. */
 export function nextUnsettled(
-  s: Pick<Schedulish, 'rrule' | 'hijri_rule'>, settled: string[], from: Date,
+  s: Pick<Schedulish, 'rrule' | 'hijri_rule' | 'moved'>, settled: string[], from: Date,
 ): string | null {
   const r = ruleOf(s);
   if (!r) return null;
   const done = new Set(settled ?? []);
-  return nextDates(r.rule, from, 14, r.cal).find((d) => !done.has(d)) ?? null;
+  const moves = new Map((s.moved ?? []).map((m) => [m.from, m.to]));
+  const d = nextDates(r.rule, from, 14, r.cal).find((x) => !done.has(x));
+  return d ? (moves.get(d) ?? d) : null;
+}
+
+/** The rule's dates that fall in a calendar month (Gregorian y, m 1–12).
+ *  A Hijri monthly rule can land twice in one English month. */
+export function datesInMonth(rule: string, cal: Calendar, y: number, m: number): string[] {
+  const key = `${y}-${pad(m)}-`;
+  return nextDates(rule, new Date(y, m - 1, 1), 3, cal).filter((d) => d.startsWith(key));
+}
+
+/** The same rule, with its day — and for a yearly rule its month — taken
+ *  from `to`, read on the rule's own calendar. "Make the 10th the day from
+ *  now on." Null when that day is past the cap: the 31st cannot be every
+ *  month's day, so the answer is to move just the one. UNTIL is kept. */
+export function rewriteRuleTo(rule: string, cal: Calendar, to: string): string | null {
+  const r = parseRule(rule, cal);
+  if (!r) return null;
+  const [gy, gm, gd] = to.split('-').map(Number);
+  if (!isCivil(gy, gm, gd)) return null;
+  const { m, d } = cal === 'hijri' ? toHijri({ y: gy, m: gm, d: gd }) : { m: gm, d: gd };
+  const month = r.freq === 'YEARLY' ? m : undefined;
+  if (d > maxDay(cal, r.freq, month)) return null;
+  const next = r.freq === 'YEARLY'
+    ? buildRule({ freq: 'YEARLY', day: d, month: m, until: r.until })
+    : buildRule({ freq: 'MONTHLY', day: d, until: r.until });
+  return parseRule(next, cal) ? next : null;
 }

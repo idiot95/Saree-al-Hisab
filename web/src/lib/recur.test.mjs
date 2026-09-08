@@ -171,3 +171,43 @@ assert.equal(nextUnsettled({ rrule: null, hijri_rule: RAMADAAN }, ['2027-02-06']
 assert.equal(isFinished({ rrule: null, hijri_rule: 'FREQ=YEARLY;BYMONTH=9;BYMONTHDAY=1;UNTIL=20280201' }, on(2028, 3, 1)), true);
 
 console.log('  ok   the same rules on the Hijri calendar');
+
+/* ── a due that was moved, and a rule rewritten to the new day ──────────── */
+{
+  const { datesInMonth, rewriteRuleTo } = await import(`${process.env.LIB}/recur.js`);
+  const rent = { id: 'rent', rrule: 'FREQ=MONTHLY;BYMONTHDAY=5', hijri_rule: null, settled: ['2026-08-05'],
+                 since: '2026-01-01', moved: [{ from: '2026-09-05', to: '2026-09-10' }] };
+  let d = outstandingDues([rent], on(2026, 9, 8), 14);
+  assert.deepEqual(d.map((x) => [x.dueOn, x.on, x.daysAway, x.movedFrom]),
+    [['2026-09-05', '2026-09-10', 2, '2026-09-05']], 'a moved due keeps the rule date as its identity and is owed on the new day');
+  d = outstandingDues([{ ...rent, moved: [{ from: '2026-09-05', to: '2026-10-20' }] }], on(2026, 9, 8), 14);
+  assert.deepEqual(d, [], 'moved past the horizon, it is not yet owed');
+  assert.equal(nextUnsettled(rent, [], on(2026, 9, 1)), '2026-09-10', 'and "next" says the moved day');
+  assert.equal(nextUnsettled(rent, ['2026-09-05'], on(2026, 9, 1)), '2026-10-05', 'once settled, the month after');
+  d = outstandingDues([{ ...rent, moved: [] }], on(2026, 9, 8), 14);
+  assert.equal(d[0].on, d[0].dueOn, 'unmoved, the two days are one');
+  assert.equal(d[0].movedFrom, undefined);
+
+  // A rewritten rule does not owe the dates before the rewrite.
+  d = outstandingDues([{ ...rent, rrule: 'FREQ=MONTHLY;BYMONTHDAY=10', moved: [], settled: [], since: '2026-09-10' }], on(2026, 9, 8), 14);
+  assert.deepEqual(d.map((x) => x.on), ['2026-09-10'], 'the 10th of August was under the old rule and is not missed');
+
+  assert.deepEqual(datesInMonth('FREQ=MONTHLY;BYMONTHDAY=5', 'gregorian', 2026, 9), ['2026-09-05']);
+  assert.deepEqual(datesInMonth('FREQ=YEARLY;BYMONTH=4;BYMONTHDAY=5', 'gregorian', 2026, 9), []);
+  assert.deepEqual(datesInMonth('FREQ=MONTHLY;BYMONTHDAY=1', 'hijri', 2026, 8), ['2026-08-13'], '1 Rabi al-Awwal 1448');
+  assert.deepEqual(datesInMonth('FREQ=MONTHLY;BYMONTHDAY=1', 'hijri', 2026, 6), ['2026-06-15'], '1 Moharram 1448');
+  assert.deepEqual(datesInMonth('FREQ=MONTHLY;BYMONTHDAY=29', 'hijri', 2028, 1), ['2028-01-26'],
+    '29 Shabaan 1449 — a Hijri day does not straddle');
+
+  assert.equal(rewriteRuleTo('FREQ=MONTHLY;BYMONTHDAY=5', 'gregorian', '2026-09-10'), 'FREQ=MONTHLY;BYMONTHDAY=10');
+  assert.equal(rewriteRuleTo('FREQ=MONTHLY;BYMONTHDAY=5;UNTIL=20270105', 'gregorian', '2026-09-10'),
+    'FREQ=MONTHLY;BYMONTHDAY=10;UNTIL=20270105', 'the end stays');
+  assert.equal(rewriteRuleTo('FREQ=MONTHLY;BYMONTHDAY=5', 'gregorian', '2026-09-30'), null, 'the 30th cannot be every month');
+  assert.equal(rewriteRuleTo('FREQ=YEARLY;BYMONTH=4;BYMONTHDAY=5', 'gregorian', '2026-09-10'), 'FREQ=YEARLY;BYMONTH=9;BYMONTHDAY=10');
+  assert.equal(rewriteRuleTo('FREQ=MONTHLY;BYMONTHDAY=1', 'hijri', '2026-09-14'), 'FREQ=MONTHLY;BYMONTHDAY=3',
+    '14 Sep 2026 is 3 Rabi II, so the 3rd of every Hijri month');
+  assert.equal(rewriteRuleTo('FREQ=YEARLY;BYMONTH=9;BYMONTHDAY=1', 'hijri', '2027-02-09'), 'FREQ=YEARLY;BYMONTH=9;BYMONTHDAY=4');
+  assert.equal(rewriteRuleTo('FREQ=MONTHLY;BYMONTHDAY=1', 'hijri', '2026-09-11'), null, '30 Rabi I — no Hijri month is sure to have a 30th');
+  assert.equal(rewriteRuleTo('FREQ=MONTHLY;BYMONTHDAY=5', 'gregorian', '2026-02-30'), null);
+  console.log('  ok   moved dues, and a rule rewritten to the new day');
+}

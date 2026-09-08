@@ -4,7 +4,8 @@ import {
   actorOrNull, budgetFor, inboxCount, monthTotals, peopleFor, schedulesFor, setupProgress,
 } from '@/db/queries';
 import { format, monthKey } from '@/lib/money';
-import { outstandingDues } from '@/lib/recur';
+import { outstandingDues, ruleOf } from '@/lib/recur';
+import DueRow from './schedules/DueRow';
 import { headerBg } from './auth-ui';
 import { Icon } from './Icon';
 import GettingStarted from './GettingStarted';
@@ -39,8 +40,17 @@ export default async function Home() {
 
   const budget = Number(totals.budget);
   const spent = Number(totals.spent);
-  const dues = outstandingDues(schedules, new Date(), 7).length;
+  /* What is due today — or should have been already — is asked about here,
+     on the screen the household opens first: is it paid, or has it moved?
+     What is due later in the week is only counted, and waits in the inbox. */
+  const now = new Date();
+  const todayIso = [now.getFullYear(), String(now.getMonth() + 1).padStart(2, '0'), String(now.getDate()).padStart(2, '0')].join('-');
+  const allDues = outstandingDues(schedules, now, 7);
+  const canAct = actor.role !== 'viewer';
+  const dueNow = canAct ? allDues.filter((d) => d.daysAway <= 0) : [];
+  const dues = allDues.length - dueNow.length;
   const needsYou = inbox.duplicates + inbox.bills + dues;
+  const byId = new Map(schedules.map((s) => [s.id, s]));
   const lent = people.reduce((n, p) => n + Number(p.balance), 0);
   const monthName = new Date(month).toLocaleDateString('en-IN', { month: 'long' });
 
@@ -92,6 +102,26 @@ export default async function Home() {
             : <NoBudgetYet monthName={monthName} spent={spent} entries={progress.entries} />}
 
           {/* Then anything that actually wants a decision. */}
+          {dueNow.length > 0 && (
+            <section className="el card" aria-label="Due today" style={{
+              borderRadius: 18, padding: '4px var(--pad) 0', background: 'var(--c-card)',
+            }}>
+              <h2 style={{ margin: 0, padding: '10px 0 2px', fontSize: 'var(--step-0)', fontWeight: 600 }}>
+                {dueNow.some((d) => d.daysAway < 0) ? 'Due now' : 'Due today'}
+              </h2>
+              {dueNow.map((d) => {
+                const s = byId.get(d.scheduleId)!;
+                return (
+                  <DueRow key={`${d.scheduleId}:${d.dueOn}`}
+                    scheduleId={d.scheduleId} name={s.name} kind={s.kind} dueOn={d.dueOn}
+                    on={d.on} movedFrom={d.movedFrom} daysAway={d.daysAway}
+                    amount={Number(s.amount ?? 0)} category={s.category} icon={s.icon} tint={s.tint}
+                    rule={ruleOf(s)?.rule} cal={ruleOf(s)?.cal} today={todayIso} />
+                );
+              })}
+            </section>
+          )}
+
           {needsYou > 0 && (
             <Link transitionTypes={['nav-forward']} href="/inbox" className="el" style={{
               minHeight: 62, borderRadius: 15, display: 'flex', alignItems: 'center', gap: 12,
@@ -114,7 +144,7 @@ export default async function Home() {
                   {needsYou} {needsYou === 1 ? 'thing' : 'things'} to look at
                 </span>
                 <span style={{ fontSize: 'var(--step--1)', color: 'var(--c-warn)' }}>
-                  {[dues > 0 ? `${dues} due now` : null,
+                  {[dues > 0 ? `${dues} due this week` : null,
                     inbox.bills > 0 ? `${inbox.bills} card ${inbox.bills === 1 ? 'bill' : 'bills'}` : null,
                     inbox.duplicates > 0 ? `${inbox.duplicates} possible ${inbox.duplicates === 1 ? 'duplicate' : 'duplicates'}` : null,
                   ].filter(Boolean).join(' · ')}

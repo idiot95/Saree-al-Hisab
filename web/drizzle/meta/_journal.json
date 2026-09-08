@@ -155,6 +155,13 @@
       "when": 1788819698706,
       "tag": "0021_currency_is_the_households",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1788837856708,
+      "tag": "0022_moved_dues",
+      "breakpoints": true
     }
   ]
 }

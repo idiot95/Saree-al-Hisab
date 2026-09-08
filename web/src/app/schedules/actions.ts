@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { sql } from '@/db/client';
 import { currentActor } from '@/db/queries';
 import { fromKeys } from '@/lib/money';
-import { buildRule, parseRule, nextDates, maxDay, type Calendar } from '@/lib/recur';
+import { buildRule, parseRule, nextDates, maxDay, rewriteRuleTo, ruleOf, describeRule, friendlyDate, type Calendar } from '@/lib/recur';
 import { rethrowControlFlow } from '@/lib/rethrow';
 
 export type Result = { ok: true; message?: string } | { ok: false; error: string };
@@ -135,20 +135,26 @@ export async function recordDue(_prev: Result | null, fd: FormData): Promise<Res
   if (!/^\d{4}-\d{2}-\d{2}$/.test(dueOn)) return { ok: false, error: 'That date is not valid.' };
 
   const [s] = await sql`
-    select id, name, kind, amount::bigint, account_id, category_id from schedule
-    where id = ${scheduleId} and household_id = ${actor.household_id} and archived_at is null`;
+    select s.id, s.name, s.kind, s.amount::bigint, s.account_id, s.category_id,
+           to_char(o.shifted_to, 'YYYY-MM-DD') as shifted_to
+    from schedule s
+    left join occurrence o on o.schedule_id = s.id and o.due_on = ${dueOn}::date
+    where s.id = ${scheduleId} and s.household_id = ${actor.household_id} and s.archived_at is null`;
   if (!s) return { ok: false, error: 'That schedule is not one of yours.' };
 
   const typed = amount(fd.get('amount'));
   const minor = typed > 0 ? typed : Number(s.amount);
   if (!Number.isSafeInteger(minor) || minor <= 0) return { ok: false, error: 'Enter an amount.' };
 
+  // A due that was moved is recorded on the day it was moved to. The
+  // occurrence keeps the rule's date as its identity, and keeps the move.
+  const on = s.shifted_to ?? dueOn;
   try {
     await sql.begin(async (tx) => {
       const [t] = await tx`
         insert into txn (household_id, created_by, kind, amount, occurred_on,
                          account_id, category_id, merchant, source)
-        values (${actor.household_id}, ${actor.user_id}, ${s.kind}, ${minor}, ${dueOn}::date,
+        values (${actor.household_id}, ${actor.user_id}, ${s.kind}, ${minor}, ${on}::date,
                 ${s.account_id}, ${s.category_id}, ${s.name}, 'manual')
         returning id`;
       await tx`
@@ -190,4 +196,67 @@ export async function skipDue(_prev: Result | null, fd: FormData): Promise<Resul
   revalidatePath('/schedules');
   revalidatePath('/inbox');
   return { ok: true, message: 'Skipped.' };
+}
+
+/* "Not the 5th this month — the 10th." The occurrence keeps the rule's date
+   and records where it went, so the calendar can draw the move and the due
+   is owed on the new day. Asked to make it permanent, the rule itself is
+   rewritten to that day, from that day: months already recorded stay as
+   they were, and the dates the new rule would put before it are not owed. */
+export async function moveDue(_prev: Result | null, fd: FormData): Promise<Result> {
+  let actor;
+  try { actor = await mustWrite(); }
+  catch (e) { rethrowControlFlow(e); return { ok: false, error: (e as Error).message }; }
+
+  const dueOn = String(fd.get('dueOn') ?? '');
+  const to = String(fd.get('to') ?? '');
+  const isDay = (v: string) => /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(Date.parse(v));
+  if (!isDay(dueOn)) return { ok: false, error: 'That date is not valid.' };
+  if (!isDay(to)) return { ok: false, error: 'Pick the day it moves to.' };
+  if (to === dueOn) return { ok: false, error: 'That is the day it is already on.' };
+  const gap = Math.round((Date.parse(to) - Date.parse(dueOn)) / 86400000);
+  if (gap < -30 || gap > 90) {
+    return { ok: false, error: 'A move is a nudge — up to a month earlier or three months later. For more than that, stop the schedule and make a new one.' };
+  }
+
+  const [s] = await sql`
+    select s.id, s.name, s.rrule, s.hijri_rule, o.status
+    from schedule s
+    left join occurrence o on o.schedule_id = s.id and o.due_on = ${dueOn}::date
+    where s.id = ${String(fd.get('scheduleId') ?? '')} and s.household_id = ${actor.household_id}
+      and s.archived_at is null`;
+  if (!s) return { ok: false, error: 'That schedule is not one of yours.' };
+  if (s.status === 'paid') return { ok: false, error: 'That one is already recorded as paid.' };
+  if (s.status === 'skipped') return { ok: false, error: 'That one was skipped. Nothing to move.' };
+
+  const r = ruleOf({ rrule: s.rrule as string | null, hijri_rule: s.hijri_rule as string | null });
+  if (!r) return { ok: false, error: 'That schedule has no rule to move.' };
+
+  if (fd.get('permanent') !== 'yes') {
+    await sql`
+      insert into occurrence (schedule_id, due_on, status, shifted_to)
+      values (${s.id}, ${dueOn}::date, 'pending', ${to}::date)
+      on conflict (schedule_id, due_on) do update set shifted_to = excluded.shifted_to`;
+    revalidatePath('/schedules'); revalidatePath('/inbox'); revalidatePath('/');
+    return { ok: true, message: `${s.name} moved to ${friendlyDate(to)}, this once.` };
+  }
+
+  const next = rewriteRuleTo(r.rule, r.cal, to);
+  if (!next) {
+    return { ok: false, error: r.cal === 'hijri'
+      ? 'Not every Hijri month has that day, so it cannot be the day every time. Move just this one instead.'
+      : 'Not every month has that day, so it cannot be the day every time. Move just this one instead.' };
+  }
+  await sql.begin(async (tx) => {
+    // The new rule puts a due on `to` by itself; a pending move would only
+    // double it. Recorded rows are history and are left alone.
+    await tx`delete from occurrence where schedule_id = ${s.id} and due_on = ${dueOn}::date and status = 'pending'`;
+    await tx`
+      update schedule set rrule = ${r.cal === 'gregorian' ? next : null},
+                          hijri_rule = ${r.cal === 'hijri' ? next : null},
+                          rule_since = ${to}::date
+      where id = ${s.id} and household_id = ${actor.household_id}`;
+  });
+  revalidatePath('/schedules'); revalidatePath('/inbox'); revalidatePath('/');
+  return { ok: true, message: `${s.name} is now ${describeRule(next, r.cal)}, from ${friendlyDate(to)}.` };
 }

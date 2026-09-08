@@ -1,24 +1,39 @@
 'use client';
 
-import { useActionState, useState, useTransition } from 'react';
+import { useActionState, useCallback, useState, useTransition } from 'react';
 import { Icon } from '../Icon';
 import SwipeRow from '../SwipeRow';
 import { recordDue, skipDue, archiveSchedule } from './actions';
+import MoveDue from './MoveDue';
+import { friendlyDate, type Calendar } from '@/lib/recur';
 import { useMoney } from '@/app/currency';
 
 export default function DueRow({
-  scheduleId, name, kind = 'expense', dueOn, daysAway, amount, category, icon, tint,
+  scheduleId, name, kind = 'expense', dueOn, on = dueOn, movedFrom, daysAway, amount, category,
+  icon, tint, rule, cal = 'gregorian', today, canRecord = true,
 }: {
-  scheduleId: string; name: string; kind?: 'expense' | 'income'; dueOn: string; daysAway: number;
+  scheduleId: string; name: string; kind?: 'expense' | 'income';
+  /** The rule's date — what the occurrence is keyed by. */
+  dueOn: string;
+  /** The day it is expected: the same, unless it was moved. */
+  on?: string; movedFrom?: string;
+  daysAway: number;
   amount: number; category: string | null; icon?: string | null; tint?: string | null;
+  /** With the rule and today's date the row can offer to move the due. */
+  rule?: string; cal?: Calendar; today?: string;
+  /** A due months away can be moved or skipped, but not recorded yet. */
+  canRecord?: boolean;
 }) {
   const { format } = useMoney();
   const income = kind === 'income';
   const [recState, record, recording] = useActionState(recordDue, null);
   const [, skip] = useActionState(skipDue, null);
-  const [open, setOpen] = useState(false);
+  const [mode, setMode] = useState<'idle' | 'record' | 'move'>('idle');
+  const open = mode !== 'idle';
+  const idle = useCallback(() => setMode('idle'), []);
   const [, start] = useTransition();
   const overdue = daysAway < 0;
+  const canMove = !!rule && !!today;
 
   /* The row's two buttons, reachable by a swipe as well: a short one shows
      both, all the way across opens the amount to record it. */
@@ -35,8 +50,8 @@ export default function DueRow({
     }}>
       <SwipeRow actions={open ? [] : [
         { label: 'Skip', icon: <Icon name="skip" size={20} strokeWidth={2} />, act: skipNow },
-        { label: income ? 'Came in' : 'Record', tone: 'primary',
-          icon: <Icon name="check" size={20} strokeWidth={2} />, act: () => setOpen(true) },
+        ...(canRecord ? [{ label: income ? 'Came in' : 'Record', tone: 'primary' as const,
+          icon: <Icon name="check" size={20} strokeWidth={2} />, act: () => setMode('record') }] : []),
       ]}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, minHeight: 44 }}>
         <span style={{
@@ -53,6 +68,7 @@ export default function DueRow({
             {income
               ? (overdue ? `expected ${-daysAway} days ago` : daysAway === 0 ? 'expected today' : `expected in ${daysAway} days`)
               : (overdue ? `${-daysAway} days overdue` : daysAway === 0 ? 'due today' : `due in ${daysAway} days`)}
+            {movedFrom && ` · moved from ${friendlyDate(movedFrom).replace(/ \d{4}$/, '')}`}
             {category && ` · ${category}`}
           </span>
         </span>
@@ -62,12 +78,21 @@ export default function DueRow({
       </div>
       </SwipeRow>
 
-      {!open ? (
+      {mode === 'idle' ? (
         <div style={{ display: 'flex', gap: 8 }}>
-          <button className="cta" type="button" onClick={() => setOpen(true)} style={{
-            flex: 1, minHeight: 44, borderRadius: 11, fontSize: 'var(--step--1)', fontWeight: 600,
-            background: 'var(--g-primary)', color: 'var(--c-on-primary)',
-          }}>{income ? 'It came in' : 'Record it'}</button>
+          {canRecord && (
+            <button className="cta" type="button" onClick={() => setMode('record')} style={{
+              flex: 1, minHeight: 44, borderRadius: 11, fontSize: 'var(--step--1)', fontWeight: 600,
+              background: 'var(--g-primary)', color: 'var(--c-on-primary)',
+            }}>{income ? 'It came in' : 'Record it'}</button>
+          )}
+          {canMove && (
+            <button className="cta" type="button" onClick={() => setMode('move')} style={{
+              flex: canRecord ? undefined : 1, minHeight: 44, padding: '0 14px', borderRadius: 11,
+              fontSize: 'var(--step--1)', fontWeight: 600, background: 'var(--c-sunk)', color: 'var(--c-ink)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+            }}><Icon name="move" size={16} strokeWidth={2} />Move</button>
+          )}
           <form action={skip}>
             <input type="hidden" name="scheduleId" value={scheduleId} />
             <input type="hidden" name="dueOn" value={dueOn} />
@@ -77,6 +102,9 @@ export default function DueRow({
             }}>Skip</button>
           </form>
         </div>
+      ) : mode === 'move' ? (
+        <MoveDue scheduleId={scheduleId} name={name} dueOn={dueOn} on={on}
+          rule={rule!} cal={cal} today={today!} onDone={idle} onCancel={idle} />
       ) : (
         <form action={record} style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
           <input type="hidden" name="scheduleId" value={scheduleId} />
@@ -98,7 +126,7 @@ export default function DueRow({
             </span>
           )}
           <div style={{ display: 'flex', gap: 8 }}>
-            <button className="cta" type="button" onClick={() => setOpen(false)} style={{
+            <button className="cta" type="button" onClick={idle} style={{
               minHeight: 46, padding: '0 14px', borderRadius: 11, fontSize: 'var(--step--1)',
               fontWeight: 600, background: 'var(--c-sunk)', color: 'var(--c-meta)',
             }}>Cancel</button>

@@ -801,10 +801,18 @@ export type ScheduleRow = {
   /** One of the two is set: a rule on the Gregorian calendar, or the same
    *  grammar on the Hijri (Misri) one. See src/lib/recur.ts. */
   rrule: string | null; hijri_rule: string | null;
-  account_id: string; account: string; since: string;
+  account_id: string; account: string;
+  /** Dues before this are not owed: the later of when the schedule was
+   *  made and when its rule was last rewritten. */
+  since: string;
   category_id: string | null; category: string | null; tint: string | null;
   icon: string | null;
+  /** Rule dates that have been dealt with — paid or skipped. */
   settled: string[];
+  /** Rule dates that were moved and not yet dealt with: the due is at `to`. */
+  moved: { from: string; to: string }[];
+  /** Everything ever recorded against the schedule, for the calendar. */
+  occurrences: { on: string; status: 'pending' | 'paid' | 'skipped'; to: string | null; txn: string | null }[];
 };
 
 /* Nothing is materialised ahead of time. Upcoming dates are worked out from
@@ -815,10 +823,19 @@ export type ScheduleRow = {
 export async function schedulesFor(householdId: string) {
   return sql`
     select s.id, s.name, s.kind, s.amount::text, s.amount_from_statement, s.rrule, s.hijri_rule,
-           s.account_id, a.name as account, to_char(s.created_at, 'YYYY-MM-DD') as since,
+           s.account_id, a.name as account,
+           to_char(greatest(s.created_at::date, s.rule_since), 'YYYY-MM-DD') as since,
            s.category_id, c.name as category, c.tint, c.icon,
            coalesce(array_agg(to_char(o.due_on, 'YYYY-MM-DD'))
-                    filter (where o.id is not null), '{}') as settled
+                    filter (where o.status <> 'pending'), '{}') as settled,
+           coalesce(json_agg(json_build_object('from', to_char(o.due_on, 'YYYY-MM-DD'),
+                                               'to', to_char(o.shifted_to, 'YYYY-MM-DD')))
+                    filter (where o.status = 'pending'), '[]') as moved,
+           coalesce(json_agg(json_build_object('on', to_char(o.due_on, 'YYYY-MM-DD'),
+                                               'status', o.status,
+                                               'to', to_char(o.shifted_to, 'YYYY-MM-DD'),
+                                               'txn', o.txn_id) order by o.due_on)
+                    filter (where o.id is not null), '[]') as occurrences
     from schedule s
     join account a on a.id = s.account_id
     left join category c on c.id = s.category_id

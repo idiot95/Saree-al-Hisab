@@ -8,6 +8,7 @@ import { headerBg } from '../auth-ui';
 import TabBar from '../TabBar';
 import { TAB_BAR_SPACE } from '../tabs';
 import NewSchedule from './NewSchedule';
+import Calendar, { type CalSchedule } from './Calendar';
 import DueRow, { StopSchedule } from './DueRow';
 import { archiveSchedule } from './actions';
 import Screen from '../Screen';
@@ -42,6 +43,16 @@ export default async function Schedules() {
     .reduce((n, s) => n + Number(s.amount ?? 0), 0);
   const out = monthlyOf('expense');
   const income = monthlyOf('income');
+  const todayIso = isoOf(today);
+  // What the calendar needs of each schedule, finished ones included: their
+  // past still happened, and a month already gone should still show it.
+  const forCalendar: CalSchedule[] = schedules.flatMap((s) => {
+    const r = ruleOf(s);
+    return r ? [{
+      id: s.id, name: s.name, kind: s.kind, amount: Number(s.amount ?? 0), category: s.category,
+      icon: s.icon, tint: s.tint, rule: r.rule, cal: r.cal, since: s.since, occurrences: s.occurrences,
+    }] : [];
+  });
 
   return (
     <Screen>
@@ -85,11 +96,19 @@ export default async function Schedules() {
                   return (
                     <DueRow key={`${d.scheduleId}:${d.dueOn}`}
                       scheduleId={d.scheduleId} name={s.name} kind={s.kind} dueOn={d.dueOn}
+                      on={d.on} movedFrom={d.movedFrom}
                       daysAway={d.daysAway} amount={Number(s.amount ?? 0)} category={s.category}
-                        icon={s.icon} tint={s.tint} />
+                      icon={s.icon} tint={s.tint} rule={ruleOf(s)?.rule} cal={ruleOf(s)?.cal} today={todayIso} />
                   );
                 })}
               </section>
+            </>
+          )}
+
+          {schedules.length > 0 && (
+            <>
+              <Head>The month</Head>
+              <Calendar schedules={forCalendar} canWrite={canWrite} today={todayIso} />
             </>
           )}
 
@@ -169,6 +188,11 @@ function Rows({ schedules, canWrite, today, done = false }: {
       })}
     </section>
   );
+}
+
+function isoOf(d: Date) {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
 function friendly(iso?: string) {

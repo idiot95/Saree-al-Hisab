@@ -646,6 +646,35 @@ in `tsconfig.json` permits it, and `rewriteRelativeImportExtensions` in
 `tsconfig.lib.json` rewrites it to `.js` in the Node emit that the lib tests
 run against. App code keeps importing `@/lib/hijri` as before.
 
+**The month is a calendar, drawn from the same rules.** `Calendar.tsx` on
+`/schedules` is a client component that calls `datesInMonth` for every
+schedule (finished ones included) and lays the results on a Monday-first grid,
+each cell carrying its Hijri day and the 1st of a Hijri month naming it. Nothing
+is fetched to draw a month; the page passes down the rule, the `since` date and
+the schedule's occurrence rows, and the grid decides for itself. A dot per
+item — out, in, overdue as a hollow ring, done faded. Tapping a day opens a
+bottom drawer (`Sheet.tsx`: veil at z41, dialog at z42 above the tab bar,
+Escape, scroll lock, focus to the handle) with a `DueRow` for anything still
+open, or the status word and a link to the entry for anything settled. Recording
+from the drawer is offered only within a fortnight of the date, so the calendar
+cannot be used to pay November in September.
+
+**A due can move, once or for good.** `occurrence.due_on` stays the date the
+rule produced — it is the row's identity, unique with the schedule — and
+`occurrence.shifted_to` is where it went. A `pending` row exists only to record
+a move (CHECK `pending_is_a_move`) and a move is never to the same day (CHECK
+`moved_elsewhere`); `recordDue` files the entry on `shifted_to` when set.
+`outstandingDues` and `nextUnsettled` map through the moves, so a nudged due
+appears on its new day everywhere and says "moved from 10 Sep". A move is
+bounded: a month earlier to three months later. Choosing "make this the day,
+every month" rewrites the rule through `rewriteRuleTo` (same calendar, same
+UNTIL, refused past the day cap) and stamps `schedule.rule_since`; `since` in
+`schedulesFor` is the greater of `created_at` and `rule_since`, so the new rule
+does not retroactively owe dates it would have produced before the change. The
+pending row is deleted in the same transaction — the new rule generates that
+date itself. Home lists what is due today or overdue with the same row — "paid,
+or moved?" — so the answer is a tap away without opening the schedules screen.
+
 ## Net worth
 
 `/worth` is everything held, plus what people owe you, less what you owe, in
