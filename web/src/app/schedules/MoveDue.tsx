@@ -2,7 +2,8 @@
 
 import { useActionState, useEffect, useRef, useState } from 'react';
 import { moveDue } from './actions';
-import { describeRule, friendlyDate, rewriteRuleTo, type Calendar } from '@/lib/recur';
+import { describeRule, friendlyDate, friendlyDay, inWords, rewriteRuleTo, shiftDay, type Calendar } from '@/lib/recur';
+import { DateChips } from '../DatePick';
 import { formatHijri, toHijri } from '@/lib/hijri';
 
 /* "Not the 5th this month — the 10th." One date, one question underneath it:
@@ -19,7 +20,7 @@ export default function MoveDue({ scheduleId, name, dueOn, on, rule, cal, today,
   onDone: () => void; onCancel: () => void;
 }) {
   const [state, act, pending] = useActionState(moveDue, null);
-  const [to, setTo] = useState(() => dayAfter(on > today ? on : today));
+  const [to, setTo] = useState(() => shiftDay(on > today ? on : today, 1));
   const [permanent, setPermanent] = useState(false);
   const handled = useRef<typeof state>(null);
 
@@ -38,20 +39,19 @@ export default function MoveDue({ scheduleId, name, dueOn, on, rule, cal, today,
     <form action={act} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
       <input type="hidden" name="scheduleId" value={scheduleId} />
       <input type="hidden" name="dueOn" value={dueOn} />
-      <label style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
         <span style={{ fontSize: 'var(--step--2)', fontWeight: 600, color: 'var(--c-meta)' }}>
           Move {name} to
         </span>
-        <input name="to" type="date" required value={to} onChange={(e) => setTo(e.target.value)}
-          style={{
-            minHeight: 48, borderRadius: 12, border: '1px solid var(--c-border)',
-            background: 'var(--c-card)', color: 'var(--c-ink)', fontSize: 'var(--field)',
-            fontWeight: 600, padding: '0 12px',
-          }} />
+        {/* The days after it, then any other; a move is a nudge, so the grid
+            stops a month before and three after, as the server does. */}
+        <DateChips value={to} onChange={setTo} today={today} from={on > today ? on : today} dir="future"
+          min={shiftDay(dueOn, -30)} max={shiftDay(dueOn, 90)} label={`Move ${name} to`} />
+        <input type="hidden" name="to" value={to} />
         <span style={{ fontSize: 'var(--step--1)', color: 'var(--c-meta)' }}>
-          {valid ? `${friendlyDate(to)} · ${hijri}` : 'Pick a day.'}
+          {valid ? `${friendlyDay(to, today)} · ${hijri} · ${inWords(today, to)}` : 'Pick a day.'}
         </span>
-      </label>
+      </div>
 
       <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, minHeight: 44, cursor: 'pointer' }}>
         <input type="checkbox" name="permanent" value="yes" checked={permanent} disabled={!next}
@@ -90,13 +90,7 @@ export default function MoveDue({ scheduleId, name, dueOn, on, rule, cal, today,
   );
 }
 
-const pad = (n: number) => String(n).padStart(2, '0');
 const civil = (iso: string) => {
   const [y, m, d] = iso.split('-').map(Number);
   return { y, m, d };
 };
-function dayAfter(iso: string) {
-  const { y, m, d } = civil(iso);
-  const x = new Date(y, m - 1, d + 1);
-  return `${x.getFullYear()}-${pad(x.getMonth() + 1)}-${pad(x.getDate())}`;
-}

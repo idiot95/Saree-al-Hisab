@@ -5,6 +5,8 @@ import { Icon, RAIL_ICON, RAIL_TINT, ACCOUNT_ICON, ACCOUNT_TINT, tintOf } from '
 import { HEADER_BG } from '../auth-ui';
 import { useRouter } from 'next/navigation';
 import { pushKey, popKey, fromKeys } from '@/lib/money';
+import { DateChips } from '../DatePick';
+import { friendlyDay } from '@/lib/recur';
 import { useMoney } from '@/app/currency';
 import { saveEntry, checkDuplicate } from './actions';
 import { haptic } from '../haptics';
@@ -324,22 +326,15 @@ export default function AddEntry({
         </div>
       )}
 
-      <div className="el card" style={{ margin: '0 18px 12px', background: 'var(--c-card)', borderRadius: 18, padding: '2px 16px' }}>
-        <label style={{
-          display: 'flex', alignItems: 'center', gap: 12, width: '100%', minHeight: 56,
-        }}>
-          <span style={{
-            width: 92, flex: 'none', fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)',
-          }}>Date</span>
-          <input
-            type="date" value={occurredOn} max={today}
-            onChange={(e) => setOccurredOn(e.target.value || today)}
-            style={{
-              flex: 1, minHeight: 48, border: 0, background: 'transparent',
-              color: 'var(--c-ink)', fontSize: 'var(--field)', fontWeight: 600,
-            }}
-          />
-        </label>
+      {/* Which day, as chips: today, yesterday, the few before — and any
+          other day one tap further, on a grid. Never a day ahead: nothing
+          can be recorded as having happened tomorrow. */}
+      <div style={{ padding: '0 18px 12px', display: 'flex', flexDirection: 'column', gap: 7 }}>
+        <span style={{ fontSize: 'var(--step--2)', fontWeight: 600, color: 'var(--c-meta)' }}>
+          When
+        </span>
+        <DateChips value={occurredOn} onChange={setOccurredOn} today={today} dir="past" max={today}
+          label="Which day was it" />
       </div>
 
       {wantsCategory && (
@@ -444,7 +439,7 @@ export default function AddEntry({
                       textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                     }}>{c.person} · {c.what}</span>
                     <span style={{ fontSize: 'var(--step--2)', color: 'var(--c-meta)' }}>
-                      {friendly(c.on)}{c.tab ? ` · ${c.tab}` : ''}
+                      {friendlyDay(c.on, today)}{c.tab ? ` · ${c.tab}` : ''}
                     </span>
                   </span>
                   <span className="t" style={{ fontSize: 'var(--step--1)', color: 'var(--c-in)' }}>
@@ -563,7 +558,7 @@ export default function AddEntry({
           <Glyph d="M12 7.5v5.5 M12 16.6v.1 M20.5 12a8.5 8.5 0 1 1-17 0 8.5 8.5 0 0 1 17 0" size={17} w={1.9} />
           <span style={{ flex: 1, fontSize: 'var(--step--1)', lineHeight: 1.45 }}>
             <b>{shownDupe.who}</b> already recorded {format(shownDupe.amountMinor)}
-            {shownDupe.merchant ? ` at ${shownDupe.merchant}` : ''} on {friendly(shownDupe.on)}, from {shownDupe.account}.
+            {shownDupe.merchant ? ` at ${shownDupe.merchant}` : ''} {onDay(shownDupe.on, today)}, from {shownDupe.account}.
             Is this the same thing?
           </span>
         </div>
@@ -658,12 +653,10 @@ const key: React.CSSProperties = {
   borderRadius: 14, background: 'var(--c-sunk2)', fontSize: 'var(--step-3)', fontWeight: 600, color: 'var(--c-ink)',
 };
 
-function friendly(iso: string) {
-  const d = new Date(iso + 'T00:00:00');
-  const today = new Date(); today.setHours(0, 0, 0, 0);
-  const same = d.getTime() === today.getTime();
-  const s = d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
-  return same ? `Today, ${s}` : s;
+/** "today", "yesterday", "on Sun 6 Sep" — a day inside a sentence. */
+function onDay(iso: string, today: string) {
+  const d = friendlyDay(iso, today);
+  return d === 'Today' || d === 'Yesterday' ? d.toLowerCase() : `on ${d}`;
 }
 
 function Glyph({ d, size = 21, w = 2, colour }: { d: string; size?: number; w?: number; colour?: string }) {

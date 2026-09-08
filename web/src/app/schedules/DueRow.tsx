@@ -5,7 +5,7 @@ import { Icon } from '../Icon';
 import SwipeRow from '../SwipeRow';
 import { recordDue, skipDue, archiveSchedule } from './actions';
 import MoveDue from './MoveDue';
-import { friendlyDate, type Calendar } from '@/lib/recur';
+import { friendlyDay, type Calendar } from '@/lib/recur';
 import { useMoney } from '@/app/currency';
 
 export default function DueRow({
@@ -65,10 +65,8 @@ export default function DueRow({
         <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
           <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>{name}</span>
           <span style={{ fontSize: 'var(--step--1)', color: overdue ? 'var(--c-danger)' : 'var(--c-meta)' }}>
-            {income
-              ? (overdue ? `expected ${-daysAway} days ago` : daysAway === 0 ? 'expected today' : `expected in ${daysAway} days`)
-              : (overdue ? `${-daysAway} days overdue` : daysAway === 0 ? 'due today' : `due in ${daysAway} days`)}
-            {movedFrom && ` · moved from ${friendlyDate(movedFrom).replace(/ \d{4}$/, '')}`}
+            {whenLine(income, on, daysAway, today)}
+            {movedFrom && ` · moved from ${friendlyDay(movedFrom, today)}`}
             {category && ` · ${category}`}
           </span>
         </span>
@@ -140,6 +138,20 @@ export default function DueRow({
       )}
     </div>
   );
+}
+
+/* "Due Sat 12 Sep · in 4 days": the day first, in words a person uses, and
+   the distance after it. Today and tomorrow need no date; a day gone says
+   how far gone. Income is expected, not due. */
+function whenLine(income: boolean, on: string, daysAway: number, today?: string) {
+  const verb = income ? 'Expected' : 'Due';
+  if (daysAway === 0) return `${verb} today`;
+  if (daysAway === 1) return `${verb} tomorrow`;
+  if (daysAway === -1) return `${verb} yesterday · ${income ? 'not yet' : 'overdue'}`;
+  const day = friendlyDay(on, today);
+  return daysAway > 0
+    ? `${verb} ${day} · in ${daysAway} days`
+    : `${verb} ${day} · ${-daysAway} days ${income ? 'ago' : 'overdue'}`;
 }
 
 /* A schedule that has run its course says "Remove", not "Stop" — there is

@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 import { actorOrNull, categoriesFor, methodsFor, schedulesFor, type ScheduleRow } from '@/db/queries';
 import { formatHijri, toHijri } from '@/lib/hijri';
 import { format } from '@/lib/money';
-import { describeRule, isFinished, nextUnsettled, outstandingDues, parseRule, ruleOf } from '@/lib/recur';
+import { daysBetween, describeRule, friendlyDay, inWords, isFinished, nextUnsettled, outstandingDues, parseRule, ruleOf } from '@/lib/recur';
 import { headerBg } from '../auth-ui';
 import TabBar from '../TabBar';
 import { TAB_BAR_SPACE } from '../tabs';
@@ -115,14 +115,14 @@ export default async function Schedules() {
           {live.length > 0 && (
             <>
               <Head>Every schedule</Head>
-              <Rows schedules={live} canWrite={canWrite} today={today} />
+              <Rows schedules={live} canWrite={canWrite} today={today} todayIso={todayIso} />
             </>
           )}
 
           {finished.length > 0 && (
             <>
               <Head>Finished</Head>
-              <Rows schedules={finished} canWrite={canWrite} today={today} done />
+              <Rows schedules={finished} canWrite={canWrite} today={today} todayIso={todayIso} done />
             </>
           )}
 
@@ -146,8 +146,8 @@ export default async function Schedules() {
   );
 }
 
-function Rows({ schedules, canWrite, today, done = false }: {
-  schedules: ScheduleRow[]; canWrite: boolean; today: Date; done?: boolean;
+function Rows({ schedules, canWrite, today, todayIso, done = false }: {
+  schedules: ScheduleRow[]; canWrite: boolean; today: Date; todayIso: string; done?: boolean;
 }) {
   return (
     <section className="el card" style={{
@@ -169,12 +169,13 @@ function Rows({ schedules, canWrite, today, done = false }: {
             <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
               <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>{s.name}</span>
               <span style={{ fontSize: 'var(--step--1)', color: 'var(--c-meta)' }}>
-                {r ? describeRule(r.rule, r.cal) : 'no schedule'}
+                {r ? cap(describeRule(r.rule, r.cal)) : 'No schedule'}
               </span>
               {r && !done && (
                 <span style={{ fontSize: 'var(--step--1)', color: next ? 'var(--c-ink)' : 'var(--c-meta)' }}>
-                  {next ? `next ${friendly(next)}` : 'nothing more to come'}
+                  {next ? `Next ${friendlyDay(next, todayIso)}` : 'Nothing more to come'}
                   {r.cal === 'hijri' && next && ` · ${hijriOf(next)}`}
+                  {next && Math.abs(daysBetween(todayIso, next)) > 1 && ` · ${inWords(todayIso, next)}`}
                 </span>
               )}
             </span>
@@ -195,10 +196,7 @@ function isoOf(d: Date) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
-function friendly(iso?: string) {
-  if (!iso) return '—';
-  return new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
-}
+const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 /** "2027-02-06" → "1 Ramadaan 1448": the same day, the way it was asked for. */
 function hijriOf(iso: string) {

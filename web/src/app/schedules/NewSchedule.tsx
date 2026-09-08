@@ -2,21 +2,28 @@
 
 import { useActionState, useState } from 'react';
 import { Field, ErrorNote } from '../auth-ui';
-import { buildRule, friendlyDate, maxDay, nextDates, type Calendar } from '@/lib/recur';
-import { HIJRI_MONTHS, HIJRI_MONTHS_SHORT, formatHijri, toHijri } from '@/lib/hijri';
+import { buildRule, describeRule, friendlyDay, maxDay, nextDates, type Calendar } from '@/lib/recur';
+import { HIJRI_MONTHS_SHORT, formatHijri, toHijri } from '@/lib/hijri';
+import { DateChips, DayOfMonth, MonthOfYear, Segmented } from '../DatePick';
 import { createSchedule } from './actions';
 
 type Method = { id: string; name: string; funds: string };
 type Cat = { id: string; name: string };
 
-const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June',
-                'July', 'August', 'September', 'October', 'November', 'December'];
+const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 /* Two calendars, one grammar. A household here keeps Hijri dates for the
    things that matter most — Ramadaan, Eid, Ashara, the yearly dues — and the
    Misri calendar is arithmetic, so "the 1st of Ramadaan" is a real date on
    the phone years ahead. The month names are the ones the community uses. */
-const CALENDARS: [Calendar, string][] = [['gregorian', 'English months'], ['hijri', 'Hijri (Misri)']];
+const CALENDARS = [['gregorian', 'English'], ['hijri', 'Hijri']] as const;
+const REPEATS = [['MONTHLY', 'Every month'], ['YEARLY', 'Once a year']] as const;
+const ENDS = [['never', 'Never'], ['after', 'After a number'], ['on', 'On a date']] as const;
+
+/* The form asks for a day the way the person thinks of it — the 5th, the
+   1st of Ramadaan — as taps on a grid, and says back in one sentence what
+   the rule will be and when it first lands. The end is one line, "Ends
+   never", until someone wants otherwise. */
 
 export default function NewSchedule({ methods, categories, startOpen = false }: {
   methods: Method[]; categories: Cat[]; startOpen?: boolean;
@@ -29,7 +36,8 @@ export default function NewSchedule({ methods, categories, startOpen = false }: 
   const [month, setMonth] = useState({ gregorian: 4, hijri: 9 });   // April; Ramadaan
   const [day, setDay] = useState({ gregorian: 5, hijri: 1 });
   const [ends, setEnds] = useState<'never' | 'after' | 'on'>('never');
-  const [times, setTimes] = useState(5);
+  const [endsOpen, setEndsOpen] = useState(false);
+  const [times, setTimes] = useState(12);
   const [untilDate, setUntilDate] = useState('');
   // Fixed once, at open, so a render is not a clock and nothing flickers at midnight.
   const [today] = useState(() => new Date());
@@ -39,14 +47,20 @@ export default function NewSchedule({ methods, categories, startOpen = false }: 
   const base = freq === 'YEARLY'
     ? buildRule({ freq: 'YEARLY', day: chosenDay, month: month[cal] })
     : buildRule({ freq: 'MONTHLY', day: chosenDay });
+  const iso = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
   // The same arithmetic the server will do, shown before anyone commits to it.
+  const first = nextDates(base, today, 1, cal)[0];
   const last = ends === 'after'
     ? nextDates(base, today, Math.min(Math.max(times, 1), 600), cal).at(-1)
     : ends === 'on' && untilDate
       ? nextDates(base, today, 600, cal).filter((d) => d <= untilDate).at(-1)
       : undefined;
-  const monthNames = cal === 'hijri' ? HIJRI_MONTHS : MONTHS;
-  const iso = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  const monthNames = cal === 'hijri' ? HIJRI_MONTHS_SHORT : MON;
+  const sentence = describeRule(base, cal);
+  const endsLine = ends === 'never' ? 'Ends never'
+    : ends === 'after' ? `Ends after ${times === 1 ? 'once' : `${times} times`}${last ? `, on ${friendlyDay(last, iso)}` : ''}`
+    : untilDate ? `Ends on ${friendlyDay(untilDate, iso)}${last && last !== untilDate ? ` — the last is ${friendlyDay(last, iso)}` : ''}` : 'Ends on a date';
+  const later = [[6, 'In 6 months'], [12, 'In a year'], [24, 'In 2 years']] as const;
 
   if (!open) {
     return (
@@ -100,110 +114,82 @@ export default function NewSchedule({ methods, categories, startOpen = false }: 
       <Field label="Amount" name="amount" inputMode="decimal" required
         placeholder={kind === 'income' ? '120000' : '45000'} />
 
-      <fieldset style={{ border: 0, padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 7 }}>
-        <legend style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)', padding: 0 }}>
-          How often
-        </legend>
-        <div style={{ display: 'flex', gap: 7 }}>
-          {[['MONTHLY', 'Every month'], ['YEARLY', 'Once a year']].map(([id, label], i) => (
-            <label key={id} style={chip(freq === id)}>
-              <input type="radio" name="freq" value={id} defaultChecked={i === 0}
-                onChange={() => setFreq(id as 'MONTHLY' | 'YEARLY')}
-                style={{ width: 16, height: 16, accentColor: 'var(--c-seagrass)' }} />
-              {label}
-            </label>
-          ))}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
+        <div style={row}>
+          <span style={rowLabel}>Repeats</span>
+          <Segmented name="freq" value={freq} options={REPEATS} onChange={setFreq} label="How often it repeats" />
         </div>
-      </fieldset>
-
-      <fieldset style={{ border: 0, padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 7 }}>
-        <legend style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)', padding: 0 }}>
-          On which calendar
-        </legend>
-        <div style={{ display: 'flex', gap: 7 }}>
-          {CALENDARS.map(([id, label]) => (
-            <label key={id} style={chip(cal === id)}>
-              <input type="radio" name="calendar" value={id} checked={cal === id}
-                onChange={() => setCal(id)}
-                style={{ width: 16, height: 16, accentColor: 'var(--c-seagrass)' }} />
-              {label}
-            </label>
-          ))}
+        <div style={row}>
+          <span style={rowLabel}>Calendar</span>
+          <Segmented name="calendar" value={cal} options={CALENDARS} onChange={setCal} label="Which calendar" />
         </div>
-        {cal === 'hijri' && (
-          <p style={{ margin: 0, fontSize: 'var(--step--2)', lineHeight: 1.45, color: 'var(--c-meta)' }}>
-            Today is {formatHijri(toHijri({ y: today.getFullYear(), m: today.getMonth() + 1, d: today.getDate() }))}
-            {' '}by the Misri calendar — the fixed one, so every date ahead is already known.
-          </p>
-        )}
-      </fieldset>
 
-      <div style={{ display: 'flex', gap: 10 }}>
         {freq === 'YEARLY' && (
-          <label style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)' }}>Month</span>
-            <select name="month" value={month[cal]} style={select}
-              onChange={(e) => setMonth({ ...month, [cal]: Number(e.target.value) })}>
-              {monthNames.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}
-            </select>
-          </label>
+          <MonthOfYear value={month[cal]} names={monthNames} label={cal === 'hijri' ? 'Hijri month' : 'Month'}
+            onPick={(v) => setMonth({ ...month, [cal]: v })} />
         )}
-        <label style={{ flex: freq === 'YEARLY' ? '0 0 96px' : 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)' }}>Day</span>
-          <select name="day" value={chosenDay} style={select}
-            onChange={(e) => setDay({ ...day, [cal]: Number(e.target.value) })}>
-            {Array.from({ length: top }, (_, i) => i + 1).map((d) => (
-              <option key={d} value={d}>{d}</option>
-            ))}
-          </select>
-        </label>
-      </div>
-      <p style={{ margin: 0, fontSize: 'var(--step--2)', lineHeight: 1.45, color: 'var(--c-meta)' }}>
-        {cal === 'gregorian'
-          ? 'Days go up to 28, because every month has one. A reminder that moves is worse than none.'
-          : freq === 'MONTHLY'
-            ? 'Days go up to 29, because every Hijri month has one. A reminder that moves is worse than none.'
-            : `${HIJRI_MONTHS_SHORT[month.hijri - 1]} has ${top} days${top === 29 && month.hijri === 12 ? ' in most years, so the 30th is left out' : ''}.`}
-      </p>
+        <input type="hidden" name="month" value={month[cal]} />
+        <DayOfMonth value={chosenDay} top={top} onPick={(v) => setDay({ ...day, [cal]: v })} />
+        <input type="hidden" name="day" value={chosenDay} />
 
-      <fieldset style={{ border: 0, padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 7 }}>
-        <legend style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)', padding: 0 }}>
-          Ends
-        </legend>
-        <div style={{ display: 'flex', gap: 7 }}>
-          {([['never', 'Never'], ['after', 'After a number'], ['on', 'On a date']] as const).map(([id, label]) => (
-            <label key={id} style={chip(ends === id)}>
-              <input type="radio" name="ends" value={id} checked={ends === id}
-                onChange={() => setEnds(id)}
-                style={{ width: 16, height: 16, accentColor: 'var(--c-seagrass)' }} />
-              {label}
-            </label>
-          ))}
-        </div>
-        {ends === 'after' && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <input name="times" type="number" inputMode="numeric" min={1} max={600} required
-              value={times} onChange={(e) => setTimes(Number(e.target.value))}
-              aria-label="How many times"
-              style={{ ...select, width: 96, textAlign: 'center' }} />
-            <span style={{ fontSize: 'var(--step--1)', lineHeight: 1.4, color: 'var(--c-meta)' }}>
-              {times === 1 ? 'once' : `${times} times`}{last ? ` — the last on ${friendlyDate(last)}` : ''}
-            </span>
+        <p style={{ margin: '2px 0 0', display: 'flex', flexDirection: 'column', gap: 3 }}>
+          <span style={{ fontSize: 'var(--step-0)', fontWeight: 600, lineHeight: 1.3 }}>
+            {sentence.charAt(0).toUpperCase()}{sentence.slice(1)}
+          </span>
+          <span style={{ fontSize: 'var(--step--2)', lineHeight: 1.45, color: 'var(--c-meta)' }}>
+            {first ? `First on ${friendlyDay(first, iso)}` : 'No date ahead'}
+            {cal === 'hijri' && first && ` · ${formatHijri(toHijri(civil(first)), true)}`}
+            {cal === 'hijri'
+              ? `. Today is ${formatHijri(toHijri({ y: today.getFullYear(), m: today.getMonth() + 1, d: today.getDate() }), true)} by the Misri calendar.`
+              : '. Days stop at the 28th so it lands in every month.'}
+          </span>
+        </p>
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
+        {!endsOpen ? (
+          <div style={row}>
+            <span style={{ flex: 1, fontSize: 'var(--step--1)', fontWeight: 600 }}>{endsLine}</span>
+            <input type="hidden" name="ends" value="never" />
+            <button type="button" onClick={() => setEndsOpen(true)} style={{
+              minHeight: 44, padding: '0 12px', borderRadius: 999, fontSize: 'var(--step--1)', fontWeight: 600,
+              background: 'var(--c-sunk)', color: 'var(--c-teal)',
+            }}>Change</button>
           </div>
-        )}
-        {ends === 'on' && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <input name="untilDate" type="date" min={iso} required value={untilDate}
-              onChange={(e) => setUntilDate(e.target.value)} aria-label="Last date"
-              style={{ ...select, flex: 1, minWidth: 0 }} />
-            {untilDate && (
-              <span style={{ fontSize: 'var(--step--1)', lineHeight: 1.4, color: 'var(--c-meta)' }}>
-                {last ? `last on ${friendlyDate(last)}` : 'none before then'}
-              </span>
+        ) : (
+          <>
+            <div style={row}>
+              <span style={rowLabel}>Ends</span>
+              <Segmented name="ends" value={ends} options={ENDS} label="When it ends"
+                onChange={(v) => { setEnds(v); if (v === 'on' && !untilDate) setUntilDate(addMonths(iso, 12)); }} />
+            </div>
+            {ends === 'after' && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <button type="button" aria-label="One fewer" onClick={() => setTimes(Math.max(1, times - 1))} style={stepBtn}>−</button>
+                <input name="times" type="number" inputMode="numeric" min={1} max={600} required
+                  value={times} onChange={(e) => setTimes(Math.min(600, Math.max(1, Number(e.target.value) || 1)))}
+                  aria-label="How many times" className="t"
+                  style={{ ...select, width: 76, textAlign: 'center', padding: 0 }} />
+                <button type="button" aria-label="One more" onClick={() => setTimes(Math.min(600, times + 1))} style={stepBtn}>+</button>
+                <span style={{ flex: 1, fontSize: 'var(--step--1)', lineHeight: 1.4, color: 'var(--c-meta)' }}>
+                  {times === 1 ? 'once' : `${times} times`}{last ? `, the last on ${friendlyDay(last, iso)}` : ''}
+                </span>
+              </div>
             )}
-          </div>
+            {ends === 'on' && (
+              <>
+                <DateChips value={untilDate || addMonths(iso, 12)} today={iso} dir="future" min={iso} label="Last day"
+                  quick={later.map(([n, text]) => ({ iso: addMonths(iso, n), label: text }))}
+                  onChange={setUntilDate} />
+                <input type="hidden" name="untilDate" value={untilDate || addMonths(iso, 12)} />
+                <span style={{ fontSize: 'var(--step--1)', lineHeight: 1.4, color: 'var(--c-meta)' }}>
+                  {last ? `The last is ${friendlyDay(last, iso)}.` : 'None before then.'}
+                </span>
+              </>
+            )}
+          </>
         )}
-      </fieldset>
+      </div>
 
       <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)' }}>
@@ -235,13 +221,23 @@ export default function NewSchedule({ methods, categories, startOpen = false }: 
   );
 }
 
-const chip = (on: boolean): React.CSSProperties => ({
-  flex: 1, minHeight: 46, display: 'flex', alignItems: 'center', justifyContent: 'center',
-  gap: 7, padding: '0 6px', borderRadius: 12, cursor: 'pointer', textAlign: 'center',
-  fontSize: 'var(--step--1)', fontWeight: 600, lineHeight: 1.2,
-  background: on ? 'var(--c-teal-l)' : 'var(--c-sunk2)',
-  border: `1px solid ${on ? 'var(--c-seagrass)' : 'var(--c-border)'}`,
-});
+const row: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 10, minHeight: 44 };
+const rowLabel: React.CSSProperties = {
+  width: 74, flex: 'none', fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)',
+};
+const stepBtn: React.CSSProperties = {
+  width: 44, height: 44, flex: 'none', borderRadius: 999, background: 'var(--c-sunk2)',
+  color: 'var(--c-ink)', fontSize: 'var(--step-1)', fontWeight: 600,
+  display: 'flex', alignItems: 'center', justifyContent: 'center',
+};
+
+const civil = (iso: string) => { const [y, m, d] = iso.split('-').map(Number); return { y, m, d }; };
+/** The same day n months on, or the month's last day when it has no such day. */
+function addMonths(iso: string, n: number) {
+  const { y, m, d } = civil(iso);
+  const last = new Date(Date.UTC(y, m - 1 + n + 1, 0)).getUTCDate();
+  return new Date(Date.UTC(y, m - 1 + n, Math.min(d, last))).toISOString().slice(0, 10);
+}
 
 const select: React.CSSProperties = {
   minHeight: 52, borderRadius: 13, border: '1px solid var(--c-border)',

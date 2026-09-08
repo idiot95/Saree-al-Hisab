@@ -203,7 +203,7 @@ export default function Calendar({ schedules, canWrite, today }: {
                   <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
                     <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>{it.s.name}</span>
                     <span style={{ fontSize: 'var(--step--1)', color: 'var(--c-meta)' }}>
-                      {describeRule(it.s.rule, it.s.cal)}
+                      {cap(describeRule(it.s.rule, it.s.cal))}
                       {it.movedFrom && ` · moved from the ${civil(it.movedFrom).d}${suffix(civil(it.movedFrom).d)}`}
                     </span>
                     <span style={{ fontSize: 'var(--step--1)', display: 'flex', alignItems: 'center', gap: 5,
@@ -252,6 +252,8 @@ function Dot({ status, kind }: { status: Status; kind: 'expense' | 'income' }) {
     }} />
   );
 }
+
+const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 function suffix(n: number) {
   return ['th', 'st', 'nd', 'rd'][(n % 100 - 20) % 10] ?? ['th', 'st', 'nd', 'rd'][n % 100] ?? 'th';

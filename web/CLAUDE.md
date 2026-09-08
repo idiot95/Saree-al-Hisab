@@ -701,6 +701,40 @@ Flat pickers elsewhere name a child the same way. Icons: the base set in
 `next/dynamic` the first time a page shows one of its names, so a household
 that never files Milk never downloads the bottle.
 
+### Dates are tapped, not typed
+
+There is no native date input left in the app. `src/app/DatePick.tsx` is the
+one place a day is chosen: `DateChips` (a wrapping row of quick days —
+"Today · Yesterday · Sun 6 Sep · Sat 5 Sep" going back for Add Entry, the
+next three days going on for MoveDue, "In 6 months · In a year · In 2 years"
+for a schedule's end — plus a dashed "Another day…" that opens `DateSheet`, a
+`Sheet` around `MonthGrid`, a month with Gregorian numbers and the Hijri day
+under each, bounded by `min`/`max`); `DayOfMonth` (1..28 or 1..30 in seven
+columns) and `MonthOfYear` (twelve names in four) for a rule; `Segmented` for
+the two-or-three-way choices (Every month / Once a year, English / Hijri,
+Never / After a number / On a date). Segmented renders real hidden radios
+under the labels and the pickers write hidden inputs, so `createSchedule`
+still reads `kind, calendar, freq, month, day, ends, times, untilDate`
+unchanged. The row wraps rather than scrolls so "Another day…" is always in
+view. Every grid cell is 44px or more and sets `textAlign: 'center'`
+explicitly (the global reset left-aligns buttons). Selected = seagrass fill
+with `--c-on-primary` text; today in the month grid = an inset ring.
+
+The words come from `src/lib/recur.ts`: `friendlyDay(iso, today)` → "Today",
+"Tomorrow", "Yesterday", else "Sat 12 Sep" (the year only when it differs from
+today's); `inWords(today, iso)` → "in 4 days" / "3 days ago"; `shiftDay` and
+`daysBetween` for the arithmetic, UTC throughout so no DST day is lost;
+`describeRule` now says "every month on the 5th", "every Hijri month on the
+1st", "every year on 1 Ramadaan", ", until 5 Jan 2027" — lower-case, so a
+sentence can hold it, and rows capitalise with a local `cap`. `DueRow`'s
+second line is "Due Sat 12 Sep · in 4 days" / "Expected today" / "Due
+yesterday · overdue", and a schedule row reads "Every month on the 12th" then
+"Next Sat 12 Sep · 1 Rabi II 1448 · in 4 days". The schedule form is two
+`Segmented` rows, the month and day grids, one summary sentence ("Every year
+on 1 Ramadaan. First on Sat 6 Feb 2027 · 1 Ramadaan 1448.") and a collapsed
+"Ends never · Change" that opens the end choices only when asked. `sw.js` is
+v10 for the Add Entry change.
+
 ## Net worth
 
 `/worth` is everything held, plus what people owe you, less what you owe, in

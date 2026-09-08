@@ -37,12 +37,12 @@ assert.deepEqual(nextDates(Y, new Date(2026, 2, 1), 1), ['2026-04-01'],
 assert.deepEqual(nextDates('rubbish', new Date(), 3), [], 'an unparsable rule yields no dates');
 
 // ── said in words ──────────────────────────────────────────────────────────
-assert.equal(describeRule(R), 'the 5th of every month');
-assert.equal(describeRule('FREQ=MONTHLY;BYMONTHDAY=1'), 'the 1st of every month');
-assert.equal(describeRule('FREQ=MONTHLY;BYMONTHDAY=2'), 'the 2nd of every month');
-assert.equal(describeRule('FREQ=MONTHLY;BYMONTHDAY=3'), 'the 3rd of every month');
-assert.equal(describeRule('FREQ=MONTHLY;BYMONTHDAY=11'), 'the 11th of every month');
-assert.equal(describeRule(Y), 'the 1st of April, every year');
+assert.equal(describeRule(R), 'every month on the 5th');
+assert.equal(describeRule('FREQ=MONTHLY;BYMONTHDAY=1'), 'every month on the 1st');
+assert.equal(describeRule('FREQ=MONTHLY;BYMONTHDAY=2'), 'every month on the 2nd');
+assert.equal(describeRule('FREQ=MONTHLY;BYMONTHDAY=3'), 'every month on the 3rd');
+assert.equal(describeRule('FREQ=MONTHLY;BYMONTHDAY=11'), 'every month on the 11th');
+assert.equal(describeRule(Y), 'every year on 1 Apr');
 assert.equal(describeRule('bad'), 'on no schedule');
 
 console.log('  ok   recurrence rules, dates and wording');
@@ -116,8 +116,28 @@ assert.deepEqual(nextDates(FIVE, on(2026, 9, 1), 12),
   ['2026-09-05', '2026-10-05', '2026-11-05', '2026-12-05', '2027-01-05'],
   '"for five months" is five dates, however many were asked for');
 assert.deepEqual(nextDates(FIVE, on(2027, 2, 1), 3), [], 'and none at all once it has ended');
-assert.equal(describeRule(FIVE), 'the 5th of every month, until 5 Jan 2027');
+assert.equal(describeRule(FIVE), 'every month on the 5th, until 5 Jan 2027');
 assert.equal(friendlyDate('2027-01-05'), '5 Jan 2027');
+{
+  const { friendlyDay, shiftDay, daysBetween, inWords } = await import(`${process.env.LIB}/recur.js`);
+  assert.equal(friendlyDay('2026-09-12', '2026-09-08'), 'Sat 12 Sep', 'this year: weekday, day, month');
+  assert.equal(friendlyDay('2027-02-06', '2026-09-08'), 'Sat 6 Feb 2027', 'another year says so');
+  assert.equal(friendlyDay('2026-09-08', '2026-09-08'), 'Today');
+  assert.equal(friendlyDay('2026-09-09', '2026-09-08'), 'Tomorrow');
+  assert.equal(friendlyDay('2026-09-07', '2026-09-08'), 'Yesterday');
+  assert.equal(friendlyDay('2026-09-08'), 'Tue 8 Sep 2026', 'with no today, the year is always given');
+  assert.equal(shiftDay('2026-09-08', 1), '2026-09-09');
+  assert.equal(shiftDay('2026-09-08', -8), '2026-08-31', 'back across a month');
+  assert.equal(shiftDay('2026-12-31', 1), '2027-01-01', 'and forward across a year');
+  assert.equal(shiftDay('2026-03-28', 2), '2026-03-30', 'a clock change is not a day');
+  assert.equal(daysBetween('2026-09-08', '2026-09-12'), 4);
+  assert.equal(daysBetween('2026-09-08', '2026-09-05'), -3);
+  assert.equal(inWords('2026-09-08', '2026-09-08'), 'today');
+  assert.equal(inWords('2026-09-08', '2026-09-09'), 'tomorrow');
+  assert.equal(inWords('2026-09-08', '2026-09-12'), 'in 4 days');
+  assert.equal(inWords('2026-09-08', '2026-09-05'), '3 days ago');
+  console.log('  ok   dates as a person says them');
+}
 assert.equal(isFinished({ rrule: FIVE }, on(2027, 1, 5)), false, 'the last day is still on');
 assert.equal(isFinished({ rrule: FIVE }, on(2027, 1, 6)), true, 'the day after, it is done');
 assert.equal(isFinished({ rrule: MONTHLY }, on(2030, 1, 1)), false, 'no end, never finished');
@@ -154,10 +174,10 @@ assert.equal(parseRule('FREQ=YEARLY;BYMONTH=12;BYMONTHDAY=30', 'hijri'), null, '
 assert.equal(parseRule('FREQ=MONTHLY;BYMONTHDAY=29'), null, 'and the Gregorian cap is still 28');
 assert.equal(maxDay('hijri', 'YEARLY', 3), 30); assert.equal(maxDay('hijri', 'MONTHLY'), 29); assert.equal(maxDay('gregorian', 'YEARLY', 1), 28);
 
-assert.equal(describeRule(RAMADAAN, 'hijri'), 'the 1st of Ramadaan, every year');
-assert.equal(describeRule(H, 'hijri'), 'the 1st of every Hijri month');
+assert.equal(describeRule(RAMADAAN, 'hijri'), 'every year on 1 Ramadaan');
+assert.equal(describeRule(H, 'hijri'), 'every Hijri month on the 1st');
 assert.equal(describeRule('FREQ=YEARLY;BYMONTH=9;BYMONTHDAY=1;UNTIL=20280201', 'hijri'),
-  'the 1st of Ramadaan, every year, until 1 Feb 2028');
+  'every year on 1 Ramadaan, until 1 Feb 2028');
 assert.deepEqual(nextDates('FREQ=YEARLY;BYMONTH=9;BYMONTHDAY=1;UNTIL=20280201', on(2026, 9, 1), 5, 'hijri'),
   ['2027-02-06', '2028-01-27'], 'an end date on a Hijri rule is still a Gregorian day');
 

@@ -145,18 +145,64 @@ const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June',
                 'July', 'August', 'September', 'October', 'November', 'December'];
 const MON = MONTHS.map((m) => m.slice(0, 3));
 
+const DAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
 /** 2027-02-05 → "5 Feb 2027", with no locale in the way. */
 export const friendlyDate = (isoDate: string) => {
   const [y, m, d] = isoDate.split('-').map(Number);
   return `${d} ${MON[m - 1]} ${y}`;
 };
 
+/* Dates as a person says them. The ledger keeps YYYY-MM-DD; a screen says
+   "Today", "Sat 12 Sep", or "Sat 12 Sep 2027" when the year is not this
+   one. All of it in UTC arithmetic on the civil date, so a phone in any
+   time zone gets the same words for the same day. */
+const utc = (iso: string) => {
+  const [y, m, d] = iso.split('-').map(Number);
+  return Date.UTC(y, m - 1, d);
+};
+
+/** The civil date n days on (or back, for a negative n). */
+export function shiftDay(iso: string, n: number): string {
+  return new Date(utc(iso) + n * 86400000).toISOString().slice(0, 10);
+}
+
+/** Whole days from `today` to `iso`: tomorrow is 1, yesterday −1. */
+export const daysBetween = (today: string, iso: string) => Math.round((utc(iso) - utc(today)) / 86400000);
+
+/** "Sat 12 Sep", the year only when it is not today's; "Today", "Tomorrow"
+ *  and "Yesterday" for those, when today is known. */
+export function friendlyDay(iso: string, today?: string): string {
+  if (today) {
+    const gap = daysBetween(today, iso);
+    if (gap === 0) return 'Today';
+    if (gap === 1) return 'Tomorrow';
+    if (gap === -1) return 'Yesterday';
+  }
+  const [y, m, d] = iso.split('-').map(Number);
+  const dow = DAY[new Date(utc(iso)).getUTCDay()];
+  const year = today && today.slice(0, 4) === iso.slice(0, 4) ? '' : ` ${y}`;
+  return `${dow} ${d} ${MON[m - 1]}${year}`;
+}
+
+/** "today", "tomorrow", "in 4 days", "3 days ago" — the distance in words. */
+export function inWords(today: string, iso: string): string {
+  const gap = daysBetween(today, iso);
+  if (gap === 0) return 'today';
+  if (gap === 1) return 'tomorrow';
+  if (gap === -1) return 'yesterday';
+  return gap > 0 ? `in ${gap} days` : `${-gap} days ago`;
+}
+
+/** "every month on the 5th" · "every year on 1 Ramadaan" · "…, until 5 Jan
+ *  2027". Starts lower-case so it can end a sentence; a row that leads with
+ *  it capitalises. */
 export function describeRule(rule: string, cal: Calendar = 'gregorian'): string {
   const r = parseRule(rule, cal);
   if (!r) return 'on no schedule';
   const when = r.freq === 'MONTHLY'
-    ? `the ${ORDINAL(r.day)} of every ${cal === 'hijri' ? 'Hijri month' : 'month'}`
-    : `the ${ORDINAL(r.day)} of ${(cal === 'hijri' ? HIJRI_MONTHS_SHORT : MONTHS)[r.month - 1]}, every year`;
+    ? `every ${cal === 'hijri' ? 'Hijri month' : 'month'} on the ${ORDINAL(r.day)}`
+    : `every year on ${r.day} ${(cal === 'hijri' ? HIJRI_MONTHS_SHORT : MON)[r.month - 1]}`;
   return r.until ? `${when}, until ${friendlyDate(r.until)}` : when;
 }
 
