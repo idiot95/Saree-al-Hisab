@@ -12,6 +12,7 @@ import AddAccount from './AddAccount';
 import AddMethod from './AddMethod';
 import EditAccount, { type Editable } from './EditAccount';
 import { MethodControls } from './Retire';
+import CardDeck, { type CardInfo } from './CardDeck';
 import Screen from '../Screen';
 import Back from '../Back';
 
@@ -21,11 +22,6 @@ export const dynamic = 'force-dynamic';
 const KIND_LABEL = {
   spending: 'Bank', cash: 'Cash', savings: 'Savings', credit: 'Credit card',
 } as const;
-
-const nth = (d: number) => {
-  const s = ['th', 'st', 'nd', 'rd'][(d % 100 - 20) % 10] ?? ['th', 'st', 'nd', 'rd'][d % 100] ?? 'th';
-  return `${d}${s}`;
-};
 
 export default async function Accounts() {
   const actor = await actorOrNull();
@@ -135,65 +131,18 @@ export default async function Accounts() {
         {cards.length > 0 && (
           <>
             <Head>Cards</Head>
-            <Card>
-              {cards.map((a, i) => {
-                const cyc = cycleFor(a.id);
-                const used = Math.abs(Number(a.balance));
-                const limit = a.credit_limit ? Number(a.credit_limit) : null;
-                return (
-                  <EditAccount key={a.id} account={editable(a)} canWrite={canWrite} last={i === cards.length - 1} block>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                      <Chip icon={ACCOUNT_ICON.credit} tint={ACCOUNT_TINT.credit} />
-                      <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
-                        <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>{a.name}</span>
-                        <span style={{ fontSize: 'var(--step--1)', color: 'var(--c-meta)' }}>
-                          {a.last4 ? `ends ${a.last4} · ` : ''}
-                          statement {a.statement_day ? nth(a.statement_day) : '—'},
-                          {' '}due {a.due_day ? nth(a.due_day) : '—'}
-                        </span>
-                      </span>
-                      <span className="t" style={{ fontSize: 'var(--step-1)', letterSpacing: '-.01em' }}>
-                        {format(used)}
-                      </span>
-                    </div>
-
-                    {limit && (
-                      <span style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-                        <span style={{
-                          height: 7, borderRadius: 999, background: 'var(--c-track)', overflow: 'hidden',
-                        }}>
-                          <span style={{
-                            display: 'block', height: '100%', borderRadius: 999,
-                            width: `${Math.min(100, (used / limit) * 100)}%`,
-                            background: used / limit > 0.8 ? 'var(--c-danger-fill)'
-                              : used / limit > 0.5 ? 'var(--c-warn-fill)' : 'var(--c-ok-fill)',
-                          }} />
-                        </span>
-                        <span style={{ fontSize: 'var(--step--2)', color: 'var(--c-meta)' }}>
-                          {format(limit - used)} of {format(limit)} still available
-                        </span>
-                      </span>
-                    )}
-
-                    <span style={{
-                      display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px',
-                      borderRadius: 11, background: 'var(--c-sunk2)', fontSize: 'var(--step--1)',
-                      lineHeight: 1.45, color: 'var(--c-meta)',
-                    }}>
-                      {cyc ? (
-                        <>
-                          <b style={{ color: 'var(--c-ink)' }}>{format(Number(cyc.charged))}</b>
-                          {' '}on this cycle from {cyc.entries} {cyc.entries === 1 ? 'entry' : 'entries'},
-                          {' '}due {new Date(cyc.due_on).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}.
-                        </>
-                      ) : (
-                        <>Nothing on this cycle yet.</>
-                      )}
-                    </span>
-                  </EditAccount>
-                );
-              })}
-            </Card>
+            <CardDeck canWrite={canWrite} cards={cards.map((a): CardInfo => {
+              const cyc = cycleFor(a.id);
+              return {
+                edit: editable(a),
+                owed: Math.abs(Number(a.balance)),
+                limit: a.credit_limit ? Number(a.credit_limit) : null,
+                cycle: cyc
+                  ? { charged: Number(cyc.charged), entries: cyc.entries,
+                      dueOn: new Date(cyc.due_on).toISOString().slice(0, 10) }
+                  : null,
+              };
+            })} />
           </>
         )}
 
@@ -274,4 +223,3 @@ function Empty({ children }: { children: React.ReactNode }) {
     }}>{children}</p>
   );
 }
-

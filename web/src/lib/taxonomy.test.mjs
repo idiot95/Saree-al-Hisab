@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-const { LIBRARY, suggestedGroup, alreadyHave } = await import(`${process.env.LIB}/taxonomy.js`);
+const { LIBRARY, suggestedGroup, alreadyHave, blurbFor } = await import(`${process.env.LIB}/taxonomy.js`);
 
 /* The icons a category may wear are declared in two places in the app, and
    the library must only use those: a name the picker cannot draw would show
@@ -25,6 +25,12 @@ for (const grp of LIBRARY) {
   assert.ok(grp.scope === 'expense' || grp.scope === 'income', `${grp.name}: has a scope`);
   assert.ok(grp.name.length >= 2 && grp.name.length <= 40, `${grp.name}: a name the form would accept`);
   assert.ok(grp.children.length >= 2, `${grp.name}: is a group, with children`);
+  /* The blurb sits under the name on a picker tile, on a phone: one short
+     line, no full stop, and never a restatement of the name. */
+  assert.ok(grp.blurb && grp.blurb.length >= 10 && grp.blurb.length <= 46,
+    `${grp.name}: a blurb short enough for the tile (${grp.blurb?.length})`);
+  assert.ok(!grp.blurb.endsWith('.'), `${grp.name}: the blurb is a label, not a sentence`);
+  assert.notEqual(grp.blurb.toLowerCase(), grp.name.toLowerCase(), `${grp.name}: the blurb says something new`);
   const k = grp.name.toLowerCase();
   assert.ok(!seen.has(k), `"${grp.name}" is named once (also as ${seen.get(k)})`);
   seen.set(k, `parent`);
@@ -42,8 +48,11 @@ assert.ok(children >= 120, 'with well over a hundred children');
 assert.ok(LIBRARY.some((s) => s.scope === 'income'), 'income has groups too');
 
 assert.equal(suggestedGroup('groceries')?.name, 'Groceries', 'a group by name, any case');
+assert.equal(blurbFor('Groceries'), 'Kitchen and household supplies', 'a blurb by name');
+assert.equal(blurbFor('  eating OUT '), 'Restaurants, delivery, tea and snacks', 'trimmed, any case');
+assert.equal(blurbFor('Abdeali museum fund'), null, 'a household\'s own category has no blurb');
 assert.equal(suggestedGroup('nothing'), undefined);
 const have = alreadyHave(suggestedGroup('Groceries'), ['groceries', 'Milk & dairy', 'Rent']);
 assert.deepEqual(have, { parent: true, children: 1 });
 
-console.log(`taxonomy: ${LIBRARY.length} groups, ${children} children, every icon drawable`);
+console.log(`taxonomy: ${LIBRARY.length} groups, ${children} children, every icon drawable, every blurb sized`);

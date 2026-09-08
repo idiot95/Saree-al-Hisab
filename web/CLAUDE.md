@@ -148,9 +148,10 @@ a household whose recurring deposit or second savings account had no rail of
 its own could never record money leaving it, and the ones it could reach sat in
 a strip that scrolled sideways past the edge. Now `/add` is a two-step
 wizard. **Step 1** — the header (kind tabs and the amount) plus "How did you
-pay" and "When"; **Step 2** — "Category" (a four-across grid of parents with a search
-box; a chosen family shows its children as a chip row beneath, and the parent
-tile goes to a wash so the solid chip is the one thing selected), "Where",
+pay" and "When"; **Step 2** — "Category" (the household's four most-used
+choices first, then one card per parent with a plain-words description and all
+of its children visible in a four-across grid; search still narrows the whole
+tree), "Where",
 "On a tab", Shared, and Save. Transfer has no category, so it is one step
 with "To which account" under "From which account". Step 2's header is a one-line summary of step 1
 with "Change", so nothing decided is out of sight. **There is no drawn
@@ -180,6 +181,10 @@ leaving out the one the money is leaving. The Accounts screen tells the same
 story: each bank or cash row lists "Paid through GPay, PhonePe", the rails
 live under "Ways to pay" with a plain-words explanation, and every string
 says "way to pay", "linked to", "takes money from" — never "payment method".
+Credit accounts are card faces rather than ledger rows: outstanding is the
+largest figure, limit use and bill dates sit beneath it, and multiple cards
+form a swipeable deck with tap-sized dots. The same account form opens under
+the face, and Pay hands a prefilled transfer to `/add`.
 
 The client sends `paidWith`, a string reference from `src/lib/pay.ts`:
 `a:<account id>` means paid straight from the account (`txn.account_id` set,
@@ -197,8 +202,8 @@ hidden input; there is no `<select>` of payment modes anywhere, because one
 listing every rail under every account showed "ICICI Amazon Pay" twice and
 read as nonsense. Wrap it in a `<div role="group">`, never a `<label>` — a
 label around buttons activates the first chip. The entries list shows the
-rail when there is one and the account when there is not. `sw.js` is v14 for
-the flat picker. Before Save, a debounced
+rail when there is one and the account when there is not. `sw.js` is v15 for
+the flat picker and category-card snapshot. Before Save, a debounced
 `checkDuplicate` shows what a household member already recorded within ±1% and
 ±2 days, which is the prevention half of the duplicate rule; the Inbox card is
 only the fallback.
@@ -1005,7 +1010,7 @@ storage after it opens. The design, in the order the pieces matter:
   person decides. Stuck entries are never retried on their own.
 - **`/offline` is `force-dynamic`** though it reads nothing, because every
   script tag carries the request's CSP nonce and a prerendered page ships
-  with none. The worker (`public/sw.js`, `VERSION = 'v14'`) fetches it once at
+  with none. The worker (`public/sw.js`, `VERSION = 'v15'`) fetches it once at
   install, `credentials: 'omit'`, together with every `/_next/static/` script
   and stylesheet the markup names, so the cached copy is a self-consistent
   snapshot: the nonce in its cached headers is the nonce in its cached

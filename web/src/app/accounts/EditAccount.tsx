@@ -58,10 +58,15 @@ export default function EditAccount({ account, canWrite, last, block = false, ch
       </SwipeRow>
     );
   }
-  return <Panel account={account} last={last} onDone={() => setOpen(false)} />;
+  return <AccountForm account={account} last={last} onDone={() => setOpen(false)} />;
 }
 
-function Panel({ account: a, last, onDone }: { account: Editable; last: boolean; onDone: () => void }) {
+/** The account's own form, on its own. `EditAccount` swaps a row for it, and
+ *  the card deck opens it under a card face — same fields, same server action,
+ *  so an account is edited in one place however you reached it. */
+export function AccountForm({ account: a, last = true, onDone }: {
+  account: Editable; last?: boolean; onDone: () => void;
+}) {
   const credit = a.kind === 'credit';
   /* The server does the saving; this only decides what the fingertip feels
      and whether the form is still needed afterwards. */

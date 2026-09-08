@@ -90,17 +90,24 @@ export type CategoryScope = 'expense' | 'income' | 'both';
 
 /** Every live category, each child straight after its parent, so a flat list
  *  reads as the tree it is. `parent` is the parent's name — what a picker
- *  shows beside "Milk" so it is not mistaken for a category on its own. */
+ *  shows beside "Milk" so it is not mistaken for a category on its own. The
+ *  use count puts the household's real favourites above the full catalogue. */
 export async function categoriesFor(householdId: string) {
   return withHousehold(householdId, async () => {
     return sql`
-      select c.id, c.name, c.icon, c.tint, c.scope, c.parent_id, p.name as parent
+      select c.id, c.name, c.icon, c.tint, c.scope, c.parent_id, p.name as parent,
+             coalesce(u.n, 0) as uses
       from category c
       left join category p on p.id = c.parent_id
+      left join (
+        select category_id, count(*)::int as n from txn
+        where household_id = ${householdId} and deleted_at is null and category_id is not null
+        group by category_id
+      ) u on u.category_id = c.id
       where c.household_id = ${householdId} and c.archived_at is null
       order by coalesce(p.sort_order, c.sort_order), (c.parent_id is not null), c.sort_order, c.name
     ` as Promise<{ id: string; name: string; icon: string; tint: string; scope: CategoryScope;
-                   parent_id: string | null; parent: string | null }[]>;
+                   parent_id: string | null; parent: string | null; uses: number }[]>;
   });
 }
 

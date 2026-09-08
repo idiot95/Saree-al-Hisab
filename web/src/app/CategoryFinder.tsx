@@ -16,6 +16,9 @@ export type Category = {
   parent_id?: string | null; parent?: string | null;
   /** Spending, income, or both. Missing means spending (older caches). */
   scope?: Scope;
+  /** How many entries already carry it. Feeds "Most used"; missing on a
+   *  queued draft that was cached before the count existed. */
+  uses?: number;
 };
 
 /* The drawer behind the magnifier on Add Entry and behind every other
