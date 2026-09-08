@@ -2,15 +2,14 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { actorOrNull, categoriesFor, schedulesFor, type ScheduleRow } from '@/db/queries';
 import { waysToPay } from '@/db/payment';
-import { formatHijri, toHijri } from '@/lib/hijri';
 import { format } from '@/lib/money';
-import { daysBetween, describeRule, friendlyDay, inWords, isFinished, nextUnsettled, outstandingDues, parseRule, ruleOf } from '@/lib/recur';
+import { daysBetween, describeRule, isFinished, nextUnsettled, outstandingDues, parseRule, ruleOf } from '@/lib/recur';
 import { headerBg } from '../auth-ui';
 import TabBar from '../TabBar';
 import { TAB_BAR_SPACE } from '../tabs';
 import NewSchedule from './NewSchedule';
 import Calendar, { type CalSchedule } from './Calendar';
-import DueRow, { StopSchedule } from './DueRow';
+import DueRow from './DueRow';
 import { archiveSchedule } from './actions';
 import Screen from '../Screen';
 import Back from '../Back';
@@ -131,7 +130,7 @@ export default async function Schedules() {
             <NewSchedule
               startOpen={schedules.length === 0}
               ways={ways}
-              categories={cats.map((c) => ({ id: c.id, name: c.parent ? `${c.parent} › ${c.name}` : c.name }))}
+              categories={cats}
             />
           )}
 
@@ -158,32 +157,34 @@ function Rows({ schedules, canWrite, today, todayIso, done = false }: {
       {schedules.map((s, i) => {
         const r = ruleOf(s);
         const next = done ? null : nextUnsettled(s, s.settled, today);
+        // Stop lives in the swipe; the grip at the edge says so.
         return (
           <Swipeable key={s.id} commit={false} actions={canWrite ? [
             { label: done ? 'Remove' : 'Stop', icon: 'stop', tone: 'danger', act: archiveSchedule,
               fields: { scheduleId: s.id }, done: `${s.name} ${done ? 'removed' : 'stopped'}.` },
           ] : []}>
           <div style={{
-            display: 'flex', alignItems: 'center', gap: 12, minHeight: 74,
+            display: 'flex', alignItems: 'center', gap: 12, minHeight: 74, padding: '10px 0',
             borderBottom: i === schedules.length - 1 ? undefined : '1px solid var(--c-rule)',
           }}>
             <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
-              <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>{s.name}</span>
-              <span style={{ fontSize: 'var(--step--1)', color: 'var(--c-meta)' }}>
+              <span style={{ fontSize: 'var(--step-0)', fontWeight: 600, overflowWrap: 'anywhere' }}>{s.name}</span>
+              <span style={{ fontSize: 'var(--step--1)', color: 'var(--c-meta)', overflowWrap: 'anywhere' }}>
                 {r ? cap(describeRule(r.rule, r.cal)) : 'No schedule'}
+                {s.category ? ` · ${s.category}` : ''}
               </span>
               {r && !done && (
-                <span style={{ fontSize: 'var(--step--1)', color: next ? 'var(--c-ink)' : 'var(--c-meta)' }}>
-                  {next ? `Next ${friendlyDay(next, todayIso)}` : 'Nothing more to come'}
-                  {r.cal === 'hijri' && next && ` · ${hijriOf(next)}`}
-                  {next && Math.abs(daysBetween(todayIso, next)) > 1 && ` · ${inWords(todayIso, next)}`}
+                <span style={{
+                  fontSize: 'var(--step--1)', fontWeight: next ? 600 : 400,
+                  color: next ? (daysBetween(todayIso, next) < 0 ? 'var(--c-out)' : 'var(--c-ink)') : 'var(--c-meta)',
+                }}>
+                  {next ? nextIn(todayIso, next) : 'Nothing more to come'}
                 </span>
               )}
             </span>
             <span className="t amt" style={{
-              fontSize: 'var(--step-0)', color: s.kind === 'income' ? 'var(--c-in)' : 'var(--c-out)',
+              flex: 'none', fontSize: 'var(--step-0)', color: s.kind === 'income' ? 'var(--c-in)' : 'var(--c-out)',
             }}>{s.kind === 'income' ? '+' : ''}{format(Number(s.amount ?? 0))}</span>
-            {canWrite && <StopSchedule scheduleId={s.id} name={s.name} verb={done ? 'Remove' : 'Stop'} />}
           </div>
           </Swipeable>
         );
@@ -192,18 +193,23 @@ function Rows({ schedules, canWrite, today, todayIso, done = false }: {
   );
 }
 
+/** The next date as a count of days — "Due today", "In 27 days", "3 days
+ *  overdue" — and nothing else: a date needs a calendar to read, a number
+ *  of days does not. */
+function nextIn(today: string, next: string) {
+  const gap = daysBetween(today, next);
+  if (gap === 0) return 'Due today';
+  if (gap === 1) return 'Due tomorrow';
+  if (gap > 1) return `In ${gap} days`;
+  return gap === -1 ? '1 day overdue' : `${-gap} days overdue`;
+}
+
 function isoOf(d: Date) {
   const pad = (n: number) => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
-
-/** "2027-02-06" → "1 Ramadaan 1448": the same day, the way it was asked for. */
-function hijriOf(iso: string) {
-  const [y, m, d] = iso.split('-').map(Number);
-  return formatHijri(toHijri({ y, m, d }), true);
-}
 
 function Head({ children }: { children: React.ReactNode }) {
   return (

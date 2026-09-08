@@ -5,7 +5,7 @@ import { useActionState, useState } from 'react';
 import { Field, ErrorNote } from '../../auth-ui';
 import { settleClaim, abandonClaim } from '../actions';
 import { useMoney } from '@/app/currency';
-import { PaySelect } from '../../PaySelect';
+import PayPicker from '../../PayPicker';
 import { defaultRef, type Way } from '@/lib/pay';
 
 type Claim = {
@@ -81,14 +81,10 @@ export default function Claims({ claims, ways, canEdit }: {
                   <Field label="How much came back" name="amount" inputMode="decimal" required
                     autoFocus defaultValue={String(Number(c.outstanding) / 100)} />
                   <Field label="Date" name="occurred_on" type="date" defaultValue={today} required />
-                  <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <div role="group" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                     <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)' }}>Into</span>
-                    <PaySelect name="paidWith" ways={ways} defaultValue={defaultRef(ways)} required style={{
-                      minHeight: 50, borderRadius: 12, border: '1px solid var(--c-border)',
-                      background: 'var(--c-card)', color: 'var(--c-ink)', fontSize: 'var(--field)',
-                      fontWeight: 600, padding: '0 12px',
-                    }} />
-                  </label>
+                    <PayPicker name="paidWith" ways={ways} defaultValue={defaultRef(ways)} />
+                  </div>
                   {state && !state.ok && <ErrorNote>{state.error}</ErrorNote>}
                   <div style={{ display: 'flex', gap: 9 }}>
                     <button className="cta" type="button" onClick={() => setSettling(null)} style={{

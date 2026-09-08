@@ -74,15 +74,3 @@ export function payLabel(way: Way, rail: Rail | null): string {
   if (!rail || rail === ownRail(way)) return way.name;
   return `${rail.name} · ${way.name}`;
 }
-
-/** Every way to pay for a <select>: one group per account that has rails
- *  beyond its own, a single option for one that has not. */
-export function payOptions(ways: Way[]): { label: string; options: { value: string; label: string }[] }[] {
-  return ways.map((w) => {
-    const via = viaRails(w);
-    const own = ownRail(w);
-    const options = [{ value: refOf(w, own), label: w.name }];
-    for (const r of via) options.push({ value: railRef(r.id), label: `${r.name} · ${w.name}` });
-    return { label: w.name, options };
-  });
-}

@@ -5,6 +5,7 @@ import { sql, withHousehold } from '@/db/client';
 import { currentActor } from '@/db/queries';
 import { rethrowControlFlow } from '@/lib/rethrow';
 import { ICONS, TINTS } from './options';
+import { isScope, type Scope } from '@/lib/scope';
 
 export type Result = { ok: true; message?: string } | { ok: false; error: string };
 
@@ -15,19 +16,53 @@ async function mustWrite() {
   return actor;
 }
 
-type Shape = { name: string; icon: string; tint: string; parentId: string | null };
+type Shape = { name: string; icon: string; tint: string; scope: Scope; parentId: string | null };
 
 function shape(fd: FormData): Shape | { error: string } {
   const name = String(fd.get('name') ?? '').trim();
   const icon = String(fd.get('icon') ?? '');
   const tint = String(fd.get('tint') ?? '');
   const parentId = String(fd.get('parentId') ?? '').trim() || null;
+  // A child's form sends no scope: it takes its parent's, in the trigger too.
+  const scope = parentId ? 'expense' : fd.get('scope') ?? 'expense';
   if (name.length < 2) return { error: 'Give the category a name.' };
   if (name.length > 40) return { error: 'Names are 40 characters at most.' };
   if (!(ICONS as readonly string[]).includes(icon)) return { error: 'Pick an icon.' };
   if (!(TINTS as readonly string[]).includes(tint)) return { error: 'Pick a colour.' };
+  if (!isScope(scope)) return { error: 'Say whether it is for spending, income, or both.' };
   if (parentId && !/^[0-9a-f-]{36}$/.test(parentId)) return { error: 'That parent could not be read.' };
-  return { name, icon, tint, parentId };
+  return { name, icon, tint, scope, parentId };
+}
+
+/* A scope may narrow only where nothing filed under the category (or the
+   ones under it) contradicts the narrower reading — the trigger in 0108
+   refuses otherwise. Checked here too, so the household gets a sentence
+   naming what is in the way rather than a constraint's message. */
+async function checkScope(householdId: string, id: string, scope: Scope): Promise<string | null> {
+  if (scope === 'both') return null;
+  const [n] = await sql`
+    select
+      (select count(*)::int from txn t
+        where t.household_id = ${householdId} and t.kind <> 'income'
+          and t.category_id in (select id from category where id = ${id} or parent_id = ${id}))
+      + (select count(*)::int from schedule s
+        where s.household_id = ${householdId} and s.kind <> 'income'
+          and s.category_id in (select id from category where id = ${id} or parent_id = ${id}))
+      + (select count(*)::int from budget b
+        where b.household_id = ${householdId} and b.category_id = ${id}) as spending,
+      (select count(*)::int from txn t
+        where t.household_id = ${householdId} and t.kind = 'income'
+          and t.category_id in (select id from category where id = ${id} or parent_id = ${id}))
+      + (select count(*)::int from schedule s
+        where s.household_id = ${householdId} and s.kind = 'income'
+          and s.category_id in (select id from category where id = ${id} or parent_id = ${id})) as income`;
+  if (scope === 'income' && n.spending > 0) {
+    return 'Spending is filed under it, so it cannot be for income only. Choose Both.';
+  }
+  if (scope === 'expense' && n.income > 0) {
+    return 'Income is filed under it, so it cannot be for spending only. Choose Both.';
+  }
+  return null;
 }
 
 /* A parent must be one of ours, live, and standing on its own — one level,
@@ -65,8 +100,8 @@ export async function addCategory(_prev: Result | null, fd: FormData): Promise<R
 
     try {
       await sql`
-        insert into category (household_id, name, icon, tint, sort_order, parent_id)
-        values (${actor.household_id}, ${v.name}, ${v.icon}, ${v.tint}, ${n}, ${v.parentId}::uuid)`;
+        insert into category (household_id, name, icon, tint, scope, sort_order, parent_id)
+        values (${actor.household_id}, ${v.name}, ${v.icon}, ${v.tint}, ${v.scope}, ${n}, ${v.parentId}::uuid)`;
     } catch {
       // The unique index is on (household, name), archived ones included.
       return { ok: false, error: 'You already have a category with that name.' };
@@ -102,11 +137,17 @@ export async function editCategory(_prev: Result | null, fd: FormData): Promise<
     }
     const bad = await checkParent(actor.household_id, v.parentId, id);
     if (bad) return { ok: false, error: bad };
+    if (!v.parentId) {
+      const stuck = await checkScope(actor.household_id, id, v.scope);
+      if (stuck) return { ok: false, error: stuck };
+    }
 
     try {
       const done = await sql`
         update category set name = ${v.name}, icon = ${v.icon}, tint = ${v.tint},
           parent_id = ${v.parentId}::uuid,
+          -- a child takes its parent's scope (the trigger sets it either way)
+          scope = ${v.scope},
           -- a category that changes family joins the end of its new run
           sort_order = case when parent_id is not distinct from ${v.parentId}::uuid then sort_order
             else (select coalesce(max(sort_order), -1) + 1 from category s

@@ -1,9 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { Icon } from '../Icon';
 import Sheet from '../Sheet';
+import { haptic } from '../haptics';
 import DueRow from './DueRow';
 import { useMoney } from '@/app/currency';
 import { datesInMonth, describeRule, type Calendar as Cal } from '@/lib/recur';
@@ -14,7 +15,19 @@ import { formatHijri, toHijri, HIJRI_MONTHS_SHORT } from '@/lib/hijri';
    from the rules here, on the phone — the same code the server uses for what
    is due — so paging a year ahead costs nothing and asks the server nothing.
    Each English day also wears its Hijri day, because in this house the 1st
-   of Ramadaan is a date people plan around and the 17th of February is not. */
+   of Ramadaan is a date people plan around and the 17th of February is not.
+
+   The grid is folded away by default — one line says what the month holds,
+   and a tap on it opens the days. Whether it was left open is remembered on
+   the phone. Open, a swipe across the grid pages a month, and the arrows
+   beside the month name are the same move for a thumb that prefers to tap. */
+
+const OPEN_KEY = 'calendar-open';
+const onStorage = (cb: () => void) => {
+  window.addEventListener('storage', cb);
+  return () => window.removeEventListener('storage', cb);
+};
+const storedOpen = () => { try { return localStorage.getItem(OPEN_KEY) === '1'; } catch { return false; } };
 
 export type CalSchedule = {
   id: string; name: string; kind: 'expense' | 'income'; amount: number;
@@ -42,6 +55,19 @@ export default function Calendar({ schedules, canWrite, today }: {
   const [{ y, m }, setYm] = useState(() => { const c = civil(today); return { y: c.y, m: c.m }; });
   const [sel, setSel] = useState<string | null>(null);
   const close = useCallback(() => setSel(null), []);
+  // Folded on the server and on first paint; the phone's own choice after.
+  const remembered = useSyncExternalStore(onStorage, storedOpen, () => false);
+  const [chosen, setChosen] = useState<boolean | null>(null);
+  const open = chosen ?? remembered;
+  const toggle = () => {
+    haptic('tap');
+    try { localStorage.setItem(OPEN_KEY, open ? '0' : '1'); } catch { /* storage is optional */ }
+    setChosen(!open);
+  };
+  // A swipe across the grid: sideways and far enough pages the month, and
+  // anything else is left to the page to scroll.
+  const swipe = useRef<{ x: number; y: number } | null>(null);
+  const swiped = useRef(false);   // a page-turn's finger lifted on a day; that is not a tap on it
 
   const key = `${y}-${pad(m)}-`;
   const first = new Date(y, m - 1, 1);
@@ -90,33 +116,87 @@ export default function Calendar({ schedules, canWrite, today }: {
   const selected = sel ? byDay.get(sel) ?? [] : [];
   const selCivil = sel ? civil(sel) : null;
 
+  /* The month in one line for the folded header: how many things land in
+     it, and what they add up to, out and in. Settled ones still count — the
+     line describes the month, not what is left of it. */
+  const all = useMemo(() => Array.from(byDay.values()).flat(), [byDay]);
+  const outSum = all.filter((it) => it.s.kind === 'expense').reduce((n, it) => n + it.s.amount, 0);
+  const inSum = all.filter((it) => it.s.kind === 'income').reduce((n, it) => n + it.s.amount, 0);
+  const overdue = all.filter((it) => it.status === 'overdue').length;
+  const summary = all.length === 0 ? 'Nothing scheduled'
+    : [`${all.length} scheduled`, outSum > 0 ? `${format(outSum)} out` : null,
+       inSum > 0 ? `${format(inSum)} in` : null].filter(Boolean).join(' · ');
+
+  const arrow = (d: 'M15 5l-7 7 7 7' | 'M9 5l7 7-7 7') => (
+    <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d={d} /></svg>
+  );
+
   return (
     <section className="el card" style={{
       margin: '0 var(--gutter) 22px', background: 'var(--c-card)', borderRadius: 18,
-      padding: '12px var(--pad) 12px', display: 'flex', flexDirection: 'column', gap: 8,
+      padding: '6px var(--pad)', display: 'flex', flexDirection: 'column', gap: 8,
     }}>
+      <button type="button" onClick={toggle} aria-expanded={open} aria-controls="cal-grid" style={{
+        display: 'flex', alignItems: 'center', gap: 12, minHeight: 60, width: '100%',
+        color: 'var(--c-ink)', background: 'transparent',
+      }}>
+        <span style={{
+          width: 40, height: 40, flex: 'none', borderRadius: 11, display: 'flex',
+          alignItems: 'center', justifyContent: 'center',
+          background: overdue ? 'var(--c-danger-tint)' : 'var(--c-sunk)',
+          color: overdue ? 'var(--c-danger)' : 'var(--c-teal)',
+        }}>
+          <Icon name="autodebit" size={19} strokeWidth={1.9} />
+        </span>
+        <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>
+            {MONTHS[m - 1]} {y}
+            <span style={{ fontWeight: 400, color: 'var(--c-meta)' }}> · {hijriSpan}</span>
+          </span>
+          <span style={{ fontSize: 'var(--step--1)', color: overdue ? 'var(--c-danger)' : 'var(--c-meta)' }}>
+            {overdue ? `${overdue} overdue · ` : ''}{summary}
+          </span>
+        </span>
+        <span aria-hidden style={{
+          width: 28, height: 28, flex: 'none', borderRadius: 999, display: 'flex',
+          alignItems: 'center', justifyContent: 'center', color: 'var(--c-meta)',
+          background: 'var(--c-sunk)', transition: 'transform .2s',
+          transform: open ? 'rotate(180deg)' : 'none',
+        }}>
+          <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round"><path d="M6 9l6 6 6-6" /></svg>
+        </span>
+      </button>
+
+      <div id="cal-grid" hidden={!open} style={{ display: open ? 'flex' : undefined, flexDirection: 'column', gap: 8, paddingBottom: 6 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-        <button type="button" onClick={() => step(-1)} aria-label="Previous month" style={nav}>
-          <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-            strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M15 5l-7 7 7 7" /></svg>
-        </button>
-        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
-          <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>{MONTHS[m - 1]} {y}</span>
-          <span style={{ fontSize: 'var(--step--2)', color: 'var(--c-meta)' }}>{hijriSpan}</span>
-        </div>
-        {!isNow && (
-          <button type="button" onClick={() => { const c = civil(today); setYm({ y: c.y, m: c.m }); }}
-            style={{ ...nav, width: 'auto', padding: '0 10px', fontSize: 'var(--step--2)', fontWeight: 600 }}>
-            Today
-          </button>
-        )}
-        <button type="button" onClick={() => step(1)} aria-label="Next month" style={nav}>
-          <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-            strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M9 5l7 7-7 7" /></svg>
-        </button>
+        <button type="button" onClick={() => step(-1)} aria-label="Previous month" style={nav}>{arrow('M15 5l-7 7 7 7')}</button>
+        <span style={{ flex: 1, minWidth: 0, textAlign: 'center', fontSize: 'var(--step--1)', color: 'var(--c-meta)' }}>
+          {isNow ? 'This month' : (
+            <button type="button" onClick={() => { const c = civil(today); setYm({ y: c.y, m: c.m }); }}
+              style={{ ...nav, width: 'auto', padding: '0 12px', fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-teal)', margin: '0 auto' }}>
+              Back to today
+            </button>
+          )}
+        </span>
+        <button type="button" onClick={() => step(1)} aria-label="Next month" style={nav}>{arrow('M9 5l7 7-7 7')}</button>
       </div>
 
-      <div role="grid" aria-label={`${MONTHS[m - 1]} ${y}`} style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 2 }}>
+      <div role="grid" aria-label={`${MONTHS[m - 1]} ${y}`}
+        onPointerDown={(e) => { swipe.current = { x: e.clientX, y: e.clientY }; }}
+        onPointerUp={(e) => {
+          const from = swipe.current; swipe.current = null;
+          if (!from) return;
+          const dx = e.clientX - from.x, dy = e.clientY - from.y;
+          if (Math.abs(dx) > 48 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+            swiped.current = true; haptic('tap'); step(dx < 0 ? 1 : -1);
+            setTimeout(() => { swiped.current = false; }, 400);
+          }
+        }}
+        onPointerCancel={() => { swipe.current = null; }}
+        onClickCapture={(e) => { if (swiped.current) { e.stopPropagation(); e.preventDefault(); } }}
+        style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 2, touchAction: 'pan-y' }}>
         {DOW.map((d) => (
           <span key={d} role="columnheader" style={{
             textAlign: 'center', fontSize: 'var(--step--2)', fontWeight: 600, color: 'var(--c-meta)',
@@ -156,8 +236,9 @@ export default function Calendar({ schedules, canWrite, today }: {
         <Key status="coming" kind="income">comes in</Key>
         <Key status="overdue" kind="expense">overdue</Key>
         <Key status="paid" kind="expense">done</Key>
-        <span style={{ flexBasis: '100%' }}>Hijri days begin at maghrib the evening before; the grid shows the daytime date.</span>
+        <span style={{ flexBasis: '100%' }}>Hijri days begin at maghrib the evening before; the grid shows the daytime date. Swipe across the days for another month.</span>
       </p>
+      </div>
 
       <Sheet open={sel !== null} onClose={close} label={sel ? `Scheduled on ${sel}` : 'Scheduled'}>
         {selCivil && sel && (

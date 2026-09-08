@@ -268,6 +268,12 @@ export const category = pgTable('category', {
   name: text('name').notNull(),
   icon: text('icon').notNull(),
   tint: text('tint').notNull(),
+  /* What files under it: spending, income, or either. Salary is not a place
+     rent goes and Groceries is not a place a salary lands, so an income entry
+     or schedule may wear only an income or both category, and spending only
+     expense or both. Held by triggers (0108), since an entry's kind is on
+     another row; a child wears its parent's scope. */
+  scope: text('scope').notNull().default('expense'),
   sortOrder: integer('sort_order').notNull().default(0),
   archivedAt: timestamp('archived_at', { withTimezone: true }),
 }, (t) => [
@@ -278,6 +284,7 @@ export const category = pgTable('category', {
     columns: [t.parentId, t.householdId], foreignColumns: [t.id, t.householdId],
   }).onDelete('cascade'),
   check('not_its_own_parent', sql`${t.parentId} IS DISTINCT FROM ${t.id}`),
+  check('scope_is_named', sql`${t.scope} IN ('expense','income','both')`),
 ]);
 
 /* Monthly, carried forward: one row per category per month. September is

@@ -7,6 +7,7 @@ import { currentActor } from '@/db/queries';
 import { resolvePayment } from '@/db/payment';
 import { fromKeys } from '@/lib/money';
 import { rethrowControlFlow } from '@/lib/rethrow';
+import { fits, misfit } from '@/lib/scope';
 
 export type Result = { ok: true; message?: string } | { ok: false; error: string };
 
@@ -165,10 +166,11 @@ export async function writeOff(_prev: Result | null, fd: FormData): Promise<Resu
     if (!/^\d{4}-\d{2}-\d{2}$/.test(on)) return { ok: false, error: 'That date is not valid.' };
 
     const [cat] = await sql`
-      select id from category
+      select id, name, scope from category
       where id = ${String(fd.get('categoryId') ?? '')} and household_id = ${actor.household_id}
         and archived_at is null`;
     if (!cat) return { ok: false, error: 'Choose which category to count it under.' };
+    if (!fits(cat.scope, 'expense')) return { ok: false, error: misfit('expense', cat.name) };
 
     await sql`
       insert into txn (household_id, created_by, kind, amount, occurred_on,

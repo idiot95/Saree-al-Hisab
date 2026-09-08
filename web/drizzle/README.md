@@ -22,6 +22,8 @@ Run in filename order. The `01xx` files are idempotent (`CREATE OR REPLACE`,
 | A purchase files into the right card cycle | `0103` — `txn_apply_method` trigger |
 | A payment method draws on a real account | `0103` — `method_funding_is_valid` trigger |
 | A foreign-currency entry carries a rate; the currency is fixed once entries exist | `0107` — `txn_currency_shape`, `household_currency_fixed` triggers |
+| A category sits one level deep; a budget line is the parent's | `0108` — `category_one_level`, `budget_on_parent` triggers |
+| A category is for spending, income, or both; entries and schedules file where they fit; a child wears its parent's scope | `0108` — `category_scope_family`, `category_scope_cascade`, `txn_category_scope`, `schedule_category_scope` triggers (column from `0024`) |
 | Another household's rows are invisible, whoever asks | `0109` — policies on every household table, `app_household()`, the `saree_app` role |
 
 ## Row security

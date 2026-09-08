@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useTransition, useEffect } from 'react';
-import { Icon, RAIL_ICON, RAIL_TINT, ACCOUNT_ICON, ACCOUNT_TINT, tintOf } from '../Icon';
-import { defaultRef, findRef, payLabel, pickWay, refOf, viaRails, type Way } from '@/lib/pay';
+import { Icon, ACCOUNT_ICON, ACCOUNT_TINT, tintOf } from '../Icon';
+import { defaultRef, findRef, payLabel, pickWay, type Way } from '@/lib/pay';
+import PayPicker, { CHIP, CHIP_TEXT } from '../PayPicker';
 import { HEADER_BG } from '../auth-ui';
 import { useRouter } from 'next/navigation';
 import { pushKey, popKey, fromKeys } from '@/lib/money';
@@ -13,7 +14,8 @@ import { saveEntry, checkDuplicate } from './actions';
 import { haptic } from '../haptics';
 import { enqueue, writePickers, type Queued } from './queue';
 import { shares } from '../tab/splits';
-import CategoryFinder from './CategoryFinder';
+import CategoryFinder, { type Category } from '../CategoryFinder';
+import { fits } from '@/lib/scope';
 
 /* Add Entry — the screen the whole product rests on.
    With no bank feed and no SMS, this is how nearly everything gets in, so it
@@ -38,12 +40,7 @@ const KINDS: { id: Kind; label: string }[] = [
   { id: 'transfer', label: 'Transfer' },
 ];
 
-export type Category = {
-  id: string; name: string; tint: string; icon: string;
-  /** Set on a child — Milk under Groceries. The strip shows parents; the
-      search drawer shows everyone. */
-  parent_id?: string | null; parent?: string | null;
-};
+export type { Category };
 export type { Way };
 export type Tab = { id: string; name: string; people: number; last_counts: boolean | null };
 /** An open claim, for the income screen to point money at. */
@@ -100,9 +97,14 @@ export default function AddEntry({
      that, or anything nested, the last tile opens the finder; whatever was
      chosen there takes the first tile, so what is selected is always in
      view. */
-  const strip = categories.filter((c) => !c.parent_id);
-  const chosen = categories.find((c) => c.id === categoryId);
-  const findable = strip.length > 8 || categories.length !== strip.length;
+  /* Only the categories that take this kind of entry: income under Salary,
+     not under Groceries. The server refuses the other way round, so a tile
+     that would be refused is not offered. A category picked for one kind
+     and then the kind changed is simply let go of. */
+  const offered = categories.filter((c) => fits(c.scope, kind ?? 'expense'));
+  const strip = offered.filter((c) => !c.parent_id);
+  const chosen = offered.find((c) => c.id === categoryId);
+  const findable = strip.length > 8 || offered.length !== strip.length;
   const seats = findable ? 7 : 8;
   const tiles = chosen && !strip.slice(0, seats).some((c) => c.id === chosen.id)
     ? [chosen, ...strip.slice(0, seats - 1)]
@@ -166,7 +168,7 @@ export default function AddEntry({
     setError(null);
     setKept(null);
     const draft = {
-      kind, amountMinor: minor, categoryId, paidWith: paid,
+      kind, amountMinor: minor, categoryId: chosen?.id ?? null, paidWith: paid,
       counterAccountId: counterId, merchant, occurredOn, isShared: shared,
       tabId: kind === 'expense' ? tabId : null,
       tabCoveredMinor: kind === 'expense' && tabId && coveredKeys ? fromKeys(coveredKeys) : null,
@@ -196,7 +198,7 @@ export default function AddEntry({
   // A transfer moves money and can never wear a category — the same rule the
   // database enforces, applied here so the field simply is not offered.
   const wantsCategory = kind !== 'transfer';
-  const canSave = minor > 0 && (!wantsCategory || categoryId !== null || allBack)
+  const canSave = minor > 0 && (!wantsCategory || chosen !== undefined || allBack)
     && (kind !== 'transfer' || counterId !== null) && !pending;
 
   return (
@@ -393,7 +395,7 @@ export default function AddEntry({
 
       {wantsCategory && findable && (
         <CategoryFinder open={finding} onClose={() => setFinding(false)}
-          categories={categories} selected={categoryId}
+          categories={offered} selected={categoryId}
           onPick={(id) => { setCategoryId(id); setFinding(false); }} />
       )}
 
@@ -658,14 +660,6 @@ const key: React.CSSProperties = {
   borderRadius: 13, background: 'var(--c-sunk2)', fontSize: 'var(--step-2)', fontWeight: 600, color: 'var(--c-ink)',
 };
 const SECTION: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: 9 };
-/** A chip with room for its name: wraps into the next row rather than past
- *  the edge of the screen. */
-const CHIP: React.CSSProperties = {
-  minHeight: 44, maxWidth: '100%', padding: '0 13px 0 10px', display: 'flex', alignItems: 'center',
-  gap: 7, borderRadius: 999, fontSize: 'var(--step--1)', fontWeight: 600,
-  transition: 'background .15s, color .15s',
-};
-const CHIP_TEXT: React.CSSProperties = { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' };
 const TILE: React.CSSProperties = {
   minHeight: 66, padding: '8px 6px', borderRadius: 14, display: 'flex', flexDirection: 'column',
   alignItems: 'center', justifyContent: 'center', gap: 5, textAlign: 'center',
@@ -691,86 +685,6 @@ function Eyebrow({ id, hint, children }: { id: string; hint?: string; children: 
           fontSize: 'var(--step--2)', fontWeight: 600, color: 'var(--c-ink)', minWidth: 0,
           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         }}>{hint}</span>
-      )}
-    </div>
-  );
-}
-
-/* Every account as a chip; under the chosen one, the rails that draw on it,
-   plus "Directly" for money that left the account with no app in between.
-   Tapping an account lands on its usual rail — the one marked default, or
-   its only one — so the common case is one tap, and the account with no rail
-   at all is simply itself. A rail named after its account (the card on the
-   card) is the account and is not offered twice. */
-function PayPicker({ ways, value, onChange }: {
-  ways: Way[]; value: string; onChange: (ref: string) => void;
-}) {
-  const hit = findRef(ways, value);
-  const way = hit?.way ?? null;
-  const via = way ? viaRails(way) : [];
-  if (ways.length === 0) {
-    return (
-      <p style={{ margin: 0, fontSize: 'var(--step--1)', color: 'var(--c-meta)' }}>
-        No accounts yet — add one under Accounts first.
-      </p>
-    );
-  }
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-      <div role="radiogroup" aria-label="Which account" style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-        {ways.map((w) => {
-          const on = w.id === way?.id;
-          const [bg, ink] = tintOf(ACCOUNT_TINT[w.kind]);
-          return (
-            <button key={w.id} type="button" role="radio" aria-checked={on}
-              onClick={() => { haptic('select'); onChange(pickWay(w)); }}
-              style={{
-                ...CHIP, background: on ? ink : bg, color: on ? '#fff' : ink,
-                border: `1px solid ${on ? ink : 'transparent'}`,
-              }}>
-              <Icon name={ACCOUNT_ICON[w.kind] ?? 'bank'} size={17} strokeWidth={1.9} />
-              <span style={CHIP_TEXT}>{w.name}</span>
-            </button>
-          );
-        })}
-      </div>
-      {way && via.length > 0 && (
-        <div role="radiogroup" aria-label={`How, from ${way.name}`}
-          style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6 }}>
-          <span style={{ fontSize: 'var(--step--2)', fontWeight: 600, color: 'var(--c-meta)', padding: '0 4px 0 2px' }}>
-            via
-          </span>
-          {via.map((r) => {
-            const on = hit?.rail?.id === r.id;
-            const [bg, ink] = tintOf(RAIL_TINT[r.kind]);
-            return (
-              <button key={r.id} type="button" role="radio" aria-checked={on}
-                onClick={() => { haptic('select'); onChange(refOf(way, r)); }}
-                style={{
-                  ...CHIP, minHeight: 40, padding: '0 11px 0 9px', fontSize: 'var(--step--2)',
-                  background: on ? ink : bg, color: on ? '#fff' : ink,
-                  border: `1px solid ${on ? ink : 'transparent'}`,
-                }}>
-                <Icon name={RAIL_ICON[r.kind] ?? 'wallet'} size={15} strokeWidth={1.9} />
-                <span style={CHIP_TEXT}>{r.name}</span>
-              </button>
-            );
-          })}
-          {(() => {
-            const on = !!hit && (hit.rail === null || !via.some((r) => r.id === hit.rail?.id));
-            return (
-              <button type="button" role="radio" aria-checked={on}
-                onClick={() => { haptic('select'); onChange(refOf(way, way.rails.find((r) => !via.includes(r)) ?? null)); }}
-                style={{
-                  ...CHIP, minHeight: 40, padding: '0 11px', fontSize: 'var(--step--2)',
-                  background: on ? 'var(--c-ink)' : 'var(--c-sunk)', color: on ? 'var(--c-bg)' : 'var(--c-ink)',
-                  border: `1px solid ${on ? 'var(--c-ink)' : 'transparent'}`,
-                }}>
-                Directly
-              </button>
-            );
-          })()}
-        </div>
       )}
     </div>
   );

@@ -1,7 +1,7 @@
 // Run through: node scripts/lib.test.mjs
 import assert from 'node:assert/strict';
 const {
-  findRef, defaultRef, pickWay, payLabel, payOptions, viaRails, ownRail, accountRef, railRef,
+  findRef, defaultRef, pickWay, payLabel, viaRails, ownRail, accountRef, railRef,
 } = await import(`${process.env.LIB}/pay.js`);
 
 const hdfc = { id: 'A1', name: 'HDFC Savings', kind: 'spending', rails: [
@@ -48,14 +48,6 @@ assert.equal(payLabel(hdfc, hdfc.rails[0]), 'GPay · HDFC Savings');
 assert.equal(payLabel(hdfc, null), 'HDFC Savings');
 assert.equal(payLabel(cash, cash.rails[0]), 'Cash');
 
-// The select: one group per account, the account itself first in each.
-assert.deepEqual(payOptions(ways).map((g) => [g.label, g.options.map((o) => o.value)]), [
-  ['HDFC Savings', ['a:A1', 'm:R1', 'm:R2']],
-  ['ICICI Savings', ['a:A2']],
-  ['Cash', ['m:R3']],
-  ['HDFC Regalia', ['m:R4']],
-]);
-assert.equal(payOptions(ways)[0].options[1].label, 'GPay · HDFC Savings');
 assert.equal(accountRef('A9'), 'a:A9');
 assert.equal(railRef('R9'), 'm:R9');
 console.log('  ok   ways to pay');

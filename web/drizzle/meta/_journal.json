@@ -169,6 +169,13 @@
       "when": 1788839292265,
       "tag": "0023_subcategories",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1788858349856,
+      "tag": "0024_category_scope",
+      "breakpoints": true
     }
   ]
 }

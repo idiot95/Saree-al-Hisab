@@ -7,6 +7,7 @@ import { currentActor } from '@/db/queries';
 import { resolvePayment } from '@/db/payment';
 import { fromKeys } from '@/lib/money';
 import { rethrowControlFlow } from '@/lib/rethrow';
+import { fits, misfit } from '@/lib/scope';
 
 export type Result = { ok: true; message?: string } | { ok: false; error: string };
 
@@ -62,9 +63,10 @@ export async function updateEntry(_prev: Result | null, fd: FormData): Promise<R
     if (wantsCategory) {
       const raw = String(fd.get('category_id') ?? '');
       const [cat] = await sql`
-        select id from category
+        select id, name, scope from category
         where id = ${raw} and household_id = ${actor.household_id} and archived_at is null`;
       if (!cat) return { ok: false, error: 'Choose a category.' };
+      if (!fits(cat.scope, existing.kind)) return { ok: false, error: misfit(existing.kind, cat.name) };
       categoryId = cat.id;
     }
 

@@ -36,7 +36,8 @@ export async function saveBudget(_prev: Result | null, fd: FormData): Promise<Re
     // 0108 refuses a child's budget row, and the form never offers one).
     const categories = await sql`
       select id from category
-      where household_id = ${actor.household_id} and archived_at is null and parent_id is null`;
+      where household_id = ${actor.household_id} and archived_at is null and parent_id is null
+        and scope <> 'income'`;
 
     const rows: { category_id: string; amount: number }[] = [];
     for (const c of categories) {

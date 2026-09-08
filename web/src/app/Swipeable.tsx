@@ -30,8 +30,8 @@ export type Swipe = {
   done?: string;
 };
 
-export default function Swipeable({ actions, commit = true, children }: {
-  actions: Swipe[]; commit?: boolean; children: React.ReactNode;
+export default function Swipeable({ actions, commit = true, grip = true, children }: {
+  actions: Swipe[]; commit?: boolean; grip?: boolean; children: React.ReactNode;
 }) {
   const router = useRouter();
   const [, start] = useTransition();
@@ -58,7 +58,7 @@ export default function Swipeable({ actions, commit = true, children }: {
 
   return (
     <>
-      <SwipeRow actions={rows} commit={commit}>{children}</SwipeRow>
+      <SwipeRow actions={rows} commit={commit} grip={grip}>{children}</SwipeRow>
       <Snack snack={snack} onClose={closeSnack} />
     </>
   );

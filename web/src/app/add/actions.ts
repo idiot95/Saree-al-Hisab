@@ -5,6 +5,7 @@ import { sql, withHousehold } from '@/db/client';
 import { currentActor, possibleDuplicate } from '@/db/queries';
 import { resolvePayment } from '@/db/payment';
 import { shares } from '../tab/splits';
+import { fits, misfit } from '@/lib/scope';
 
 /* A Server Action is reachable by direct POST, not only through the UI, so
    every value the client sends is treated as untrusted: the household and the
@@ -135,9 +136,13 @@ export async function saveEntry(d: Draft): Promise<SaveResult> {
         return { ok: false, error: settles.length ? 'Choose a category for the part that is income.' : 'Choose a category.' };
       }
       const [cat] = await sql`
-        select id from category
+        select id, name, scope from category
         where id = ${d.categoryId} and household_id = ${household_id} and archived_at is null`;
       if (!cat) return { ok: false, error: 'That category is not one of yours.' };
+      // Money that settles a claim with some left over is income for the rest.
+      if (!fits(cat.scope, settles.length ? 'income' : d.kind)) {
+        return { ok: false, error: misfit(settles.length ? 'income' : d.kind, cat.name) };
+      }
       categoryId = cat.id;
     }
 

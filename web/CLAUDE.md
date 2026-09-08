@@ -169,11 +169,14 @@ is the one place a reference becomes `{ account_id, payment_method_id }` — it
 returns null for anything that is not this household's, and every action that
 takes a payment goes through it (`saveEntry`, `updateEntry`, `createSchedule`,
 `settleTab`, `lend`, `recordRepayment`, `settleClaim`). The flat forms —
-EditEntry, NewSchedule, the tab and person sheets — use `PaySelect`, a
-`<select>` with an `<optgroup>` per account that has rails ("GPay · HDFC
-Savings" under HDFC Savings) and a single option for one that does not. The
-entries list shows the rail when there is one and the account when there is
-not. `sw.js` is v11 for the layout change. Before Save, a debounced
+EditEntry, NewSchedule, the tab and person sheets — use the same `PayPicker`
+(`src/app/PayPicker.tsx`), with a `name` so it carries the reference in a
+hidden input; there is no `<select>` of payment modes anywhere, because one
+listing every rail under every account showed "ICICI Amazon Pay" twice and
+read as nonsense. Wrap it in a `<div role="group">`, never a `<label>` — a
+label around buttons activates the first chip. The entries list shows the
+rail when there is one and the account when there is not. `sw.js` is v12 for
+the picker and scope changes. Before Save, a debounced
 `checkDuplicate` shows what a household member already recorded within ±1% and
 ±2 days, which is the prevention half of the duplicate rule; the Inbox card is
 only the fallback.
@@ -785,11 +788,35 @@ siblings; `reorderCategories` takes the top-level set only and the family
 drags as one block. Add Entry's strip shows the top level; a magnifier chip
 opens `CategoryFinder` (a `Sheet`) with a client-side filter over rows already
 in memory, and a chosen child takes the first place as "Groceries › Milk".
-Flat pickers elsewhere name a child the same way. Icons: the base set in
+Every other category field — NewSchedule, EditEntry, a write-off — is
+`CategoryPick` (`src/app/CategoryPick.tsx`): one row showing the pick with
+its icon that opens the same `CategoryFinder`, so a category is found by
+typing and seen by its icon everywhere. Icons: the base set in
 `Icon.tsx` is what every page pays for; the long tail lives in
 `glyphs-more.tsx`, keyed by `glyph-names.ts` and loaded through
 `next/dynamic` the first time a page shows one of its names, so a household
 that never files Milk never downloads the bottle.
+
+**A category is for spending, for income, or for both** (`category.scope`,
+`0024` + triggers in `0108`, mirrored for pickers and actions by
+`src/lib/scope.ts`). An income entry or schedule files only under
+`income`/`both`; an expense, a refund, a write-off or a transfer with a
+category only under `expense`/`both`; a budget line never under `income`
+(a budget limits spending). `txn_category_scope` and
+`schedule_category_scope` refuse the misfit at the row, and every action
+re-checks with `fits()` first so the message is a sentence
+(`misfit(kind, name)`). A child takes its parent's scope — set on insert,
+cascaded on update — and a scope may narrow (`both` → one, or flip) only if
+nothing filed under the family contradicts it; `editCategory` asks
+`checkScope` first for a readable refusal, and the editor's Segmented control
+is hidden under a parent. Pickers filter with `fits(c.scope, kind)`:
+AddEntry's strip follows the kind tab, NewSchedule's list follows
+Expense/Income, EditEntry's follows the entry's fixed kind. The starter kit
+seeds six income categories (Salary, Business, Rent received, Interest &
+dividends, Gifts received, Other income) and the `0108` backfill gave them to
+every existing household, turning a category with income already filed into
+`both`. `budgetFor`, `categoryTrend`, the budget form's list and the scan
+hint all leave out `income`-only categories.
 
 ### Dates are tapped, not typed
 
@@ -1090,11 +1117,13 @@ on load.
 
 **Going back** (`src/app/Back.tsx`, one `<Back to="…">` on every screen with a
 header arrow): a swipe from the left edge, and a Back pill that floats in at
-the bottom-left the moment the header's arrow scrolls out of view and leaves
-when it returns — never two Backs on screen at once. Installed, there is no
-browser chrome and no system back gesture, so without these the only way out
-of a scrolled screen was the far top-left. The pill is fixed at z 34, under
-the veil (35) and the tab bar (40), above the bar where there is one;
+the top-left the moment the header's arrow scrolls out of view and leaves
+when it returns — never two Backs on screen at once, and where the arrow
+was, not at the thumb's end of the screen where it fought the tab bar. A
+sticky bar marked `data-topbar` (the budget's month total) pushes the pill
+below itself. Installed, there is no browser chrome and no system back
+gesture, so without these the only way out of a scrolled screen was the far
+top-left. The pill is fixed at z 34, under the veil (35) and the tab bar (40);
 visibility is set from an IntersectionObserver, never in an effect body, so
 the first paint carries no pill on either side. `to` is always our own
 literal and is still checked (absolute, same-origin) before use.
@@ -1106,14 +1135,24 @@ scroll. One row open at a time, and a drag never turns into the row's tap.
 **Closing is easier than opening**: a tap outside, a tap on the row, a
 scroll, Escape, or an 18px nudge back to the right all close it, and a flick
 (over 0.5 px/ms) decides by direction alone however short — an open row never
-has to be dragged the whole way home. **Nothing is gesture-only**: every row
-still opens on tap, and the edit panel offers Move up / Move down / Retire as
-buttons, because a gesture nobody discovers is a feature nobody has.
+has to be dragged the whole way home. The tap that closes an open row is
+swallowed (a capture-phase click listener, dropped 400ms later), so tapping
+away never also opens the entry underneath. **A row that can be swiped says
+so**: a chevron grip at its right edge (`grip`, on by default; the category
+editor turns it off on parents that carry a reorder grip instead), which is
+also the twin — tapping it opens the actions, tapping again closes — so
+nothing is gesture-only and a row needs no second set of buttons repeating
+what the swipe offers. The first swipe row a device sees peeks its actions
+out and back once (`localStorage 'swipe-peeked'`, coarse pointers only,
+reduced motion respected). Where a row's every action is in the swipe (a due
+row, a schedule row), there are no buttons under it.
 
 Where they live. Entries: Edit, Delete. Categories: Edit, Retire, plus a grip
-to drag the order. Schedules: a due row swipes to Skip or Record (Came in for
-income), an every-month row to Stop — with `commit` off, so a long swipe
-cannot silence rent by accident. Inbox: a card bill swipes to Pay, which opens
+to drag the order. Schedules: a due row swipes to Skip, Move or Record (Came
+in for income), an every-month row to Stop — with `commit` off, so a long
+swipe cannot silence rent by accident — and the month grid is folded to one
+summary line until tapped (`localStorage 'calendar-open'`), with a swipe
+across the days paging the month. Inbox: a card bill swipes to Pay, which opens
 Add Entry as a transfer into that card for the charged amount. Lending: a tab
 swipes to Add cost; an entry on a tab to Edit. Accounts: Edit, and Move (a
 bank account) or Pay it (a card), both landing on Add Entry with the transfer

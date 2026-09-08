@@ -4,16 +4,17 @@ import { useActionState, useState } from 'react';
 import { Field, ErrorNote } from '../../auth-ui';
 import { lend, recordRepayment, writeOff } from '../actions';
 import { useMoney } from '@/app/currency';
-import { PaySelect } from '../../PaySelect';
+import PayPicker from '../../PayPicker';
+import CategoryPick from '../../CategoryPick';
+import type { Category } from '../../CategoryFinder';
 import { defaultRef, type Way } from '@/lib/pay';
-
-type Cat = { id: string; name: string };
+import { fits } from '@/lib/scope';
 
 /* Three actions, three shapes, and the copy says which is which — because the
    difference between them is the entire point. Lending and repayment move
    money without spending it. Writing off is the moment it becomes spending. */
 export default function PersonActions({ personId, name, balance, ways, categories }: {
-  personId: string; name: string; balance: number; ways: Way[]; categories: Cat[];
+  personId: string; name: string; balance: number; ways: Way[]; categories: Category[];
 }) {
   const { format } = useMoney();
   const [mode, setMode] = useState<null | 'lend' | 'back' | 'off'>(null);
@@ -79,8 +80,9 @@ export default function PersonActions({ personId, name, balance, ways, categorie
           <Field label="Amount" name="amount" inputMode="decimal" required autoFocus
             defaultValue={balance > 0 ? String(balance / 100) : ''} />
           <Field label="Date" name="occurred_on" type="date" defaultValue={today} required />
-          <Select label="Count it under" name="categoryId"
-            options={categories.map((c) => ({ value: c.id, label: c.name }))} />
+          {/* A write-off is spending, so only a category for spending will do. */}
+          <CategoryPick label="Count it under" name="categoryId"
+            categories={categories.filter((c) => fits(c.scope, 'expense'))} />
           <Field label="Note (optional)" name="note" maxLength={200} />
           {offState && !offState.ok && <ErrorNote>{offState.error}</ErrorNote>}
           <Row onCancel={() => setMode(null)} pending={forgiving} label="Write it off" danger />
@@ -107,29 +109,12 @@ function Explain({ children }: { children: React.ReactNode }) {
     <p style={{ margin: 0, fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--c-meta)' }}>{children}</p>
   );
 }
-const SELECT: React.CSSProperties = {
-  minHeight: 52, borderRadius: 13, border: '1px solid var(--c-border)',
-  background: 'var(--c-card)', color: 'var(--c-ink)', fontSize: 'var(--field)',
-  fontWeight: 600, padding: '0 12px',
-};
-function Select({ label, name, options }: {
-  label: string; name: string; options: { value: string; label: string }[];
-}) {
-  return (
-    <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-      <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)' }}>{label}</span>
-      <select name={name} required style={SELECT}>
-        {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-      </select>
-    </label>
-  );
-}
 function PayField({ label, ways }: { label: string; ways: Way[] }) {
   return (
-    <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+    <div role="group" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
       <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)' }}>{label}</span>
-      <PaySelect name="paidWith" ways={ways} defaultValue={defaultRef(ways)} required style={SELECT} />
-    </label>
+      <PayPicker name="paidWith" ways={ways} defaultValue={defaultRef(ways)} />
+    </div>
   );
 }
 function Row({ onCancel, pending, label, danger }: {

@@ -1,0 +1,2 @@
+ALTER TABLE "category" ADD COLUMN "scope" text DEFAULT 'expense' NOT NULL;--> statement-breakpoint
+ALTER TABLE "category" ADD CONSTRAINT "scope_is_named" CHECK ("category"."scope" IN ('expense','income','both'));

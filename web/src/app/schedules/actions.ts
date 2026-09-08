@@ -7,6 +7,7 @@ import { resolvePayment } from '@/db/payment';
 import { fromKeys } from '@/lib/money';
 import { buildRule, parseRule, nextDates, maxDay, rewriteRuleTo, ruleOf, describeRule, friendlyDate, type Calendar } from '@/lib/recur';
 import { rethrowControlFlow } from '@/lib/rethrow';
+import { fits, misfit } from '@/lib/scope';
 
 export type Result = { ok: true; message?: string } | { ok: false; error: string };
 
@@ -89,10 +90,11 @@ export async function createSchedule(_prev: Result | null, fd: FormData): Promis
     if (!paid) return { ok: false, error: kind === 'income' ? 'Choose where it arrives.' : 'Choose how it is paid.' };
 
     const [cat] = await sql`
-      select id from category
+      select id, name, scope from category
       where id = ${String(fd.get('categoryId') ?? '')} and household_id = ${actor.household_id}
         and archived_at is null`;
     if (!cat) return { ok: false, error: 'Choose a category.' };
+    if (!fits(cat.scope, kind)) return { ok: false, error: misfit(kind, cat.name) };
 
     // The rule lands in the column for its calendar and the other stays NULL;
     // the table's CHECK insists on one of the two.

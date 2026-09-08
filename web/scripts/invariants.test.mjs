@@ -57,6 +57,9 @@ const cash = await mk('Cash', 'cash');
 const card = await mk('HDFC Regalia', 'credit', { statement_day: 5, due_day: 12, credit_limit: 20000000 });
 const [catRow] = await sql`insert into category ${sql({ household_id: hh.id, name: 'Groceries', icon: 'cart', tint: 'green' })} returning id`;
 const cat = catRow.id;
+// A category for what comes in: a salary files under it, and rent never can.
+const [payRow] = await sql`insert into category ${sql({ household_id: hh.id, name: 'Salary', icon: 'salary', tint: 'green', scope: 'income' })} returning id`;
+const pay = payRow.id;
 
 const txn = (o) => sql`insert into txn ${sql({
   household_id: hh.id, created_by: user.id, occurred_on: '2026-09-01',
@@ -171,7 +174,7 @@ ok(await balanceOf(fresh.id) === 10000000,
 await txn({ kind: 'expense', account_id: fresh.id, category_id: cat, amount: 250000 });
 ok(await balanceOf(fresh.id) === 9750000, 'spending ₹2,500 leaves ₹97,500');
 
-await txn({ kind: 'income', account_id: fresh.id, category_id: cat, amount: 1000000 });
+await txn({ kind: 'income', account_id: fresh.id, category_id: pay, amount: 1000000 });
 ok(await balanceOf(fresh.id) === 10750000, 'income puts it back');
 
 /* A credit account goes NEGATIVE as you spend on it, because that is what
@@ -436,7 +439,7 @@ ok(petrolAfter.book_id === null && petrolAfter.deleted_at === null && sharesLeft
 console.log('\nSCHEDULES — a salary comes round the way rent does');
 await allows('a schedule can be income',
   () => sql`insert into schedule ${sql({ household_id: hh.id, kind: 'income', name: 'Salary', amount: 12000000,
-    account_id: spend, category_id: cat, rrule: 'FREQ=MONTHLY;BYMONTHDAY=1' })}`);
+    account_id: spend, category_id: pay, rrule: 'FREQ=MONTHLY;BYMONTHDAY=1' })}`);
 await refuses('but not a transfer — a schedule is a payment or a receipt, never a move',
   () => sql`insert into schedule ${sql({ household_id: hh.id, kind: 'transfer', name: 'Sweep', amount: 100,
     account_id: spend, rrule: 'FREQ=MONTHLY;BYMONTHDAY=1' })}`);
@@ -507,6 +510,42 @@ await refuses('a budget line on a child is refused — it rolls up into the pare
   () => sql`insert into budget ${sql({ household_id: hh.id, category_id: milk.id, month: '2026-09-01', amount: 100 })}`);
 await allows('an entry files under the child itself',
   () => txn({ kind: 'expense', account_id: cash, category_id: milk.id }));
+
+console.log('\nSCOPE — a category is for spending, for income, or for both');
+await refuses('income under a category for spending is refused',
+  () => txn({ kind: 'income', account_id: spend, category_id: cat }));
+await refuses('spending under a category for income is refused',
+  () => txn({ kind: 'expense', account_id: cash, category_id: pay }));
+await refuses('a refund is spending too — not under a category for income',
+  () => txn({ kind: 'refund', account_id: cash, category_id: pay }));
+await refuses('a schedule for spending under a category for income is refused',
+  () => sql`insert into schedule ${sql({ household_id: hh.id, kind: 'expense', name: 'Rent', amount: 100,
+    account_id: spend, category_id: pay, rrule: 'FREQ=MONTHLY;BYMONTHDAY=1' })}`);
+await refuses('a scope that is not one of the three is refused',
+  () => mkCat({ name: 'Odd', scope: 'sideways' }));
+await refuses('a budget line on a category for income is refused — a budget limits spending',
+  () => sql`insert into budget ${sql({ household_id: hh.id, category_id: pay, month: '2026-10-01', amount: 100 })}`);
+const [bonus] = await mkCat({ name: 'Bonus', parent_id: pay, scope: 'expense' });
+const [bonusRow] = await sql`select scope from category where id = ${bonus.id}`;
+ok(bonusRow.scope === 'income', 'a child takes its parent\'s scope, whatever it asked for');
+await allows('income files under the child of a category for income',
+  () => txn({ kind: 'income', account_id: spend, category_id: bonus.id }));
+await allows('a category for income can widen to both',
+  () => sql`update category set scope = 'both' where id = ${pay}`);
+const [bonusWide] = await sql`select scope from category where id = ${bonus.id}`;
+ok(bonusWide.scope === 'both', 'and its children follow');
+await allows('now spending files under it too',
+  () => txn({ kind: 'expense', account_id: cash, category_id: bonus.id }));
+await refuses('it cannot narrow back to income while spending is filed under its child',
+  () => sql`update category set scope = 'income' where id = ${pay}`);
+await refuses('nor to spending while income is filed under it',
+  () => sql`update category set scope = 'expense' where id = ${pay}`);
+await refuses('Groceries cannot become income-only — spending is filed under it',
+  () => sql`update category set scope = 'income' where id = ${cat}`);
+await allows('but it can be for both',
+  () => sql`update category set scope = 'both' where id = ${cat}`);
+await allows('and back to spending, since no income was ever filed under it',
+  () => sql`update category set scope = 'expense' where id = ${cat}`);
 
 console.log('\nACCESS — an invitation is bound to a person, not to a link');
 const invited = EMAILS[0];

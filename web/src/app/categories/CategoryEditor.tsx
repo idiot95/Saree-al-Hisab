@@ -10,16 +10,18 @@ import {
   addCategory, editCategory, retireCategory, restoreCategory, moveCategory, reorderCategories,
 } from './actions';
 import { ICONS, TINTS } from './options';
+import { Segmented } from '../DatePick';
+import { SCOPE_LABEL, type Scope } from '@/lib/scope';
 
 type Cat = {
-  id: string; name: string; icon: string; tint: string; parent_id: string | null;
+  id: string; name: string; icon: string; tint: string; scope: Scope; parent_id: string | null;
   children: number; archived: boolean; entries: number; budgeted_months: number;
 };
 
 /* A category may sit under one other — Milk under Groceries — and no deeper.
    The list shows each family as a block: the parent's row, then its children
    indented beneath it, and the block drags as one. */
-type Parent = { id: string; name: string };
+type Parent = { id: string; name: string; scope: Scope };
 
 /* Picking an icon and a colour is the whole point of the screen, so both are
    shown as themselves rather than named in a dropdown. A hundred and more
@@ -112,8 +114,8 @@ function Picker({ icon, tint, onIcon, onTint }: {
    list of parents is exactly the kind of short, named list a select was made
    for. A category with children of its own cannot itself move under another,
    and says so instead of offering a disabled control with no explanation. */
-function UnderField({ parents, defaultValue, locked }: {
-  parents: Parent[]; defaultValue?: string | null; locked?: boolean;
+function UnderField({ parents, value, onChange, locked }: {
+  parents: Parent[]; value: string; onChange: (id: string) => void; locked?: boolean;
 }) {
   if (parents.length === 0 && !locked) return null;
   return (
@@ -124,7 +126,7 @@ function UnderField({ parents, defaultValue, locked }: {
           It has categories under it, so it stays at the top level.
         </span>
       ) : (
-        <select name="parentId" defaultValue={defaultValue ?? ''} style={{
+        <select name="parentId" value={value} onChange={(e) => onChange(e.target.value)} style={{
           minHeight: 52, borderRadius: 13, border: '1px solid var(--c-border)',
           background: 'var(--c-card)', color: 'var(--c-ink)', fontSize: 'var(--field)', padding: '0 14px',
         }}>
@@ -133,6 +135,29 @@ function UnderField({ parents, defaultValue, locked }: {
         </select>
       )}
     </label>
+  );
+}
+
+/* What files under it. Spending and income are kept apart because a salary
+   under Groceries is a mistake the app can prevent at the point of choosing,
+   and because the budget is a limit on spending only. A child has no say:
+   it takes its parent's scope, and the form says so instead of offering a
+   control the server would overrule. */
+const SCOPES = [['expense', SCOPE_LABEL.expense], ['income', SCOPE_LABEL.income], ['both', SCOPE_LABEL.both]] as const;
+function ScopeField({ value, onChange, parent }: {
+  value: Scope; onChange: (v: Scope) => void; parent: Parent | null;
+}) {
+  return (
+    <div role="group" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)' }}>Files</span>
+      {parent ? (
+        <span style={{ fontSize: 'var(--step--1)', lineHeight: 1.45, color: 'var(--c-meta)', padding: '4px 0' }}>
+          {SCOPE_LABEL[parent.scope].toLowerCase()}, the same as {parent.name}.
+        </span>
+      ) : (
+        <Segmented name="scope" value={value} options={SCOPES} onChange={onChange} label="Spending, income, or both" />
+      )}
+    </div>
   );
 }
 
@@ -255,7 +280,7 @@ export default function CategoryEditor({ categories, canEdit }: {
   const kidsOf = (id: string) => fromServer.filter((c) => c.parent_id === id);
   const retired = categories.filter((c) => c.archived);
   const ids = live.map((c) => c.id);
-  const parents: Parent[] = live.map((c) => ({ id: c.id, name: c.name }));
+  const parents: Parent[] = live.map((c) => ({ id: c.id, name: c.name, scope: c.scope }));
   const nameOf = (id: string | null) => categories.find((c) => c.id === id)?.name ?? null;
 
   const reorder = useReorder(ids, (next) => {
@@ -295,7 +320,7 @@ export default function CategoryEditor({ categories, canEdit }: {
       ? <EditRow key={c.id} cat={c} first={i === 0} last={i === siblings.length - 1}
           parents={parents.filter((p) => p.id !== c.id)} onDone={() => setEditing(null)} />
       : (
-        <SwipeRow key={c.id} actions={canEdit ? [
+        <SwipeRow key={c.id} grip={!!c.parent_id} actions={canEdit ? [
           { label: 'Edit', tone: 'primary', icon: <Pen />, act: () => setEditing(c.id) },
           { label: 'Retire', tone: 'danger', icon: <Box />, act: () => retire(c) },
         ] : []}>
@@ -405,6 +430,7 @@ function Row({ cat, last, canEdit, lifted, onEdit, grip }: {
             : `${cat.entries} ${cat.entries === 1 ? 'entry' : 'entries'}`}
           {cat.budgeted_months > 0 && ` · budgeted in ${cat.budgeted_months} ${cat.budgeted_months === 1 ? 'month' : 'months'}`}
           {!child && cat.children > 0 && ` · ${cat.children} under it`}
+          {!child && cat.scope !== 'expense' && ` · ${cat.scope === 'both' ? 'spending and income' : 'income'}`}
         </span>
       </span>
     </>
@@ -448,13 +474,17 @@ function EditRow({ cat, first, last, parents, onDone }: {
   const [, move] = useActionState(moveCategory, null);
   const [icon, setIcon] = useState(cat.icon);
   const [tint, setTint] = useState(cat.tint);
+  const [scope, setScope] = useState<Scope>(cat.scope);
+  const [parentId, setParentId] = useState(cat.parent_id ?? '');
+  const parent = parents.find((p) => p.id === parentId) ?? null;
 
   return (
     <div style={{ padding: '16px 0', display: 'flex', flexDirection: 'column', gap: 13 }}>
       <form action={act} style={{ display: 'flex', flexDirection: 'column', gap: 13 }}>
         <input type="hidden" name="id" value={cat.id} />
         <NameField defaultValue={cat.name} />
-        <UnderField parents={parents} defaultValue={cat.parent_id} locked={cat.children > 0} />
+        <UnderField parents={parents} value={parentId} onChange={setParentId} locked={cat.children > 0} />
+        <ScopeField value={scope} onChange={setScope} parent={parent} />
         <Picker icon={icon} tint={tint} onIcon={setIcon} onTint={setTint} />
         {state && !state.ok && <ErrorNote>{state.error}</ErrorNote>}
         <div style={{ display: 'flex', gap: 9 }}>
@@ -509,6 +539,9 @@ function AddRow({ parents, onDone }: { parents: Parent[]; onDone: () => void }) 
   const [state, act, pending] = useActionState(addCategory, null);
   const [icon, setIcon] = useState<string>('tag');
   const [tint, setTint] = useState<string>('blue');
+  const [scope, setScope] = useState<Scope>('expense');
+  const [parentId, setParentId] = useState('');
+  const parent = parents.find((p) => p.id === parentId) ?? null;
 
   return (
     <form action={act} className="el card" style={{
@@ -516,7 +549,8 @@ function AddRow({ parents, onDone }: { parents: Parent[]; onDone: () => void }) 
       display: 'flex', flexDirection: 'column', gap: 13,
     }}>
       <NameField />
-      <UnderField parents={parents} />
+      <UnderField parents={parents} value={parentId} onChange={setParentId} />
+      <ScopeField value={scope} onChange={setScope} parent={parent} />
       <Picker icon={icon} tint={tint} onIcon={setIcon} onTint={setTint} />
       {state && !state.ok && <ErrorNote>{state.error}</ErrorNote>}
       <div style={{ display: 'flex', gap: 9 }}>
@@ -593,5 +627,5 @@ const ghost: React.CSSProperties = {
 };
 const solid: React.CSSProperties = {
   flex: 1, minHeight: 50, borderRadius: 13, fontSize: 'var(--step-0)', fontWeight: 600,
-  background: 'var(--g-primary)', color: 'var(--c-on-primary)',
+  textAlign: 'center', background: 'var(--g-primary)', color: 'var(--c-on-primary)',
 };

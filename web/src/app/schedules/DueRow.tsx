@@ -3,7 +3,7 @@
 import { useActionState, useCallback, useState, useTransition } from 'react';
 import { Icon } from '../Icon';
 import SwipeRow from '../SwipeRow';
-import { recordDue, skipDue, archiveSchedule } from './actions';
+import { recordDue, skipDue } from './actions';
 import MoveDue from './MoveDue';
 import { friendlyDay, type Calendar } from '@/lib/recur';
 import { useMoney } from '@/app/currency';
@@ -35,8 +35,9 @@ export default function DueRow({
   const overdue = daysAway < 0;
   const canMove = !!rule && !!today;
 
-  /* The row's two buttons, reachable by a swipe as well: a short one shows
-     both, all the way across opens the amount to record it. */
+  /* Everything the row can do is in the swipe — Skip, Move, Record — with
+     the grip at the edge as the tell and the twin. A short swipe shows them,
+     all the way across opens the amount to record it. */
   const skipNow = () => start(() => {
     const fd = new FormData();
     fd.append('scheduleId', scheduleId); fd.append('dueOn', dueOn);
@@ -50,6 +51,8 @@ export default function DueRow({
     }}>
       <SwipeRow actions={open ? [] : [
         { label: 'Skip', icon: <Icon name="skip" size={20} strokeWidth={2} />, act: skipNow },
+        ...(canMove ? [{ label: 'Move', icon: <Icon name="move" size={20} strokeWidth={2} />,
+          act: () => setMode('move') }] : []),
         ...(canRecord ? [{ label: income ? 'Came in' : 'Record', tone: 'primary' as const,
           icon: <Icon name="check" size={20} strokeWidth={2} />, act: () => setMode('record') }] : []),
       ]}>
@@ -63,44 +66,20 @@ export default function DueRow({
           <Icon name={icon ?? 'autodebit'} size={19} strokeWidth={1.9} />
         </span>
         <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
-          <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>{name}</span>
-          <span style={{ fontSize: 'var(--step--1)', color: overdue ? 'var(--c-danger)' : 'var(--c-meta)' }}>
+          <span style={{ fontSize: 'var(--step-0)', fontWeight: 600, overflowWrap: 'anywhere' }}>{name}</span>
+          <span style={{ fontSize: 'var(--step--1)', color: overdue ? 'var(--c-danger)' : 'var(--c-meta)', overflowWrap: 'anywhere' }}>
             {whenLine(income, on, daysAway, today)}
             {movedFrom && ` · moved from ${friendlyDay(movedFrom, today)}`}
             {category && ` · ${category}`}
           </span>
         </span>
-        <span className="t" style={{ fontSize: 'var(--step-1)', color: income ? 'var(--c-in)' : 'var(--c-out)' }}>
+        <span className="t" style={{ flex: 'none', fontSize: 'var(--step-1)', color: income ? 'var(--c-in)' : 'var(--c-out)' }}>
           {income ? '+' : ''}{format(amount)}
         </span>
       </div>
       </SwipeRow>
 
-      {mode === 'idle' ? (
-        <div style={{ display: 'flex', gap: 8 }}>
-          {canRecord && (
-            <button className="cta" type="button" onClick={() => setMode('record')} style={{
-              flex: 1, minHeight: 44, borderRadius: 11, fontSize: 'var(--step--1)', fontWeight: 600,
-              background: 'var(--g-primary)', color: 'var(--c-on-primary)',
-            }}>{income ? 'It came in' : 'Record it'}</button>
-          )}
-          {canMove && (
-            <button className="cta" type="button" onClick={() => setMode('move')} style={{
-              flex: canRecord ? undefined : 1, minHeight: 44, padding: '0 14px', borderRadius: 11,
-              fontSize: 'var(--step--1)', fontWeight: 600, background: 'var(--c-sunk)', color: 'var(--c-ink)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-            }}><Icon name="move" size={16} strokeWidth={2} />Move</button>
-          )}
-          <form action={skip}>
-            <input type="hidden" name="scheduleId" value={scheduleId} />
-            <input type="hidden" name="dueOn" value={dueOn} />
-            <button className="cta" type="submit" style={{
-              minHeight: 44, padding: '0 14px', borderRadius: 11, fontSize: 'var(--step--1)',
-              fontWeight: 600, background: 'var(--c-sunk)', color: 'var(--c-meta)',
-            }}>Skip</button>
-          </form>
-        </div>
-      ) : mode === 'move' ? (
+      {mode === 'idle' ? null : mode === 'move' ? (
         <MoveDue scheduleId={scheduleId} name={name} dueOn={dueOn} on={on}
           rule={rule!} cal={cal} today={today!} onDone={idle} onCancel={idle} />
       ) : (
@@ -153,37 +132,3 @@ function whenLine(income: boolean, on: string, daysAway: number, today?: string)
     ? `${verb} ${day} · in ${daysAway} days`
     : `${verb} ${day} · ${-daysAway} days ${income ? 'ago' : 'overdue'}`;
 }
-
-/* A schedule that has run its course says "Remove", not "Stop" — there is
-   nothing left to stop, only a line to tidy away. Same action underneath. */
-export function StopSchedule({ scheduleId, name, verb = 'Stop' }: {
-  scheduleId: string; name: string; verb?: 'Stop' | 'Remove';
-}) {
-  const [state, act, pending] = useActionState(archiveSchedule, null);
-  const [sure, setSure] = useState(false);
-
-  if (!sure) {
-    return (
-      <button type="button" onClick={() => setSure(true)} style={quiet}>{verb}</button>
-    );
-  }
-  return (
-    <span style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-      <button type="button" onClick={() => setSure(false)} style={quiet}>Keep</button>
-      <form action={act}>
-        <input type="hidden" name="scheduleId" value={scheduleId} />
-        <button type="submit" disabled={pending} style={{ ...quiet, color: 'var(--c-danger)' }}>
-          {pending ? (verb === 'Stop' ? 'Stopping…' : 'Removing…') : `${verb} ${name}`}
-        </button>
-      </form>
-      {state && !state.ok && (
-        <span role="alert" style={{ fontSize: 'var(--step--2)', color: 'var(--c-danger)' }}>{state.error}</span>
-      )}
-    </span>
-  );
-}
-
-const quiet: React.CSSProperties = {
-  minHeight: 44, padding: '0 9px', fontSize: 'var(--step--1)', fontWeight: 600,
-  color: 'var(--c-meta)', background: 'transparent',
-};

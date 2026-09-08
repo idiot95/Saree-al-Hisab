@@ -85,18 +85,21 @@ export async function entryCount(householdId: string) {
   });
 }
 
+/** What a category files: spending, income, or either. See schema.ts. */
+export type CategoryScope = 'expense' | 'income' | 'both';
+
 /** Every live category, each child straight after its parent, so a flat list
  *  reads as the tree it is. `parent` is the parent's name — what a picker
  *  shows beside "Milk" so it is not mistaken for a category on its own. */
 export async function categoriesFor(householdId: string) {
   return withHousehold(householdId, async () => {
     return sql`
-      select c.id, c.name, c.icon, c.tint, c.parent_id, p.name as parent
+      select c.id, c.name, c.icon, c.tint, c.scope, c.parent_id, p.name as parent
       from category c
       left join category p on p.id = c.parent_id
       where c.household_id = ${householdId} and c.archived_at is null
       order by coalesce(p.sort_order, c.sort_order), (c.parent_id is not null), c.sort_order, c.name
-    ` as Promise<{ id: string; name: string; icon: string; tint: string;
+    ` as Promise<{ id: string; name: string; icon: string; tint: string; scope: CategoryScope;
                    parent_id: string | null; parent: string | null }[]>;
   });
 }
@@ -298,7 +301,8 @@ export async function budgetFor(householdId: string, month: string) {
                array_prepend(c.id, coalesce(array_agg(k.id) filter (where k.id is not null), '{}')) as ids
         from category c
         left join category k on k.parent_id = c.id
-        where c.household_id = ${householdId} and c.parent_id is null
+        -- a budget is a limit on spending: a category that only takes income has no line
+        where c.household_id = ${householdId} and c.parent_id is null and c.scope <> 'income'
         group by c.id
       ),
       spent as (
@@ -771,7 +775,8 @@ export async function categoryTrend(householdId: string, month: string) {
                array_prepend(c.id, coalesce(array_agg(k.id) filter (where k.id is not null), '{}')) as ids
         from category c
         left join category k on k.parent_id = c.id
-        where c.household_id = ${householdId} and c.parent_id is null
+        -- a budget is a limit on spending: a category that only takes income has no line
+        where c.household_id = ${householdId} and c.parent_id is null and c.scope <> 'income'
         group by c.id
       )
       select f.id, f.name, f.tint, f.icon,
@@ -1019,7 +1024,7 @@ export async function geminiKeyFor(householdId: string) {
 /* ── categories ─────────────────────────────────────────────────────────── */
 
 export type CategoryRow = {
-  id: string; name: string; icon: string; tint: string; sort_order: number;
+  id: string; name: string; icon: string; tint: string; scope: CategoryScope; sort_order: number;
   parent_id: string | null; children: number;
   archived: boolean; entries: number; budgeted_months: number;
 };
@@ -1030,7 +1035,7 @@ export type CategoryRow = {
 export async function allCategories(householdId: string) {
   return withHousehold(householdId, async () => {
     return sql`
-      select c.id, c.name, c.icon, c.tint, c.sort_order, c.parent_id,
+      select c.id, c.name, c.icon, c.tint, c.scope, c.sort_order, c.parent_id,
              (select count(*)::int from category k
                where k.parent_id = c.id and k.archived_at is null) as children,
              (c.archived_at is not null) as archived,

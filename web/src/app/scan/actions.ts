@@ -64,7 +64,7 @@ export async function scan(_prev: ScanResult, fd: FormData): Promise<ScanResult>
       const [c] = await sql`
         select id from category
         where household_id = ${actor.household_id} and archived_at is null
-          and lower(name) = ${hint}
+          and lower(name) = ${hint} and scope <> 'income'
         limit 1`;
       return (c?.id as string | undefined) ?? null;
     });

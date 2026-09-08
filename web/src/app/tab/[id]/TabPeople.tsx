@@ -10,7 +10,7 @@ import {
 } from '../actions';
 import { useMoney } from '@/app/currency';
 import NewPeople from '../NewPeople';
-import { PaySelect } from '../../PaySelect';
+import PayPicker from '../../PayPicker';
 import { defaultRef, type Way } from '@/lib/pay';
 
 type Person = {
@@ -266,10 +266,10 @@ function Member({ p, last, left, tabId, ways, today, canEdit, entries = [], open
           )}
           <Field label={`Amount — blank settles all ${format(target)}`} name="amount"
             inputMode="decimal" placeholder={format(target)} />
-          <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div role="group" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)' }}>Came in by</span>
-            <PaySelect name="paidWith" ways={ways} defaultValue={defaultRef(ways)} required style={select} />
-          </label>
+            <PayPicker name="paidWith" ways={ways} defaultValue={defaultRef(ways)} />
+          </div>
           <Field label="On" name="occurred_on" type="date" defaultValue={today} required />
           {state && !state.ok && <ErrorNote>{state.error}</ErrorNote>}
           <button className="cta" type="submit" disabled={pending} style={{
@@ -343,9 +343,4 @@ const card: React.CSSProperties = {
 const quiet: React.CSSProperties = {
   minHeight: 44, padding: '0 10px', fontSize: 'var(--step--1)', fontWeight: 600,
   color: 'var(--c-meta)', background: 'transparent',
-};
-const select: React.CSSProperties = {
-  minHeight: 52, borderRadius: 13, border: '1px solid var(--c-border)',
-  background: 'var(--c-card)', color: 'var(--c-ink)', fontSize: 'var(--field)',
-  fontWeight: 600, padding: '0 12px',
 };

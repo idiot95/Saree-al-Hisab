@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { haptic } from './haptics';
-import { TAB_BAR_SPACE } from './tabs';
 
 /* The two ways back that are not the arrow in the header.
 
@@ -17,12 +16,16 @@ import { TAB_BAR_SPACE } from './tabs';
    once you have scrolled, not on the screen at all.
 
    1. A swipe from the left edge. Invisible, so it can never be the only way.
-   2. A pill that floats in at the bottom-left the moment the header's arrow
+   2. A pill that floats in at the top-left the moment the header's arrow
       scrolls out of view, and leaves the moment it comes back. It is not
       there at the top of a screen, where the arrow already is, and it is not
       there at all until the arrow has gone — a second Back beside the first
-      would be a control to wonder about. Bottom-left is where a thumb is,
-      and the side "back" lives on in every convention the phone has.
+      would be a control to wonder about. It takes the arrow's own corner:
+      Back has lived top-left in every convention the phone has, so the eye
+      goes there without being told, and the pill reads as the arrow having
+      followed you down the page rather than as a new control. The bottom
+      corners belong to the tab bar and the Add button; a third floating
+      thing down there was one too many.
 
    Both do exactly what the visible arrow does and go to the same place. A
    gesture that does something the screen does not also offer is a gesture
@@ -60,7 +63,7 @@ export default function Back({ to }: { to: string }) {
   /* null while the header's own arrow is on screen. Set from the observer,
      never in the effect body, so the first paint — server and client alike —
      has no pill and nothing to hydrate differently. */
-  const [floating, setFloating] = useState<null | { aboveBar: boolean }>(null);
+  const [floating, setFloating] = useState<null | { below: number }>(null);
 
   useEffect(() => {
     if (!safe(to)) return;
@@ -109,11 +112,14 @@ export default function Back({ to }: { to: string }) {
     // not this pill, which carries the same label for the same reason.
     const arrow = document.querySelector<HTMLElement>('main a[aria-label="Back"]:not([data-floating])');
     if (!arrow) return;
-    // Screens with the tab bar keep the pill above it; the rest sit it on
-    // the safe area. Decided once: the bar does not come and go.
-    const aboveBar = document.querySelector('nav[aria-label="Main"]') !== null;
+    // A screen with a bar pinned to the top (the budget's running total)
+    // marks it data-topbar, and the pill sits under that instead of on it.
+    // Measured when the pill is about to appear, which is when the bar is
+    // stuck and its bottom edge is where it will stay.
     const io = new IntersectionObserver(([e]) => {
-      setFloating(e.isIntersecting ? null : { aboveBar });
+      if (e.isIntersecting) { setFloating(null); return; }
+      const bar = document.querySelector<HTMLElement>('main [data-topbar]');
+      setFloating({ below: bar ? Math.max(0, bar.getBoundingClientRect().bottom) : 0 });
     });
     io.observe(arrow);
     return () => io.disconnect();
@@ -126,16 +132,16 @@ export default function Back({ to }: { to: string }) {
       style={{
         position: 'fixed', zIndex: 34,
         left: 'max(14px, env(safe-area-inset-left, 0px))',
-        bottom: floating?.aboveBar
-          ? `calc(${TAB_BAR_SPACE} + 14px)`
-          : 'calc(env(safe-area-inset-bottom, 0px) + 18px)',
+        top: floating?.below
+          ? `${floating.below + 10}px`
+          : 'calc(env(safe-area-inset-top, 0px) + 12px)',
         minHeight: 44, padding: '0 16px 0 11px', borderRadius: 999,
         display: 'flex', alignItems: 'center', gap: 5,
         background: 'var(--c-card)', color: 'var(--c-ink)',
         border: '1px solid var(--c-border)', textDecoration: 'none',
         fontSize: 'var(--step--1)', fontWeight: 600,
         opacity: shown ? 1 : 0,
-        transform: shown ? 'none' : 'translateY(10px)',
+        transform: shown ? 'none' : 'translateY(-10px)',
         pointerEvents: shown ? 'auto' : 'none',
         transition: 'opacity .18s ease, transform .22s cubic-bezier(.2,.8,.2,1)',
       }}>

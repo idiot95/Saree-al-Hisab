@@ -75,9 +75,7 @@ export default async function Entry({ params }: { params: Promise<{ id: string }
               counts_as_spend: entry.counts_as_spend,
               owed: entry.kind === 'expense' && (!!entry.book_id || claims.length > 0),
             }}
-            categories={cats.map((c) => ({
-              category_id: c.id, name: c.parent ? `${c.parent} › ${c.name}` : c.name, tint: c.tint, icon: c.icon,
-            }))}
+            categories={cats}
             ways={ways}
             canEdit={actor.role !== 'viewer'}
           />

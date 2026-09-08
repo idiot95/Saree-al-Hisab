@@ -16,15 +16,24 @@ import { haptic } from './haptics';
    Only one row is open at a time, and closing it is easier than opening it:
    a tap anywhere else, a tap on the row, a scroll, Escape, or the smallest
    nudge back to the right — an open row does not make you drag it the whole
-   way home. A flick decides by direction alone, however short. A drag never
-   turns into a tap, so a row that is also a link is not followed by
-   accident. Vertical movement is left to the browser (`touch-action: pan-y`),
-   which is what keeps the list scrolling at full speed: this code sees a
-   horizontal drag only after it has proven to be one.
+   way home. The tap that closes it does nothing else: it was aimed at
+   closing, and the button or link that happened to be under the thumb is
+   not pressed as well. (Mail gets this right and half the apps that copied
+   it get it wrong, and the wrong version is the one where closing a row
+   opens something.) A flick decides by direction alone, however short. A
+   drag never turns into a tap, so a row that is also a link is not followed
+   by accident. Vertical movement is left to the browser (`touch-action:
+   pan-y`), which is what keeps the list scrolling at full speed: this code
+   sees a horizontal drag only after it has proven to be one.
 
-   Nothing here is the only way to do anything. Every action offered by a
-   swipe is also reachable by a tap somewhere, because a gesture with no
-   visible twin is a gesture nobody finds. */
+   A gesture with no visible twin is a gesture nobody finds, so a row that
+   can be swiped SAYS so: a small chevron at its right edge, the same mark
+   every phone uses for "there is more this way". It is also the twin —
+   tapping it opens the actions, tapping again tucks them away — so nothing
+   here is reachable by gesture only, and a row does not need a second set
+   of buttons under it repeating what the swipe offers. The first swipe row
+   a household ever sees also peeks its actions out and back, once, which is
+   how most people learn a swipe exists at all. */
 
 export type SwipeAction = {
   label: string;
@@ -53,11 +62,22 @@ const TONE = {
    rows in different cards on the same screen still share it. */
 let closeOpen: { id: string; fn: () => void } | null = null;
 
-export default function SwipeRow({ actions, commit = true, children }: {
+/* Whether this page load has already shown the peek. One row per screen is
+   a lesson; every row would be a tic. Whether this DEVICE has seen it is in
+   localStorage, and is read only from an effect — storage is a browser thing,
+   and a first paint that depended on it could not match the server's. */
+let peekedThisLoad = false;
+const PEEK_KEY = 'swipe-peeked';
+
+export default function SwipeRow({ actions, commit = true, grip = true, children }: {
   actions: SwipeAction[];
   /** Whether a long swipe fires the last action outright. Off for anything
       that should always be a deliberate second tap. */
   commit?: boolean;
+  /** The chevron at the right edge that shows the row can be swiped and
+      opens it on a tap. Off only where the row already wears a handle of
+      its own at that edge. */
+  grip?: boolean;
   children: ReactNode;
 }) {
   const [x, setX] = useState(0);
@@ -79,11 +99,28 @@ export default function SwipeRow({ actions, commit = true, children }: {
     if (closeOpen?.id === id) closeOpen = null;
   }, [id]);
 
+  const show = useCallback(() => {
+    setX(-W); setOpen(true);
+    if (closeOpen && closeOpen.id !== id) closeOpen.fn();
+    closeOpen = { id, fn: close };
+  }, [W, id, close]);
+
   // A tap anywhere outside closes an open row; so does scrolling on, or Escape.
   useEffect(() => {
     if (!open) return;
     const away = (e: PointerEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) close();
+      if (ref.current && ref.current.contains(e.target as Node)) return;
+      close();
+      /* The tap that closed it ends here. The click it is about to become
+         is eaten at the capture stage, before any button or link under the
+         thumb hears it. The eater is removed again shortly after the pointer
+         lifts, so a press that turned into a scroll (no click at all) does
+         not leave it waiting to eat the next, unrelated tap. */
+      const eat = (c: Event) => { c.stopPropagation(); c.preventDefault(); };
+      document.addEventListener('click', eat, { capture: true, once: true });
+      const drop = () => { setTimeout(() => document.removeEventListener('click', eat, true), 400); };
+      document.addEventListener('pointerup', drop, { once: true });
+      document.addEventListener('pointercancel', drop, { once: true });
     };
     const key = (e: KeyboardEvent) => { if (e.key === 'Escape') close(); };
     document.addEventListener('pointerdown', away, true);
@@ -95,6 +132,22 @@ export default function SwipeRow({ actions, commit = true, children }: {
       document.removeEventListener('keydown', key);
     };
   }, [open, close]);
+
+  // The once-only peek: the first swipe row of a first visit slides its
+  // actions out a little and lets them settle back.
+  useEffect(() => {
+    if (actions.length === 0 || peekedThisLoad) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    if (!window.matchMedia('(pointer: coarse)').matches) return;
+    try {
+      if (localStorage.getItem(PEEK_KEY)) return;
+      localStorage.setItem(PEEK_KEY, '1');
+    } catch { return; }
+    peekedThisLoad = true;
+    const out = setTimeout(() => setX(-Math.min(W, 56)), 700);
+    const back = setTimeout(() => setX(0), 1500);
+    return () => { clearTimeout(out); clearTimeout(back); };
+  }, [actions.length, W]);
 
   if (actions.length === 0) return <>{children}</>;
 
@@ -155,13 +208,7 @@ export default function SwipeRow({ actions, commit = true, children }: {
       : flick ? flick === 'open'
       : wasOpen ? t.x - t.x0 < BACK
       : -t.x > W * OPEN_AT;
-    if (stays) {
-      setX(-W); setOpen(true);
-      if (closeOpen && closeOpen.id !== id) closeOpen.fn();
-      closeOpen = { id, fn: close };
-    } else {
-      close();
-    }
+    if (stays) show(); else close();
   };
 
   // A drag must not also be a tap, and a tap on an open row only closes it.
@@ -208,13 +255,29 @@ export default function SwipeRow({ actions, commit = true, children }: {
         onPointerUp={up} onPointerCancel={(e) => up(e, true)}
         onClickCapture={click}
         style={{
-          position: 'relative', padding: '0 var(--pad)', background: 'var(--c-card)',
+          position: 'relative', background: 'var(--c-card)',
+          padding: grip ? '0 calc(var(--pad) + 20px) 0 var(--pad)' : '0 var(--pad)',
           touchAction: 'pan-y',
           transform: `translateX(${x}px)`,
           transition: drag ? 'none' : 'transform .24s cubic-bezier(.2,.8,.2,1)',
         }}
       >
         {children}
+        {grip && (
+          <button type="button" aria-label={open ? 'Hide actions' : 'Show actions'} aria-expanded={open}
+            onClick={() => { if (!s.current.moved) { haptic('tap'); show(); } }}
+            style={{
+              position: 'absolute', top: 0, bottom: 0, right: 0, width: 36,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: 'var(--c-meta)', opacity: 0.7,
+            }}>
+            <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" aria-hidden
+              style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .2s ease' }}>
+              <path d="M15 6l-6 6 6 6" />
+            </svg>
+          </button>
+        )}
       </div>
     </div>
   );

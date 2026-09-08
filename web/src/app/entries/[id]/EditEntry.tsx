@@ -1,25 +1,14 @@
 'use client';
 
 import { useActionState, useState } from 'react';
-import { Icon } from '../../Icon';
 import { Field, ErrorNote } from '../../auth-ui';
 import { updateEntry, deleteEntry } from '../actions';
 import { useMoney } from '@/app/currency';
-import { PaySelect } from '@/app/PaySelect';
+import PayPicker from '@/app/PayPicker';
+import CategoryPick from '@/app/CategoryPick';
+import type { Category } from '@/app/CategoryFinder';
 import { accountRef, railRef, type Way } from '@/lib/pay';
-
-type Cat = { category_id: string; name: string; tint: string; icon: string };
-
-const TINT: Record<string, [string, string]> = {
-  green: ['var(--cat-green)', 'var(--cat-green-ink)'],
-  orange: ['var(--cat-orange)', 'var(--cat-orange-ink)'],
-  blue: ['var(--cat-blue)', 'var(--cat-blue-ink)'],
-  purple: ['var(--cat-purple)', 'var(--cat-purple-ink)'],
-  pink: ['var(--cat-pink)', 'var(--cat-pink-ink)'],
-  cyan: ['var(--cat-cyan)', 'var(--cat-cyan-ink)'],
-  rust: ['var(--cat-rust)', 'var(--cat-rust-ink)'],
-  indigo: ['var(--cat-indigo)', 'var(--cat-indigo-ink)'],
-};
+import { fits } from '@/lib/scope';
 
 export default function EditEntry({ entry, categories, ways, canEdit }: {
   entry: {
@@ -30,7 +19,7 @@ export default function EditEntry({ entry, categories, ways, canEdit }: {
     /** Somebody owes for it — on a tab, or with a claim — so "was it mine" is a live question. */
     owed: boolean;
   };
-  categories: Cat[]; ways: Way[]; canEdit: boolean;
+  categories: Category[]; ways: Way[]; canEdit: boolean;
 }) {
   const { format } = useMoney();
   const [state, act, pending] = useActionState(updateEntry, null);
@@ -40,6 +29,8 @@ export default function EditEntry({ entry, categories, ways, canEdit }: {
   const [confirming, setConfirming] = useState(false);
 
   const wantsCategory = !['transfer', 'card_payment', 'claim_receipt'].includes(entry.kind);
+  // An entry keeps its kind, so the list is the categories that file it.
+  const offered = categories.filter((c) => fits(c.scope, entry.kind));
   const minor = Math.round((Number(amount) || 0) * 100);
 
   return (
@@ -76,49 +67,25 @@ export default function EditEntry({ entry, categories, ways, canEdit }: {
           defaultValue={entry.occurred_on} disabled={!canEdit} required />
 
         {wantsCategory && (
-          <fieldset style={{ border: 0, padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 7 }}>
-            <legend style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)', padding: 0 }}>
-              Category
-            </legend>
+          <>
             <input type="hidden" name="category_id" value={categoryId} />
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
-              {categories.map((c) => {
-                const on = c.category_id === categoryId;
-                const [bg, ink] = TINT[c.tint] ?? ['var(--cat-neutral)', 'var(--cat-neutral-ink)'];
-                return (
-                  <button key={c.category_id} type="button" disabled={!canEdit}
-                    onClick={() => setCategoryId(c.category_id)}
-                    style={{
-                      minHeight: 44, padding: '0 14px', borderRadius: 999, fontSize: 'var(--step--1)',
-                      fontWeight: 600, background: on ? bg : 'var(--c-sunk2)',
-                      color: on ? ink : 'var(--c-meta)',
-                      border: `1px solid ${on ? ink : 'var(--c-border)'}`,
-                      display: 'flex', alignItems: 'center', gap: 6,
-                    }}>
-                    <Icon name={c.icon} size={15} strokeWidth={1.9} />
-                    {c.name}</button>
-                );
-              })}
-            </div>
-          </fieldset>
+            <CategoryPick categories={offered} value={categoryId} onChange={setCategoryId}
+              disabled={!canEdit} label={entry.kind === 'income' ? 'What for' : 'Category'} />
+          </>
         )}
 
         {ways.length > 0 && (
-          <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div role="group" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)' }}>
               {entry.kind === 'income' ? 'Came in by' : entry.kind === 'transfer' ? 'Out of' : 'Paid with'}
             </span>
-            <PaySelect name="paid_with" ways={ways}
+            <PayPicker name="paid_with" ways={ways}
               defaultValue={entry.payment_method_id ? railRef(entry.payment_method_id) : accountRef(entry.account_id)}
-              disabled={!canEdit} style={{
-                minHeight: 52, borderRadius: 13, border: '1px solid var(--c-border)',
-                background: 'var(--c-card)', color: 'var(--c-ink)', fontSize: 'var(--field)',
-                fontWeight: 600, padding: '0 12px',
-              }} />
+              disabled={!canEdit} />
             <span style={{ fontSize: 'var(--step--2)', lineHeight: 1.4, color: 'var(--c-meta)' }}>
               Changing this moves the money to the account it names.
             </span>
-          </label>
+          </div>
         )}
 
         <Field label="Merchant" name="merchant" defaultValue={entry.merchant ?? ''}

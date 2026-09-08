@@ -6,10 +6,11 @@ import { buildRule, describeRule, friendlyDay, maxDay, nextDates, type Calendar 
 import { HIJRI_MONTHS_SHORT, formatHijri, toHijri } from '@/lib/hijri';
 import { DateChips, DayOfMonth, MonthOfYear, Segmented } from '../DatePick';
 import { createSchedule } from './actions';
-import { PaySelect } from '../PaySelect';
+import PayPicker from '../PayPicker';
+import CategoryPick from '../CategoryPick';
+import type { Category } from '../CategoryFinder';
 import { defaultRef, type Way } from '@/lib/pay';
-
-type Cat = { id: string; name: string };
+import { fits } from '@/lib/scope';
 
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -27,7 +28,7 @@ const ENDS = [['never', 'Never'], ['after', 'After a number'], ['on', 'On a date
    never", until someone wants otherwise. */
 
 export default function NewSchedule({ ways, categories, startOpen = false }: {
-  ways: Way[]; categories: Cat[]; startOpen?: boolean;
+  ways: Way[]; categories: Category[]; startOpen?: boolean;
 }) {
   const [state, act, pending] = useActionState(createSchedule, null);
   const [open, setOpen] = useState(startOpen);
@@ -58,6 +59,8 @@ export default function NewSchedule({ ways, categories, startOpen = false }: {
       : undefined;
   const monthNames = cal === 'hijri' ? HIJRI_MONTHS_SHORT : MON;
   const sentence = describeRule(base, cal);
+  // Salary is not a place to file the rent: the list follows the tab.
+  const offered = categories.filter((c) => fits(c.scope, kind));
   const endsLine = ends === 'never' ? 'Ends never'
     : ends === 'after' ? `Ends after ${times === 1 ? 'once' : `${times} times`}${last ? `, on ${friendlyDay(last, iso)}` : ''}`
     : untilDate ? `Ends on ${friendlyDay(untilDate, iso)}${last && last !== untilDate ? ` — the last is ${friendlyDay(last, iso)}` : ''}` : 'Ends on a date';
@@ -89,10 +92,10 @@ export default function NewSchedule({ ways, categories, startOpen = false }: {
       margin: '0 var(--gutter) 22px', background: 'var(--c-card)', borderRadius: 18, padding: 16,
       display: 'flex', flexDirection: 'column', gap: 13,
     }}>
-      <div role="tablist" aria-label="Paid out or paid in" style={{
+      <div role="tablist" aria-label="Expense or income" style={{
         display: 'flex', gap: 3, padding: 3, background: 'var(--c-sunk)', borderRadius: 999,
       }}>
-        {([['expense', 'Goes out'], ['income', 'Comes in']] as const).map(([id, label]) => {
+        {([['expense', 'Expense'], ['income', 'Income']] as const).map(([id, label]) => {
           const on = kind === id;
           return (
             <label key={id} style={{
@@ -192,18 +195,15 @@ export default function NewSchedule({ ways, categories, startOpen = false }: {
         )}
       </div>
 
-      <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <div role="group" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)' }}>
           {kind === 'income' ? 'Arrives by' : 'Paid with'}
         </span>
-        <PaySelect name="paidWith" ways={ways} defaultValue={defaultRef(ways)} required style={select} />
-      </label>
-      <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-        <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)' }}>Category</span>
-        <select name="categoryId" required style={select}>
-          {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-        </select>
-      </label>
+        <PayPicker name="paidWith" ways={ways} defaultValue={defaultRef(ways)} />
+      </div>
+      <CategoryPick name="categoryId" categories={offered}
+        label={kind === 'income' ? 'What for' : 'Category'}
+        placeholder={offered.length ? 'Choose a category' : 'No categories for this yet'} />
 
       {state && !state.ok && <ErrorNote>{state.error}</ErrorNote>}
       <div style={{ display: 'flex', gap: 9 }}>

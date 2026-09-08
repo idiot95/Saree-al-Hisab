@@ -29,7 +29,10 @@ export type Pickers = {
   householdId: string;
   /** parent fields are absent on a device that last opened Add Entry before
       categories could nest; such a row simply stands on its own. */
-  categories: { id: string; name: string; tint: string; icon: string; parent_id?: string | null; parent?: string | null }[];
+  categories: {
+    id: string; name: string; tint: string; icon: string; parent_id?: string | null; parent?: string | null;
+    scope?: 'expense' | 'income' | 'both';
+  }[];
   /** Every account with its rails. Absent on a device that last opened Add
       Entry when only the rails were kept; such a phone shows the bare
       screen until it opens Add Entry with signal once more. */

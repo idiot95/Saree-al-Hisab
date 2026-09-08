@@ -1,17 +1,30 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import Sheet from '../Sheet';
-import { Chip } from '../Icon';
-import { haptic } from '../haptics';
-import type { Category } from './AddEntry';
+import Sheet from './Sheet';
+import { Chip } from './Icon';
+import { haptic } from './haptics';
+import type { Scope } from '@/lib/scope';
 
-/* The drawer behind the magnifier on Add Entry: every category, grouped
-   under its parent, with a search box that narrows the list as you type.
-   The filter runs over the rows already on the phone, so it works offline
-   and needs no server; a word matches a category, its parent, or any of
-   its children — "groc" shows Groceries with Milk and Vegetables under it,
-   and "milk" shows Groceries with just Milk. */
+/* One category as the pickers see it. Callers hand over the whole family
+   tree already narrowed to the kind of entry (see fits() in lib/scope);
+   the finder groups children under their parent. */
+export type Category = {
+  id: string; name: string; tint: string; icon: string;
+  /** Set on a child — Milk under Groceries. The strip shows parents; the
+      search drawer shows everyone. */
+  parent_id?: string | null; parent?: string | null;
+  /** Spending, income, or both. Missing means spending (older caches). */
+  scope?: Scope;
+};
+
+/* The drawer behind the magnifier on Add Entry and behind every other
+   category field: every category, grouped under its parent, with a search
+   box that narrows the list as you type. The filter runs over the rows
+   already on the phone, so it works offline and needs no server; a word
+   matches a category, its parent, or any of its children — "groc" shows
+   Groceries with Milk and Vegetables under it, and "milk" shows Groceries
+   with just Milk. */
 export default function CategoryFinder({ open, onClose, categories, selected, onPick }: {
   open: boolean; onClose: () => void; categories: Category[];
   selected: string | null; onPick: (id: string) => void;

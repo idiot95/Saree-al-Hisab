@@ -48,9 +48,7 @@ export default async function Page({ searchParams }: {
     <Screen>
       <AddEntry
         draft={draft}
-        categories={categories.map((c) => ({
-          id: c.id, name: c.name, tint: c.tint, icon: c.icon, parent_id: c.parent_id, parent: c.parent,
-        }))}
+        categories={categories}
         ways={ways}
         tabs={tabs}
         claims={claims.map((c) => ({

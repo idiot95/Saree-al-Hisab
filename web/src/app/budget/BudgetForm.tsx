@@ -56,7 +56,7 @@ export default function BudgetForm({ month, rows, canEdit }: {
           Doherty Threshold: the total recalculates as you type rather than on
           submit, so the answer to "what does that come to" never costs a round
           trip. */}
-      <div style={{
+      <div data-topbar style={{
         position: 'sticky', top: 0, zIndex: 20, margin: '0 0 14px',
         padding: '10px 18px', display: 'flex', alignItems: 'center', gap: 12,
         background: 'var(--c-bg)', borderBottom: '1px solid var(--c-border)',
