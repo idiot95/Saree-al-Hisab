@@ -7,6 +7,8 @@ import { haptic } from '../haptics';
 import { Icon } from '../Icon';
 import SwipeRow from '../SwipeRow';
 import { editAccount, archiveAccount } from './actions';
+import CardIdentityFields from './CardIdentityFields';
+import { bankFromName } from '@/lib/card-brand';
 
 /* Tap the row and it becomes its own form; save and it becomes a row again.
    The same move as a category, because a person who has learnt one should
@@ -14,6 +16,7 @@ import { editAccount, archiveAccount } from './actions';
 
 export type Editable = {
   id: string; name: string; kind: string; last4: string | null;
+  bank_key: string | null; card_network: string | null;
   /** Minor units, signed as stored: negative for a card that owed money. */
   opening: number;
   limit: number | null; statement_day: number | null; due_day: number | null;
@@ -87,11 +90,13 @@ export function AccountForm({ account: a, last = true, onDone }: {
         <input type="hidden" name="id" value={a.id} />
         <Field label="Name" name="name" required maxLength={60} defaultValue={a.name} autoFocus />
         {a.kind !== 'cash' && (
-          <Field label="Last four digits (optional)" name="last4" inputMode="numeric"
-            maxLength={4} defaultValue={a.last4 ?? ''} placeholder="8802" />
+          <Field label={credit ? 'Last four digits' : 'Last four digits (optional)'} name="last4" inputMode="numeric"
+            maxLength={4} defaultValue={a.last4 ?? ''} placeholder="8802" required={credit} />
         )}
         {credit ? (
           <>
+            <CardIdentityFields bank={a.bank_key ?? bankFromName(a.name)?.key}
+              network={a.card_network} />
             <Field label="Owed before the first entry" name="opening" inputMode="decimal"
               defaultValue={rupees(a.opening)}
               hint="What the card already owed when you started keeping it here. Everything since is worked out from the entries." />

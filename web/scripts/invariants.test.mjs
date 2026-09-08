@@ -54,7 +54,10 @@ const mk = async (name, kind, extra = {}) =>
 const spend = await mk('HDFC Savings', 'spending');
 const savings = await mk('SBI RD', 'savings');
 const cash = await mk('Cash', 'cash');
-const card = await mk('HDFC Regalia', 'credit', { statement_day: 5, due_day: 12, credit_limit: 20000000 });
+const card = await mk('HDFC Regalia', 'credit', {
+  statement_day: 5, due_day: 12, credit_limit: 20000000,
+  bank_key: 'hdfc', card_network: 'visa', last4: '8802',
+});
 const [catRow] = await sql`insert into category ${sql({ household_id: hh.id, name: 'Groceries', icon: 'cart', tint: 'green' })} returning id`;
 const cat = catRow.id;
 // A category for what comes in: a salary files under it, and rent never can.
@@ -64,6 +67,16 @@ const pay = payRow.id;
 const txn = (o) => sql`insert into txn ${sql({
   household_id: hh.id, created_by: user.id, occurred_on: '2026-09-01',
   amount: 100000, currency: 'INR', ...o })} returning id`;
+
+console.log('\nCARD IDENTITY — only known marks, and only on credit cards');
+await refuses('an unknown issuing bank is refused',
+  () => sql`update account set bank_key = 'made-up-bank' where id = ${card}`);
+await refuses('an unknown card network is refused',
+  () => sql`update account set card_network = 'diners' where id = ${card}`);
+await refuses('a bank account cannot carry credit-card identity',
+  () => sql`update account set bank_key = 'hdfc', card_network = 'visa' where id = ${spend}`);
+await allows('a credit card carries a known bank and network',
+  () => sql`update account set bank_key = 'hdfc', card_network = 'visa' where id = ${card}`);
 
 console.log('\nSHAPE — a move can never look like spending');
 await refuses('a transfer without a second account is refused',

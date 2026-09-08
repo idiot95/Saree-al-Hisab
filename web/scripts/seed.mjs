@@ -71,7 +71,7 @@ for (const a of [
   { key: 'icici', name: 'ICICI Savings', kind: 'spending', opening_balance: 7820000, last4: '9930' },
   { key: 'cash', name: 'Cash', kind: 'cash', opening_balance: 1845000 },
   { key: 'rd', name: 'HDFC Recurring Deposit', kind: 'savings', opening_balance: 4175000 },
-  { key: 'card', name: 'HDFC Regalia', kind: 'credit', last4: '8802',
+  { key: 'card', name: 'HDFC Regalia', kind: 'credit', last4: '8802', bank_key: 'hdfc', card_network: 'visa',
     credit_limit: 20000000, statement_day: 5, due_day: 12 },
 ]) {
   const { key, ...row } = a;

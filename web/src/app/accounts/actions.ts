@@ -5,6 +5,7 @@ import { rethrowControlFlow } from '@/lib/rethrow';
 import { sql, withHousehold } from '@/db/client';
 import { currentActor } from '@/db/queries';
 import { fromKeys } from '@/lib/money';
+import { BANKS, CARD_NETWORKS } from '@/lib/card-brand';
 
 /** People type ₹ and commas. Keep the digits and the point, discard the theatre. */
 const amount = (v: FormDataEntryValue | null) =>
@@ -25,6 +26,8 @@ async function mustWrite() {
 
 const KINDS = ['spending', 'savings', 'credit', 'cash'] as const;
 const RAILS = ['upi', 'card', 'netbanking', 'cash', 'cheque', 'wallet', 'autodebit'] as const;
+const BANK_KEYS = BANKS.map((bank) => bank.key) as readonly string[];
+const NETWORK_KEYS = CARD_NETWORKS.map((network) => network.key) as readonly string[];
 
 /* The same rule the database enforces in method_funding_is_valid(), said here
    in words a person can act on. The trigger is what makes it true; this is
@@ -66,7 +69,8 @@ export async function addAccount(_prev: Result | null, fd: FormData): Promise<Re
     if (name.length < 2) return { ok: false, error: 'Give the account a name.' };
     if (name.length > 60) return { ok: false, error: 'Account names are 60 characters at most.' };
     if (!(KINDS as readonly string[]).includes(kind)) return { ok: false, error: 'Choose an account type.' };
-    if (last4 && !/^\d{4}$/.test(last4)) return { ok: false, error: 'Enter exactly four digits, or leave it blank.' };
+    if (last4 && !/^\d{4}$/.test(last4)) return { ok: false, error: kind === 'credit'
+      ? 'Enter the card’s last four digits.' : 'Enter exactly four digits, or leave it blank.' };
 
     const [clash] = await sql`
       select 1 from account where household_id = ${actor.household_id}
@@ -76,6 +80,11 @@ export async function addAccount(_prev: Result | null, fd: FormData): Promise<Re
     const opening = amount(fd.get('opening'));
 
     if (kind === 'credit') {
+      const bankKey = String(fd.get('bank_key') ?? '');
+      const network = String(fd.get('card_network') ?? '');
+      if (!last4 || !/^\d{4}$/.test(last4)) return { ok: false, error: 'Enter the card’s last four digits.' };
+      if (!BANK_KEYS.includes(bankKey)) return { ok: false, error: 'Choose the bank that issued the card.' };
+      if (!NETWORK_KEYS.includes(network)) return { ok: false, error: 'Choose Visa, Mastercard, Amex or RuPay.' };
       const limit = amount(fd.get('limit'));
       const statement = String(fd.get('statement_day') ?? '');
       const due = String(fd.get('due_day') ?? '');
@@ -83,10 +92,10 @@ export async function addAccount(_prev: Result | null, fd: FormData): Promise<Re
       if (bad) return { ok: false, error: bad };
 
       await sql`
-        insert into account (household_id, name, kind, currency, last4, opening_balance,
-                             credit_limit, statement_day, due_day)
-        values (${actor.household_id}, ${name}, 'credit', ${actor.currency}, ${last4}, ${-Math.abs(opening)},
-                ${limit || null}, ${Number(statement)}, ${Number(due)})`;
+        insert into account (household_id, name, kind, currency, last4, bank_key, card_network,
+                             opening_balance, credit_limit, statement_day, due_day)
+        values (${actor.household_id}, ${name}, 'credit', ${actor.currency}, ${last4}, ${bankKey},
+                ${network}, ${-Math.abs(opening)}, ${limit || null}, ${Number(statement)}, ${Number(due)})`;
     } else {
       await sql`
         insert into account (household_id, name, kind, currency, last4, opening_balance)
@@ -113,7 +122,6 @@ export async function editAccount(_prev: Result | null, fd: FormData): Promise<R
 
     if (name.length < 2) return { ok: false, error: 'Give the account a name.' };
     if (name.length > 60) return { ok: false, error: 'Account names are 60 characters at most.' };
-    if (last4 && !/^\d{4}$/.test(last4)) return { ok: false, error: 'Enter exactly four digits, or leave it blank.' };
 
     // Theirs, real, and still live. A person account is never edited here: its
     // name is the person's, kept on the people screen.
@@ -122,6 +130,8 @@ export async function editAccount(_prev: Result | null, fd: FormData): Promise<R
       where id = ${id} and household_id = ${actor.household_id}
         and kind <> 'person' and archived_at is null`;
     if (!acc) return { ok: false, error: 'That account is not one of yours.' };
+    if (last4 && !/^\d{4}$/.test(last4)) return { ok: false, error: acc.kind === 'credit'
+      ? 'Enter the card’s last four digits.' : 'Enter exactly four digits, or leave it blank.' };
 
     const [clash] = await sql`
       select 1 from account where household_id = ${actor.household_id}
@@ -141,6 +151,11 @@ export async function editAccount(_prev: Result | null, fd: FormData): Promise<R
     }
 
     const limit = amount(fd.get('limit'));
+    const bankKey = String(fd.get('bank_key') ?? '');
+    const network = String(fd.get('card_network') ?? '');
+    if (!last4 || !/^\d{4}$/.test(last4)) return { ok: false, error: 'Enter the card’s last four digits.' };
+    if (!BANK_KEYS.includes(bankKey)) return { ok: false, error: 'Choose the bank that issued the card.' };
+    if (!NETWORK_KEYS.includes(network)) return { ok: false, error: 'Choose Visa, Mastercard, Amex or RuPay.' };
     const statement = String(fd.get('statement_day') ?? '');
     const due = String(fd.get('due_day') ?? '');
     const bad = dayProblem('The statement day', statement) ?? dayProblem('The due day', due);
@@ -150,7 +165,7 @@ export async function editAccount(_prev: Result | null, fd: FormData): Promise<R
 
     await sql.begin(async (tx) => {
       await tx`
-        update account set name = ${name}, last4 = ${last4},
+        update account set name = ${name}, last4 = ${last4}, bank_key = ${bankKey}, card_network = ${network},
                            opening_balance = ${-Math.abs(opening)}, credit_limit = ${limit || null},
                            statement_day = ${sday}, due_day = ${dday}
         where id = ${acc.id} and household_id = ${actor.household_id}`;

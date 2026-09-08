@@ -1,248 +1,199 @@
 'use client';
 
-import { useRef, useState } from 'react';
-import Link from 'next/link';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { Icon } from '../Icon';
 import { format } from '@/lib/money';
 import { nth } from '@/lib/ordinal';
 import { haptic } from '../haptics';
 import { headerBg } from '../auth-ui';
+import SwipeRow, { type SwipeAction } from '../SwipeRow';
 import { AccountForm, type Editable } from './EditAccount';
+import { bankFor, bankFromName, networkFor } from '@/lib/card-brand';
 
-/* The cards, drawn as cards.
+/* Credit accounts are drawn as the object people recognise, not as a long
+   settings panel. The face keeps one fixed card proportion and carries only
+   the facts that belong on it: identity, what is owed, limit and bill dates.
 
-   A credit card was a row in a list like any other, which is honest and
-   forgettable: the one number that matters — what it owes — sat in the same
-   type as a savings balance. A card in a wallet does not look like that. So
-   each one gets a face: the name, the last four digits, and the outstanding
-   figure large on a dark ground, the app's pumpkin, which is the colour it
-   uses for money owed everywhere else. Under the face is what a person
-   actually wants next — how much of the limit is gone, when the bill lands
-   and when it is due, and the button that pays it.
-
-   With more than one card the faces become a deck you swipe through, a card
-   at a time, with the next one peeking at the edge so it is obvious there is
-   another. The swipe is the quick way, never the only way: the dots beneath
-   are buttons, so the deck can be worked entirely by tapping, and every card
-   is in the page in reading order for a screen reader whatever is on
-   screen. */
+   The face itself is the swipe row. Pull it left and Pay/Edit appear directly
+   underneath; tap the small chevron for the same actions without a gesture.
+   Cards stack vertically so that horizontal movement means one thing only. */
 
 export type CardInfo = {
   edit: Editable;
   /** Minor units, positive when the card owes money. */
   owed: number;
   limit: number | null;
-  /** The bill building up now: what is on it, from how many entries, due when. */
-  /** `dueOn` is date-only: a bill due on the 12th must not become the 11th in
-   *  a browser west of UTC. */
+  /** `dueOn` is date-only so it never shifts across browser time zones. */
   cycle: { charged: number; entries: number; dueOn: string } | null;
 };
 
 export default function CardDeck({ cards, canWrite }: { cards: CardInfo[]; canWrite: boolean }) {
-  const track = useRef<HTMLDivElement>(null);
-  const [at, setAt] = useState(0);
-  const many = cards.length > 1;
-
-  /* Which card is showing, worked out from where the track has been scrolled
-     rather than from the swipe itself, so a tap on a dot and a drag of a
-     finger end up in exactly the same state. */
-  const onScroll = () => {
-    const el = track.current;
-    if (!el) return;
-    const i = Math.round(el.scrollLeft / (el.scrollWidth / cards.length));
-    if (i !== at && i >= 0 && i < cards.length) setAt(i);
-  };
-  const go = (i: number) => {
-    const el = track.current;
-    if (!el) return;
-    haptic('select');
-    el.scrollTo({ left: (el.scrollWidth / cards.length) * i, behavior: 'smooth' });
-    setAt(i);
-  };
-
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-      <div ref={track} onScroll={onScroll} className="deck"
-        style={{
-          display: 'flex', gap: 12, overflowX: many ? 'auto' : 'visible',
-          scrollSnapType: 'x mandatory', scrollPadding: '0 var(--gutter)',
-          padding: '0 var(--gutter) 2px', margin: '0 calc(var(--gutter) * -1)',
-        }}>
-        {cards.map((c) => (
-          <div key={c.edit.id} style={{
-            flex: many ? '0 0 88%' : '1 1 100%', minWidth: 0, scrollSnapAlign: 'center',
-          }}>
-            <CardPanel card={c} canWrite={canWrite} />
-          </div>
-        ))}
-      </div>
-
-      {many && (
-        <div role="group" aria-label="Which card" style={{
-          display: 'flex', justifyContent: 'center', gap: 2,
-        }}>
-          {cards.map((c, i) => (
-            <button key={c.edit.id} type="button" onClick={() => go(i)}
-              aria-label={`Show ${c.edit.name}`} aria-current={i === at}
-              style={{
-                width: 44, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}>
-              <span aria-hidden style={{
-                width: i === at ? 20 : 7, height: 7, borderRadius: 999,
-                background: i === at ? 'var(--c-pumpkin-hi)' : 'var(--c-track2)',
-                transition: 'width .18s, background .18s',
-              }} />
-            </button>
-          ))}
-        </div>
-      )}
+    <div style={{
+      display: 'flex', flexDirection: 'column', gap: 12, margin: '0 var(--gutter) 6px',
+      width: 'calc(100% - (var(--gutter) * 2))',
+      maxWidth: 'calc(100vw - (var(--gutter) * 2))', minWidth: 0,
+    }}>
+      {cards.map((card) => <CardBlock key={card.edit.id} card={card} canWrite={canWrite} />)}
     </div>
   );
 }
 
-function CardPanel({ card, canWrite }: { card: CardInfo; canWrite: boolean }) {
+function CardBlock({ card, canWrite }: { card: CardInfo; canWrite: boolean }) {
+  const router = useRouter();
   const [editing, setEditing] = useState(false);
-  const { edit: a, owed, limit, cycle } = card;
-  const used = limit ? Math.min(1, owed / limit) : 0;
-  const available = limit === null ? null : limit - owed;
-  /* What paying the bill means: the statemented total if a bill is building,
-     otherwise everything the card owes. Either way it opens the transfer form
-     with the figure filled in — the payment is a real transfer between two
-     accounts here, not a status flag, which is why the balance can be trusted. */
+  const { edit: account, owed, cycle } = card;
   const payable = cycle?.charged || owed;
+  const actions: SwipeAction[] = canWrite ? [
+    {
+      label: 'Edit',
+      icon: <Icon name="pencil" size={20} strokeWidth={2} />,
+      act: () => { haptic('select'); setEditing(true); },
+    },
+    ...(payable > 0 ? [{
+      label: 'Pay', tone: 'primary' as const,
+      icon: <Icon name="move" size={20} strokeWidth={2} />,
+      act: () => router.push(`/add?kind=transfer&to=${account.id}&amount=${payable}`, {
+        transitionTypes: ['nav-forward'],
+      }),
+    }] : []),
+  ] : [];
 
   if (editing) {
     return (
       <section className="el card" style={{
-        background: 'var(--c-card)', borderRadius: 18, padding: '0 var(--pad)',
+        background: 'var(--c-card)', borderRadius: 20, padding: '0 var(--pad)', overflow: 'hidden',
       }}>
-        <AccountForm account={a} onDone={() => setEditing(false)} />
+        <AccountForm account={account} onDone={() => setEditing(false)} />
       </section>
     );
   }
 
   return (
-    <section className="el card" aria-label={a.name} style={{
-      background: 'var(--c-card)', borderRadius: 18, overflow: 'hidden',
-      display: 'flex', flexDirection: 'column',
+    <div className="el2" style={{
+      width: '100%', minWidth: 0, borderRadius: 20, overflow: 'hidden', background: 'var(--c-card)',
     }}>
-      {/* The face */}
-      <div style={{
-        background: headerBg('pumpkin'), color: '#fff', padding: '15px 16px 16px',
-        display: 'flex', flexDirection: 'column', gap: 18, position: 'relative', overflow: 'hidden',
-      }}>
-        <span aria-hidden style={{
-          position: 'absolute', right: -14, bottom: -20, opacity: 0.14, lineHeight: 0,
+      <SwipeRow actions={actions} commit={false} flush grip={canWrite}
+        gripColor="rgba(255,255,255,.86)">
+        <CardFace card={card} />
+      </SwipeRow>
+    </div>
+  );
+}
+
+function CardFace({ card }: { card: CardInfo }) {
+  const { edit: account, owed, limit, cycle } = card;
+  const bank = bankFor(account.bank_key) ?? bankFromName(account.name);
+  const network = networkFor(account.card_network);
+  const used = limit ? Math.min(1, owed / limit) : 0;
+  const available = limit === null ? null : limit - owed;
+  const due = cycle
+    ? new Date(`${cycle.dueOn}T00:00:00`).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
+    : account.due_day ? nth(account.due_day) : '—';
+  const statement = account.statement_day ? nth(account.statement_day) : '—';
+
+  return (
+    <section aria-label={`${account.name} credit card`} style={{
+      aspectRatio: '1.586 / 1', width: '100%', minWidth: 0, borderRadius: 18,
+      padding: '16px 18px 15px', color: '#fff', background: headerBg('pumpkin'),
+      display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden',
+      boxShadow: 'inset 0 1px 0 rgba(255,255,255,.2), inset 0 -1px 0 rgba(0,0,0,.12)',
+    }}>
+      <span aria-hidden style={{
+        position: 'absolute', width: 210, height: 210, borderRadius: 999,
+        right: -82, top: -105, border: '1px solid rgba(255,255,255,.13)',
+        boxShadow: '0 0 0 30px rgba(255,255,255,.035), 0 0 0 62px rgba(255,255,255,.025)',
+      }} />
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingRight: 24, zIndex: 1 }}>
+        <span style={{
+          width: bank?.key === 'sbi' ? 82 : 42, height: 30, flex: 'none', borderRadius: 7,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 5,
+          background: '#fff', boxShadow: '0 2px 8px rgba(31,23,13,.18)',
         }}>
-          <Icon name="card" size={116} strokeWidth={1.1} />
+          {bank?.logo
+            ? <Image src={bank.logo} alt="" width={82} height={30} unoptimized
+                style={{ display: 'block', width: '100%', height: '100%', objectFit: 'contain' }} />
+            : <Icon name="bank" size={20} strokeWidth={1.8} />}
         </span>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
+        <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1 }}>
+          <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,.76)' }}>
+            {bank?.label ?? 'Credit card'}
+          </span>
           <span style={{
-            flex: 1, minWidth: 0, fontSize: 'var(--step-0)', fontWeight: 700, letterSpacing: '-.01em',
+            fontSize: 'var(--step--1)', lineHeight: 1.2, fontWeight: 700,
             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-          }}>{a.name}</span>
-          {a.last4 && (
-            <span className="t" style={{
-              fontSize: 'var(--step--1)', fontWeight: 600, color: 'rgba(255,255,255,.82)', flex: 'none',
-            }}>•••• {a.last4}</span>
-          )}
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-          <span className="t" style={{
-            fontSize: 'var(--step-3)', fontWeight: 700, letterSpacing: '-.02em', lineHeight: 1.1,
-          }}>{format(owed)}</span>
-          <span style={{
-            fontSize: 'var(--step--2)', fontWeight: 600, letterSpacing: '.06em',
-            textTransform: 'uppercase', color: 'rgba(255,255,255,.78)',
-          }}>{owed > 0 ? 'Outstanding' : 'Nothing owed'}</span>
-        </div>
+          }}>{account.name}</span>
+        </span>
       </div>
 
-      <div style={{ padding: 'var(--pad)', display: 'flex', flexDirection: 'column', gap: 12 }}>
-        {limit && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <span aria-hidden style={{
-              height: 7, borderRadius: 999, background: 'var(--c-track)', overflow: 'hidden',
-            }}>
-              <span style={{
-                display: 'block', height: '100%', borderRadius: 999, width: `${used * 100}%`,
-                background: used > 0.8 ? 'var(--c-danger-fill)'
-                  : used > 0.5 ? 'var(--c-warn-fill)' : 'var(--c-ok-fill)',
-              }} />
-            </span>
-            <span style={{ fontSize: 'var(--step--2)', color: 'var(--c-meta)' }}>
-              {available !== null && available >= 0
-                ? `${format(available)} of ${format(limit)} still available`
-                : `${format(Math.abs(available ?? 0))} over the ${format(limit)} limit`}
-            </span>
-          </div>
-        )}
-
-        <div style={{ display: 'flex', gap: 10 }}>
-          <Fact label="Bill due" value={
-            cycle
-              ? new Date(`${cycle.dueOn}T00:00:00`).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
-              : a.due_day ? `the ${nth(a.due_day)}` : '—'
-          } />
-          <Fact label="Statement on" value={a.statement_day ? `the ${nth(a.statement_day)}` : '—'} />
-        </div>
-
-        <p style={{
-          margin: 0, padding: '10px 12px', borderRadius: 11, background: 'var(--c-sunk2)',
-          fontSize: 'var(--step--1)', lineHeight: 1.45, color: 'var(--c-meta)',
+      <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginTop: 14, zIndex: 1 }}>
+        <span aria-hidden style={{
+          width: 38, height: 29, borderRadius: 6,
+          background: 'linear-gradient(145deg,#F4D79A,#B88737)', border: '1px solid rgba(65,38,4,.26)',
+          boxShadow: 'inset 0 0 0 1px rgba(255,255,255,.35)', position: 'relative',
         }}>
-          {cycle ? (
-            <>
-              <b style={{ color: 'var(--c-ink)' }}>{format(cycle.charged)}</b>
-              {' '}on this bill from {cycle.entries} {cycle.entries === 1 ? 'entry' : 'entries'}.
-            </>
-          ) : (
-            <>Nothing on this bill yet.</>
-          )}
-        </p>
-
-        {canWrite && (
-          <div style={{ display: 'flex', gap: 9 }}>
-            {payable > 0 && (
-              <Link className="el cta" href={`/add?kind=transfer&to=${a.id}&amount=${payable}`}
-                transitionTypes={['nav-forward']} onClick={() => haptic('select')}
-                style={{
-                  flex: 1, minHeight: 46, borderRadius: 12, display: 'flex', alignItems: 'center',
-                  justifyContent: 'center', gap: 7, fontSize: 'var(--step--1)', fontWeight: 700,
-                  background: 'var(--g-primary)', color: 'var(--c-on-primary)', textDecoration: 'none',
-                }}>
-                <Icon name="move" size={17} strokeWidth={2} />
-                Pay {format(payable)}
-              </Link>
-            )}
-            <button type="button" onClick={() => { haptic('select'); setEditing(true); }}
-              style={{
-                flex: payable > 0 ? 'none' : 1, minHeight: 46, padding: '0 16px', borderRadius: 12,
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
-                fontSize: 'var(--step--1)', fontWeight: 600,
-                background: 'var(--c-sunk)', color: 'var(--c-ink)',
-              }}>
-              <Icon name="pencil" size={16} strokeWidth={2} />
-              Edit
-            </button>
-          </div>
-        )}
+          <span style={{ position: 'absolute', left: 0, right: 0, top: 10, height: 1, background: 'rgba(74,45,5,.32)' }} />
+          <span style={{ position: 'absolute', top: 0, bottom: 0, left: 18, width: 1, background: 'rgba(74,45,5,.28)' }} />
+        </span>
+        <span aria-hidden style={{ display: 'flex', transform: 'rotate(90deg)', color: 'rgba(255,255,255,.72)' }}>
+          <Icon name="wifi" size={22} strokeWidth={1.7} />
+        </span>
       </div>
+
+      <div className="n" style={{
+        marginTop: 11, zIndex: 1, fontSize: 'clamp(14px, 4.4vw, 19px)', fontWeight: 650,
+        letterSpacing: '.12em', whiteSpace: 'nowrap', textShadow: '0 1px 2px rgba(0,0,0,.12)',
+      }}>
+        ••••&nbsp; ••••&nbsp; ••••&nbsp; {account.last4 ?? '••••'}
+      </div>
+
+      <div style={{
+        display: 'grid', gridTemplateColumns: 'minmax(0,1.45fr) .75fr .75fr auto', gap: 10,
+        alignItems: 'end', marginTop: 'auto', paddingTop: 10,
+        borderTop: '1px solid rgba(255,255,255,.2)', zIndex: 1,
+      }}>
+        <span style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1 }}>
+          <span style={{ fontSize: 8, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,.64)' }}>
+            {owed > 0 ? 'Outstanding' : 'Nothing owed'}
+          </span>
+          <span className="t n" style={{ fontSize: 'clamp(17px, 5vw, 23px)', fontWeight: 700, lineHeight: 1.05 }}>
+            {format(owed)}
+          </span>
+        </span>
+        <CardFact label="Statement" value={statement} />
+        <CardFact label="Due" value={due} />
+        <span style={{
+          width: 48, height: 32, borderRadius: 7, padding: 5, background: '#fff',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          boxShadow: '0 2px 8px rgba(31,23,13,.14)',
+        }}>
+          {network?.logo
+            ? <Image src={network.logo} alt={network.label} width={48} height={32} unoptimized
+                style={{ display: 'block', width: '100%', height: '100%', objectFit: 'contain' }} />
+            : <span style={{ color: '#4b4b4b', fontSize: 8, fontWeight: 800 }}>CARD</span>}
+        </span>
+      </div>
+
+      {limit !== null && <span aria-label={available !== null && available >= 0
+        ? `${format(available)} available` : `${format(Math.abs(available ?? 0))} over limit`} style={{
+        position: 'absolute', left: 0, bottom: 0, width: `${used * 100}%`, height: 3,
+        background: 'rgba(255,255,255,.9)', zIndex: 2,
+      }} />}
     </section>
   );
 }
 
-function Fact({ label, value }: { label: string; value: string }) {
+function CardFact({ label, value }: { label: string; value: string }) {
   return (
-    <span style={{
-      flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2,
-      padding: '9px 11px', borderRadius: 11, background: 'var(--c-sunk2)',
-    }}>
+    <span style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
       <span style={{
-        fontSize: 'var(--step--2)', fontWeight: 600, letterSpacing: '.05em',
-        textTransform: 'uppercase', color: 'var(--c-meta)',
+        fontSize: 9, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase',
+        color: 'rgba(255,255,255,.64)',
       }}>{label}</span>
-      <span className="t" style={{ fontSize: 'var(--step-0)', fontWeight: 700 }}>{value}</span>
+      <span className="n" style={{ fontSize: 'var(--step--1)', fontWeight: 700 }}>{value}</span>
     </span>
   );
 }

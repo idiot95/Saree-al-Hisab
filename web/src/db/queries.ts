@@ -211,6 +211,7 @@ export async function resetByToken(token: string) {
 export type AccountRow = {
   id: string; name: string; kind: 'spending' | 'savings' | 'credit' | 'cash';
   last4: string | null; opening_balance: string; balance: string; entries: number;
+  bank_key: string | null; card_network: string | null;
   credit_limit: string | null; statement_day: number | null; due_day: number | null;
   methods: number;
 };
@@ -221,7 +222,8 @@ export type AccountRow = {
 export async function accountsWithBalances(householdId: string) {
   return withHousehold(householdId, async () => {
     return sql`
-      select b.id, b.name, b.kind, b.last4, b.opening_balance::text, b.balance::text,
+      select b.id, b.name, b.kind, b.last4, b.bank_key, b.card_network,
+             b.opening_balance::text, b.balance::text,
              b.entries::int, b.credit_limit::text, b.statement_day, b.due_day,
              (select count(*)::int from payment_method m
               where m.funding_account_id = b.id and m.archived_at is null) as methods

@@ -4,6 +4,7 @@ import { useActionState, useState } from 'react';
 import { Chip, ACCOUNT_ICON, ACCOUNT_TINT } from '../Icon';
 import { Field, ErrorNote } from '../auth-ui';
 import { addAccount } from './actions';
+import CardIdentityFields from './CardIdentityFields';
 
 const KINDS = [
   { id: 'spending', label: 'Bank account', what: 'Salary in, bills out.' },
@@ -65,12 +66,14 @@ export default function AddAccount({ startOpen = false }: { startOpen?: boolean 
         placeholder={kind === 'credit' ? 'HDFC Regalia' : kind === 'cash' ? 'Wallet' : 'HDFC Savings'} />
 
       {kind !== 'cash' && (
-        <Field label="Last four digits (optional)" name="last4" inputMode="numeric"
-          maxLength={4} placeholder="8802" />
+        <Field label={kind === 'credit' ? 'Last four digits' : 'Last four digits (optional)'}
+          name="last4" inputMode="numeric" maxLength={4} placeholder="8802"
+          required={kind === 'credit'} />
       )}
 
       {kind === 'credit' ? (
         <>
+          <CardIdentityFields />
           <Field label="Currently owed" name="opening" inputMode="decimal" placeholder="0"
             hint="Leave at 0 if the bill is cleared." />
           <Field label="Credit limit (optional)" name="limit" inputMode="decimal" placeholder="200000" />

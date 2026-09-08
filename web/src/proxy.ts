@@ -76,6 +76,6 @@ export const config = {
        The manifest and the icons MUST be in this list: a browser fetches them
        while deciding whether the app can be installed, and an HTML redirect
        where JSON was expected means it simply cannot be. */
-    '/((?!_next/static|_next/image|icons|manifest.webmanifest|favicon.ico|sw.js).*)',
+    '/((?!_next/static|_next/image|icons|brands|manifest.webmanifest|favicon.ico|sw.js).*)',
   ],
 };

@@ -19,7 +19,7 @@
    for are the chunks that were cached beside it. Bump VERSION when the
    offline screen changes, so the snapshot is taken again. */
 
-const VERSION = 'v15';
+const VERSION = 'v16';
 const SHELL = `shell-${VERSION}`;
 const ASSETS = `assets-${VERSION}`;
 const OFFLINE = '/offline';
@@ -80,6 +80,7 @@ self.addEventListener('fetch', (event) => {
   // Content-hashed assets: safe to keep, and the reason a second visit is fast.
   const cacheable = url.pathname.startsWith('/_next/static/')
     || url.pathname.startsWith('/icons/')
+    || url.pathname.startsWith('/brands/')
     || url.pathname === '/manifest.webmanifest';
   if (!cacheable) return;
 

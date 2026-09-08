@@ -69,7 +69,8 @@ let closeOpen: { id: string; fn: () => void } | null = null;
 let peekedThisLoad = false;
 const PEEK_KEY = 'swipe-peeked';
 
-export default function SwipeRow({ actions, commit = true, grip = true, children }: {
+export default function SwipeRow({ actions, commit = true, grip = true, flush = false,
+  gripColor = 'var(--c-meta)', children }: {
   actions: SwipeAction[];
   /** Whether a long swipe fires the last action outright. Off for anything
       that should always be a deliberate second tap. */
@@ -78,6 +79,10 @@ export default function SwipeRow({ actions, commit = true, grip = true, children
       opens it on a tap. Off only where the row already wears a handle of
       its own at that edge. */
   grip?: boolean;
+  /** Let a shaped block such as a credit card reach the swipe row's edges. */
+  flush?: boolean;
+  /** A shaped block can put the grip on a dark ground. */
+  gripColor?: string;
   children: ReactNode;
 }) {
   const [x, setX] = useState(0);
@@ -221,7 +226,8 @@ export default function SwipeRow({ actions, commit = true, grip = true, children
 
   return (
     <div ref={ref} style={{
-      position: 'relative', overflow: 'hidden', margin: '0 calc(var(--pad) * -1)',
+      position: 'relative', overflow: 'hidden',
+      margin: flush ? 0 : '0 calc(var(--pad) * -1)',
     }}>
       <div aria-hidden={!open} style={{
         position: 'absolute', top: 0, bottom: 0, right: 0, display: 'flex',
@@ -256,7 +262,7 @@ export default function SwipeRow({ actions, commit = true, grip = true, children
         onClickCapture={click}
         style={{
           position: 'relative', background: 'var(--c-card)',
-          padding: grip ? '0 calc(var(--pad) + 20px) 0 var(--pad)' : '0 var(--pad)',
+          padding: flush ? 0 : grip ? '0 calc(var(--pad) + 20px) 0 var(--pad)' : '0 var(--pad)',
           touchAction: 'pan-y',
           transform: `translateX(${x}px)`,
           transition: drag ? 'none' : 'transform .24s cubic-bezier(.2,.8,.2,1)',
@@ -269,7 +275,7 @@ export default function SwipeRow({ actions, commit = true, grip = true, children
             style={{
               position: 'absolute', top: 0, bottom: 0, right: 0, width: 36,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: 'var(--c-meta)', opacity: 0.7,
+              color: gripColor, opacity: 0.8,
             }}>
             <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor"
               strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" aria-hidden

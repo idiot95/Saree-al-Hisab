@@ -155,6 +155,8 @@ export const account = pgTable('account', {
   currency: text('currency').notNull().default('INR'),
   openingBalance: bigint('opening_balance', { mode: 'number' }).notNull().default(0),
   last4: text('last4'),
+  bankKey: text('bank_key'),
+  cardNetwork: text('card_network'),
   creditLimit: bigint('credit_limit', { mode: 'number' }),
   statementDay: integer('statement_day'),
   dueDay: integer('due_day'),
@@ -164,7 +166,10 @@ export const account = pgTable('account', {
   // INVARIANT 3, half of it: only a credit account may carry card metadata.
   check('card_fields_only_on_credit', sql`
     ${t.kind} = 'credit'
-    OR (${t.creditLimit} IS NULL AND ${t.statementDay} IS NULL AND ${t.dueDay} IS NULL)`),
+    OR (${t.creditLimit} IS NULL AND ${t.statementDay} IS NULL AND ${t.dueDay} IS NULL
+        AND ${t.bankKey} IS NULL AND ${t.cardNetwork} IS NULL)`),
+  check('bank_key_is_named', sql`${t.bankKey} IS NULL OR ${t.bankKey} IN ('hdfc','icici','sbi','axis','other')`),
+  check('card_network_is_named', sql`${t.cardNetwork} IS NULL OR ${t.cardNetwork} IN ('visa','mastercard','amex','rupay')`),
 ]);
 
 export const relationship = pgEnum('relationship', ['family', 'friend', 'work', 'vendor']);
