@@ -37,7 +37,10 @@ export default async function Accounts() {
 
   const canWrite = actor.role !== 'viewer';
   const holdings = accounts.filter((a) => a.kind !== 'credit');
-  const cards = accounts.filter((a) => a.kind === 'credit');
+  /* Cards lead with the one that wants paying: the deck opens on the first,
+     and a card owing nothing is not what a person came to the screen for. */
+  const cards = accounts.filter((a) => a.kind === 'credit')
+    .sort((x, y) => Math.abs(Number(y.balance)) - Math.abs(Number(x.balance)));
   const have = holdings.reduce((n, a) => n + Number(a.balance), 0);
   const owed = cards.reduce((n, a) => n + Number(a.balance), 0); // negative when owing
   const cycleFor = (id: string) => cycles.find((c) => c.account_id === id);
@@ -171,10 +174,14 @@ export default async function Accounts() {
               <Chip icon={RAIL_ICON[m.kind] ?? 'tag'} tint={RAIL_TINT[m.kind] ?? 'neutral'} size={40} />
               <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
                 <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>{m.name}</span>
-                <span style={{ fontSize: 'var(--step--1)', color: 'var(--c-meta)' }}>
+                {/* Which balance it spends, in as few words as the row has
+                    space for: the section above already explains that a way to
+                    pay is linked to an account, so the row only has to name
+                    the one it draws on. */}
+                <span style={{ fontSize: 'var(--step--1)', lineHeight: 1.35, color: 'var(--c-meta)' }}>
                   {(m.kind === 'card' && m.funds_kind === 'credit') || (m.kind === 'cash' && m.funds_kind === 'cash')
-                    ? `${m.funds} — the ${m.kind === 'card' ? 'card' : 'cash'} itself`
-                    : `Takes money from ${m.funds}`}
+                    ? `The ${m.kind === 'card' ? 'card' : 'cash'} itself`
+                    : `From ${m.funds}`}
                   {m.handle && ` · ${m.handle}`}
                 </span>
               </span>

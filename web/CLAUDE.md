@@ -180,14 +180,34 @@ The transfer form's "To which account" is the same tiles for accounts alone,
 leaving out the one the money is leaving. The Accounts screen tells the same
 story: each bank or cash row lists "Paid through GPay, PhonePe", the rails
 live under "Ways to pay" with a plain-words explanation, and every string
-says "way to pay", "linked to", "takes money from" — never "payment method".
-Credit accounts are physical-proportion card faces rather than ledger rows.
-Each stores its last four digits, issuing bank and network (`0025`), renders
-the locally held bank and Visa/Mastercard/Amex/RuPay SVG marks, and keeps the
-outstanding amount and bill dates on the face. The face itself swipes to reveal
-Edit and Pay; cards stack vertically, so horizontal movement has only that one
-meaning. The same account form opens in place, and Pay hands a prefilled
-transfer to `/add`.
+says "way to pay", "linked to", "from" — never "payment method".
+
+**Credit cards are a wallet, not a list** (`accounts/CardDeck.tsx`). A face
+carries four things and nothing else: the issuing bank's mark, the network,
+the last four digits small in a corner, and the outstanding amount with the
+date it is due. The embossed number, the gold chip and the contactless glyph
+went — they made a convincing rectangle of plastic and told nobody anything
+they opened the screen to learn — and with them went the real 1.586 card
+proportion, which without a chip to hold is mostly empty middle (it is 1.95
+now). The face is neutral in both themes (`--card-face`) so **the bank mark is
+the only colour on it**, and the network is greyscale through `--brand-grey`,
+which inverts in the dark theme so a navy Visa does not vanish; in that theme
+the bank mark keeps a small white ground (`--card-logo-bg`), because a brand
+colour is drawn for print on white. Bank and network are stored per account
+(`bank_key`, `card_network`, migration `0025`) and drawn from SVGs held locally
+in `public/brands/`, so a card looks like itself offline and no bank learns
+which accounts a household keeps.
+
+Cards run **sideways**, one to a screen with the next peeking, so five cards
+cost no more of the page than one. The deck is scroll-snap (`.deck`), and the
+swipe is never the only way: the dots under it are buttons, every card is in
+the page in reading order, and each carries its own Pay and Edit rather than
+depending on which happens to be in view — which also keeps a horizontal drag
+meaning one thing, since the old per-card swipe row would have fought the deck
+for the same gesture. The deck opens on the card that owes the most. Pay hands
+a prefilled transfer to `/add` (a card bill is a real movement between two
+accounts here, never a status flag, which is why the balance can be trusted),
+and Edit opens the same account form in place.
 
 The client sends `paidWith`, a string reference from `src/lib/pay.ts`:
 `a:<account id>` means paid straight from the account (`txn.account_id` set,
@@ -205,8 +225,8 @@ hidden input; there is no `<select>` of payment modes anywhere, because one
 listing every rail under every account showed "ICICI Amazon Pay" twice and
 read as nonsense. Wrap it in a `<div role="group">`, never a `<label>` — a
 label around buttons activates the first chip. The entries list shows the
-rail when there is one and the account when there is not. `sw.js` is v16 for
-the flat picker, compact searchable category picker and local brand artwork.
+rail when there is one and the account when there is not. `sw.js` is v17 for
+the card wallet.
 Before Save, a debounced
 `checkDuplicate` shows what a household member already recorded within ±1% and
 ±2 days, which is the prevention half of the duplicate rule; the Inbox card is
@@ -1015,7 +1035,7 @@ storage after it opens. The design, in the order the pieces matter:
   person decides. Stuck entries are never retried on their own.
 - **`/offline` is `force-dynamic`** though it reads nothing, because every
   script tag carries the request's CSP nonce and a prerendered page ships
-  with none. The worker (`public/sw.js`, `VERSION = 'v16'`) fetches it once at
+  with none. The worker (`public/sw.js`, `VERSION = 'v17'`) fetches it once at
   install, `credentials: 'omit'`, together with every `/_next/static/` script
   and stylesheet the markup names, so the cached copy is a self-consistent
   snapshot: the nonce in its cached headers is the nonce in its cached

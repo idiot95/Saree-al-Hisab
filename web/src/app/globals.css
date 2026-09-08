@@ -69,6 +69,20 @@
      white on a pastel measured 2:1. The brand green is dark in both themes
      and keeps --c-on-primary. */
   --c-on-tint: #FFFFFF;
+  /* A credit card's face. The card is the one place the app shows somebody
+     else's brand, so the face itself is neutral and the bank's mark is the
+     only colour on it — a wallet of cards then reads by logo, the way a real
+     one does. In the dark theme the mark keeps a small white ground, because
+     a brand colour is drawn for print on white and ICICI's red on a dark
+     panel is neither their red nor readable. */
+  --card-face: #FFFFFF;
+  --card-edge: rgba(23, 43, 55, .12);
+  --card-logo-bg: transparent;
+  --card-logo-edge: transparent;
+  /* Network marks (Visa, Mastercard) are greyscale by request: the bank says
+     which card this is, the network is a footnote. Inverted in the dark theme
+     so a navy wordmark does not vanish into the panel. */
+  --brand-grey: grayscale(1) opacity(.55);
   /* The hero's ground: the card, warmed towards the brand teal so the one
      figure that matters is not sitting on the same white as everything else. */
   --g-hero: linear-gradient(158deg, var(--c-card) 0%, var(--c-teal-l) 165%);
@@ -85,6 +99,11 @@
     --c-on-warn: #FDF1D5;
     --c-on-danger: #FCE7E3;
     --c-on-tint: #0D171E;
+    --card-face: #1B2B34;
+    --card-edge: rgba(255, 255, 255, .10);
+    --card-logo-bg: #FFFFFF;
+    --card-logo-edge: rgba(255, 255, 255, .16);
+    --brand-grey: grayscale(1) invert(1) opacity(.62);
     --g-hero: linear-gradient(158deg, var(--c-card) 0%, var(--c-teal-l) 150%);
   }
 }
@@ -97,6 +116,11 @@
   --c-on-warn: #FDF1D5;
   --c-on-danger: #FCE7E3;
   --c-on-tint: #0D171E;
+  --card-face: #1B2B34;
+  --card-edge: rgba(255, 255, 255, .10);
+  --card-logo-bg: #FFFFFF;
+  --card-logo-edge: rgba(255, 255, 255, .16);
+  --brand-grey: grayscale(1) invert(1) opacity(.62);
   --g-hero: linear-gradient(158deg, var(--c-card) 0%, var(--c-teal-l) 150%);
 }
 
@@ -365,6 +389,13 @@
 
   /* The undo bar rises from the bottom edge — from where the tab bar is,
      which is where the thumb already is. */
+  /* The card wallet: one card to a screen with the next peeking, and no
+     scrollbar drawn across the faces. The peek is the affordance — a strip of
+     the next card at the edge says there is another without a hint to read —
+     and the dots under it do the same job for a finger that never swipes. */
+  .deck { scrollbar-width: none; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; }
+  .deck::-webkit-scrollbar { display: none; }
+
   .snack { animation: snack-in .22s cubic-bezier(.2,.8,.2,1); }
   @keyframes snack-in { from { opacity: 0; translate: 0 14px } to { opacity: 1; translate: 0 } }
 
