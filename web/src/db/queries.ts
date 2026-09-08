@@ -798,7 +798,10 @@ export async function inboxCount(householdId: string) {
 export type ScheduleRow = {
   id: string; name: string; kind: 'expense' | 'income';
   amount: string | null; amount_from_statement: boolean;
-  rrule: string | null; account_id: string; account: string; since: string;
+  /** One of the two is set: a rule on the Gregorian calendar, or the same
+   *  grammar on the Hijri (Misri) one. See src/lib/recur.ts. */
+  rrule: string | null; hijri_rule: string | null;
+  account_id: string; account: string; since: string;
   category_id: string | null; category: string | null; tint: string | null;
   icon: string | null;
   settled: string[];
@@ -811,7 +814,7 @@ export type ScheduleRow = {
    about next month without a job having visited it. */
 export async function schedulesFor(householdId: string) {
   return sql`
-    select s.id, s.name, s.kind, s.amount::text, s.amount_from_statement, s.rrule,
+    select s.id, s.name, s.kind, s.amount::text, s.amount_from_statement, s.rrule, s.hijri_rule,
            s.account_id, a.name as account, to_char(s.created_at, 'YYYY-MM-DD') as since,
            s.category_id, c.name as category, c.tint, c.icon,
            coalesce(array_agg(to_char(o.due_on, 'YYYY-MM-DD'))

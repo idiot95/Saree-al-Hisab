@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { sql } from '@/db/client';
 import { currentActor } from '@/db/queries';
 import { fromKeys } from '@/lib/money';
-import { buildRule, parseRule, MAX_DAY } from '@/lib/recur';
+import { buildRule, parseRule, nextDates, maxDay, type Calendar } from '@/lib/recur';
 import { rethrowControlFlow } from '@/lib/rethrow';
 
 export type Result = { ok: true; message?: string } | { ok: false; error: string };
@@ -33,16 +33,50 @@ export async function createSchedule(_prev: Result | null, fd: FormData): Promis
   const kind = String(fd.get('kind') ?? 'expense');
   if (kind !== 'expense' && kind !== 'income') return { ok: false, error: 'Is it paid out, or paid to you?' };
 
-  const day = Number(fd.get('day'));
-  if (!Number.isInteger(day) || day < 1 || day > MAX_DAY) {
-    return { ok: false, error: `Pick a day from 1 to ${MAX_DAY} — every month has those.` };
-  }
-  const freq = String(fd.get('freq') ?? 'MONTHLY');
+  // Which calendar the rule is written on. The Misri calendar is arithmetic,
+  // so "the 1st of Ramadaan" is a date years ahead, not a sighting.
+  const cal: Calendar = fd.get('calendar') === 'hijri' ? 'hijri' : 'gregorian';
+  const freq = fd.get('freq') === 'YEARLY' ? 'YEARLY' : 'MONTHLY';
   const month = Number(fd.get('month') ?? 1);
-  const rule = freq === 'YEARLY'
+  if (freq === 'YEARLY' && (!Number.isInteger(month) || month < 1 || month > 12)) {
+    return { ok: false, error: 'Pick a month.' };
+  }
+  const day = Number(fd.get('day'));
+  const top = maxDay(cal, freq, month);
+  if (!Number.isInteger(day) || day < 1 || day > top) {
+    return { ok: false, error: `Pick a day from 1 to ${top} — every ${freq === 'YEARLY' ? 'year' : 'month'} has those.` };
+  }
+  const base = freq === 'YEARLY'
     ? buildRule({ freq: 'YEARLY', day, month })
     : buildRule({ freq: 'MONTHLY', day });
-  if (!parseRule(rule)) return { ok: false, error: 'That schedule is not one we can keep.' };
+
+  /* When it stops, always kept as a last date. "Five times" is turned into
+     the fifth date here, so the stored rule says everything on its own and
+     nothing has to count. "On a date" is taken as given, and must be ahead. */
+  const ends = String(fd.get('ends') ?? 'never');
+  let until: string | undefined;
+  if (ends === 'after') {
+    const times = Number(fd.get('times'));
+    if (!Number.isInteger(times) || times < 1 || times > 600) {
+      return { ok: false, error: 'How many times? From 1 to 600.' };
+    }
+    const dates = nextDates(base, new Date(), times, cal);
+    until = dates[dates.length - 1];
+    if (!until) return { ok: false, error: 'That schedule is not one we can keep.' };
+  } else if (ends === 'on') {
+    const on = String(fd.get('untilDate') ?? '');
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(on) || Number.isNaN(Date.parse(on))) {
+      return { ok: false, error: 'Pick the last date.' };
+    }
+    if (nextDates(base, new Date(), 1, cal)[0] > on) {
+      return { ok: false, error: 'That end is before the first date — it would never happen.' };
+    }
+    until = on;
+  } else if (ends !== 'never') {
+    return { ok: false, error: 'Does it end?' };
+  }
+  const rule = until ? `${base};UNTIL=${until.replaceAll('-', '')}` : base;
+  if (!parseRule(rule, cal)) return { ok: false, error: 'That schedule is not one we can keep.' };
 
   const minor = amount(fd.get('amount'));
   if (!Number.isSafeInteger(minor) || minor <= 0) return { ok: false, error: 'Enter an amount.' };
@@ -60,11 +94,14 @@ export async function createSchedule(_prev: Result | null, fd: FormData): Promis
       and archived_at is null`;
   if (!cat) return { ok: false, error: 'Choose a category.' };
 
+  // The rule lands in the column for its calendar and the other stays NULL;
+  // the table's CHECK insists on one of the two.
   await sql`
     insert into schedule (household_id, name, kind, amount, amount_from_statement,
-                          account_id, category_id, rrule)
+                          account_id, category_id, rrule, hijri_rule)
     values (${actor.household_id}, ${name}, ${kind}, ${minor}, false,
-            ${m.funding_account_id}, ${cat.id}, ${rule})`;
+            ${m.funding_account_id}, ${cat.id},
+            ${cal === 'gregorian' ? rule : null}, ${cal === 'hijri' ? rule : null})`;
 
   revalidatePath('/schedules');
   revalidatePath('/inbox');

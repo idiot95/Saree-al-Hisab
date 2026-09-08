@@ -1,8 +1,9 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { actorOrNull, categoriesFor, methodsFor, schedulesFor } from '@/db/queries';
+import { actorOrNull, categoriesFor, methodsFor, schedulesFor, type ScheduleRow } from '@/db/queries';
+import { formatHijri, toHijri } from '@/lib/hijri';
 import { format } from '@/lib/money';
-import { describeRule, nextUnsettled, outstandingDues } from '@/lib/recur';
+import { describeRule, isFinished, nextUnsettled, outstandingDues, parseRule, ruleOf } from '@/lib/recur';
 import { headerBg } from '../auth-ui';
 import TabBar from '../TabBar';
 import { TAB_BAR_SPACE } from '../tabs';
@@ -27,10 +28,17 @@ export default async function Schedules() {
     categoriesFor(actor.household_id),
   ]);
   const canWrite = actor.role !== 'viewer';
-  const dues = outstandingDues(schedules, new Date(), 14);
+  const today = new Date();
+  const dues = outstandingDues(schedules, today, 14);
   const byId = new Map(schedules.map((s) => [s.id, s]));
-  const monthlyOf = (kind: 'expense' | 'income') => schedules
-    .filter((s) => s.kind === kind && s.rrule?.includes('MONTHLY'))
+  /* A schedule with an end that has passed is finished: it stays listed,
+     quietly, until someone stops it — the entries it raised are still in
+     the ledger and the name still means something — but it no longer counts
+     towards what a month costs. */
+  const live = schedules.filter((s) => !isFinished(s, today));
+  const finished = schedules.filter((s) => isFinished(s, today));
+  const monthlyOf = (kind: 'expense' | 'income') => live
+    .filter((s) => s.kind === kind && parseRule(ruleOf(s)?.rule ?? '', ruleOf(s)?.cal)?.freq === 'MONTHLY')
     .reduce((n, s) => n + Number(s.amount ?? 0), 0);
   const out = monthlyOf('expense');
   const income = monthlyOf('income');
@@ -85,36 +93,17 @@ export default async function Schedules() {
             </>
           )}
 
-          {schedules.length > 0 && (
+          {live.length > 0 && (
             <>
               <Head>Every schedule</Head>
-              <section className="el card" style={{
-                margin: '0 var(--gutter) 22px', background: 'var(--c-card)', borderRadius: 18, padding: '0 var(--pad)', overflow: 'hidden',
-              }}>
-                {schedules.map((s, i) => (
-                  <Swipeable key={s.id} commit={false} actions={canWrite ? [
-                    { label: 'Stop', icon: 'stop', tone: 'danger', act: archiveSchedule,
-                      fields: { scheduleId: s.id }, done: `${s.name} stopped.` },
-                  ] : []}>
-                  <div style={{
-                    display: 'flex', alignItems: 'center', gap: 12, minHeight: 74,
-                    borderBottom: i === schedules.length - 1 ? undefined : '1px solid var(--c-rule)',
-                  }}>
-                    <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
-                      <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>{s.name}</span>
-                      <span style={{ fontSize: 'var(--step--1)', color: 'var(--c-meta)' }}>
-                        {s.rrule ? describeRule(s.rrule) : 'no schedule'}
-                        {s.rrule && ` · next ${friendly(nextUnsettled(s.rrule, s.settled, new Date()) ?? undefined)}`}
-                      </span>
-                    </span>
-                    <span className="t amt" style={{
-                      fontSize: 'var(--step-0)', color: s.kind === 'income' ? 'var(--c-in)' : 'var(--c-out)',
-                    }}>{s.kind === 'income' ? '+' : ''}{format(Number(s.amount ?? 0))}</span>
-                    {canWrite && <StopSchedule scheduleId={s.id} name={s.name} />}
-                  </div>
-                  </Swipeable>
-                ))}
-              </section>
+              <Rows schedules={live} canWrite={canWrite} today={today} />
+            </>
+          )}
+
+          {finished.length > 0 && (
+            <>
+              <Head>Finished</Head>
+              <Rows schedules={finished} canWrite={canWrite} today={today} done />
             </>
           )}
 
@@ -138,9 +127,59 @@ export default async function Schedules() {
   );
 }
 
+function Rows({ schedules, canWrite, today, done = false }: {
+  schedules: ScheduleRow[]; canWrite: boolean; today: Date; done?: boolean;
+}) {
+  return (
+    <section className="el card" style={{
+      margin: '0 var(--gutter) 22px', background: 'var(--c-card)', borderRadius: 18,
+      padding: '0 var(--pad)', overflow: 'hidden', opacity: done ? 0.72 : 1,
+    }}>
+      {schedules.map((s, i) => {
+        const r = ruleOf(s);
+        const next = done ? null : nextUnsettled(s, s.settled, today);
+        return (
+          <Swipeable key={s.id} commit={false} actions={canWrite ? [
+            { label: done ? 'Remove' : 'Stop', icon: 'stop', tone: 'danger', act: archiveSchedule,
+              fields: { scheduleId: s.id }, done: `${s.name} ${done ? 'removed' : 'stopped'}.` },
+          ] : []}>
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 12, minHeight: 74,
+            borderBottom: i === schedules.length - 1 ? undefined : '1px solid var(--c-rule)',
+          }}>
+            <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
+              <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>{s.name}</span>
+              <span style={{ fontSize: 'var(--step--1)', color: 'var(--c-meta)' }}>
+                {r ? describeRule(r.rule, r.cal) : 'no schedule'}
+              </span>
+              {r && !done && (
+                <span style={{ fontSize: 'var(--step--1)', color: next ? 'var(--c-ink)' : 'var(--c-meta)' }}>
+                  {next ? `next ${friendly(next)}` : 'nothing more to come'}
+                  {r.cal === 'hijri' && next && ` · ${hijriOf(next)}`}
+                </span>
+              )}
+            </span>
+            <span className="t amt" style={{
+              fontSize: 'var(--step-0)', color: s.kind === 'income' ? 'var(--c-in)' : 'var(--c-out)',
+            }}>{s.kind === 'income' ? '+' : ''}{format(Number(s.amount ?? 0))}</span>
+            {canWrite && <StopSchedule scheduleId={s.id} name={s.name} verb={done ? 'Remove' : 'Stop'} />}
+          </div>
+          </Swipeable>
+        );
+      })}
+    </section>
+  );
+}
+
 function friendly(iso?: string) {
   if (!iso) return '—';
   return new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+}
+
+/** "2027-02-06" → "1 Ramadaan 1448": the same day, the way it was asked for. */
+function hijriOf(iso: string) {
+  const [y, m, d] = iso.split('-').map(Number);
+  return formatHijri(toHijri({ y, m, d }), true);
 }
 
 function Head({ children }: { children: React.ReactNode }) {

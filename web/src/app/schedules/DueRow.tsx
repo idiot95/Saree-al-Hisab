@@ -114,13 +114,17 @@ export default function DueRow({
   );
 }
 
-export function StopSchedule({ scheduleId, name }: { scheduleId: string; name: string }) {
+/* A schedule that has run its course says "Remove", not "Stop" — there is
+   nothing left to stop, only a line to tidy away. Same action underneath. */
+export function StopSchedule({ scheduleId, name, verb = 'Stop' }: {
+  scheduleId: string; name: string; verb?: 'Stop' | 'Remove';
+}) {
   const [state, act, pending] = useActionState(archiveSchedule, null);
   const [sure, setSure] = useState(false);
 
   if (!sure) {
     return (
-      <button type="button" onClick={() => setSure(true)} style={quiet}>Stop</button>
+      <button type="button" onClick={() => setSure(true)} style={quiet}>{verb}</button>
     );
   }
   return (
@@ -129,7 +133,7 @@ export function StopSchedule({ scheduleId, name }: { scheduleId: string; name: s
       <form action={act}>
         <input type="hidden" name="scheduleId" value={scheduleId} />
         <button type="submit" disabled={pending} style={{ ...quiet, color: 'var(--c-danger)' }}>
-          {pending ? 'Stopping…' : `Stop ${name}`}
+          {pending ? (verb === 'Stop' ? 'Stopping…' : 'Removing…') : `${verb} ${name}`}
         </button>
       </form>
       {state && !state.ok && (

@@ -610,6 +610,42 @@ dues before the schedule existed are history the app was not present for, not
 failures. And "next" respects what has already been settled, or paying today's
 rent leaves the screen still offering today.
 
+**A schedule can end, and can keep Hijri time.** An end is always stored as a
+date — `;UNTIL=20270110`, RFC 5545's DATE form — never as a count: "five
+times" is turned into the fifth date in `createSchedule`, so the stored rule
+says everything on its own and nothing has to count what has happened. A rule
+whose UNTIL is before today is *finished*: it drops out of dues and the
+monthly total, and `/schedules` lists it under "Finished" with a Remove rather
+than a Stop. A past end date is refused at creation.
+
+The same grammar is used on the Misri (Dawoodi Bohra) calendar, in its own
+column: `schedule.hijri_rule` holds `FREQ=YEARLY;BYMONTH=9;BYMONTHDAY=1` for
+the 1st of Ramadaan, `schedule.rrule` stays NULL, and the table's CHECK
+(`has_a_rule`) insists on exactly one of the two being present. UNTIL is a
+Gregorian date on both calendars, because it is compared against the ledger's
+dates and there must be one way to read it. `ruleOf(s)` in `recur.ts` is the
+only place that decides which column applies; everything else — dues, next
+date, description — takes the pair it returns. Day caps differ: Gregorian 28,
+Hijri monthly 29, Hijri yearly 30 in an odd month (always 30 days) else 29.
+
+The calendar itself is `src/lib/hijri/`, a typed integer port of
+`@mygulamali/hijri_date` (MIT; the licence sits beside it). It is the tabular
+Misri calendar — Kabisa years by remainder, odd months 30 days, even 29,
+Zilhaj 30 in a Kabisa year — so every date ahead is already known, which is
+what makes "the 1st of Ramadaan, until 2030" a rule and not a sighting.
+`hijri.reference.tsv` is 2,961 dates 1900–2200 sampled from the original
+library; the lib test checks every row, both directions, plus day-by-day
+continuity over thirty years. The port deliberately differs from the
+original on one point: the last day of a 30-year cycle stays in that cycle
+rather than becoming day 0 of the next.
+
+One convention that fell out of it: a lib module importing a sibling folder
+writes the extension in full — `from './hijri/index.ts'` — because Turbopack
+does not resolve `./x/index.js` to a `.ts` file. `allowImportingTsExtensions`
+in `tsconfig.json` permits it, and `rewriteRelativeImportExtensions` in
+`tsconfig.lib.json` rewrites it to `.js` in the Node emit that the lib tests
+run against. App code keeps importing `@/lib/hijri` as before.
+
 ## Net worth
 
 `/worth` is everything held, plus what people owe you, less what you owe, in

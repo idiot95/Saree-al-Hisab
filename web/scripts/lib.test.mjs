@@ -15,7 +15,9 @@ execFileSync('npx', ['tsc', '-p', 'tsconfig.lib.json'], { cwd: root, stdio: 'inh
 writeFileSync(join(root, '.libbuild/package.json'), '{"type":"module"}\n');
 process.env.LIB = pathToFileURL(join(root, '.libbuild')).href;
 
-for (const f of readdirSync(join(root, 'src/lib')).filter((f) => f.endsWith('.test.mjs')).sort()) {
-  await import(pathToFileURL(join(root, 'src/lib', f)).href);
-}
+// Top-level modules and one level of folders (src/lib/hijri/), in name order.
+const tests = readdirSync(join(root, 'src/lib'), { withFileTypes: true, recursive: true })
+  .filter((e) => e.isFile() && e.name.endsWith('.test.mjs'))
+  .map((e) => join(e.parentPath ?? e.path, e.name)).sort();
+for (const f of tests) await import(pathToFileURL(f).href);
 console.log('\n  all library assertions passed\n');
