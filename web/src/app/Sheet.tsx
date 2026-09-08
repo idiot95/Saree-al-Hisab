@@ -9,15 +9,18 @@ import { useEffect, useRef } from 'react';
    under it stops scrolling while it is up; the keyboard lands on the close
    button and goes back where it was. Above the tab bar on purpose — a
    drawer is a question, and the bar's answers are not the ones it wants. */
-export default function Sheet({ open, onClose, label, children }: {
+export default function Sheet({ open, onClose, label, focus, children }: {
   open: boolean; onClose: () => void; label: string; children: React.ReactNode;
+  /** Where the keyboard lands when the drawer opens, if not the handle — a
+      search box, say, whose whole point is to be typed into at once. */
+  focus?: React.RefObject<HTMLElement | null>;
 }) {
   const closeRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (!open) return;
     const from = document.activeElement as HTMLElement | null;
-    closeRef.current?.focus({ preventScroll: true });
+    (focus?.current ?? closeRef.current)?.focus({ preventScroll: true });
     const key = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     document.addEventListener('keydown', key);
     const was = document.body.style.overflow;
@@ -27,7 +30,7 @@ export default function Sheet({ open, onClose, label, children }: {
       document.body.style.overflow = was;
       from?.focus?.({ preventScroll: true });
     };
-  }, [open, onClose]);
+  }, [open, onClose, focus]);
 
   if (!open) return null;
 

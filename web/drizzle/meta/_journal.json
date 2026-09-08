@@ -162,6 +162,13 @@
       "when": 1788837856708,
       "tag": "0022_moved_dues",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1788839292265,
+      "tag": "0023_subcategories",
+      "breakpoints": true
     }
   ]
 }

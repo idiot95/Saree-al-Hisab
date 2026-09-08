@@ -12,17 +12,27 @@ import {
 import { ICONS, TINTS } from './options';
 
 type Cat = {
-  id: string; name: string; icon: string; tint: string;
-  archived: boolean; entries: number; budgeted_months: number;
+  id: string; name: string; icon: string; tint: string; parent_id: string | null;
+  children: number; archived: boolean; entries: number; budgeted_months: number;
 };
 
+/* A category may sit under one other — Milk under Groceries — and no deeper.
+   The list shows each family as a block: the parent's row, then its children
+   indented beneath it, and the block drags as one. */
+type Parent = { id: string; name: string };
+
 /* Picking an icon and a colour is the whole point of the screen, so both are
-   shown as themselves rather than named in a dropdown. Twenty-five glyphs is
-   past what Hick's law would want in one glance, so they scroll in a grid
-   where scanning replaces deciding. */
+   shown as themselves rather than named in a dropdown. A hundred and more
+   glyphs is far past what Hick's law would want in one glance, so they sit
+   in a scrolling grid with a search box above it: type "mil" and the grid
+   is milk. The names are the search index, so it works offline and costs
+   nothing. */
 function Picker({ icon, tint, onIcon, onTint }: {
   icon: string; tint: string; onIcon: (v: string) => void; onTint: (v: string) => void;
 }) {
+  const [find, setFind] = useState('');
+  const q = find.trim().toLowerCase();
+  const shown = q ? ICONS.filter((n) => n.includes(q) || n === icon) : ICONS;
   return (
     <>
       <input type="hidden" name="icon" value={icon} />
@@ -60,11 +70,22 @@ function Picker({ icon, tint, onIcon, onTint }: {
         <legend style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)', padding: 0 }}>
           Icon
         </legend>
+        <input type="search" value={find} onChange={(e) => setFind(e.target.value)}
+          placeholder="Find an icon" aria-label="Find an icon" autoComplete="off"
+          style={{
+            minHeight: 44, borderRadius: 12, border: '1px solid var(--c-border)',
+            background: 'var(--c-card)', color: 'var(--c-ink)', fontSize: 'var(--field)', padding: '0 12px',
+          }} />
         <div style={{
           display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(46px, 1fr))', gap: 7,
           maxHeight: 200, overflowY: 'auto',
         }}>
-          {ICONS.map((n) => {
+          {shown.length === 0 && (
+            <span style={{ gridColumn: '1 / -1', fontSize: 'var(--step--1)', color: 'var(--c-meta)', padding: '8px 0' }}>
+              Nothing called that. Try another word.
+            </span>
+          )}
+          {shown.map((n) => {
             const on = n === icon;
             const [bg, ink] = tintOf(tint);
             return (
@@ -84,6 +105,34 @@ function Picker({ icon, tint, onIcon, onTint }: {
         </div>
       </fieldset>
     </>
+  );
+}
+
+/* "Under" is a select, not chips: it is chosen once per category, and the
+   list of parents is exactly the kind of short, named list a select was made
+   for. A category with children of its own cannot itself move under another,
+   and says so instead of offering a disabled control with no explanation. */
+function UnderField({ parents, defaultValue, locked }: {
+  parents: Parent[]; defaultValue?: string | null; locked?: boolean;
+}) {
+  if (parents.length === 0 && !locked) return null;
+  return (
+    <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)' }}>Under</span>
+      {locked ? (
+        <span style={{ fontSize: 'var(--step--1)', lineHeight: 1.45, color: 'var(--c-meta)', padding: '4px 0' }}>
+          It has categories under it, so it stays at the top level.
+        </span>
+      ) : (
+        <select name="parentId" defaultValue={defaultValue ?? ''} style={{
+          minHeight: 52, borderRadius: 13, border: '1px solid var(--c-border)',
+          background: 'var(--c-card)', color: 'var(--c-ink)', fontSize: 'var(--field)', padding: '0 14px',
+        }}>
+          <option value="">On its own</option>
+          {parents.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+        </select>
+      )}
+    </label>
   );
 }
 
@@ -199,11 +248,15 @@ export default function CategoryEditor({ categories, canEdit }: {
   const closeSnack = useCallback(() => setSnack(null), []);
 
   const fromServer = categories.filter((c) => !c.archived && !hidden.has(c.id));
+  const tops = fromServer.filter((c) => !c.parent_id);
   const live = order
-    ? [...fromServer].sort((a, b) => rank(order, a.id) - rank(order, b.id))
-    : fromServer;
+    ? [...tops].sort((a, b) => rank(order, a.id) - rank(order, b.id))
+    : tops;
+  const kidsOf = (id: string) => fromServer.filter((c) => c.parent_id === id);
   const retired = categories.filter((c) => c.archived);
   const ids = live.map((c) => c.id);
+  const parents: Parent[] = live.map((c) => ({ id: c.id, name: c.name }));
+  const nameOf = (id: string | null) => categories.find((c) => c.id === id)?.name ?? null;
 
   const reorder = useReorder(ids, (next) => {
     setOrder(next);
@@ -214,55 +267,69 @@ export default function CategoryEditor({ categories, canEdit }: {
   });
 
   function retire(c: Cat) {
-    setHidden((h) => new Set(h).add(c.id));
+    // The children go with a parent, on screen as on the server.
+    const family = [c.id, ...kidsOf(c.id).map((k) => k.id)];
+    const show = (h: Set<string>) => { const n = new Set(h); for (const id of family) n.delete(id); return n; };
+    setHidden((h) => { const n = new Set(h); for (const id of family) n.add(id); return n; });
     start(async () => {
       const fd = new FormData(); fd.set('id', c.id);
       const r = await retireCategory(null, fd);
       if (!r.ok) {
-        setHidden((h) => { const n = new Set(h); n.delete(c.id); return n; });
+        setHidden(show);
         setSnack({ text: r.error, tone: 'error' });
         return;
       }
       setSnack({
-        text: `${c.name} retired. Everything filed under it is untouched.`,
+        text: r.message ?? `${c.name} retired.`,
         undo: () => start(async () => {
           const back = new FormData(); back.set('id', c.id);
           await restoreCategory(null, back);
-          setHidden((h) => { const n = new Set(h); n.delete(c.id); return n; });
+          setHidden(show);
         }),
       });
     });
   }
 
+  const rows = (c: Cat, siblings: Cat[], i: number, last: boolean) => (
+    editing === c.id
+      ? <EditRow key={c.id} cat={c} first={i === 0} last={i === siblings.length - 1}
+          parents={parents.filter((p) => p.id !== c.id)} onDone={() => setEditing(null)} />
+      : (
+        <SwipeRow key={c.id} actions={canEdit ? [
+          { label: 'Edit', tone: 'primary', icon: <Pen />, act: () => setEditing(c.id) },
+          { label: 'Retire', tone: 'danger', icon: <Box />, act: () => retire(c) },
+        ] : []}>
+          <Row cat={c} last={last} canEdit={canEdit}
+            lifted={reorder.drag?.id === c.id}
+            onEdit={() => setEditing(c.id)} grip={c.parent_id ? null : reorder.grip(c.id)} />
+        </SwipeRow>
+      )
+  );
+
   return (
     <>
       <Head>In use</Head>
       <section className="el card" style={{ ...card, overflow: 'hidden' }}>
-        {live.map((c, i) => (
-          editing === c.id
-            ? <EditRow key={c.id} cat={c} first={i === 0} last={i === live.length - 1} onDone={() => setEditing(null)} />
-            : (
-              <div key={c.id} ref={reorder.bind(c.id)} style={{ background: 'var(--c-card)', ...reorder.shift(c.id) }}>
-                <SwipeRow actions={canEdit ? [
-                  { label: 'Edit', tone: 'primary', icon: <Pen />, act: () => setEditing(c.id) },
-                  { label: 'Retire', tone: 'danger', icon: <Box />, act: () => retire(c) },
-                ] : []}>
-                  <Row cat={c} last={i === live.length - 1} canEdit={canEdit}
-                    lifted={reorder.drag?.id === c.id}
-                    onEdit={() => setEditing(c.id)} grip={reorder.grip(c.id)} />
-                </SwipeRow>
-              </div>
-            )
-        ))}
+        {live.map((c, i) => {
+          const kids = kidsOf(c.id);
+          const lastFamily = i === live.length - 1;
+          return (
+            <div key={c.id} ref={reorder.bind(c.id)} style={{ background: 'var(--c-card)', ...reorder.shift(c.id) }}>
+              {rows(c, live, i, lastFamily && kids.length === 0)}
+              {kids.map((k, j) => rows(k, kids, j, lastFamily && j === kids.length - 1))}
+            </div>
+          );
+        })}
       </section>
       {canEdit && (
         <p style={{ margin: '-12px var(--gutter) 22px', fontSize: 'var(--step--2)', lineHeight: 1.5, color: 'var(--c-meta)' }}>
           Tap a row to edit it, swipe it left to retire it, and drag by the grip to change the order.
+          A category can sit under another — Milk under Groceries — and counts towards its line.
         </p>
       )}
 
       {canEdit && (adding
-        ? <AddRow onDone={() => setAdding(false)} />
+        ? <AddRow parents={parents} onDone={() => setAdding(false)} />
         : (
           <button type="button" onClick={() => setAdding(true)} className="el press" style={{
             margin: '0 var(--gutter) 22px', width: 'calc(100% - 36px)', minHeight: 56, borderRadius: 16,
@@ -291,8 +358,12 @@ export default function CategoryEditor({ categories, canEdit }: {
           </p>
           <section className="el card" style={card}>
             {retired.map((c, i) => (
-              <RetiredRow key={c.id} cat={c} last={i === retired.length - 1} canEdit={canEdit}
-                onBack={() => setHidden((h) => { const n = new Set(h); n.delete(c.id); return n; })} />
+              <RetiredRow key={c.id} cat={c} under={nameOf(c.parent_id)} last={i === retired.length - 1} canEdit={canEdit}
+                onBack={() => setHidden((h) => {
+                  const n = new Set(h); n.delete(c.id);
+                  for (const k of categories) if (k.parent_id === c.id) n.delete(k.id);
+                  return n;
+                })} />
             ))}
           </section>
         </>
@@ -310,36 +381,49 @@ const rank = (order: string[], id: string) => {
 
 function Row({ cat, last, canEdit, lifted, onEdit, grip }: {
   cat: Cat; last: boolean; canEdit: boolean; lifted: boolean; onEdit: () => void;
-  grip: ReturnType<ReturnType<typeof useReorder>['grip']>;
+  grip: ReturnType<ReturnType<typeof useReorder>['grip']> | null;
 }) {
+  // A child is drawn a step in, with a short branch, and a little smaller —
+  // it belongs to the row above, and the eye should read it that way before
+  // reading the name.
+  const child = !!cat.parent_id;
+  const h = child ? 60 : 72;
   const body = (
     <>
-      <Chip icon={cat.icon} tint={cat.tint} size={40} />
+      {child && (
+        <span aria-hidden style={{
+          width: 14, height: 22, flex: 'none', marginLeft: 12,
+          borderLeft: '1.5px solid var(--c-border)', borderBottom: '1.5px solid var(--c-border)',
+          borderBottomLeftRadius: 8, marginBottom: 14,
+        }} />
+      )}
+      <Chip icon={cat.icon} tint={cat.tint} size={child ? 32 : 40} />
       <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
-        <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>{cat.name}</span>
+        <span style={{ fontSize: child ? 'var(--step--1)' : 'var(--step-0)', fontWeight: 600 }}>{cat.name}</span>
         <span style={{ fontSize: 'var(--step--2)', color: 'var(--c-meta)' }}>
           {cat.entries === 0 ? 'nothing filed here yet'
             : `${cat.entries} ${cat.entries === 1 ? 'entry' : 'entries'}`}
           {cat.budgeted_months > 0 && ` · budgeted in ${cat.budgeted_months} ${cat.budgeted_months === 1 ? 'month' : 'months'}`}
+          {!child && cat.children > 0 && ` · ${cat.children} under it`}
         </span>
       </span>
     </>
   );
   return (
     <div style={{
-      display: 'flex', alignItems: 'center', minHeight: 72,
+      display: 'flex', alignItems: 'center', minHeight: h,
       borderBottom: last || lifted ? undefined : '1px solid var(--c-rule)',
     }}>
       {canEdit ? (
         <button type="button" onClick={onEdit} style={{
-          flex: 1, minWidth: 0, minHeight: 72, display: 'flex', alignItems: 'center', gap: 12,
+          flex: 1, minWidth: 0, minHeight: h, display: 'flex', alignItems: 'center', gap: 12,
         }}>{body}</button>
       ) : (
-        <span style={{ flex: 1, minWidth: 0, minHeight: 72, display: 'flex', alignItems: 'center', gap: 12 }}>
+        <span style={{ flex: 1, minWidth: 0, minHeight: h, display: 'flex', alignItems: 'center', gap: 12 }}>
           {body}
         </span>
       )}
-      {canEdit && (
+      {canEdit && grip && (
         <span aria-hidden {...grip} style={{
           ...grip.style, width: 44, minHeight: 72, marginRight: -8, flex: 'none',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -356,7 +440,9 @@ function Row({ cat, last, canEdit, lifted, onEdit, grip }: {
   );
 }
 
-function EditRow({ cat, first, last, onDone }: { cat: Cat; first: boolean; last: boolean; onDone: () => void }) {
+function EditRow({ cat, first, last, parents, onDone }: {
+  cat: Cat; first: boolean; last: boolean; parents: Parent[]; onDone: () => void;
+}) {
   const [state, act, pending] = useActionState(editCategory, null);
   const [retireState, retire, retiring] = useActionState(retireCategory, null);
   const [, move] = useActionState(moveCategory, null);
@@ -368,6 +454,7 @@ function EditRow({ cat, first, last, onDone }: { cat: Cat; first: boolean; last:
       <form action={act} style={{ display: 'flex', flexDirection: 'column', gap: 13 }}>
         <input type="hidden" name="id" value={cat.id} />
         <NameField defaultValue={cat.name} />
+        <UnderField parents={parents} defaultValue={cat.parent_id} locked={cat.children > 0} />
         <Picker icon={icon} tint={tint} onIcon={setIcon} onTint={setTint} />
         {state && !state.ok && <ErrorNote>{state.error}</ErrorNote>}
         <div style={{ display: 'flex', gap: 9 }}>
@@ -410,15 +497,15 @@ function EditRow({ cat, first, last, onDone }: { cat: Cat; first: boolean; last:
           </span>
         )}
         <span style={{ fontSize: 'var(--step--2)', lineHeight: 1.45, color: 'var(--c-meta)' }}>
-          It stops being offered for new entries. Nothing already filed under it moves, and no
-          month changes value.
+          It stops being offered for new entries{cat.children > 0 && ', and so do the ones under it'}.
+          Nothing already filed under it moves, and no month changes value.
         </span>
       </form>
     </div>
   );
 }
 
-function AddRow({ onDone }: { onDone: () => void }) {
+function AddRow({ parents, onDone }: { parents: Parent[]; onDone: () => void }) {
   const [state, act, pending] = useActionState(addCategory, null);
   const [icon, setIcon] = useState<string>('tag');
   const [tint, setTint] = useState<string>('blue');
@@ -429,6 +516,7 @@ function AddRow({ onDone }: { onDone: () => void }) {
       display: 'flex', flexDirection: 'column', gap: 13,
     }}>
       <NameField />
+      <UnderField parents={parents} />
       <Picker icon={icon} tint={tint} onIcon={setIcon} onTint={setTint} />
       {state && !state.ok && <ErrorNote>{state.error}</ErrorNote>}
       <div style={{ display: 'flex', gap: 9 }}>
@@ -441,8 +529,8 @@ function AddRow({ onDone }: { onDone: () => void }) {
   );
 }
 
-function RetiredRow({ cat, last, canEdit, onBack }: {
-  cat: Cat; last: boolean; canEdit: boolean; onBack: () => void;
+function RetiredRow({ cat, under, last, canEdit, onBack }: {
+  cat: Cat; under: string | null; last: boolean; canEdit: boolean; onBack: () => void;
 }) {
   const [, restore] = useActionState(restoreCategory, null);
   return (
@@ -454,7 +542,7 @@ function RetiredRow({ cat, last, canEdit, onBack }: {
       <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
         <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>{cat.name}</span>
         <span style={{ fontSize: 'var(--step--2)', color: 'var(--c-meta)' }}>
-          {cat.entries} {cat.entries === 1 ? 'entry' : 'entries'} kept
+          {cat.entries} {cat.entries === 1 ? 'entry' : 'entries'} kept{under && ` · under ${under}`}
         </span>
       </span>
       {canEdit && (

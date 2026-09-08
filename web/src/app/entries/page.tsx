@@ -37,7 +37,9 @@ export default async function Entries({ searchParams }: {
     budgetFor(actor.household_id, month),
     monthTotals(actor.household_id, month),
   ]);
-  const filtered = categories.find((x) => x.category_id === categoryId);
+  const filtered = categories.find((x) => x.category_id === categoryId)
+    ?? categories.flatMap((x) => x.kids.map((k) => ({ ...k, name: `${x.name} › ${k.name}` })))
+      .find((k) => k.id === categoryId);
 
   // Grouped by day: Gestalt proximity does the work a date column would.
   const days: { on: string; label: string; rows: Row[] }[] = [];

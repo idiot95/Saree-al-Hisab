@@ -74,7 +74,7 @@ export default async function Entry({ params }: { params: Promise<{ id: string }
               owed: entry.kind === 'expense' && (!!entry.book_id || claims.length > 0),
             }}
             categories={cats.map((c) => ({
-              category_id: c.id, name: c.name, tint: c.tint, icon: c.icon,
+              category_id: c.id, name: c.parent ? `${c.parent} › ${c.name}` : c.name, tint: c.tint, icon: c.icon,
             }))}
             methods={methods.map((m) => ({ id: m.id, name: m.name, funds: m.funds }))}
             canEdit={actor.role !== 'viewer'}

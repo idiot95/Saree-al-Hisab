@@ -86,7 +86,7 @@ export default async function Person({ params }: { params: Promise<{ id: string 
             <PersonActions
               personId={person.id} name={person.name} balance={balance}
               methods={methods.map((m) => ({ id: m.id, name: m.name, funds: m.funds }))}
-              categories={cats.map((c) => ({ id: c.id, name: c.name }))}
+              categories={cats.map((c) => ({ id: c.id, name: c.parent ? `${c.parent} › ${c.name}` : c.name }))}
             />
           )}
 

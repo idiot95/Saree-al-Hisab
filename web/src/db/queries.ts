@@ -83,11 +83,18 @@ export async function entryCount(householdId: string) {
   return n as number;
 }
 
+/** Every live category, each child straight after its parent, so a flat list
+ *  reads as the tree it is. `parent` is the parent's name — what a picker
+ *  shows beside "Milk" so it is not mistaken for a category on its own. */
 export async function categoriesFor(householdId: string) {
   return sql`
-    select id, name, icon, tint from category
-    where household_id = ${householdId} and archived_at is null
-    order by sort_order` as Promise<{ id: string; name: string; icon: string; tint: string }[]>;
+    select c.id, c.name, c.icon, c.tint, c.parent_id, p.name as parent
+    from category c
+    left join category p on p.id = c.parent_id
+    where c.household_id = ${householdId} and c.archived_at is null
+    order by coalesce(p.sort_order, c.sort_order), (c.parent_id is not null), c.sort_order, c.name
+  ` as Promise<{ id: string; name: string; icon: string; tint: string;
+                 parent_id: string | null; parent: string | null }[]>;
 }
 
 export async function methodsFor(householdId: string) {
@@ -270,36 +277,58 @@ export async function setupProgress(householdId: string) {
 export type BudgetRow = {
   category_id: string; name: string; icon: string; tint: string;
   budget: string; spent: string; archived: boolean;
+  /** The children with money out this month, largest first — "of which". */
+  kids: { id: string; name: string; icon: string; spent: string }[];
 };
 
-/** Every category with what it was given this month and what has gone out of
- *  it. Spending comes from `spend_txn`, never from `txn` — that view is where
- *  "a transfer is not spending" and "a refund nets off" actually live. */
+/** Every parent category with what it was given this month and what has gone
+ *  out of it — its own spending and its children's together, because the
+ *  budget line is the parent's and a child rolls up into it. Spending comes
+ *  from `spend_txn`, never from `txn` — that view is where "a transfer is not
+ *  spending" and "a refund nets off" actually live. A budget row a child
+ *  earned before it moved under a parent rolls up the same way, so the lines
+ *  still add up to the month's total. */
 export async function budgetFor(householdId: string, month: string) {
   return sql`
-    select c.id as category_id, c.name, c.icon, c.tint,
-           (c.archived_at is not null) as archived,
-           coalesce(b.amount, 0)::text as budget,
+    with fam as (
+      select c.id, c.name, c.icon, c.tint, c.sort_order, c.archived_at,
+             array_prepend(c.id, coalesce(array_agg(k.id) filter (where k.id is not null), '{}')) as ids
+      from category c
+      left join category k on k.parent_id = c.id
+      where c.household_id = ${householdId} and c.parent_id is null
+      group by c.id
+    ),
+    spent as (
+      select s.category_id, sum(s.amount) as amount
+      from spend_txn s
+      where s.household_id = ${householdId}
+        and s.occurred_on >= ${month}::date
+        and s.occurred_on <  (${month}::date + interval '1 month')
+      group by s.category_id
+    )
+    select f.id as category_id, f.name, f.icon, f.tint,
+           (f.archived_at is not null) as archived,
+           coalesce((select sum(b.amount) from budget b
+                     where b.category_id = any(f.ids) and b.month = ${month}::date), 0)::text as budget,
+           coalesce((select sum(sp.amount) from spent sp where sp.category_id = any(f.ids)), 0)::text as spent,
            coalesce((
-             select sum(s.amount) from spend_txn s
-             where s.category_id = c.id
-               and s.occurred_on >= ${month}::date
-               and s.occurred_on <  (${month}::date + interval '1 month')
-           ), 0)::text as spent
-    from category c
-    left join budget b on b.category_id = c.id and b.month = ${month}::date
-    where c.household_id = ${householdId}
-      and (
-        c.archived_at is null
+             select json_agg(json_build_object('id', k.id, 'name', k.name, 'icon', k.icon,
+                                               'spent', sp.amount::text)
+                             order by sp.amount desc)
+             from category k join spent sp on sp.category_id = k.id
+             where k.parent_id = f.id
+           ), '[]'::json) as kids
+    from fam f
+    where (
+        f.archived_at is null
         /* A retired category still belongs in a month it had money in.
            Dropping it would leave the rows failing to add up to the total —
            the same figure, disagreeing with itself on one screen. */
-        or b.amount is not null
-        or exists (select 1 from spend_txn s where s.category_id = c.id
-                     and s.occurred_on >= ${month}::date
-                     and s.occurred_on <  (${month}::date + interval '1 month'))
+        or exists (select 1 from budget b where b.category_id = any(f.ids) and b.month = ${month}::date)
+        or exists (select 1 from spent sp where sp.category_id = any(f.ids))
       )
-    order by coalesce(b.amount, 0) desc, c.sort_order
+    order by (select coalesce(sum(b.amount), 0) from budget b
+              where b.category_id = any(f.ids) and b.month = ${month}::date) desc, f.sort_order
   ` as Promise<BudgetRow[]>;
 }
 
@@ -382,7 +411,9 @@ export async function entriesFor(
       and t.deleted_at is null
       and t.occurred_on >= ${month}::date
       and t.occurred_on <  (${month}::date + interval '1 month')
-      and (${categoryId ?? null}::uuid is null or t.category_id = ${categoryId ?? null}::uuid)
+      and (${categoryId ?? null}::uuid is null
+           or t.category_id = ${categoryId ?? null}::uuid
+           or c.parent_id = ${categoryId ?? null}::uuid)
     order by t.occurred_on desc, t.created_at desc
   ` as Promise<EntryRow[]>;
 }
@@ -696,23 +727,30 @@ export async function monthlySeries(householdId: string, months = 6) {
  *  before — the comparison is the point, so both are fetched together. */
 export async function categoryTrend(householdId: string, month: string) {
   return sql`
-    select c.id, c.name, c.tint, c.icon,
+    with fam as (
+      select c.id, c.name, c.tint, c.icon, c.sort_order, c.archived_at,
+             array_prepend(c.id, coalesce(array_agg(k.id) filter (where k.id is not null), '{}')) as ids
+      from category c
+      left join category k on k.parent_id = c.id
+      where c.household_id = ${householdId} and c.parent_id is null
+      group by c.id
+    )
+    select f.id, f.name, f.tint, f.icon,
            coalesce((select sum(s.amount) from spend_txn s
-                     where s.category_id = c.id
+                     where s.category_id = any(f.ids)
                        and s.occurred_on >= ${month}::date
                        and s.occurred_on <  (${month}::date + interval '1 month')), 0)::text as now,
            coalesce((select sum(s.amount) from spend_txn s
-                     where s.category_id = c.id
+                     where s.category_id = any(f.ids)
                        and s.occurred_on >= (${month}::date - interval '1 month')
                        and s.occurred_on <  ${month}::date), 0)::text as before,
-           coalesce((select b.amount from budget b
-                     where b.category_id = c.id and b.month = ${month}::date), 0)::text as budget
-    from category c
-    where c.household_id = ${householdId}
-      and (c.archived_at is null
-           or exists (select 1 from spend_txn s where s.category_id = c.id
-                        and s.occurred_on >= (${month}::date - interval '1 month')))
-    order by c.sort_order
+           coalesce((select sum(b.amount) from budget b
+                     where b.category_id = any(f.ids) and b.month = ${month}::date), 0)::text as budget
+    from fam f
+    where f.archived_at is null
+       or exists (select 1 from spend_txn s where s.category_id = any(f.ids)
+                    and s.occurred_on >= (${month}::date - interval '1 month'))
+    order by f.sort_order
   ` as Promise<{ id: string; name: string; tint: string; icon: string;
                  now: string; before: string; budget: string }[]>;
 }
@@ -926,20 +964,27 @@ export async function geminiKeyFor(householdId: string) {
 
 export type CategoryRow = {
   id: string; name: string; icon: string; tint: string; sort_order: number;
+  parent_id: string | null; children: number;
   archived: boolean; entries: number; budgeted_months: number;
 };
 
 /** Every category, retired ones included, with how much is riding on each —
- *  because "can I retire this" is answered by what is already filed under it. */
+ *  because "can I retire this" is answered by what is already filed under it.
+ *  Children follow their parent, live ones first within each. */
 export async function allCategories(householdId: string) {
   return sql`
-    select c.id, c.name, c.icon, c.tint, c.sort_order,
+    select c.id, c.name, c.icon, c.tint, c.sort_order, c.parent_id,
+           (select count(*)::int from category k
+             where k.parent_id = c.id and k.archived_at is null) as children,
            (c.archived_at is not null) as archived,
            (select count(*)::int from txn t
              where t.category_id = c.id and t.deleted_at is null) as entries,
            (select count(*)::int from budget b where b.category_id = c.id) as budgeted_months
     from category c
+    left join category p on p.id = c.parent_id
     where c.household_id = ${householdId}
-    order by (c.archived_at is not null), c.sort_order, c.name
+    order by (coalesce(p.archived_at, c.archived_at) is not null),
+             coalesce(p.sort_order, c.sort_order), (c.parent_id is not null),
+             (c.archived_at is not null), c.sort_order, c.name
   ` as Promise<CategoryRow[]>;
 }

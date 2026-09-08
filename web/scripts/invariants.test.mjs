@@ -483,6 +483,29 @@ await allows('a budget on the first is allowed',
 await refuses('the same category twice in one month is refused',
   () => sql`insert into budget ${sql({ household_id: hh.id, category_id: cat, month: '2026-09-01', amount: 1 })}`);
 
+console.log('\nSUBCATEGORIES — one level, and the budget line is the parent\'s');
+const mkCat = (o) => sql`insert into category ${sql({ household_id: hh.id, icon: 'tag', tint: 'blue', ...o })} returning id`;
+const [milk] = await mkCat({ name: 'Milk', parent_id: cat });
+await refuses('a category under a child is refused — one level only',
+  () => mkCat({ name: 'Buffalo milk', parent_id: milk.id }));
+await refuses('a parent with children cannot move under another',
+  async () => {
+    const [other] = await mkCat({ name: 'Household' });
+    await sql`update category set parent_id = ${other.id} where id = ${cat}`;
+  });
+await refuses('a category cannot be its own parent',
+  () => sql`update category set parent_id = ${milk.id} where id = ${milk.id}`);
+await refuses('a parent in ANOTHER household is refused',
+  async () => {
+    const [elsewhere] = await sql`insert into household ${sql({ name: 'Invariant test' })} returning id`;
+    const [theirs] = await sql`insert into category ${sql({ household_id: elsewhere.id, name: 'Theirs', icon: 'tag', tint: 'blue' })} returning id`;
+    await sql`update category set parent_id = ${theirs.id} where id = ${milk.id}`;
+  });
+await refuses('a budget line on a child is refused — it rolls up into the parent',
+  () => sql`insert into budget ${sql({ household_id: hh.id, category_id: milk.id, month: '2026-09-01', amount: 100 })}`);
+await allows('an entry files under the child itself',
+  () => txn({ kind: 'expense', account_id: cash, category_id: milk.id }));
+
 console.log('\nACCESS — an invitation is bound to a person, not to a link');
 const invited = EMAILS[0];
 const mkInvite = (o = {}) => sql`insert into invite ${sql({
@@ -576,7 +599,7 @@ await sql`delete from app_user where id = ${passer.id}`;
 const orphanResets = (await sql`select count(*)::int as n from password_reset where user_id = ${passer.id}`)[0].n;
 ok(orphanResets === 0, 'deleting an account with no entries takes its reset links with it');
 
-await sql`delete from household where id = ${hh.id}`;
+await sql`delete from household where name = 'Invariant test'`;
 await sql`delete from password_reset where user_id in
   (select id from app_user where phone = any(${PHONES}) or email = any(${EMAILS}))`;
 await sql`delete from app_user where phone in ${sql(PHONES)}`;

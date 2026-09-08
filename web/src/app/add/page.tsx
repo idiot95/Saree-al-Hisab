@@ -51,7 +51,7 @@ export default async function Page({ searchParams }: {
       <AddEntry
         draft={draft}
         categories={categories.map((c) => ({
-          id: c.id, name: c.name, tint: c.tint, icon: c.icon,
+          id: c.id, name: c.name, tint: c.tint, icon: c.icon, parent_id: c.parent_id, parent: c.parent,
         }))}
         methods={methods.map((m) => ({
           id: m.id, name: m.name, funds: m.funds, kind: m.kind, funds_id: m.funds_id,

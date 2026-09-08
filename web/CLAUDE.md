@@ -675,6 +675,32 @@ pending row is deleted in the same transaction — the new rule generates that
 date itself. Home lists what is due today or overdue with the same row — "paid,
 or moved?" — so the answer is a tap away without opening the schedules screen.
 
+**A category may sit under one other, and no deeper.** `category.parent_id`
+points at a parent in the same household — the FK is composite,
+`(parent_id, household_id) → (id, household_id)` over the unique index
+`category_household_key`, so a cross-household parent is impossible, and it
+cascades. Two triggers in `0108` hold the shape: `category_one_level_check`
+(a parent has no parent of its own; a category with children cannot move
+under another) and `budget_on_parent_check` (a budget line belongs to the
+parent — children roll up, they are never budgeted). `budgetFor` and
+`categoryTrend` build a `fam` CTE (`array_prepend(c.id, array_agg(k.id))`)
+and sum spend and budget over the family, so a budget row a child earned
+before it moved under a parent still counts towards that parent's line;
+`entriesFor` filtered by a parent includes its children; `BudgetRow.kids`
+is the "of which Milk ₹500" line. Retiring a parent retires its children in
+the same UPDATE (one `now()`), and restoring it brings back exactly the
+children that share that timestamp — a child retired earlier on its own stays
+retired; restoring a child restores its parent. `sort_order` runs among
+siblings; `reorderCategories` takes the top-level set only and the family
+drags as one block. Add Entry's strip shows the top level; a magnifier chip
+opens `CategoryFinder` (a `Sheet`) with a client-side filter over rows already
+in memory, and a chosen child takes the first place as "Groceries › Milk".
+Flat pickers elsewhere name a child the same way. Icons: the base set in
+`Icon.tsx` is what every page pays for; the long tail lives in
+`glyphs-more.tsx`, keyed by `glyph-names.ts` and loaded through
+`next/dynamic` the first time a page shows one of its names, so a household
+that never files Milk never downloads the bottle.
+
 ## Net worth
 
 `/worth` is everything held, plus what people owe you, less what you owe, in

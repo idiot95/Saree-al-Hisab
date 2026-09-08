@@ -11,6 +11,8 @@ import { haptic } from '../haptics';
 type Row = {
   category_id: string; name: string; tint: string; icon: string;
   budget: string; spent: string; archived: boolean;
+  /** Children with spend this month, largest first — the "of which" line. */
+  kids: { id: string; name: string; icon: string; spent: string }[];
 };
 
 const TINT: Record<string, [string, string]> = {
@@ -129,6 +131,23 @@ export default function BudgetForm({ month, rows, canEdit }: {
                   </Link>
                 ) : (
                   <span style={{ fontSize: 'var(--step--2)', color: 'var(--c-meta)' }}>nothing spent yet</span>
+                )}
+                {/* Where a parent's month went, by child — the line the
+                    household nests categories to get. Each is a link into
+                    that child's entries alone. */}
+                {r.kids.some((k) => Number(k.spent) > 0) && (
+                  <span style={{
+                    fontSize: 'var(--step--2)', color: 'var(--c-meta)', lineHeight: 1.5,
+                    display: 'flex', flexWrap: 'wrap', columnGap: 4, marginTop: 2,
+                  }}>
+                    <span>of which</span>
+                    {r.kids.filter((k) => Number(k.spent) > 0).map((k, j, all) => (
+                      <Link key={k.id} transitionTypes={['nav-forward']} href={`/entries?m=${month}&c=${k.id}`}
+                        style={{ color: 'inherit', textDecoration: 'none', fontWeight: 600 }}>
+                        {k.name} {format(Number(k.spent))}{j < all.length - 1 ? ' ·' : ''}
+                      </Link>
+                    ))}
+                  </span>
                 )}
               </span>
 

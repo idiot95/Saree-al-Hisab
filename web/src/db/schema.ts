@@ -1,6 +1,6 @@
 import {
   pgTable, pgEnum, uuid, text, integer, bigint, date, timestamp,
-  boolean, jsonb, index, uniqueIndex, check,
+  boolean, jsonb, index, uniqueIndex, check, foreignKey,
 } from 'drizzle-orm/pg-core';
 import { sql, relations } from 'drizzle-orm';
 
@@ -259,12 +259,26 @@ export const cardCycle = pgTable('card_cycle', {
 export const category = pgTable('category', {
   id: uuid('id').primaryKey().defaultRandom(),
   householdId: uuid('household_id').notNull().references(() => household.id, { onDelete: 'cascade' }),
+  /* One level of nesting: "Milk" under "Groceries". An entry files under the
+     child; the budget line, and every roll-up, is the parent's. The pair
+     (parent_id, household_id) references (id, household_id) rather than a bare
+     self-reference, so a parent is always one of the same household's — and
+     "one level" is a trigger (0108), since it has to look at another row. */
+  parentId: uuid('parent_id'),
   name: text('name').notNull(),
   icon: text('icon').notNull(),
   tint: text('tint').notNull(),
   sortOrder: integer('sort_order').notNull().default(0),
   archivedAt: timestamp('archived_at', { withTimezone: true }),
-}, (t) => [uniqueIndex('category_unique').on(t.householdId, t.name)]);
+}, (t) => [
+  uniqueIndex('category_unique').on(t.householdId, t.name),
+  uniqueIndex('category_household_key').on(t.id, t.householdId),
+  foreignKey({
+    name: 'category_parent_same_household',
+    columns: [t.parentId, t.householdId], foreignColumns: [t.id, t.householdId],
+  }).onDelete('cascade'),
+  check('not_its_own_parent', sql`${t.parentId} IS DISTINCT FROM ${t.id}`),
+]);
 
 /* Monthly, carried forward: one row per category per month. September is
    written as a copy of August when the month rolls over, so editing September

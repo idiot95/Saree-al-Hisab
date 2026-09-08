@@ -10,6 +10,8 @@ import {
   IconTrash, IconPlayerSkipForward, IconPlayerStop, IconArrowsRightLeft,
   type Icon as TablerIcon,
 } from '@tabler/icons-react';
+import dynamic from 'next/dynamic';
+import { MORE_GLYPHS } from './glyph-names';
 
 /* Tabler Icons (MIT), imported by name so only what is used is bundled.
 
@@ -87,13 +89,27 @@ const SET: Record<string, TablerIcon> = {
   move: IconArrowsRightLeft,
 };
 
+/* The long tail of glyphs lives in its own chunk (glyphs-more.tsx) and is
+   fetched the first time a page shows one — so a household that never files
+   "Milk" under "Groceries" never downloads the milk bottle. Names alone are
+   cheap, so the base set knows which names it can send there. */
+const MORE = new Set<string>(MORE_GLYPHS);
+const MoreGlyph = dynamic(() => import('./glyphs-more'), {
+  // Hold the space while the chunk arrives, so a row does not jump.
+  loading: () => <span style={{ display: 'inline-block', width: 19, height: 19 }} aria-hidden />,
+});
+
 export function Icon({ name, size = 19, strokeWidth = 1.8, ...rest }: {
   name: string | null | undefined; size?: number; strokeWidth?: number;
 } & Omit<React.ComponentProps<TablerIcon>, 'name' | 'size' | 'strokeWidth'>) {
   // An unknown name gets a tag rather than an empty box — a household may name
   // a category anything, and a gap in a row is worse than a generic mark.
-  const Glyph = SET[name ?? ''] ?? IconTag;
-  return <Glyph size={size} stroke={strokeWidth} aria-hidden {...rest} />;
+  const Glyph = SET[name ?? ''];
+  if (!Glyph && name && MORE.has(name)) {
+    return <MoreGlyph name={name} size={size} strokeWidth={strokeWidth} {...rest} />;
+  }
+  const G = Glyph ?? IconTag;
+  return <G size={size} stroke={strokeWidth} aria-hidden {...rest} />;
 }
 
 const TINT: Record<string, [string, string]> = {

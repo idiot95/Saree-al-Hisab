@@ -10,6 +10,7 @@ import { saveEntry, checkDuplicate } from './actions';
 import { haptic } from '../haptics';
 import { enqueue, writePickers, type Queued } from './queue';
 import { shares } from '../tab/splits';
+import CategoryFinder from './CategoryFinder';
 
 /* Add Entry — the screen the whole product rests on.
    With no bank feed and no SMS, this is how nearly everything gets in, so it
@@ -26,7 +27,12 @@ const KINDS: { id: Kind; label: string }[] = [
   { id: 'transfer', label: 'Transfer' },
 ];
 
-export type Category = { id: string; name: string; tint: string; icon: string };
+export type Category = {
+  id: string; name: string; tint: string; icon: string;
+  /** Set on a child — Milk under Groceries. The strip shows parents; the
+      search drawer shows everyone. */
+  parent_id?: string | null; parent?: string | null;
+};
 export type Method = { id: string; name: string; funds: string; kind: string; funds_id: string };
 export type Account = { id: string; name: string; kind: string };
 export type Tab = { id: string; name: string; people: number; last_counts: boolean | null };
@@ -76,6 +82,14 @@ export default function AddEntry({
   const [keys, setKeys] = useState(
     draft?.amountMinor ? String(draft.amountMinor / 100) : '');
   const [categoryId, setCategoryId] = useState<string | null>(draft?.categoryId ?? null);
+  const [finding, setFinding] = useState(false);
+  /* The strip holds the top level; a child that was chosen from the drawer
+     takes the first place in it as "Groceries › Milk", so what is selected
+     is always in view. The drawer is offered once there is more than the
+     strip can show at a glance, or anything nested to reach. */
+  const strip = categories.filter((c) => !c.parent_id);
+  const chosen = categories.find((c) => c.id === categoryId);
+  const findable = categories.length > 8 || categories.length !== strip.length;
   const [tabId, setTabId] = useState<string | null>(draft?.tabId ?? null);
   /* Blank means all of it comes back, which is the ordinary case. A figure
      here is the part that does, leaving the rest owed by nobody. */
@@ -344,7 +358,20 @@ export default function AddEntry({
 
       {wantsCategory && (
         <div style={{ display: 'flex', gap: 8, padding: '0 18px 10px', overflowX: 'auto', scrollbarWidth: 'none' }}>
-          {categories.map((c) => {
+          {findable && (
+            <button type="button" onClick={() => { haptic('tap'); setFinding(true); }}
+              aria-label="Find a category" style={{
+                width: 44, minHeight: 44, flex: 'none', borderRadius: 999,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: 'var(--c-sunk)', color: 'var(--c-ink)',
+              }}>
+              <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                strokeWidth={2.2} strokeLinecap="round" aria-hidden>
+                <circle cx="10.5" cy="10.5" r="6.5" /><path d="M20 20l-4.5-4.5" />
+              </svg>
+            </button>
+          )}
+          {[...(chosen && chosen.parent_id ? [chosen] : []), ...strip].map((c) => {
             const on = c.id === categoryId;
             return (
               <button
@@ -361,11 +388,16 @@ export default function AddEntry({
                 }}
               >
                 <Icon name={c.icon} size={16} strokeWidth={1.9} />
-                {c.name}
+                {c.parent ? `${c.parent} › ${c.name}` : c.name}
               </button>
             );
           })}
         </div>
+      )}
+      {wantsCategory && findable && (
+        <CategoryFinder open={finding} onClose={() => setFinding(false)}
+          categories={categories} selected={categoryId}
+          onPick={(id) => { setCategoryId(id); setFinding(false); }} />
       )}
 
       {kind === 'income' && claims.length > 0 && (

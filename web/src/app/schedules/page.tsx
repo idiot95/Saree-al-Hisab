@@ -130,7 +130,7 @@ export default async function Schedules() {
             <NewSchedule
               startOpen={schedules.length === 0}
               methods={methods.map((m) => ({ id: m.id, name: m.name, funds: m.funds }))}
-              categories={cats.map((c) => ({ id: c.id, name: c.name }))}
+              categories={cats.map((c) => ({ id: c.id, name: c.parent ? `${c.parent} › ${c.name}` : c.name }))}
             />
           )}
 

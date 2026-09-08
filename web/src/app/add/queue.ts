@@ -26,7 +26,9 @@ export type Queued = Draft & {
 
 export type Pickers = {
   householdId: string;
-  categories: { id: string; name: string; tint: string; icon: string }[];
+  /** parent fields are absent on a device that last opened Add Entry before
+      categories could nest; such a row simply stands on its own. */
+  categories: { id: string; name: string; tint: string; icon: string; parent_id?: string | null; parent?: string | null }[];
   methods: { id: string; name: string; funds: string; kind: string; funds_id: string }[];
   accounts: { id: string; name: string; kind: string }[];
   /** Absent on a device that last opened Add Entry before tabs existed. */

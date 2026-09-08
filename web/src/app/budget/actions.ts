@@ -31,9 +31,11 @@ export async function saveBudget(_prev: Result | null, fd: FormData): Promise<Re
   const month = String(fd.get('month') ?? '');
   if (!MONTH.test(month)) return { ok: false, error: 'That is not a month.' };
 
+  // A line belongs to a parent; a child rolls up into it (the trigger in
+  // 0108 refuses a child's budget row, and the form never offers one).
   const categories = await sql`
     select id from category
-    where household_id = ${actor.household_id} and archived_at is null`;
+    where household_id = ${actor.household_id} and archived_at is null and parent_id is null`;
 
   const rows: { category_id: string; amount: number }[] = [];
   for (const c of categories) {
