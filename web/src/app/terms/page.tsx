@@ -43,7 +43,7 @@ const SECTIONS: { title: string; lines: React.ReactNode[] }[] = [
       'The books live in a Postgres database. The storage underneath it is encrypted at rest, and every connection to it is over TLS — the app refuses a plain one.',
       'Your password is never stored. What is stored is a salted scrypt hash of it, which is enough to check the password and useless for recovering it.',
       'A Google AI key you add for receipt scanning is encrypted with AES-256-GCM under a secret that exists only on the server. It is decrypted only to scan, and sent nowhere but Google.',
-      'Every request checks, on the server, that you belong to the household you are asking about and that your role allows what you are doing. Sessions can be cut off: changing your password or tapping Sign out everywhere ends every other phone’s session on its next tap.',
+      'Every request checks, on the server, that you belong to the household you are asking about and that your role allows what you are doing. The database checks it again: the app connects to Postgres as a role that can only see the household a request is for, so a query cannot reach another household’s rows even by mistake. Sessions can be cut off: changing your password or tapping Sign out everywhere ends every other phone’s session on its next tap.',
       'Invitation and password-reset links carry a one-time token, expire, and are sent without a referrer so the address bar does not leak them to the next site.',
     ],
   },

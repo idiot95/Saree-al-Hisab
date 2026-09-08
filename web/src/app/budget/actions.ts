@@ -1,7 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { sql } from '@/db/client';
+import { sql, withHousehold } from '@/db/client';
 import { currentActor } from '@/db/queries';
 import { fromKeys } from '@/lib/money';
 import { rethrowControlFlow } from '@/lib/rethrow';
@@ -27,46 +27,48 @@ export async function saveBudget(_prev: Result | null, fd: FormData): Promise<Re
   let actor;
   try { actor = await mustWrite(); }
   catch (e) { rethrowControlFlow(e); return { ok: false, error: (e as Error).message }; }
+  return withHousehold(actor.household_id, async () => {
 
-  const month = String(fd.get('month') ?? '');
-  if (!MONTH.test(month)) return { ok: false, error: 'That is not a month.' };
+    const month = String(fd.get('month') ?? '');
+    if (!MONTH.test(month)) return { ok: false, error: 'That is not a month.' };
 
-  // A line belongs to a parent; a child rolls up into it (the trigger in
-  // 0108 refuses a child's budget row, and the form never offers one).
-  const categories = await sql`
-    select id from category
-    where household_id = ${actor.household_id} and archived_at is null and parent_id is null`;
+    // A line belongs to a parent; a child rolls up into it (the trigger in
+    // 0108 refuses a child's budget row, and the form never offers one).
+    const categories = await sql`
+      select id from category
+      where household_id = ${actor.household_id} and archived_at is null and parent_id is null`;
 
-  const rows: { category_id: string; amount: number }[] = [];
-  for (const c of categories) {
-    const raw = fd.get(`c_${c.id}`);
-    if (raw === null) continue;
-    const minor = amount(raw);
-    if (!Number.isSafeInteger(minor) || minor < 0) {
-      return { ok: false, error: 'One of those amounts is not a number.' };
-    }
-    if (minor > 1_000_000_000_00) return { ok: false, error: 'That is more than the app can hold.' };
-    rows.push({ category_id: c.id as string, amount: minor });
-  }
-
-  await sql.begin(async (tx) => {
-    for (const r of rows) {
-      if (r.amount === 0) {
-        await tx`delete from budget
-                 where household_id = ${actor.household_id}
-                   and category_id = ${r.category_id} and month = ${month}::date`;
-      } else {
-        await tx`
-          insert into budget (household_id, category_id, month, amount)
-          values (${actor.household_id}, ${r.category_id}, ${month}::date, ${r.amount})
-          on conflict (category_id, month) do update set amount = excluded.amount`;
+    const rows: { category_id: string; amount: number }[] = [];
+    for (const c of categories) {
+      const raw = fd.get(`c_${c.id}`);
+      if (raw === null) continue;
+      const minor = amount(raw);
+      if (!Number.isSafeInteger(minor) || minor < 0) {
+        return { ok: false, error: 'One of those amounts is not a number.' };
       }
+      if (minor > 1_000_000_000_00) return { ok: false, error: 'That is more than the app can hold.' };
+      rows.push({ category_id: c.id as string, amount: minor });
     }
-  });
 
-  revalidatePath('/budget');
-  revalidatePath('/');
-  return { ok: true, message: 'Budget saved.' };
+    await sql.begin(async (tx) => {
+      for (const r of rows) {
+        if (r.amount === 0) {
+          await tx`delete from budget
+                   where household_id = ${actor.household_id}
+                     and category_id = ${r.category_id} and month = ${month}::date`;
+        } else {
+          await tx`
+            insert into budget (household_id, category_id, month, amount)
+            values (${actor.household_id}, ${r.category_id}, ${month}::date, ${r.amount})
+            on conflict (category_id, month) do update set amount = excluded.amount`;
+        }
+      }
+    });
+
+    revalidatePath('/budget');
+    revalidatePath('/');
+    return { ok: true, message: 'Budget saved.' };
+  });
 }
 
 /** Start this month as a copy of the last one that had a budget. Existing
@@ -75,25 +77,27 @@ export async function copyPreviousMonth(_prev: Result | null, fd: FormData): Pro
   let actor;
   try { actor = await mustWrite(); }
   catch (e) { rethrowControlFlow(e); return { ok: false, error: (e as Error).message }; }
+  return withHousehold(actor.household_id, async () => {
 
-  const month = String(fd.get('month') ?? '');
-  if (!MONTH.test(month)) return { ok: false, error: 'That is not a month.' };
+    const month = String(fd.get('month') ?? '');
+    if (!MONTH.test(month)) return { ok: false, error: 'That is not a month.' };
 
-  const [prev] = await sql`
-    select month from budget
-    where household_id = ${actor.household_id} and month < ${month}::date
-    order by month desc limit 1`;
-  if (!prev) return { ok: false, error: 'There is no earlier month to copy.' };
+    const [prev] = await sql`
+      select month from budget
+      where household_id = ${actor.household_id} and month < ${month}::date
+      order by month desc limit 1`;
+    if (!prev) return { ok: false, error: 'There is no earlier month to copy.' };
 
-  const done = await sql`
-    insert into budget (household_id, category_id, month, amount)
-    select household_id, category_id, ${month}::date, amount
-    from budget
-    where household_id = ${actor.household_id} and month = ${prev.month}
-    on conflict (category_id, month) do nothing
-    returning category_id`;
+    const done = await sql`
+      insert into budget (household_id, category_id, month, amount)
+      select household_id, category_id, ${month}::date, amount
+      from budget
+      where household_id = ${actor.household_id} and month = ${prev.month}
+      on conflict (category_id, month) do nothing
+      returning category_id`;
 
-  revalidatePath('/budget');
-  revalidatePath('/');
-  return { ok: true, message: `Copied ${done.length} ${done.length === 1 ? 'category' : 'categories'}.` };
+    revalidatePath('/budget');
+    revalidatePath('/');
+    return { ok: true, message: `Copied ${done.length} ${done.length === 1 ? 'category' : 'categories'}.` };
+  });
 }

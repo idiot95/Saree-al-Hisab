@@ -10,10 +10,12 @@ import { fileURLToPath } from 'node:url';
 import postgres from 'postgres';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
-/* Resolved the same way the app resolves it, so a test or a migration can
-   never end up pointing at a different database from the running app. */
+/* The same database the app runs against, as its OWNER: the app connects as
+   `saree_app` (APP_DATABASE_URL), which cannot bypass row security, and a
+   script that saw only one household would be no use to anyone. */
 const envFile = readFileSync(join(root, '.env.local'), 'utf8');
 const url = process.env.DATABASE_URL
+  ?? /^OWNER_DATABASE_URL="?([^"\n]+)/m.exec(envFile)?.[1]
   ?? /^APP_DATABASE_URL="?([^"\n]+)/m.exec(envFile)?.[1]
   ?? /^DATABASE_URL="?([^"\n]+)/m.exec(envFile)[1];
 const sql = postgres(url, { ssl: 'require', max: 1, onnotice: () => {} });
@@ -598,6 +600,92 @@ await sql`insert into password_reset ${sql({ user_id: passer.id, issued_by: user
 await sql`delete from app_user where id = ${passer.id}`;
 const orphanResets = (await sql`select count(*)::int as n from password_reset where user_id = ${passer.id}`)[0].n;
 ok(orphanResets === 0, 'deleting an account with no entries takes its reset links with it');
+
+console.log('\nROW SECURITY — Postgres itself refuses another household\'s rows');
+/* The catalogue first: every table keyed by a household is under a policy,
+   every view runs as its caller, and the set left open is exactly the
+   tables keyed by a person or a token. */
+{
+  const rels = await sql`
+    select c.relname as name, c.relkind as kind, c.relrowsecurity as rls, c.relforcerowsecurity as force,
+      (select count(*)::int from pg_policy p where p.polrelid = c.oid) as policies,
+      coalesce(c.reloptions::text[] @> array['security_invoker=true'], false) as invoker,
+      exists (select 1 from information_schema.columns k
+        where k.table_schema = 'public' and k.table_name = c.relname and k.column_name = 'household_id') as keyed
+    from pg_class c join pg_namespace n on n.oid = c.relnamespace
+    where n.nspname = 'public' and c.relkind in ('r', 'v') order by c.relname`;
+  const tables = rels.filter((r) => r.kind === 'r'), views = rels.filter((r) => r.kind === 'v');
+  const children = ['book_member', 'card_cycle', 'claim_item', 'occurrence', 'duplicate_dismissed'];
+  const covered = (r) => r.rls && r.force && r.policies > 0;
+  const unguarded = tables.filter((r) => (r.keyed || r.name === 'household' || children.includes(r.name)) && !covered(r));
+  ok(unguarded.length === 0,
+    `every table keyed by a household, and every child of one, is under a forced policy${unguarded.length ? ': not ' + unguarded.map((r) => r.name).join(', ') : ''}`);
+  const open = tables.filter((r) => !covered(r)).map((r) => r.name).sort().join(' ');
+  ok(open === '_migration app_user device password_reset rate_limit',
+    `the tables left open are exactly the ones keyed by a person or a token (${open})`);
+  const blind = views.filter((v) => !v.invoker).map((v) => v.name);
+  ok(views.length >= 13 && blind.length === 0,
+    `all ${views.length} views run as their caller${blind.length ? ' — not ' + blind.join(', ') : ''}`);
+}
+
+/* Then the app's own role, on the string the app reads. Its BYPASSRLS would
+   make every policy above decorative, so that is the first check. */
+const appUrl = /^APP_DATABASE_URL="?([^"\n]+)/m.exec(envFile)?.[1];
+const appUser = (() => { try { return new URL(appUrl).username; } catch { return null; } })();
+ok(appUser === 'saree_app', `APP_DATABASE_URL connects as saree_app${appUser ? '' : ' — run scripts/app-role.mjs'}`);
+if (appUser === 'saree_app') {
+  const app = postgres(appUrl, { ssl: 'require', max: 1, onnotice: () => {} });
+  const [role] = await app`select r.rolbypassrls as bypass, r.rolsuper as super,
+    exists (select 1 from pg_class c where c.relowner = r.oid) as owns
+    from pg_roles r where r.rolname = current_user`;
+  ok(!role.bypass && !role.super && !role.owns, 'the app role cannot bypass a policy and owns nothing');
+
+  // A second household with an entry of its own, so there is something to fail to see.
+  const [other] = await sql`insert into household ${sql({ name: 'Invariant test' })} returning id`;
+  const otherAcct = (await sql`insert into account ${sql({ household_id: other.id, name: 'Theirs', kind: 'cash' })} returning id`)[0].id;
+  const [otherCat] = await sql`insert into category ${sql({ household_id: other.id, name: 'Theirs', icon: 'tag', tint: 'blue' })} returning id`;
+  const [otherTxn] = await sql`insert into txn ${sql({ household_id: other.id, created_by: user.id, occurred_on: '2026-09-01',
+    amount: 5000, currency: 'INR', kind: 'expense', account_id: otherAcct, category_id: otherCat.id })} returning id`;
+  const mine = (await sql`select count(*)::int as n from txn where household_id = ${hh.id}`)[0].n;
+
+  const count = (q) => q.then((r) => r[0].n);
+  ok(await count(app`select count(*)::int as n from txn`) === 0,
+    'with no household named, the ledger is empty');
+  ok(await count(app`select count(*)::int as n from household where id = ${hh.id}`) === 1,
+    'with no household named, a household can still be found — that is how sign-in finds it');
+  ok((await app`select app_household() as h`)[0].h === null, 'the setting is null until a transaction names it');
+
+  const scoped = (id, fn) => app.begin(async (tx) => {
+    await tx`select set_config('app.household_id', ${id}, true)`;
+    return fn(tx);
+  });
+  ok(await scoped(hh.id, (tx) => count(tx`select count(*)::int as n from txn where household_id = ${hh.id}`)) === mine && mine > 0,
+    `named, the household sees its own entries (${mine})`);
+  ok(await scoped(hh.id, (tx) => count(tx`select count(*)::int as n from txn where household_id = ${other.id}`)) === 0,
+    'named, it sees none of another household\'s — the query asked for them by id');
+  ok(await scoped(hh.id, (tx) => count(tx`select count(*)::int as n from spend_txn where household_id = ${other.id}`)) === 0,
+    'nor through a view');
+  ok(await scoped(hh.id, (tx) => count(tx`select count(*)::int as n from household where id = ${other.id}`)) === 0,
+    'nor the other household\'s own row');
+  ok(await scoped(hh.id, (tx) => tx`update txn set note = 'x' where id = ${otherTxn.id}`.then((r) => r.count)) === 0,
+    'an update aimed at another household\'s entry touches nothing');
+  await refuses('an insert into another household is refused',
+    () => scoped(hh.id, (tx) => tx`insert into txn ${sql({ household_id: other.id, created_by: user.id, occurred_on: '2026-09-01',
+      amount: 5000, currency: 'INR', kind: 'expense', account_id: otherAcct, category_id: otherCat.id })}`));
+  await refuses('a child row under another household\'s parent is refused',
+    () => scoped(hh.id, (tx) => tx`insert into card_cycle ${sql({ account_id: otherAcct, period_start: '2026-09-01',
+      period_end: '2026-09-30', statement_on: '2026-09-30', due_on: '2026-10-10' })}`));
+  await allows('the same insert into its own household goes through',
+    () => scoped(hh.id, (tx) => tx`insert into txn ${sql({ household_id: hh.id, created_by: user.id, occurred_on: '2026-09-01',
+      amount: 5000, currency: 'INR', kind: 'expense', account_id: cash, category_id: cat })}`));
+  await refuses('a setting that is not a household id fails closed rather than open',
+    () => scoped('not-a-household', (tx) => tx`select count(*) from txn`));
+  ok((await app`select app_household() as h`)[0].h === null,
+    'and the setting is gone once the transaction is — it cannot leak onto a pooled connection');
+  await app.end();
+  const seen = (await sql`select count(*)::int as n from txn where household_id = ${other.id}`)[0].n;
+  ok(seen === 1, 'the owner, running this test, still sees everything');
+}
 
 await sql`delete from household where name = 'Invariant test'`;
 await sql`delete from password_reset where user_id in

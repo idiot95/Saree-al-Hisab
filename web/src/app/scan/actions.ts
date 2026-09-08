@@ -1,6 +1,6 @@
 'use server';
 
-import { sql } from '@/db/client';
+import { sql, withHousehold } from '@/db/client';
 import { currentActor, geminiKeyFor } from '@/db/queries';
 import { scanReceipt, MAX_BYTES, ACCEPTED } from '@/db/gemini';
 import { open as unseal } from '@/lib/secretbox';
@@ -57,12 +57,17 @@ export async function scan(_prev: ScanResult, fd: FormData): Promise<ScanResult>
      somewhere nobody chose. */
   let suggestedCategoryId: string | null = null;
   if (out.scan.categoryHint) {
-    const [c] = await sql`
-      select id from category
-      where household_id = ${actor.household_id} and archived_at is null
-        and lower(name) = ${out.scan.categoryHint}
-      limit 1`;
-    suggestedCategoryId = c?.id ?? null;
+    // Scoped here and not around the whole action: the model takes seconds,
+    // and a transaction should not sit open on a pooled connection for that.
+    const hint = out.scan.categoryHint;
+    suggestedCategoryId = await withHousehold(actor.household_id, async () => {
+      const [c] = await sql`
+        select id from category
+        where household_id = ${actor.household_id} and archived_at is null
+          and lower(name) = ${hint}
+        limit 1`;
+      return (c?.id as string | undefined) ?? null;
+    });
   }
 
   return {

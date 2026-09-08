@@ -22,3 +22,16 @@ Run in filename order. The `01xx` files are idempotent (`CREATE OR REPLACE`,
 | A purchase files into the right card cycle | `0103` — `txn_apply_method` trigger |
 | A payment method draws on a real account | `0103` — `method_funding_is_valid` trigger |
 | A foreign-currency entry carries a rate; the currency is fixed once entries exist | `0107` — `txn_currency_shape`, `household_currency_fixed` triggers |
+| Another household's rows are invisible, whoever asks | `0109` — policies on every household table, `app_household()`, the `saree_app` role |
+
+## Row security
+
+`0109_rls.sql` runs last and re-applies every run on purpose. Besides the
+policies it does two things a later file can undo without noticing: it sets
+`security_invoker = true` on **every** view (a `CREATE OR REPLACE VIEW` without
+options silently resets the flag, so a re-issued view would otherwise run as its
+owner and see everything), and it re-grants the app role on **all** tables so a
+new table is reachable. A new `01xx` file that creates a view or a table needs
+nothing extra as long as it sorts before `0109`; a new household-scoped table
+needs its own `ENABLE` + `FORCE ROW LEVEL SECURITY` and policy added to `0109`,
+and `scripts/invariants.test.mjs` fails until it has one.

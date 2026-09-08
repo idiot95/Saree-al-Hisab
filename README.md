@@ -38,19 +38,34 @@ under Household; it is stored encrypted and used for nothing else.
 live copy points at a store in a different region from the one Vercel attached
 first. The database connection must be TLS; the app refuses a plain one.
 
+The migration also creates a login role, `saree_app`, that owns nothing and
+cannot bypass a row policy; every household table has one, so a query can only
+reach the household the request is for. Running the app as that role is one
+more command — it sets a password, writes `APP_DATABASE_URL` for it, and keeps
+`OWNER_DATABASE_URL` for the scripts:
+
+```bash
+node scripts/app-role.mjs --no-vercel   # drop --no-vercel to push it to Vercel too
+node scripts/app-role.mjs --verify      # proves the policies bite
+```
+
+Running as the owner instead still works, but the policies then only bind if
+the owner lacks `BYPASSRLS` — Neon's `neondb_owner` has it, so there they
+would not.
+
 ## Layout
 
 | Path | What |
 | --- | --- |
 | `web/` | The app: Next.js, App Router, Postgres through Drizzle. Its `CLAUDE.md` is the long-form record of every decision. |
 | `web/drizzle/` | Migrations. `00xx` are generated from `src/db/schema.ts`; `01xx` are hand-written views and triggers, idempotent, re-applied every run. |
-| `web/scripts/` | The migration runner, the invariants suite (118 assertions against a real database), the token generator and the contrast check. |
+| `web/scripts/` | The migration runner, the invariants suite (143 assertions against a real database), the token generator and the contrast check. |
 | `design/`, `design-v2/` | The canvases the screens were designed on, and the palette the tokens are generated from. |
 
 ## Checking it
 
 ```bash
 npm run test:lib          # money, hashing, link tokens
-npm run test:invariants   # needs DATABASE_URL; leaves nothing behind
+npm run test:invariants   # needs DATABASE_URL (or OWNER_DATABASE_URL); leaves nothing behind
 npm run test:contrast     # every ink/ground pair, both themes
 ```

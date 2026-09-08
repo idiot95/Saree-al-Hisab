@@ -13,10 +13,12 @@ import { fileURLToPath } from 'node:url';
 import postgres from 'postgres';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
-/* Resolved the same way the app resolves it, so a test or a migration can
-   never end up pointing at a different database from the running app. */
+/* The same database the app runs against, as its OWNER: the app connects as
+   `saree_app` (APP_DATABASE_URL), which cannot bypass row security, and a
+   script that saw only one household would be no use to anyone. */
 const envFile = readFileSync(join(root, '.env.local'), 'utf8');
 const url = process.env.DATABASE_URL
+  ?? /^OWNER_DATABASE_URL="?([^"\n]+)/m.exec(envFile)?.[1]
   ?? /^APP_DATABASE_URL="?([^"\n]+)/m.exec(envFile)?.[1]
   ?? /^DATABASE_URL="?([^"\n]+)/m.exec(envFile)[1];
 const sql = postgres(url, { ssl: 'require', max: 1, onnotice: () => {} });

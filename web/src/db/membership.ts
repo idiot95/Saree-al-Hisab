@@ -1,5 +1,5 @@
 import 'server-only';
-import { sql } from './client';
+import { identity as sql } from './client';
 import { hashLinkToken } from '@/lib/link-token';
 import { starterKitFor } from './starter';
 
@@ -154,6 +154,9 @@ export async function createHousehold(userId: string, name: string, currency: st
     await tx`insert into member (household_id, user_id, role)
              values (${h.id}, ${userId}, 'owner')`;
     await tx`update app_user set active_household_id = ${h.id} where id = ${userId}`;
+    // The starter kit goes into tables under row-level security, and a
+    // household that did not exist a moment ago has no scope yet: name it.
+    await tx`select set_config('app.household_id', ${h.id}, true)`;
     await starterKitFor(tx, h.id, currency);
     return { householdId: h.id as string };
   });

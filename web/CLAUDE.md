@@ -81,19 +81,26 @@ A repayment is `kind = 'claim_receipt'` — money in, but explicitly not income.
 ## Running it
 
     npm run migrate            # in filename order; --reset drops and rebuilds
-    npm run test:invariants    # 118 assertions against real Postgres
+    node scripts/app-role.mjs  # rotate the app role's password; --verify proves a policy bites
+    npm run test:invariants    # 143 assertions against real Postgres
     npm run test:lib           # money, password hashing and link tokens
     npm run test:contrast      # every ink/ground pair, both themes, WCAG
     npm run tokens             # regenerate tokens.css from the canvas palette
 
-Neon is provisioned through Vercel. `.env.local` (gitignored) holds TWO
-stores: `APP_DATABASE_URL` is the real app database (`src/db/client.ts`
-prefers it); `DATABASE_URL` is a first-connected marketplace store nothing
-uses. The scripts prefer `DATABASE_URL` when it is in the *environment*, so
-with the file sourced run them as `env -u DATABASE_URL node scripts/migrate.mjs`
-(and the same for the invariants) or the migration lands on the wrong store. Migrations are tracked in a `_migration` table — the
-`00xx` files run once, the `01xx` views and triggers re-apply every run
-because they are idempotent, so a changed view ships without a new file.
+Neon is provisioned through Vercel. `.env.local` (gitignored) holds the same
+database under TWO roles and one stray store. `APP_DATABASE_URL` connects as
+`saree_app` — the role the app runs as, which owns nothing and cannot bypass
+a row policy (`src/db/client.ts` reads it, falling back to `DATABASE_URL`).
+`OWNER_DATABASE_URL` connects as `neondb_owner` and is what `migrate`,
+`test:invariants`, `seed` and `scripts/app-role.mjs` use, because creating a
+table or a policy takes the owner. `DATABASE_URL` is a first-connected
+marketplace store in the wrong region that nothing uses. The scripts prefer
+`DATABASE_URL` when it is in the *environment*, so with the file sourced run
+them as `env -u DATABASE_URL node scripts/migrate.mjs` (and the same for the
+invariants) or the migration lands on the wrong store. Migrations are tracked
+in a `_migration` table — the `00xx` files run once, the `01xx` views and
+triggers re-apply every run because they are idempotent, so a changed view
+ships without a new file.
 
 Two things the runner learned the hard way. **Views come down before generated
 migrations** and go back up on the same run, because Postgres will not alter a
@@ -107,7 +114,7 @@ transaction USE; those still run statement by statement.
 ## Proven, not assumed
 
 `npm run test:invariants` tries to BREAK each rule and expects Postgres to
-refuse. 111 assertions currently pass, covering: a move can never look like
+refuse. 143 assertions currently pass, covering: a move can never look like
 spending, `spend_txn` is the only definition of spending, refunds net off in
 the month they land, a card purchase files itself into the right cycle, a
 payment method is a rail and not a balance, lending never touches the budget,
@@ -122,7 +129,11 @@ count as, a cost carried for someone else is never counted as spending while a
 cost you bore and expect back still is, shares add back up to the paisa, a cost
 laid out on a credit card still reaches that card's bill, a card due before its
 statement day still takes a purchase and moving the days re-files the unpaid
-ones, and an entry delivered twice under one `client_ref` is one row.
+ones, an entry delivered twice under one `client_ref` is one row, and —
+connected as the app's own role with one household set — another household's
+rows are not there to be read, written, moved into, or deleted, even when
+asked for by primary key, through a view, or through a child table whose only
+link to the household is its parent.
 
     npm run seed you@example.com   # fills YOUR books with the designs' data
 
@@ -370,6 +381,55 @@ user-derived id, no `dangerouslySetInnerHTML`, and constraint failures log the
 error code and constraint name only — a Postgres error carries the offending
 row in `detail`, which here means amounts and merchant names.
 
+**Postgres refuses another household's rows itself** (`drizzle/0109_rls.sql`).
+This is defence in depth, not a new boundary: every query was already scoped
+by `household_id`, and the policies exist so that the one query that someday
+forgets gets zero rows instead of somebody else's books. The finding that
+made it necessary: Neon's `neondb_owner` carries `BYPASSRLS`, so a policy is a
+no-op for it. The app therefore connects as **`saree_app`**, a plain login
+role (no bypass, no ownership, no `_migration`), and every household-scoped
+table has `ENABLE` + `FORCE ROW LEVEL SECURITY` with one policy:
+`household_id = app_household()`, where `app_household()` reads the
+transaction-local setting `app.household_id`. Children without their own
+`household_id` (`book_member`, `card_cycle`, `claim_item`, `occurrence`,
+`duplicate_dismissed`) reach it through `EXISTS` on their parent — the last
+one through both of its entries. `household`, `member` and `invite` are open
+*when unscoped* and pinned when scoped, because sign-in, choosing a household
+and accepting an invitation happen before there is a household to scope by.
+The set with no policy is exactly `_migration app_user device
+password_reset rate_limit` — none has a `household_id`. Views run as the
+caller (`security_invoker`); note that `CREATE OR REPLACE VIEW` without
+options silently clears that flag, which is why `0109` runs last, re-applies
+every run, and sets it on every view in a loop. The invariants test checks
+all of it against the catalog, so a view file that forgets fails the run.
+
+In code, `withHousehold(householdId, fn)` in `src/db/client.ts` opens a
+transaction, sets the household, runs `fn`, and commits — every action and
+every page query runs inside one. The `sql` the modules import is a proxy
+that **throws outside `withHousehold()`** rather than running unscoped, and
+its `sql.begin` becomes a savepoint. `identity` is the raw pool for the four
+things that legitimately have no household yet — sign-in, membership,
+`createHousehold` (which sets the household before the starter kit lands),
+rate limiting. Two consequences worth knowing: `redirect()` inside the scope
+commits first and then rethrows, so a successful action that redirects is
+not rolled back; and a query that fails inside the scope aborts the whole
+transaction even if the action catches it — the app's own answer is what
+the user sees, but nothing before the failure is kept. Foreign-key checks
+bypass policies by design, and trigger functions run as the caller, so the
+card-cycle and occurrence triggers work inside the scope without any
+`SECURITY DEFINER`.
+
+`scripts/app-role.mjs` owns the role's password: the default run generates a
+new one, rewrites `APP_DATABASE_URL` in `.env.local`, and pushes it to Vercel
+(production and preview as sensitive, plus development); `--no-vercel` stops
+after the file; `--verify` touches nothing and proves a policy bites — same
+`count(*)` on `txn`, owner sees rows, app role unscoped sees none. Order
+matters when the app role is new or the setting name changes: **deploy the
+code that sets `app.household_id` first, then switch the string** — the old
+code connected as `saree_app` would render every real household empty.
+Rotating the password never touches the owner string, so the local step is
+always safe on its own.
+
 **`/terms` is the security posture in the user's words**, public (the proxy
 lets it through), linked under the sign-up button and from Household. Every
 line on it is a claim the code makes good on — scrypt, AES-256-GCM for the
@@ -396,9 +456,11 @@ loads **~550 ms → ~160-210 ms**.
 `APP_DATABASE_URL` is what the app actually reads, falling back to
 `DATABASE_URL`. A marketplace store cannot be renamed or moved between regions,
 so the override is what makes changing region a configuration change instead of
-a race between disconnecting one store and connecting another. Every script
-resolves it the same way, so migrations and tests can never drift onto a
-different database from the app.
+a race between disconnecting one store and connecting another. The scripts read
+`OWNER_DATABASE_URL` — the same host and database as the app's string under
+the owning role — so migrations and tests can never drift onto a different
+database from the app, and `scripts/app-role.mjs` builds the app string from
+the owner's so the two cannot drift apart either.
 
 The old `us-east-1` store is still connected and still holds an identical copy.
 Delete it only once the new one has been lived in for a few days.

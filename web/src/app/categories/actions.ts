@@ -1,7 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { sql } from '@/db/client';
+import { sql, withHousehold } from '@/db/client';
 import { currentActor } from '@/db/queries';
 import { rethrowControlFlow } from '@/lib/rethrow';
 import { ICONS, TINTS } from './options';
@@ -49,32 +49,34 @@ export async function addCategory(_prev: Result | null, fd: FormData): Promise<R
   let actor;
   try { actor = await mustWrite(); }
   catch (e) { rethrowControlFlow(e); return { ok: false, error: (e as Error).message }; }
+  return withHousehold(actor.household_id, async () => {
 
-  const v = shape(fd);
-  if ('error' in v) return { ok: false, error: v.error };
-  const bad = await checkParent(actor.household_id, v.parentId);
-  if (bad) return { ok: false, error: bad };
+    const v = shape(fd);
+    if ('error' in v) return { ok: false, error: v.error };
+    const bad = await checkParent(actor.household_id, v.parentId);
+    if (bad) return { ok: false, error: bad };
 
-  // Order runs among siblings: the top level has its own run, and each
-  // parent's children have theirs.
-  const [{ n }] = await sql`
-    select coalesce(max(sort_order), -1) + 1 as n from category
-    where household_id = ${actor.household_id}
-      and parent_id is not distinct from ${v.parentId}::uuid`;
+    // Order runs among siblings: the top level has its own run, and each
+    // parent's children have theirs.
+    const [{ n }] = await sql`
+      select coalesce(max(sort_order), -1) + 1 as n from category
+      where household_id = ${actor.household_id}
+        and parent_id is not distinct from ${v.parentId}::uuid`;
 
-  try {
-    await sql`
-      insert into category (household_id, name, icon, tint, sort_order, parent_id)
-      values (${actor.household_id}, ${v.name}, ${v.icon}, ${v.tint}, ${n}, ${v.parentId}::uuid)`;
-  } catch {
-    // The unique index is on (household, name), archived ones included.
-    return { ok: false, error: 'You already have a category with that name.' };
-  }
+    try {
+      await sql`
+        insert into category (household_id, name, icon, tint, sort_order, parent_id)
+        values (${actor.household_id}, ${v.name}, ${v.icon}, ${v.tint}, ${n}, ${v.parentId}::uuid)`;
+    } catch {
+      // The unique index is on (household, name), archived ones included.
+      return { ok: false, error: 'You already have a category with that name.' };
+    }
 
-  revalidatePath('/categories');
-  revalidatePath('/budget');
-  revalidatePath('/add');
-  return { ok: true, message: `${v.name} added.` };
+    revalidatePath('/categories');
+    revalidatePath('/budget');
+    revalidatePath('/add');
+    return { ok: true, message: `${v.name} added.` };
+  });
 }
 
 /* Renaming is safe in a way that deleting is not: every entry points at the
@@ -85,42 +87,44 @@ export async function editCategory(_prev: Result | null, fd: FormData): Promise<
   let actor;
   try { actor = await mustWrite(); }
   catch (e) { rethrowControlFlow(e); return { ok: false, error: (e as Error).message }; }
+  return withHousehold(actor.household_id, async () => {
 
-  const id = String(fd.get('id') ?? '');
-  const v = shape(fd);
-  if ('error' in v) return { ok: false, error: v.error };
+    const id = String(fd.get('id') ?? '');
+    const v = shape(fd);
+    if ('error' in v) return { ok: false, error: v.error };
 
-  const [cur] = await sql`
-    select c.parent_id, (select count(*) from category k where k.parent_id = c.id) as kids
-    from category c where c.id = ${id} and c.household_id = ${actor.household_id}`;
-  if (!cur) return { ok: false, error: 'That category is not one of yours.' };
-  if (v.parentId && Number(cur.kids) > 0) {
-    return { ok: false, error: 'This one has categories under it, so it cannot move under another.' };
-  }
-  const bad = await checkParent(actor.household_id, v.parentId, id);
-  if (bad) return { ok: false, error: bad };
+    const [cur] = await sql`
+      select c.parent_id, (select count(*) from category k where k.parent_id = c.id) as kids
+      from category c where c.id = ${id} and c.household_id = ${actor.household_id}`;
+    if (!cur) return { ok: false, error: 'That category is not one of yours.' };
+    if (v.parentId && Number(cur.kids) > 0) {
+      return { ok: false, error: 'This one has categories under it, so it cannot move under another.' };
+    }
+    const bad = await checkParent(actor.household_id, v.parentId, id);
+    if (bad) return { ok: false, error: bad };
 
-  try {
-    const done = await sql`
-      update category set name = ${v.name}, icon = ${v.icon}, tint = ${v.tint},
-        parent_id = ${v.parentId}::uuid,
-        -- a category that changes family joins the end of its new run
-        sort_order = case when parent_id is not distinct from ${v.parentId}::uuid then sort_order
-          else (select coalesce(max(sort_order), -1) + 1 from category s
-                where s.household_id = ${actor.household_id}
-                  and s.parent_id is not distinct from ${v.parentId}::uuid) end
-      where id = ${id} and household_id = ${actor.household_id} returning id`;
-    if (!done.length) return { ok: false, error: 'That category is not one of yours.' };
-  } catch {
-    return { ok: false, error: 'You already have a category with that name.' };
-  }
+    try {
+      const done = await sql`
+        update category set name = ${v.name}, icon = ${v.icon}, tint = ${v.tint},
+          parent_id = ${v.parentId}::uuid,
+          -- a category that changes family joins the end of its new run
+          sort_order = case when parent_id is not distinct from ${v.parentId}::uuid then sort_order
+            else (select coalesce(max(sort_order), -1) + 1 from category s
+                  where s.household_id = ${actor.household_id}
+                    and s.parent_id is not distinct from ${v.parentId}::uuid) end
+        where id = ${id} and household_id = ${actor.household_id} returning id`;
+      if (!done.length) return { ok: false, error: 'That category is not one of yours.' };
+    } catch {
+      return { ok: false, error: 'You already have a category with that name.' };
+    }
 
-  revalidatePath('/categories');
-  revalidatePath('/budget');
-  revalidatePath('/entries');
-  revalidatePath('/add');
-  revalidatePath('/');
-  return { ok: true, message: 'Saved.' };
+    revalidatePath('/categories');
+    revalidatePath('/budget');
+    revalidatePath('/entries');
+    revalidatePath('/add');
+    revalidatePath('/');
+    return { ok: true, message: 'Saved.' };
+  });
 }
 
 /* Retired, never deleted. Entries and budgets keep pointing at it, so no month
@@ -131,24 +135,26 @@ export async function retireCategory(_prev: Result | null, fd: FormData): Promis
   let actor;
   try { actor = await mustWrite(); }
   catch (e) { rethrowControlFlow(e); return { ok: false, error: (e as Error).message }; }
-  const id = String(fd.get('id') ?? '');
+  return withHousehold(actor.household_id, async () => {
+    const id = String(fd.get('id') ?? '');
 
-  const [{ n }] = await sql`
-    select count(*)::int as n from category
-    where household_id = ${actor.household_id} and archived_at is null
-      and id <> ${id} and parent_id is distinct from ${id}::uuid`;
-  if (n < 1) return { ok: false, error: 'That is your last category. Add another first.' };
+    const [{ n }] = await sql`
+      select count(*)::int as n from category
+      where household_id = ${actor.household_id} and archived_at is null
+        and id <> ${id} and parent_id is distinct from ${id}::uuid`;
+    if (n < 1) return { ok: false, error: 'That is your last category. Add another first.' };
 
-  const done = await sql`
-    update category set archived_at = now()
-    where household_id = ${actor.household_id} and archived_at is null
-      and (id = ${id} or parent_id = ${id}::uuid)
-    returning name, (parent_id is null) as top`;
-  if (!done.length) return { ok: false, error: 'That category is not one of yours.' };
-  const own = done.find((r) => r.top) ?? done[0];
-  const kids = done.length - 1;
-  const withKids = kids > 0 ? ` with the ${kids === 1 ? 'one' : kids} under it` : '';
-  return finish(`${own.name} retired${withKids}. Everything filed there is untouched.`);
+    const done = await sql`
+      update category set archived_at = now()
+      where household_id = ${actor.household_id} and archived_at is null
+        and (id = ${id} or parent_id = ${id}::uuid)
+      returning name, (parent_id is null) as top`;
+    if (!done.length) return { ok: false, error: 'That category is not one of yours.' };
+    const own = done.find((r) => r.top) ?? done[0];
+    const kids = done.length - 1;
+    const withKids = kids > 0 ? ` with the ${kids === 1 ? 'one' : kids} under it` : '';
+    return finish(`${own.name} retired${withKids}. Everything filed there is untouched.`);
+  });
 }
 
 function finish(message: string): Result {
@@ -162,28 +168,30 @@ export async function restoreCategory(_prev: Result | null, fd: FormData): Promi
   let actor;
   try { actor = await mustWrite(); }
   catch (e) { rethrowControlFlow(e); return { ok: false, error: (e as Error).message }; }
-  const id = String(fd.get('id') ?? '');
-  // A child cannot stand under a retired parent, so the parent comes back
-  // with it. And a parent that was retired with its children brings back
-  // the ones that went at the same moment — one UPDATE stamps one now(), so
-  // the timestamp is the family's ticket — while a child retired on its own
-  // earlier stays retired.
-  const done = await sql`
-    with me as (
-      select id, parent_id, archived_at from category
-      where id = ${id} and household_id = ${actor.household_id})
-    update category c set archived_at = null
-    from me where c.household_id = ${actor.household_id}
-      and (c.id = me.id or c.id = me.parent_id
-           or (c.parent_id = me.id and c.archived_at = me.archived_at))
-    returning c.name, (c.id = me.id) as self, (c.parent_id = me.id) as kid`;
-  if (!done.length) return { ok: false, error: 'That category is not one of yours.' };
-  const self = done.find((r) => r.self)?.name;
-  const parent = done.find((r) => !r.self && !r.kid)?.name;
-  const kids = done.filter((r) => r.kid).length;
-  if (parent) return finish(`${self} is back, under ${parent}.`);
-  if (kids) return finish(`${self} is back, with the ${kids === 1 ? 'one' : kids} under it.`);
-  return finish(`${self} is back.`);
+  return withHousehold(actor.household_id, async () => {
+    const id = String(fd.get('id') ?? '');
+    // A child cannot stand under a retired parent, so the parent comes back
+    // with it. And a parent that was retired with its children brings back
+    // the ones that went at the same moment — one UPDATE stamps one now(), so
+    // the timestamp is the family's ticket — while a child retired on its own
+    // earlier stays retired.
+    const done = await sql`
+      with me as (
+        select id, parent_id, archived_at from category
+        where id = ${id} and household_id = ${actor.household_id})
+      update category c set archived_at = null
+      from me where c.household_id = ${actor.household_id}
+        and (c.id = me.id or c.id = me.parent_id
+             or (c.parent_id = me.id and c.archived_at = me.archived_at))
+      returning c.name, (c.id = me.id) as self, (c.parent_id = me.id) as kid`;
+    if (!done.length) return { ok: false, error: 'That category is not one of yours.' };
+    const self = done.find((r) => r.self)?.name;
+    const parent = done.find((r) => !r.self && !r.kid)?.name;
+    const kids = done.filter((r) => r.kid).length;
+    if (parent) return finish(`${self} is back, under ${parent}.`);
+    if (kids) return finish(`${self} is back, with the ${kids === 1 ? 'one' : kids} under it.`);
+    return finish(`${self} is back.`);
+  });
 }
 
 /** Order decides what Add Entry offers first, which is worth controlling when
@@ -193,34 +201,36 @@ export async function moveCategory(_prev: Result | null, fd: FormData): Promise<
   let actor;
   try { actor = await mustWrite(); }
   catch (e) { rethrowControlFlow(e); return { ok: false, error: (e as Error).message }; }
+  return withHousehold(actor.household_id, async () => {
 
-  const id = String(fd.get('id') ?? '');
-  const up = String(fd.get('direction') ?? '') === 'up';
+    const id = String(fd.get('id') ?? '');
+    const up = String(fd.get('direction') ?? '') === 'up';
 
-  const rows = await sql`
-    select id, sort_order from category
-    where household_id = ${actor.household_id} and archived_at is null
-      and parent_id is not distinct from (
-        select parent_id from category where id = ${id} and household_id = ${actor.household_id})
-    order by sort_order, name`;
-  const i = rows.findIndex((r) => r.id === id);
-  if (i < 0) return { ok: false, error: 'That category is not one of yours.' };
-  const j = up ? i - 1 : i + 1;
-  if (j < 0 || j >= rows.length) return { ok: true };
+    const rows = await sql`
+      select id, sort_order from category
+      where household_id = ${actor.household_id} and archived_at is null
+        and parent_id is not distinct from (
+          select parent_id from category where id = ${id} and household_id = ${actor.household_id})
+      order by sort_order, name`;
+    const i = rows.findIndex((r) => r.id === id);
+    if (i < 0) return { ok: false, error: 'That category is not one of yours.' };
+    const j = up ? i - 1 : i + 1;
+    if (j < 0 || j >= rows.length) return { ok: true };
 
-  // Rewrite the whole run, so a list that has drifted into ties or gaps comes
-  // back tidy instead of refusing to move.
-  const order = [...rows];
-  [order[i], order[j]] = [order[j], order[i]];
-  await sql.begin(async (tx) => {
-    for (const [k, r] of order.entries()) {
-      await tx`update category set sort_order = ${k} where id = ${r.id}`;
-    }
+    // Rewrite the whole run, so a list that has drifted into ties or gaps comes
+    // back tidy instead of refusing to move.
+    const order = [...rows];
+    [order[i], order[j]] = [order[j], order[i]];
+    await sql.begin(async (tx) => {
+      for (const [k, r] of order.entries()) {
+        await tx`update category set sort_order = ${k} where id = ${r.id}`;
+      }
+    });
+
+    revalidatePath('/categories');
+    revalidatePath('/add');
+    return { ok: true };
   });
-
-  revalidatePath('/categories');
-  revalidatePath('/add');
-  return { ok: true };
 }
 
 /** The whole order at once, from a drag. The client sends the ids it thinks
@@ -234,30 +244,32 @@ export async function reorderCategories(ids: unknown): Promise<Result> {
   let actor;
   try { actor = await mustWrite(); }
   catch (e) { rethrowControlFlow(e); return { ok: false, error: (e as Error).message }; }
+  return withHousehold(actor.household_id, async () => {
 
-  if (!Array.isArray(ids) || ids.length === 0 || ids.length > 200
-      || !ids.every((x) => typeof x === 'string' && /^[0-9a-f-]{36}$/.test(x))
-      || new Set(ids).size !== ids.length) {
-    return { ok: false, error: 'That order could not be read.' };
-  }
-
-  const rows = await sql`
-    select id from category
-    where household_id = ${actor.household_id} and archived_at is null and parent_id is null`;
-  const mine = new Set(rows.map((r) => r.id as string));
-  if (mine.size !== ids.length || !ids.every((id) => mine.has(id))) {
-    revalidatePath('/categories');
-    return { ok: false, error: 'The list changed. Try again.' };
-  }
-
-  await sql.begin(async (tx) => {
-    for (const [k, id] of (ids as string[]).entries()) {
-      await tx`update category set sort_order = ${k}
-               where id = ${id} and household_id = ${actor.household_id}`;
+    if (!Array.isArray(ids) || ids.length === 0 || ids.length > 200
+        || !ids.every((x) => typeof x === 'string' && /^[0-9a-f-]{36}$/.test(x))
+        || new Set(ids).size !== ids.length) {
+      return { ok: false, error: 'That order could not be read.' };
     }
-  });
 
-  revalidatePath('/categories');
-  revalidatePath('/add');
-  return { ok: true };
+    const rows = await sql`
+      select id from category
+      where household_id = ${actor.household_id} and archived_at is null and parent_id is null`;
+    const mine = new Set(rows.map((r) => r.id as string));
+    if (mine.size !== ids.length || !ids.every((id) => mine.has(id))) {
+      revalidatePath('/categories');
+      return { ok: false, error: 'The list changed. Try again.' };
+    }
+
+    await sql.begin(async (tx) => {
+      for (const [k, id] of (ids as string[]).entries()) {
+        await tx`update category set sort_order = ${k}
+                 where id = ${id} and household_id = ${actor.household_id}`;
+      }
+    });
+
+    revalidatePath('/categories');
+    revalidatePath('/add');
+    return { ok: true };
+  });
 }

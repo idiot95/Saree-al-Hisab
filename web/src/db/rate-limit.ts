@@ -5,7 +5,7 @@ import 'server-only';
    compiled and tested on its own. */
 import { headers } from 'next/headers';
 import { createHash } from 'node:crypto';
-import { sql } from './client';
+import { identity as sql } from './client';
 
 /* Who is asking, for rate-limiting purposes only.
    x-forwarded-for is set by the platform in front of us and can be forged when

@@ -44,8 +44,11 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const env = readFileSync(join(root, '.env.local'), 'utf8');
 /* An explicit DATABASE_URL in the environment wins, so the same scripts can
    be pointed at a second database — which is how a region move is done
-   without editing files and forgetting to put them back. */
+   without editing files and forgetting to put them back. Otherwise the OWNER
+   of the database: the app itself connects as `saree_app` (APP_DATABASE_URL),
+   which owns nothing and cannot create a table or bypass a policy. */
 const url = process.env.DATABASE_URL
+  ?? /^OWNER_DATABASE_URL="?([^"\n]+)/m.exec(env)?.[1]
   ?? /^APP_DATABASE_URL="?([^"\n]+)/m.exec(env)?.[1]
   ?? /^DATABASE_URL="?([^"\n]+)/m.exec(env)[1];
 // NOTICEs are informational ("already exists, skipping") and drown the output.

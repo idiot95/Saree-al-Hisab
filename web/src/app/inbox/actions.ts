@@ -1,7 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { sql } from '@/db/client';
+import { sql, withHousehold } from '@/db/client';
 import { currentActor } from '@/db/queries';
 import { rethrowControlFlow } from '@/lib/rethrow';
 
@@ -28,21 +28,23 @@ export async function notDuplicate(_prev: Result | null, fd: FormData): Promise<
   let actor;
   try { actor = await mustWrite(); }
   catch (e) { rethrowControlFlow(e); return { ok: false, error: (e as Error).message }; }
+  return withHousehold(actor.household_id, async () => {
 
-  const low = String(fd.get('lowId') ?? '');
-  const high = String(fd.get('highId') ?? '');
-  if (!(await ownsBoth(actor.household_id, low, high))) {
-    return { ok: false, error: 'Those entries are not both yours.' };
-  }
-  // The table insists low < high, which is what stops the same pair being
-  // dismissed twice under two orderings.
-  const [a, b] = low < high ? [low, high] : [high, low];
-  await sql`
-    insert into duplicate_dismissed (low_id, high_id, dismissed_by)
-    values (${a}, ${b}, ${actor.user_id}) on conflict do nothing`;
+    const low = String(fd.get('lowId') ?? '');
+    const high = String(fd.get('highId') ?? '');
+    if (!(await ownsBoth(actor.household_id, low, high))) {
+      return { ok: false, error: 'Those entries are not both yours.' };
+    }
+    // The table insists low < high, which is what stops the same pair being
+    // dismissed twice under two orderings.
+    const [a, b] = low < high ? [low, high] : [high, low];
+    await sql`
+      insert into duplicate_dismissed (low_id, high_id, dismissed_by)
+      values (${a}, ${b}, ${actor.user_id}) on conflict do nothing`;
 
-  revalidatePath('/inbox');
-  return { ok: true, message: 'Kept both.' };
+    revalidatePath('/inbox');
+    return { ok: true, message: 'Kept both.' };
+  });
 }
 
 /** Delete one side of the pair. Soft, like every other delete — the figures
@@ -51,16 +53,18 @@ export async function dropDuplicate(_prev: Result | null, fd: FormData): Promise
   let actor;
   try { actor = await mustWrite(); }
   catch (e) { rethrowControlFlow(e); return { ok: false, error: (e as Error).message }; }
+  return withHousehold(actor.household_id, async () => {
 
-  const id = String(fd.get('txnId') ?? '');
-  const done = await sql`
-    update txn set deleted_at = now()
-    where id = ${id} and household_id = ${actor.household_id} and deleted_at is null
-    returning id`;
-  if (!done.length) return { ok: false, error: 'That entry is not one of yours.' };
+    const id = String(fd.get('txnId') ?? '');
+    const done = await sql`
+      update txn set deleted_at = now()
+      where id = ${id} and household_id = ${actor.household_id} and deleted_at is null
+      returning id`;
+    if (!done.length) return { ok: false, error: 'That entry is not one of yours.' };
 
-  revalidatePath('/inbox');
-  revalidatePath('/entries');
-  revalidatePath('/');
-  return { ok: true, message: 'Removed the copy.' };
+    revalidatePath('/inbox');
+    revalidatePath('/entries');
+    revalidatePath('/');
+    return { ok: true, message: 'Removed the copy.' };
+  });
 }

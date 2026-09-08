@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
 import { rethrowControlFlow } from '@/lib/rethrow';
 import { redirect } from 'next/navigation';
-import { sql } from '@/db/client';
+import { identity, sql, withHousehold } from '@/db/client';
 import { currentActor } from '@/db/queries';
 import { createHousehold, revokeSessions, switchHousehold } from '@/db/membership';
 import { newLinkToken } from '@/lib/link-token';
@@ -39,94 +39,102 @@ async function mustManage() {
 export async function createInvite(_prev: Result | null, formData: FormData): Promise<Result> {
   let actor;
   try { actor = await mustManage(); } catch (e) { rethrowControlFlow(e); return { ok: false, error: (e as Error).message }; }
+  return withHousehold(actor.household_id, async () => {
 
-  const email = String(formData.get('email') ?? '').trim().toLowerCase();
-  const role = String(formData.get('role') ?? '');
+    const email = String(formData.get('email') ?? '').trim().toLowerCase();
+    const role = String(formData.get('role') ?? '');
 
-  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
-    return { ok: false, error: 'That does not look like an email address.' };
-  }
-  // Ownership is not handed out through a link. It is transferred deliberately,
-  // by an owner, to someone already in the household.
-  if (role !== 'adult' && role !== 'viewer') {
-    return { ok: false, error: 'Choose what they can do. Ownership cannot be given by link.' };
-  }
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+      return { ok: false, error: 'That does not look like an email address.' };
+    }
+    // Ownership is not handed out through a link. It is transferred deliberately,
+    // by an owner, to someone already in the household.
+    if (role !== 'adult' && role !== 'viewer') {
+      return { ok: false, error: 'Choose what they can do. Ownership cannot be given by link.' };
+    }
 
-  const [already] = await sql`
-    select 1 from member m join app_user u on u.id = m.user_id
-    where m.household_id = ${actor.household_id} and lower(u.email) = ${email}`;
-  if (already) return { ok: false, error: 'They are already in this household.' };
+    const [already] = await sql`
+      select 1 from member m join app_user u on u.id = m.user_id
+      where m.household_id = ${actor.household_id} and lower(u.email) = ${email}`;
+    if (already) return { ok: false, error: 'They are already in this household.' };
 
-  // Supersede any earlier open invite to the same person rather than leaving
-  // two live links to the same books.
-  await sql`update invite set status = 'revoked'
-            where household_id = ${actor.household_id}
-              and lower(email) = ${email} and status = 'open'`;
+    // Supersede any earlier open invite to the same person rather than leaving
+    // two live links to the same books.
+    await sql`update invite set status = 'revoked'
+              where household_id = ${actor.household_id}
+                and lower(email) = ${email} and status = 'open'`;
 
-  // Only the hash is kept. The plaintext exists in this response and in
-  // whatever the owner pastes it into — nowhere else, and never again.
-  const { token, hash } = newLinkToken();
-  // now() rather than a Date from here: expiry is judged by the database's
-  // clock, so it should be set by it too.
-  const [made] = await sql`
-    insert into invite (household_id, email, role, token_hash, invited_by, expires_at)
-    values (${actor.household_id}, ${email}, ${role}, ${hash}, ${actor.user_id},
-            now() + ${INVITE_DAYS} * interval '1 day')
-    returning expires_at`;
+    // Only the hash is kept. The plaintext exists in this response and in
+    // whatever the owner pastes it into — nowhere else, and never again.
+    const { token, hash } = newLinkToken();
+    // now() rather than a Date from here: expiry is judged by the database's
+    // clock, so it should be set by it too.
+    const [made] = await sql`
+      insert into invite (household_id, email, role, token_hash, invited_by, expires_at)
+      values (${actor.household_id}, ${email}, ${role}, ${hash}, ${actor.user_id},
+              now() + ${INVITE_DAYS} * interval '1 day')
+      returning expires_at`;
 
-  revalidatePath('/household');
-  // The expiry the database actually set, so the message quotes the same day.
-  const until = new Date(made.expires_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'long' });
-  return { ok: true, message: token, until };
+    revalidatePath('/household');
+    // The expiry the database actually set, so the message quotes the same day.
+    const until = new Date(made.expires_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'long' });
+    return { ok: true, message: token, until };
+  });
 }
 
 export async function revokeInvite(_prev: Result | null, formData: FormData): Promise<Result> {
   let actor;
   try { actor = await mustManage(); } catch (e) { rethrowControlFlow(e); return { ok: false, error: (e as Error).message }; }
-  const id = String(formData.get('id') ?? '');
-  await sql`update invite set status = 'revoked'
-            where id = ${id} and household_id = ${actor.household_id} and status = 'open'`;
-  revalidatePath('/household');
-  return { ok: true };
+  return withHousehold(actor.household_id, async () => {
+    const id = String(formData.get('id') ?? '');
+    await sql`update invite set status = 'revoked'
+              where id = ${id} and household_id = ${actor.household_id} and status = 'open'`;
+    revalidatePath('/household');
+    return { ok: true };
+  });
 }
 
 export async function changeRole(_prev: Result | null, formData: FormData): Promise<Result> {
   let actor;
   try { actor = await mustManage(); } catch (e) { rethrowControlFlow(e); return { ok: false, error: (e as Error).message }; }
-  const userId = String(formData.get('userId') ?? '');
-  const role = String(formData.get('role') ?? '');
-  if (!['owner', 'adult', 'viewer'].includes(role)) return { ok: false, error: 'Unknown role.' };
+  return withHousehold(actor.household_id, async () => {
+    const userId = String(formData.get('userId') ?? '');
+    const role = String(formData.get('role') ?? '');
+    if (!['owner', 'adult', 'viewer'].includes(role)) return { ok: false, error: 'Unknown role.' };
 
-  if (userId === actor.user_id && role !== 'owner') {
-    // Otherwise the last owner demotes themselves and nobody can ever invite
-    // or remove anyone again.
-    const [{ count }] = await sql`
-      select count(*)::int from member
-      where household_id = ${actor.household_id} and role = 'owner'`;
-    if (count <= 1) {
-      return { ok: false, error: 'Make someone else an owner first — a household needs one.' };
+    if (userId === actor.user_id && role !== 'owner') {
+      // Otherwise the last owner demotes themselves and nobody can ever invite
+      // or remove anyone again.
+      const [{ count }] = await sql`
+        select count(*)::int from member
+        where household_id = ${actor.household_id} and role = 'owner'`;
+      if (count <= 1) {
+        return { ok: false, error: 'Make someone else an owner first — a household needs one.' };
+      }
     }
-  }
 
-  await sql`update member set role = ${role}
-            where household_id = ${actor.household_id} and user_id = ${userId}`;
-  revalidatePath('/household');
-  return { ok: true };
+    await sql`update member set role = ${role}
+              where household_id = ${actor.household_id} and user_id = ${userId}`;
+    revalidatePath('/household');
+    return { ok: true };
+  });
 }
 
 export async function removeMember(_prev: Result | null, formData: FormData): Promise<Result> {
   let actor;
   try { actor = await mustManage(); } catch (e) { rethrowControlFlow(e); return { ok: false, error: (e as Error).message }; }
-  const userId = String(formData.get('userId') ?? '');
-  if (userId === actor.user_id) {
-    return { ok: false, error: 'You cannot remove yourself. Make someone else an owner first.' };
-  }
-  // Their entries stay. The ledger is the household's, not the person's —
-  // removing someone must never silently change what the month cost.
-  await sql`delete from member
-            where household_id = ${actor.household_id} and user_id = ${userId}`;
-  revalidatePath('/household');
-  return { ok: true };
+  return withHousehold(actor.household_id, async () => {
+    const userId = String(formData.get('userId') ?? '');
+    if (userId === actor.user_id) {
+      return { ok: false, error: 'You cannot remove yourself. Make someone else an owner first.' };
+    }
+    // Their entries stay. The ledger is the household's, not the person's —
+    // removing someone must never silently change what the month cost.
+    await sql`delete from member
+              where household_id = ${actor.household_id} and user_id = ${userId}`;
+    revalidatePath('/household');
+    return { ok: true };
+  });
 }
 
 /* ── passwords ──────────────────────────────────────────────────────────── */
@@ -142,24 +150,26 @@ const RESET_HOURS = 24;
 export async function issueReset(_prev: Result | null, formData: FormData): Promise<Result> {
   let actor;
   try { actor = await mustManage(); } catch (e) { rethrowControlFlow(e); return { ok: false, error: (e as Error).message }; }
-  const userId = String(formData.get('userId') ?? '');
+  return withHousehold(actor.household_id, async () => {
+    const userId = String(formData.get('userId') ?? '');
 
-  const [member] = await sql`
-    select u.id from member m join app_user u on u.id = m.user_id
-    where m.household_id = ${actor.household_id} and u.id = ${userId}`;
-  if (!member) return { ok: false, error: 'They are not in this household.' };
+    const [member] = await sql`
+      select u.id from member m join app_user u on u.id = m.user_id
+      where m.household_id = ${actor.household_id} and u.id = ${userId}`;
+    if (!member) return { ok: false, error: 'They are not in this household.' };
 
-  // One live link at a time, so an old one cannot be dug out of a chat later.
-  await sql`update password_reset set used_at = now()
-            where user_id = ${userId} and used_at is null`;
+    // One live link at a time, so an old one cannot be dug out of a chat later.
+    await sql`update password_reset set used_at = now()
+              where user_id = ${userId} and used_at is null`;
 
-  const { token, hash } = newLinkToken();
-  await sql`
-    insert into password_reset (user_id, token_hash, issued_by, expires_at)
-    values (${userId}, ${hash}, ${actor.user_id}, now() + ${RESET_HOURS} * interval '1 hour')`;
+    const { token, hash } = newLinkToken();
+    await sql`
+      insert into password_reset (user_id, token_hash, issued_by, expires_at)
+      values (${userId}, ${hash}, ${actor.user_id}, now() + ${RESET_HOURS} * interval '1 hour')`;
 
-  revalidatePath('/household');
-  return { ok: true, message: token };
+    revalidatePath('/household');
+    return { ok: true, message: token };
+  });
 }
 
 /** Changing your own password needs the old one, which is what stops a
@@ -169,7 +179,7 @@ export async function changeMyPassword(_prev: Result | null, formData: FormData)
   const current = String(formData.get('current') ?? '');
   const next = String(formData.get('next') ?? '');
 
-  const [me] = await sql`select email, password_hash from app_user where id = ${actor.user_id}`;
+  const [me] = await identity`select email, password_hash from app_user where id = ${actor.user_id}`;
   if (!me?.password_hash || !(await verifyPassword(current, me.password_hash))) {
     return { ok: false, error: 'That is not your current password.' };
   }
@@ -179,12 +189,12 @@ export async function changeMyPassword(_prev: Result | null, formData: FormData)
     return { ok: false, error: 'The two new passwords do not match.' };
   }
 
-  await sql`update app_user
+  await identity`update app_user
             set password_hash = ${await hashPassword(next)}, password_set_at = now(),
                 failed_attempts = 0, locked_until = null
             where id = ${actor.user_id}`;
   // Any reset link an owner issued is now moot.
-  await sql`update password_reset set used_at = now()
+  await identity`update password_reset set used_at = now()
             where user_id = ${actor.user_id} and used_at is null`;
   /* And every session but this one stops working. A password is changed
      because something went wrong; leaving old cookies alive for a month would
@@ -229,26 +239,30 @@ export async function startAnotherHousehold(
 export async function setCurrency(_prev: Result | null, formData: FormData): Promise<Result> {
   let actor;
   try { actor = await mustManage(); } catch (e) { rethrowControlFlow(e); return { ok: false, error: (e as Error).message }; }
-  const currency = String(formData.get('currency') ?? '').trim();
-  if (!isCurrency(currency)) return { ok: false, error: 'Pick a currency from the list.' };
-  const [{ n }] = await sql`
-    select count(*)::int as n from txn where household_id = ${actor.household_id}`;
-  if (n > 0) return { ok: false, error: 'The books already hold entries, so their currency is fixed.' };
-  await sql`update household set base_currency = ${currency} where id = ${actor.household_id}`;
-  revalidatePath('/', 'layout');
-  return { ok: true, message: 'Changed.' };
+  return withHousehold(actor.household_id, async () => {
+    const currency = String(formData.get('currency') ?? '').trim();
+    if (!isCurrency(currency)) return { ok: false, error: 'Pick a currency from the list.' };
+    const [{ n }] = await sql`
+      select count(*)::int as n from txn where household_id = ${actor.household_id}`;
+    if (n > 0) return { ok: false, error: 'The books already hold entries, so their currency is fixed.' };
+    await sql`update household set base_currency = ${currency} where id = ${actor.household_id}`;
+    revalidatePath('/', 'layout');
+    return { ok: true, message: 'Changed.' };
+  });
 }
 
 export async function renameHousehold(_prev: Result | null, formData: FormData): Promise<Result> {
   let actor;
   try { actor = await mustManage(); } catch (e) { rethrowControlFlow(e); return { ok: false, error: (e as Error).message }; }
-  const name = String(formData.get('name') ?? '').trim();
-  if (name.length < 2 || name.length > 60) {
-    return { ok: false, error: 'Use between 2 and 60 characters.' };
-  }
-  await sql`update household set name = ${name} where id = ${actor.household_id}`;
-  revalidatePath('/', 'layout');
-  return { ok: true, message: 'Renamed.' };
+  return withHousehold(actor.household_id, async () => {
+    const name = String(formData.get('name') ?? '').trim();
+    if (name.length < 2 || name.length > 60) {
+      return { ok: false, error: 'Use between 2 and 60 characters.' };
+    }
+    await sql`update household set name = ${name} where id = ${actor.household_id}`;
+    revalidatePath('/', 'layout');
+    return { ok: true, message: 'Renamed.' };
+  });
 }
 
 /** Ends every session for this account, this one included. The blunt
@@ -282,9 +296,11 @@ export async function saveGeminiKey(_prev: Result | null, formData: FormData): P
   const secret = process.env.AUTH_SECRET;
   if (!secret) return { ok: false, error: 'The server cannot store secrets right now.' };
 
-  await sql`
-    update household set gemini_key = ${seal(key, secret)}, gemini_key_set_at = now()
-    where id = ${actor.household_id}`;
+  await withHousehold(actor.household_id, async () => {
+    await sql`
+      update household set gemini_key = ${seal(key, secret)}, gemini_key_set_at = now()
+      where id = ${actor.household_id}`;
+  });
   revalidatePath('/household');
   revalidatePath('/scan');
   return { ok: true, message: `Key saved and working (${hint(key)}).` };
@@ -294,12 +310,14 @@ export async function removeGeminiKey(_prev: Result | null): Promise<Result> {
   let actor;
   try { actor = await mustManage(); }
   catch (e) { rethrowControlFlow(e); return { ok: false, error: (e as Error).message }; }
-  await sql`
-    update household set gemini_key = null, gemini_key_set_at = null
-    where id = ${actor.household_id}`;
-  revalidatePath('/household');
-  revalidatePath('/scan');
-  return { ok: true, message: 'Removed. Scanning is off.' };
+  return withHousehold(actor.household_id, async () => {
+    await sql`
+      update household set gemini_key = null, gemini_key_set_at = null
+      where id = ${actor.household_id}`;
+    revalidatePath('/household');
+    revalidatePath('/scan');
+    return { ok: true, message: 'Removed. Scanning is off.' };
+  });
 }
 
 /* ── Appearance ──────────────────────────────────────────────────────────
