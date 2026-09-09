@@ -1060,3 +1060,15 @@ export async function allCategories(householdId: string) {
     ` as Promise<CategoryRow[]>;
   });
 }
+
+/* The bills kept with an entry. Never the bytes — those go out through
+   /attachment/[id] one at a time, so a page that lists six receipts does not
+   carry six megabytes of base64 through the server component payload. */
+export async function attachmentsFor(householdId: string, txnId: string) {
+  return withHousehold(householdId, async () => sql`
+    select a.id, a.name, a.mime, a.bytes
+    from attachment a
+    where a.household_id = ${householdId} and a.txn_id = ${txnId}
+    order by a.created_at
+  ` as Promise<{ id: string; name: string; mime: string; bytes: number }[]>);
+}

@@ -95,6 +95,20 @@ const PAIRS = [
   ...TINTS.map((t) => [`cat-${t}-ink`, [`cat-${t}`]]),
 ];
 
+/* The page heroes. Their ramps live in a .tsx module rather than in CSS, so
+   they are read straight out of the source the same way the taxonomy test
+   reads the icon lists. Every stop carries white text, and the lit stop is
+   the one at risk — it is the lightest thing white ever sits on in this app. */
+const HERO = (() => {
+  const src = readFileSync(join(root, 'src/app/auth-ui.tsx'), 'utf8');
+  const block = src.slice(src.indexOf('const ACCENT'), src.indexOf('};', src.indexOf('const ACCENT')));
+  const out = {};
+  for (const m of block.matchAll(/(\w+):\s*\['(#[0-9a-fA-F]{6})',\s*'(#[0-9a-fA-F]{6})',\s*'(#[0-9a-fA-F]{6})'\]/g)) {
+    out[m[1]] = [m[2], m[3], m[4]];
+  }
+  return out;
+})();
+
 const MIN = 4.5;
 let pass = 0, fail = 0;
 for (const theme of ['light', 'dark']) {
@@ -113,5 +127,24 @@ for (const theme of ['light', 'dark']) {
     }
   }
 }
+/* Heroes are the same in both themes — they are a painted surface, not a
+   token — so they are measured once, against the white they carry. */
+const heroes = Object.entries(HERO);
+if (heroes.length < 9) { fail++; console.log('  MISS the hero ramps could not be read from auth-ui.tsx'); }
+console.log('\n  HEROES');
+for (const [name, stops] of heroes) {
+  for (const [i, stop] of stops.entries()) {
+    const r = ratio('#FFFFFF', stop);
+    const ok = r >= MIN;
+    ok ? pass++ : fail++;
+    if (!ok) console.log(`  FAIL white on ${name} stop ${i}  ${r.toFixed(2)}:1 (needs ${MIN})  (${stop})`);
+  }
+  // The lit corner, where the sheen lifts the ground under the white.
+  const r = ratio('#FFFFFF', lit(stops[0]));
+  const ok = r >= 3;
+  ok ? pass++ : fail++;
+  if (!ok) console.log(`  FAIL white on ${name} lit  ${r.toFixed(2)}:1 (needs 3)`);
+}
+
 console.log(`\n  ${pass} pairs at ${MIN}:1 or better, ${fail} below\n`);
 process.exit(fail ? 1 : 0);

@@ -1,7 +1,8 @@
 import Link from 'next/link';
+import { Icon } from '../../Icon';
 import { notFound, redirect } from 'next/navigation';
 import {
-  actorOrNull, categoriesFor, claimsOnEntry, entryById, peopleFor,
+  actorOrNull, attachmentsFor, categoriesFor, claimsOnEntry, entryById, peopleFor,
 } from '@/db/queries';
 import { waysToPay } from '@/db/payment';
 import { headerBg } from '../../auth-ui';
@@ -28,11 +29,12 @@ export default async function Entry({ params }: { params: Promise<{ id: string }
   const entry = await entryById(actor.household_id, id);
   if (!entry) notFound();
 
-  const [cats, ways, people, claims] = await Promise.all([
+  const [cats, ways, people, claims, bills] = await Promise.all([
     categoriesFor(actor.household_id),
     waysToPay(actor.household_id),
     peopleFor(actor.household_id),
     claimsOnEntry(actor.household_id, entry.id),
+    attachmentsFor(actor.household_id, entry.id),
   ]);
 
   const recorded = new Date(entry.created_at).toLocaleDateString('en-IN', {
@@ -86,6 +88,34 @@ export default async function Entry({ params }: { params: Promise<{ id: string }
               people={people.map((p) => ({ id: p.id, name: p.name }))}
               claims={claims} canEdit={actor.role !== 'viewer'}
             />
+          )}
+
+          {bills.length > 0 && (
+            <section aria-label="Bills kept with this entry" style={{
+              margin: '18px var(--gutter) 0', display: 'flex', flexDirection: 'column', gap: 7,
+            }}>
+              <span style={{
+                fontSize: 'var(--step--2)', fontWeight: 700, letterSpacing: '.06em',
+                textTransform: 'uppercase', color: 'var(--c-meta)',
+              }}>Bills</span>
+              {bills.map((b) => (
+                <a key={b.id} href={`/attachment/${b.id}`} target="_blank" rel="noopener noreferrer"
+                  className="el card" style={{
+                    minHeight: 52, padding: '8px 12px', borderRadius: 13, display: 'flex',
+                    alignItems: 'center', gap: 10, background: 'var(--c-card)',
+                    color: 'var(--c-ink)', textDecoration: 'none',
+                  }}>
+                  <Icon name={b.mime === 'application/pdf' ? 'invoice' : 'camera'} size={17} strokeWidth={1.9} />
+                  <span style={{
+                    flex: 1, minWidth: 0, fontSize: 'var(--step--1)', fontWeight: 600,
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  }}>{b.name}</span>
+                  <span style={{ fontSize: 'var(--step--2)', color: 'var(--c-meta)' }}>
+                    {Math.max(1, Math.round(b.bytes / 1024))} KB
+                  </span>
+                </a>
+              ))}
+            </section>
           )}
 
           {/* Tesler: the shape rules are real and cannot be wished away, so the

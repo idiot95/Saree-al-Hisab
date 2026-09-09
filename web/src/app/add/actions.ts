@@ -13,6 +13,13 @@ import { fits, misfit } from '@/lib/scope';
    household before it is written. The database would refuse a foreign key
    anyway, but it would not stop one household writing into another's. */
 
+/* Five bills to an entry and two megabytes each, the same ceiling the table's
+   own CHECK enforces. Both are stated here so a refusal is a sentence rather
+   than a constraint violation, and there so no writer can get around it. */
+const MAX_FILES = 5;
+const MAX_BYTES = 2 * 1024 * 1024;
+const ALLOWED_MIME = new Set(['image/jpeg', 'image/png', 'image/webp', 'application/pdf']);
+
 export type Draft = {
   kind: 'expense' | 'income' | 'transfer';
   amountMinor: number;
@@ -25,6 +32,11 @@ export type Draft = {
   methodId?: string;
   counterAccountId: string | null;
   merchant: string;
+  /** Remarks — the sentence a receipt does not carry. Kept on the entry. */
+  note?: string | null;
+  /** Bills photographed at the time. Base64, already downscaled by the client
+   *  and re-checked here, because a client is not a gatekeeper. */
+  attachments?: { name: string; mime: string; data: string }[] | null;
   occurredOn: string;
   isShared: boolean;
   /** The tab this cost is put on, if any: the people on it are lent their
@@ -230,7 +242,9 @@ export async function saveEntry(d: Draft): Promise<SaveResult> {
               household_id, created_by: user_id, kind: 'income', amount: left,
               occurred_on: d.occurredOn, account_id: paid.account_id,
               category_id: categoryId, payment_method_id: paid.payment_method_id,
-              merchant: String(d.merchant ?? '').trim() || null, is_shared: d.isShared, source: 'manual',
+              merchant: String(d.merchant ?? '').trim() || null,
+              note: String(d.note ?? '').trim().slice(0, 200) || null,
+              is_shared: d.isShared, source: 'manual',
             })} returning id`;
             first ??= r.id as string;
           }
@@ -247,6 +261,7 @@ export async function saveEntry(d: Draft): Promise<SaveResult> {
           category_id: categoryId,
           payment_method_id: paid.payment_method_id,
           merchant: String(d.merchant ?? '').trim() || null,
+          note: String(d.note ?? '').trim().slice(0, 200) || null,
           is_shared: d.isShared,
           source: 'manual',
           client_ref: clientRef,
@@ -264,6 +279,19 @@ export async function saveEntry(d: Draft): Promise<SaveResult> {
             await tx`
               insert into claim (household_id, counterparty_id, txn_id, kind, expected_amount)
               values (${household_id}, ${tab.members[i]}, ${entry.id}, 'reimbursement', ${each[i]})`;
+          }
+        }
+        /* The bills, in the same transaction as the entry: an attachment that
+           outlived a failed save would be evidence for nothing. */
+        if (entry && d.attachments?.length) {
+          for (const a of d.attachments.slice(0, MAX_FILES)) {
+            if (!ALLOWED_MIME.has(a.mime)) continue;
+            const buf = Buffer.from(a.data, 'base64');
+            if (buf.length === 0 || buf.length > MAX_BYTES) continue;
+            await tx`
+              insert into attachment (household_id, txn_id, name, mime, bytes, data, created_by)
+              values (${household_id}, ${entry.id}, ${String(a.name).slice(0, 120) || 'Bill'},
+                      ${a.mime}, ${buf.length}, ${buf}, ${user_id})`;
           }
         }
         return entry;

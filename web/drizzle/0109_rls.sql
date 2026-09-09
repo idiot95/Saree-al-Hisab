@@ -43,6 +43,12 @@ drop policy if exists account_household on account;
 create policy account_household on account
   using (household_id = app_household()) with check (household_id = app_household());
 
+alter table attachment enable row level security;
+alter table attachment force row level security;
+drop policy if exists attachment_household on attachment;
+create policy attachment_household on attachment
+  using (household_id = app_household()) with check (household_id = app_household());
+
 alter table counterparty enable row level security;
 alter table counterparty force row level security;
 drop policy if exists counterparty_household on counterparty;

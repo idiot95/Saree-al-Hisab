@@ -190,6 +190,13 @@
       "when": 1788973320949,
       "tag": "0027_schedule_on_a_tab",
       "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1788973878625,
+      "tag": "0028_attachments",
+      "breakpoints": true
     }
   ]
 }

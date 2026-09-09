@@ -20,24 +20,36 @@ import { CURRENCIES } from '@/lib/money';
    The hue carries meaning where there is meaning to carry: money owed is
    pumpkin, the same colour as over-budget; savings and net worth are green. */
 const ACCENT: Record<string, [string, string, string]> = {
-  //         lightest      middle       darkest
-  teal:    ['#2C5063', '#233D4D', '#172B37'],
-  gold:    ['#6B4E10', '#543D0C', '#3A2A08'],
-  indigo:  ['#3A3F86', '#2B2F66', '#1E2147'],
-  blue:    ['#1F5578', '#18415C', '#12324A'],
-  green:   ['#2C6B4F', '#20543D', '#17402F'],
-  purple:  ['#5C2F66', '#46244E', '#331A38'],
-  pumpkin: ['#8A3D14', '#6B2E0E', '#4E2109'],
-  cyan:    ['#1A5F63', '#124A4D', '#0E3739'],
-  slate:   ['#3C4A52', '#2E3940', '#222B31'],
+  /* Every hero used to run from dark to slightly darker: all three stops sat
+     between 2% and 8% relative luminance, so the gradient was invisible and
+     the hero read as one flat slab of near-black. A page then had two levels —
+     dark block, pale content — and nothing in between, which is what "cannot
+     distinguish visual hierarchy" means. The lightest stop is now genuinely
+     lit and the darkest genuinely deep, so the hero has a form and a light
+     source. Every top stop still clears 4.5:1 against the white text on it,
+     and scripts/contrast.test.mjs measures each one rather than trusting it. */
+  //         lit           middle       deep
+  teal:    ['#3A6B82', '#26485A', '#152833'],
+  gold:    ['#8A6416', '#5C420D', '#332507'],
+  indigo:  ['#4B52A8', '#2F3470', '#1B1E42'],
+  blue:    ['#2A6E9B', '#1A4664', '#102D43'],
+  green:   ['#327C5C', '#215741', '#14392A'],
+  purple:  ['#763D82', '#4B2754', '#2E1733'],
+  pumpkin: ['#A94C19', '#73310F', '#461D08'],
+  cyan:    ['#22797E', '#134E51', '#0C3234'],
+  slate:   ['#4E606A', '#313D45', '#1F272C'],
 };
 
 export type Accent = keyof typeof ACCENT;
 
 export function headerBg(accent: Accent = 'teal'): string {
   const [a, b, c] = ACCENT[accent] ?? ACCENT.teal;
-  return 'radial-gradient(130% 85% at 82% -12%, rgba(255,255,255,.16) 0%, rgba(255,255,255,0) 62%),'
-    + `linear-gradient(150deg,${a} 0%,${b} 58%,${c} 100%)`;
+  /* Three layers: a light source off the top-right corner, a deepening at the
+     bottom edge so the hero's rounded corners read as a lifted surface rather
+     than a crop, and the ramp itself. */
+  return 'radial-gradient(115% 90% at 80% -16%, rgba(255,255,255,.22) 0%, rgba(255,255,255,0) 56%),'
+    + 'radial-gradient(120% 70% at 20% 118%, rgba(0,0,0,.28) 0%, rgba(0,0,0,0) 60%),'
+    + `linear-gradient(158deg,${a} 0%,${b} 54%,${c} 100%)`;
 }
 
 /** The default, kept so screens that have not chosen an accent still work. */

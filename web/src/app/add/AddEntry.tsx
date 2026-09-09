@@ -16,6 +16,7 @@ import { enqueue, writePickers, type Queued } from './queue';
 import { shares } from '../tab/splits';
 import { type Category } from '../CategoryFinder';
 import CategoryGrid from './CategoryGrid';
+import Bills, { type Staged } from './Bills';
 import { fits } from '@/lib/scope';
 import { OFF, on, choice } from '../choice';
 
@@ -126,6 +127,8 @@ export default function AddEntry({
   const [shared, setShared] = useState(true);
   const [occurredOn, setOccurredOn] = useState(draft?.occurredOn ?? today);
   const [merchant, setMerchant] = useState(draft?.merchant ?? '');
+  const [note, setNote] = useState('');
+  const [bills, setBills] = useState<Staged[]>([]);
   const [error, setError] = useState<string | null>(null);
   /* Kept with the amount and date it was asked about, so a stale answer is
      never shown against a figure that has since changed. */
@@ -192,21 +195,35 @@ export default function AddEntry({
     setKept(null);
     const draft = {
       kind, amountMinor: minor, categoryId: chosen?.id ?? null, paidWith: paid,
-      counterAccountId: counterId, merchant, occurredOn, isShared: shared,
+      counterAccountId: counterId, merchant, note, occurredOn, isShared: shared,
+      attachments: bills.map((b) => ({ name: b.name, mime: b.mime, data: b.data })),
       tabId: kind === 'transfer' ? null : tabId,
       tabCoveredMinor: kind === 'expense' && tabId && coveredKeys ? fromKeys(coveredKeys) : null,
       countsAsSpend: kind === 'expense' && tabId ? mine : null,
       settles: settling.map((c) => c.id),
     };
-    const clear = () => { setKeys(''); setCategoryId(null); setMerchant(''); setDupe(null); setStep(1); };
+    const clear = () => {
+      setKeys(''); setCategoryId(null); setMerchant(''); setNote(''); setBills([]);
+      setDupe(null); setStep(1);
+    };
     /* Kept on the phone: the same tick as a save, because from where the
        thumb is it IS a save — the entry exists and will not be lost. The
-       words underneath say where it is. */
+       words underneath say where it is.
+
+       Bills do not go in the queue. A photograph is a megabyte even after it
+       has been shrunk, and localStorage is a few megabytes in total for the
+       whole origin — filling it with one receipt would lose the queue itself,
+       which is the one thing here that must not be lost. So the entry is kept
+       and the bill is not, and the message says so rather than letting a
+       person believe a photograph is on its way. */
     const keep = () => {
-      const q = enqueue(draft, householdId);
+      const q = enqueue({ ...draft, attachments: null }, householdId);
       haptic('success');
+      const dropped = bills.length > 0;
       clear();
-      setKept(`${format(q.amountMinor)} kept on this phone. It goes into the books the moment there is signal.`);
+      setKept(dropped
+        ? `${format(q.amountMinor)} kept on this phone — but not the ${bills.length === 1 ? 'bill' : 'bills'}. Attach ${bills.length === 1 ? 'it' : 'them'} from the entry once there is signal.`
+        : `${format(q.amountMinor)} kept on this phone. It goes into the books the moment there is signal.`);
       onQueued?.(q);
     };
     if (offline || !navigator.onLine) { keep(); return; }
@@ -499,6 +516,25 @@ export default function AddEntry({
                 color: 'var(--c-ink)', fontSize: 'var(--field)',
               }}
             />
+          </section>
+
+          {/* Remarks. The entry page has always shown this and let it be edited
+              there; asking at the time of the entry is when a person actually
+              remembers what the sentence was. */}
+          <section style={SECTION}>
+            <Eyebrow id="add-note">Remarks</Eyebrow>
+            <textarea
+              value={note} onChange={(e) => setNote(e.target.value.slice(0, 200))}
+              aria-labelledby="add-note" rows={2} maxLength={200}
+              placeholder="Anything worth remembering about this (optional)"
+              style={{
+                width: '100%', minHeight: 62, borderRadius: 13, padding: '11px 14px',
+                border: '1px solid var(--c-border)', background: 'var(--c-card)',
+                color: 'var(--c-ink)', fontSize: 'var(--field)', lineHeight: 1.4,
+                fontFamily: 'inherit', resize: 'none',
+              }}
+            />
+            <Bills staged={bills} onChange={setBills} />
           </section>
 
           {/* Asked on every expense, not only once a tab has been attached.

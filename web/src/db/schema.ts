@@ -1,8 +1,14 @@
 import {
   pgTable, pgEnum, uuid, text, integer, bigint, date, timestamp,
-  boolean, jsonb, index, uniqueIndex, check, foreignKey,
+  boolean, jsonb, index, uniqueIndex, check, foreignKey, customType,
 } from 'drizzle-orm/pg-core';
 import { sql, relations } from 'drizzle-orm';
+
+/* Drizzle has no bytea column, and the one place we store bytes is worth being
+   explicit about rather than smuggling through text. */
+const customBytea = customType<{ data: Buffer; driverData: Buffer }>({
+  dataType: () => 'bytea',
+});
 
 /* ── money ───────────────────────────────────────────────────────────────
    Every amount is stored as an integer in the currency's minor unit (paise
@@ -425,6 +431,37 @@ export const claim = pgTable('claim', {
   index('claim_counterparty').on(t.counterpartyId),
   uniqueIndex('claim_one_per_person_per_entry').on(t.txnId, t.counterpartyId),
   check('claim_amount_positive', sql`${t.expectedAmount} > 0`),
+]);
+
+/* A photo or a PDF kept with an entry: the bill, the prescription, the
+   receipt somebody will ask for in six months.
+
+   The bytes live in Postgres rather than in an object store, and that is a
+   deliberate trade. A household photographs a few bills a month, the client
+   downscales each to about the size of a screenshot before it is ever sent,
+   and a row of a few hundred kilobytes costs nothing at this volume. It buys
+   one big thing: an attachment is scoped by exactly the same row-level
+   security as the entry it belongs to, with no second system holding signed
+   URLs and no bucket to leave world-readable by accident. If a household ever
+   starts filing whole PDFs by the hundred, this is the thing to move out. */
+export const attachment = pgTable('attachment', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  householdId: uuid('household_id').notNull().references(() => household.id, { onDelete: 'cascade' }),
+  // Delete the entry and its bills go with it: they were evidence for it.
+  txnId: uuid('txn_id').notNull().references(() => txn.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  mime: text('mime').notNull(),
+  bytes: integer('bytes').notNull(),
+  data: customBytea('data').notNull(),
+  createdBy: uuid('created_by').references(() => appUser.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  index('attachment_txn').on(t.txnId),
+  index('attachment_household').on(t.householdId),
+  // Two megabytes after the client has downscaled it. Anything larger is a
+  // mistake, and the cap is in the database so it is true of every writer.
+  check('attachment_size', sql`${t.bytes} > 0 AND ${t.bytes} <= 2097152`),
+  check('attachment_mime', sql`${t.mime} IN ('image/jpeg','image/png','image/webp','application/pdf')`),
 ]);
 
 export const claimItem = pgTable('claim_item', {
