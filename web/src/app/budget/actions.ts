@@ -102,3 +102,101 @@ export async function copyPreviousMonth(_prev: Result | null, fd: FormData): Pro
     return { ok: true, message: `Copied ${done.length} ${done.length === 1 ? 'category' : 'categories'}.` };
   });
 }
+
+/* Budget plans: an amount per month for a category, between two months, kept
+   as a thing you can come back and edit.
+
+   Saving one MATERIALISES it — the monthly rows in `budget` are what every
+   screen reads, so the plan writes them and stays the record of why they say
+   what they say. Rewriting a plan clears the months it used to cover before
+   writing the ones it covers now, so shortening a range takes the tail with
+   it rather than leaving orphaned months nobody can see or explain. */
+const MONTH_ONLY = /^\d{4}-\d{2}$/;
+/* Ten years. Long enough for "until the loan is paid", short enough that a
+   typo cannot write a hundred thousand rows. */
+const MAX_MONTHS = 120;
+
+export async function saveBudgetPlan(_prev: Result | null, fd: FormData): Promise<Result> {
+  let actor;
+  try { actor = await mustWrite(); }
+  catch (e) { rethrowControlFlow(e); return { ok: false, error: (e as Error).message }; }
+  return withHousehold(actor.household_id, async () => {
+    const categoryId = String(fd.get('categoryId') ?? '');
+    if (!/^[0-9a-f-]{36}$/.test(categoryId)) return { ok: false, error: 'Choose a category.' };
+    const from = String(fd.get('from') ?? '');
+    const to = String(fd.get('to') ?? '');
+    if (!MONTH_ONLY.test(from) || !MONTH_ONLY.test(to)) return { ok: false, error: 'Give a first and a last month.' };
+    if (to < from) return { ok: false, error: 'The last month comes before the first.' };
+
+    const minor = amount(fd.get('amount'));
+    if (!Number.isSafeInteger(minor) || minor <= 0) return { ok: false, error: 'Enter an amount.' };
+    if (minor > 1_000_000_000_00) return { ok: false, error: 'That is more than the app can hold.' };
+
+    const months = (Number(to.slice(0, 4)) - Number(from.slice(0, 4))) * 12
+      + (Number(to.slice(5, 7)) - Number(from.slice(5, 7))) + 1;
+    if (months > MAX_MONTHS) return { ok: false, error: 'A plan runs for ten years at most.' };
+
+    const [cat] = await sql`
+      select id, name, scope from category
+      where id = ${categoryId} and household_id = ${actor.household_id} and archived_at is null`;
+    if (!cat) return { ok: false, error: 'That category is not one of yours.' };
+    if (cat.scope === 'income') return { ok: false, error: `${cat.name} is for income. A budget is what you plan to spend.` };
+
+    const starts = `${from}-01`;
+    const ends = `${to}-01`;
+
+    await sql.begin(async (tx) => {
+      // Whatever this plan used to cover stops being covered by it.
+      const [old] = await tx`
+        select starts_on, ends_on from budget_plan
+        where household_id = ${actor.household_id} and category_id = ${categoryId}`;
+      if (old) {
+        await tx`delete from budget
+                 where household_id = ${actor.household_id} and category_id = ${categoryId}
+                   and month >= ${old.starts_on} and month <= ${old.ends_on}`;
+      }
+      await tx`
+        insert into budget_plan (household_id, category_id, amount, starts_on, ends_on)
+        values (${actor.household_id}, ${categoryId}, ${minor}, ${starts}::date, ${ends}::date)
+        on conflict (category_id) do update
+          set amount = excluded.amount, starts_on = excluded.starts_on, ends_on = excluded.ends_on`;
+      // generate_series does the calendar, so February and December are not
+      // special cases somebody has to remember.
+      await tx`
+        insert into budget (household_id, category_id, month, amount)
+        select ${actor.household_id}, ${categoryId}, m::date, ${minor}
+        from generate_series(${starts}::date, ${ends}::date, interval '1 month') m
+        on conflict (category_id, month) do update set amount = excluded.amount`;
+    });
+
+    revalidatePath('/budget');
+    revalidatePath('/');
+    return { ok: true, message: `${cat.name} budgeted for ${months} ${months === 1 ? 'month' : 'months'}.` };
+  });
+}
+
+/** Dropping a plan takes its months with it — they only ever existed because
+ *  the plan said so. A month edited by hand since is overwritten either way,
+ *  which is why the screen says what the plan covers. */
+export async function dropBudgetPlan(_prev: Result | null, fd: FormData): Promise<Result> {
+  let actor;
+  try { actor = await mustWrite(); }
+  catch (e) { rethrowControlFlow(e); return { ok: false, error: (e as Error).message }; }
+  return withHousehold(actor.household_id, async () => {
+    const id = String(fd.get('id') ?? '');
+    if (!/^[0-9a-f-]{36}$/.test(id)) return { ok: false, error: 'That plan could not be read.' };
+    const [p] = await sql`
+      select category_id, starts_on, ends_on from budget_plan
+      where id = ${id} and household_id = ${actor.household_id}`;
+    if (!p) return { ok: false, error: 'That plan is not one of yours.' };
+    await sql.begin(async (tx) => {
+      await tx`delete from budget
+               where household_id = ${actor.household_id} and category_id = ${p.category_id}
+                 and month >= ${p.starts_on} and month <= ${p.ends_on}`;
+      await tx`delete from budget_plan where id = ${id} and household_id = ${actor.household_id}`;
+    });
+    revalidatePath('/budget');
+    revalidatePath('/');
+    return { ok: true, message: 'Plan removed.' };
+  });
+}

@@ -312,6 +312,37 @@ export const budget = pgTable('budget', {
   check('budget_month_is_first', sql`date_part('day', ${t.month}) = 1`),
 ]);
 
+/* A budget that runs between two dates instead of being retyped every month.
+
+   `budget` stays the truth every screen reads — one row per category per
+   month — because the month is what a budget is actually spent against, and
+   rewriting that model would have touched every chart in the app. A plan is a
+   GENERATOR over it: say ₹8,000 for Groceries from April to March and saving
+   it writes the twelve monthly rows. Edit the plan and they are rewritten;
+   the plan is the thing you keep, the rows are what the app reads.
+
+   One plan per category, deliberately. Two overlapping plans for the same
+   heading would need a rule for which wins in the overlap, and there is no
+   answer to that a person would predict. */
+export const budgetPlan = pgTable('budget_plan', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  householdId: uuid('household_id').notNull().references(() => household.id, { onDelete: 'cascade' }),
+  categoryId: uuid('category_id').notNull().references(() => category.id, { onDelete: 'cascade' }),
+  /** Per month, in minor units. */
+  amount: bigint('amount', { mode: 'number' }).notNull(),
+  startsOn: date('starts_on').notNull(),
+  endsOn: date('ends_on').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  uniqueIndex('budget_plan_one_per_category').on(t.categoryId),
+  index('budget_plan_household').on(t.householdId),
+  check('budget_plan_amount', sql`${t.amount} >= 0`),
+  // Both ends are the first of a month, like every row in `budget`.
+  check('budget_plan_months', sql`
+    date_part('day', ${t.startsOn}) = 1 AND date_part('day', ${t.endsOn}) = 1`),
+  check('budget_plan_order', sql`${t.endsOn} >= ${t.startsOn}`),
+]);
+
 export const txn = pgTable('txn', {
   id: uuid('id').primaryKey().defaultRandom(),
   householdId: uuid('household_id').notNull().references(() => household.id, { onDelete: 'cascade' }),

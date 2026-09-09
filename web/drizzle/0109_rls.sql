@@ -49,6 +49,12 @@ drop policy if exists attachment_household on attachment;
 create policy attachment_household on attachment
   using (household_id = app_household()) with check (household_id = app_household());
 
+alter table budget_plan enable row level security;
+alter table budget_plan force row level security;
+drop policy if exists budget_plan_household on budget_plan;
+create policy budget_plan_household on budget_plan
+  using (household_id = app_household()) with check (household_id = app_household());
+
 alter table counterparty enable row level security;
 alter table counterparty force row level security;
 drop policy if exists counterparty_household on counterparty;

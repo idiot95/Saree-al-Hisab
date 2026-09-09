@@ -1072,3 +1072,18 @@ export async function attachmentsFor(householdId: string, txnId: string) {
     order by a.created_at
   ` as Promise<{ id: string; name: string; mime: string; bytes: number }[]>);
 }
+
+/** The budget plans a household keeps, with the category each one is for. */
+export async function budgetPlansFor(householdId: string) {
+  return withHousehold(householdId, async () => sql`
+    select p.id, p.amount::text, p.category_id,
+           to_char(p.starts_on, 'YYYY-MM') as from_month,
+           to_char(p.ends_on, 'YYYY-MM') as to_month,
+           c.name, c.icon, c.tint
+    from budget_plan p
+    join category c on c.id = p.category_id
+    where p.household_id = ${householdId}
+    order by c.sort_order, c.name
+  ` as Promise<{ id: string; amount: string; category_id: string; from_month: string;
+                 to_month: string; name: string; icon: string; tint: string }[]>);
+}

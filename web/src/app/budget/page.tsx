@@ -1,12 +1,13 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { actorOrNull, budgetFor, monthTotals, previousBudget } from '@/db/queries';
+import { actorOrNull, budgetFor, budgetPlansFor, categoriesFor, monthTotals, previousBudget } from '@/db/queries';
 import { format, monthKey } from '@/lib/money';
 import { headerBg } from '../auth-ui';
 import TabBar from '../TabBar';
 import { TAB_BAR_SPACE } from '../tabs';
 import BudgetForm from './BudgetForm';
 import CopyPrevious from './CopyPrevious';
+import Plans from './Plans';
 import Screen from '../Screen';
 import Back from '../Back';
 
@@ -31,10 +32,12 @@ export default async function Budget({ searchParams }: {
   const { m } = await searchParams;
   const month = m && MONTH.test(m) ? m : monthKey(new Date());
 
-  const [rows, totals, previous] = await Promise.all([
+  const [rows, totals, previous, plans, cats] = await Promise.all([
     budgetFor(actor.household_id, month),
     monthTotals(actor.household_id, month),
     previousBudget(actor.household_id, month),
+    budgetPlansFor(actor.household_id),
+    categoriesFor(actor.household_id),
   ]);
 
   const budget = Number(totals.budget);
@@ -149,6 +152,22 @@ export default async function Budget({ searchParams }: {
             Each month is its own set of figures. Changing {label(month)} leaves every earlier
             month exactly as it was.
           </p>
+
+          {canEdit && (
+            <>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '26px var(--gutter) 11px' }}>
+                <h2 style={{ margin: 0, fontSize: 'var(--step-1)', fontWeight: 600, letterSpacing: '-.012em' }}>
+                  Budget until a date
+                </h2>
+                <span style={{ flex: 1, height: 1, background: 'var(--c-border)' }} />
+              </div>
+              <Plans
+                plans={plans.map((p) => ({ ...p }))}
+                categories={cats.filter((c) => c.scope !== 'income')}
+                thisMonth={month.slice(0, 7)}
+              />
+            </>
+          )}
         </div>
         <TabBar current="/budget" />
       </main>
