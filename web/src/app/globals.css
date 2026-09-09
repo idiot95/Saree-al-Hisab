@@ -124,6 +124,34 @@
   --g-hero: linear-gradient(158deg, var(--c-card) 0%, var(--c-teal-l) 150%);
 }
 
+/* Amiri, for the one line of Arabic this app carries.
+
+   إن الله سريع الحساب — "indeed, God is swift in the reckoning" — is where
+   the app's name comes from, so it is set in a face drawn for Arabic rather
+   than left to whatever the phone falls back to, which on most Android
+   handsets is a Latin-first font with Arabic bolted on and the joins wrong.
+
+   Self-hosted and subset to the nineteen letters of that phrase: 14KB
+   against the 108KB of Amiri's full Arabic set, with the shaping features
+   kept (ccmp, init/medi/fina/isol, rlig, mark) so the letters still join and
+   the lam-alef of الله still forms. Self-hosted because the app is a PWA that
+   must work offline, and because a font request to a third party is a request
+   that says which app you are using.
+
+   Amiri is under the SIL Open Font License 1.1; the licence travels with the
+   file in public/fonts/OFL-Amiri.txt.
+
+   unicode-range confines it to Arabic, so a phone never downloads it to draw
+   a Latin page — it is fetched only when Arabic is actually on screen. */
+@font-face {
+  font-family: 'Amiri Subset';
+  src: url('/fonts/amiri-phrase.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0600-06FF, U+0750-077F, U+FB50-FDFF, U+FE70-FEFF;
+}
+
 @layer base {
   /* ── the type scale ──────────────────────────────────────────────────────
      Every size is fluid between a 360px phone and a 480px one, so a small

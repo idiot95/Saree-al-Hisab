@@ -93,6 +93,19 @@ export default async function Home() {
               <Icon name="settings" size={21} strokeWidth={1.9} />
             </span>
           </Link>
+
+          {/* Where the name comes from. Sūrat al-Baqara 202 and elsewhere:
+              "indeed, God is swift in the reckoning". Set in Amiri, quiet, and
+              marked lang="ar" dir="rtl" so a screen reader hands it to an
+              Arabic voice rather than spelling it out in English. */}
+          <p lang="ar" dir="rtl" style={{
+            margin: '10px 0 0', textAlign: 'right',
+            fontFamily: "'Amiri Subset', serif",
+            fontSize: 'var(--step-1)', lineHeight: 1.6,
+            color: 'rgba(255,255,255,.62)',
+          }}>
+            إِنَّ ٱللَّهَ سَرِيعُ ٱلْحِسَابِ
+          </p>
         </header>
 
         <div style={{ padding: '18px var(--gutter) 0', display: 'flex', flexDirection: 'column', gap: 14 }}>
