@@ -282,6 +282,11 @@ export default function CategoryEditor({ categories, canEdit }: {
   const retired = categories.filter((c) => c.archived);
   const ids = live.map((c) => c.id);
   const parents: Parent[] = live.map((c) => ({ id: c.id, name: c.name, scope: c.scope }));
+  /* A child takes its parent's scope (0108 enforces it), so offering an
+     income category a spending parent offers to change what it is for —
+     silently when nothing is filed under it, and as a constraint error when
+     something is. Only headings of the same kind are on the list. */
+  const takes = (p: Parent, scope: Scope) => p.scope === scope || p.scope === 'both' || scope === 'both';
   const nameOf = (id: string | null) => categories.find((c) => c.id === id)?.name ?? null;
 
   const reorder = useReorder(ids, (next) => {
@@ -319,7 +324,7 @@ export default function CategoryEditor({ categories, canEdit }: {
   const rows = (c: Cat, siblings: Cat[], i: number, last: boolean) => (
     editing === c.id
       ? <EditRow key={c.id} cat={c} first={i === 0} last={i === siblings.length - 1}
-          parents={parents.filter((p) => p.id !== c.id)} onDone={() => setEditing(null)} />
+          parents={parents.filter((p) => p.id !== c.id && takes(p, c.scope))} onDone={() => setEditing(null)} />
       : (
         <SwipeRow key={c.id} grip={!!c.parent_id} actions={canEdit ? [
           { label: 'Edit', tone: 'primary', icon: <Pen />, act: () => setEditing(c.id) },
@@ -355,7 +360,7 @@ export default function CategoryEditor({ categories, canEdit }: {
       )}
 
       {canEdit && (adding
-        ? <AddRow parents={parents} onDone={() => setAdding(false)} />
+        ? <AddRow parents={parents} takes={takes} onDone={() => setAdding(false)} />
         : (
           <button type="button" onClick={() => setAdding(true)} className="el press" style={{
             margin: '0 var(--gutter) 22px', width: 'calc(100% - 36px)', minHeight: 56, borderRadius: 16,
@@ -542,7 +547,9 @@ function EditRow({ cat, first, last, parents, onDone }: {
   );
 }
 
-function AddRow({ parents, onDone }: { parents: Parent[]; onDone: () => void }) {
+function AddRow({ parents, takes, onDone }: {
+  parents: Parent[]; takes: (p: Parent, scope: Scope) => boolean; onDone: () => void;
+}) {
   const [state, act, pending] = useActionState(addCategory, null);
   const [icon, setIcon] = useState<string>('tag');
   const [tint, setTint] = useState<string>('blue');
@@ -556,8 +563,13 @@ function AddRow({ parents, onDone }: { parents: Parent[]; onDone: () => void }) 
       display: 'flex', flexDirection: 'column', gap: 13,
     }}>
       <NameField />
-      <UnderField parents={parents} value={parentId} onChange={setParentId} />
-      <ScopeField value={scope} onChange={setScope} parent={parent} />
+      <UnderField parents={parents.filter((p) => takes(p, scope))} value={parentId} onChange={setParentId} />
+      {/* Changing the kind can strand a parent that no longer takes it, so the
+          pair is broken rather than left disagreeing with itself. */}
+      <ScopeField value={scope} onChange={(v) => {
+        setScope(v);
+        if (parent && !takes(parent, v)) setParentId('');
+      }} parent={parent} />
       <Picker icon={icon} tint={tint} onIcon={setIcon} onTint={setTint} />
       {state && !state.ok && <ErrorNote>{state.error}</ErrorNote>}
       <div style={{ display: 'flex', gap: 9 }}>

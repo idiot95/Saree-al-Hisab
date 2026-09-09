@@ -24,12 +24,18 @@ export type Suggested = {
    *  The pickers show it under the name, so a household never has to guess
    *  whether the thaali goes under Faith or under Eating out. */
   blurb: string;
+  /* Older names for the same heading, so adopting a group FILLS IN the
+     category a household already has instead of standing a near-duplicate
+     beside it. A household that started with "Business" and adopts
+     "Business income" should end with one heading carrying the children, not
+     two headings where the one they reach for is empty. */
+  also?: readonly string[];
   children: readonly { name: string; icon: string }[];
 };
 
 const g = (name: string, icon: string, tint: string, scope: 'expense' | 'income', blurb: string,
-  children: readonly (readonly [string, string])[]): Suggested =>
-  ({ name, icon, tint, scope, blurb, children: children.map(([n, i]) => ({ name: n, icon: i })) });
+  children: readonly (readonly [string, string])[], also: readonly string[] = []): Suggested =>
+  ({ name, icon, tint, scope, blurb, also, children: children.map(([n, i]) => ({ name: n, icon: i })) });
 
 export const LIBRARY: readonly Suggested[] = [
   // ── spending ─────────────────────────────────────────────────────────────
@@ -123,10 +129,10 @@ export const LIBRARY: readonly Suggested[] = [
   ]),
   g('Business income', 'briefcase', 'blue', 'income', 'What the business brings in', [
     ['Sales', 'store'], ['Freelance', 'briefcase'], ['Consulting fees', 'scale'],
-  ]),
+  ], ['Business']),
   g('Investment income', 'percent', 'indigo', 'income', 'Interest, dividends and rent received', [
     ['Interest', 'percent'], ['Dividends', 'report'], ['Capital gains', 'invest'], ['Rent received', 'building'],
-  ]),
+  ], ['Interest & dividends']),
   g('Gifts received', 'gift', 'pink', 'income', 'Eidi, cash gifts and family support', [
     ['Eidi', 'gift'], ['Cash gifts', 'coin'], ['Family support', 'heart'],
   ]),
@@ -147,6 +153,10 @@ export function suggestedGroup(name: string): Suggested | undefined {
   const k = name.trim().toLowerCase();
   return LIBRARY.find((s) => s.name.toLowerCase() === k);
 }
+
+/** Every name a group answers to — its own, then the older ones it absorbs.
+ *  Adoption walks these in order and stops at the first the household has. */
+export const namesFor = (g: Suggested): readonly string[] => [g.name, ...(g.also ?? [])];
 
 /** How many of the library's names a household already has — counting a
  *  parent only when it stands at the top, and a child wherever it is. */

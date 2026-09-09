@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-const { LIBRARY, suggestedGroup, alreadyHave, blurbFor } = await import(`${process.env.LIB}/taxonomy.js`);
+const { LIBRARY, suggestedGroup, alreadyHave, blurbFor, namesFor } = await import(`${process.env.LIB}/taxonomy.js`);
 
 /* The icons a category may wear are declared in two places in the app, and
    the library must only use those: a name the picker cannot draw would show
@@ -34,6 +34,14 @@ for (const grp of LIBRARY) {
   const k = grp.name.toLowerCase();
   assert.ok(!seen.has(k), `"${grp.name}" is named once (also as ${seen.get(k)})`);
   seen.set(k, `parent`);
+  /* An older name a group absorbs must be unique too — two groups claiming
+     the same one would make adoption depend on which ran first. */
+  for (const a of grp.also ?? []) {
+    const ak = a.toLowerCase();
+    assert.notEqual(ak, k, `${grp.name}: does not list itself as an older name`);
+    assert.ok(!seen.has(ak), `"${a}" is claimed once (also as ${seen.get(ak)})`);
+    seen.set(ak, `an older name of ${grp.name}`);
+  }
   for (const c of grp.children) {
     children++;
     assert.ok(icons.has(c.icon), `${grp.name} › ${c.name}: icon "${c.icon}" exists`);
@@ -51,6 +59,18 @@ assert.equal(suggestedGroup('groceries')?.name, 'Groceries', 'a group by name, a
 assert.equal(blurbFor('Groceries'), 'Kitchen and household supplies', 'a blurb by name');
 assert.equal(blurbFor('  eating OUT '), 'Restaurants, delivery, tea and snacks', 'trimmed, any case');
 assert.equal(blurbFor('Abdeali museum fund'), null, 'a household\'s own category has no blurb');
+
+/* The starter kit's income headings must every one be a name some group
+   answers to, or adopting stands a near-duplicate beside them: a household
+   that starts with "Business" and adopts "Business income" would end with two
+   headings, and the one they reach for would be the empty one. */
+const claimed = new Set(LIBRARY.flatMap((g) => namesFor(g).map((n) => n.toLowerCase())));
+for (const starter of ['Salary', 'Business income', 'Investment income', 'Gifts received',
+                       'Refunds', 'Other income']) {
+  assert.ok(claimed.has(starter.toLowerCase()), `a new household's "${starter}" is a name the library answers to`);
+}
+assert.deepEqual(namesFor(suggestedGroup('Business income')), ['Business income', 'Business']);
+assert.ok(namesFor(suggestedGroup('Salary')).length === 1, 'a group with no older name lists only its own');
 assert.equal(suggestedGroup('nothing'), undefined);
 const have = alreadyHave(suggestedGroup('Groceries'), ['groceries', 'Milk & dairy', 'Rent']);
 assert.deepEqual(have, { parent: true, children: 1 });

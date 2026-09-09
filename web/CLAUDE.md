@@ -853,6 +853,23 @@ added one group at a time or all at once by `adoptSuggested`. Adoption never
 renames or moves anything the household already has: a namesake that exists
 is left alone (retired or nested ones too), only the missing parent and
 children are inserted, and a group already fully owned is not offered.
+
+**A group answers to more than its own name** (`also:` in `lib/taxonomy.ts`,
+read through `namesFor`), and the starter kit's income headings are all names
+some group answers to — a test in `taxonomy.test.mjs` holds them to it. This
+matters because the names drifted once: a household started with "Business"
+and "Interest & dividends", the library called them "Business income" and
+"Investment income", so adopting stood a SECOND heading beside each and the
+one a person reached for in the income picker was the empty one — three dead
+ends among ten income headings, while `Investment income` silently lost its
+own "Rent received" child to the starter category of that name. Aliases stop
+it recurring; `db/starter.ts` fixes it for new households. A household that
+already has the pair moves one under the other from Categories.
+
+**The "Under" field offers only headings of the same kind.** A child takes its
+parent's scope (0108 enforces it), so listing spending parents under an income
+category offered to change what that category is FOR — silently while nothing
+was filed there, and as a constraint error once something was.
 Every other category field — NewSchedule, EditEntry, a write-off — is
 `CategoryPick` (`src/app/CategoryPick.tsx`): one row showing the pick with
 its icon that opens the same `CategoryFinder`, so a category is found by

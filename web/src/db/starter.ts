@@ -19,12 +19,20 @@ const CATEGORIES: [string, string, string, 'expense' | 'income'][] = [
   ['Transport', 'car', 'blue', 'expense'],
   /* And where money comes in from — a salary cannot be filed under
      Groceries, so without these an income entry has nowhere to go. The same
-     six are given to a household from before scope existed (0108). */
+     six are given to a household from before scope existed (0108).
+
+     Every name here is one the suggested library answers to (the test in
+     lib/taxonomy.test.mjs holds it to that), so a household that later adopts
+     "Investment income" gets its subcategories added UNDER the heading it
+     already has. When these names drifted from the library's — "Business"
+     against "Business income", "Interest & dividends" against "Investment
+     income" — adopting stood a second heading beside the first, and the one
+     a person reached for was the empty one. */
   ['Salary', 'salary', 'green', 'income'],
-  ['Business', 'briefcase', 'blue', 'income'],
-  ['Rent received', 'building', 'cyan', 'income'],
-  ['Interest & dividends', 'percent', 'indigo', 'income'],
+  ['Business income', 'briefcase', 'blue', 'income'],
+  ['Investment income', 'percent', 'indigo', 'income'],
   ['Gifts received', 'gift', 'pink', 'income'],
+  ['Refunds', 'rupee', 'cyan', 'income'],
   ['Other income', 'coin', 'orange', 'income'],
 ];
 

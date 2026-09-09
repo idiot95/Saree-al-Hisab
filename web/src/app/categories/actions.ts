@@ -6,7 +6,7 @@ import { currentActor } from '@/db/queries';
 import { rethrowControlFlow } from '@/lib/rethrow';
 import { ICONS, TINTS } from './options';
 import { isScope, type Scope } from '@/lib/scope';
-import { LIBRARY, suggestedGroup } from '@/lib/taxonomy';
+import { LIBRARY, suggestedGroup, namesFor } from '@/lib/taxonomy';
 
 export type Result = { ok: true; message?: string } | { ok: false; error: string };
 
@@ -340,7 +340,15 @@ export async function adoptSuggested(_prev: Result | null, fd: FormData): Promis
     let added = 0, had = 0, left = 0;
 
     for (const g of groups) {
-      let parent = byName.get(g.name.toLowerCase()) ?? null;
+      /* The heading this group belongs in: its own name, or an older one the
+         household still carries. Filling that in beats standing a second
+         heading beside it — two "Business" rows where the one they reach for
+         is empty is exactly the mess this avoids. */
+      let parent = null as Row | null;
+      for (const n of namesFor(g)) {
+        const hit = byName.get(n.toLowerCase());
+        if (hit) { parent = hit; break; }
+      }
       if (parent && (parent.archived_at || parent.parent_id)) { left += 1 + g.children.length; continue; }
       if (!parent) {
         const [{ n }] = await sql`
