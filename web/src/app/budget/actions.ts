@@ -200,3 +200,73 @@ export async function dropBudgetPlan(_prev: Result | null, fd: FormData): Promis
     return { ok: true, message: 'Plan removed.' };
   });
 }
+
+/* Creating a budget from nothing: several categories, an amount each, and one
+   date they all run until.
+
+   The same materialisation a single plan uses, done for a handful at once —
+   because the first budget a household sets is never one category, and making
+   them repeat the form eight times is how a budget does not get set. Every
+   category named gets its own plan, so each can be changed or dropped
+   separately afterwards. */
+export async function createBudget(_prev: Result | null, fd: FormData): Promise<Result> {
+  let actor;
+  try { actor = await mustWrite(); }
+  catch (e) { rethrowControlFlow(e); return { ok: false, error: (e as Error).message }; }
+  return withHousehold(actor.household_id, async () => {
+    const from = String(fd.get('from') ?? '');
+    const to = String(fd.get('to') ?? '');
+    if (!MONTH_ONLY.test(from) || !MONTH_ONLY.test(to)) return { ok: false, error: 'Give a first and a last month.' };
+    if (to < from) return { ok: false, error: 'The last month comes before the first.' };
+    const months = (Number(to.slice(0, 4)) - Number(from.slice(0, 4))) * 12
+      + (Number(to.slice(5, 7)) - Number(from.slice(5, 7))) + 1;
+    if (months > MAX_MONTHS) return { ok: false, error: 'A budget runs for ten years at most.' };
+
+    const spendable = await sql`
+      select id, name from category
+      where household_id = ${actor.household_id} and archived_at is null and scope <> 'income'`;
+
+    const wanted: { id: string; amount: number }[] = [];
+    for (const c of spendable) {
+      const raw = fd.get(`c_${c.id}`);
+      if (raw === null || String(raw).trim() === '') continue;
+      const minor = amount(raw);
+      if (!Number.isSafeInteger(minor) || minor < 0) return { ok: false, error: `${c.name} is not a number.` };
+      if (minor > 1_000_000_000_00) return { ok: false, error: 'That is more than the app can hold.' };
+      if (minor > 0) wanted.push({ id: c.id as string, amount: minor });
+    }
+    if (wanted.length === 0) return { ok: false, error: 'Give at least one category an amount.' };
+
+    const starts = `${from}-01`;
+    const ends = `${to}-01`;
+    await sql.begin(async (tx) => {
+      for (const w of wanted) {
+        const [old] = await tx`
+          select starts_on, ends_on from budget_plan
+          where household_id = ${actor.household_id} and category_id = ${w.id}`;
+        if (old) {
+          await tx`delete from budget
+                   where household_id = ${actor.household_id} and category_id = ${w.id}
+                     and month >= ${old.starts_on} and month <= ${old.ends_on}`;
+        }
+        await tx`
+          insert into budget_plan (household_id, category_id, amount, starts_on, ends_on)
+          values (${actor.household_id}, ${w.id}, ${w.amount}, ${starts}::date, ${ends}::date)
+          on conflict (category_id) do update
+            set amount = excluded.amount, starts_on = excluded.starts_on, ends_on = excluded.ends_on`;
+        await tx`
+          insert into budget (household_id, category_id, month, amount)
+          select ${actor.household_id}, ${w.id}, m::date, ${w.amount}
+          from generate_series(${starts}::date, ${ends}::date, interval '1 month') m
+          on conflict (category_id, month) do update set amount = excluded.amount`;
+      }
+    });
+
+    revalidatePath('/budget');
+    revalidatePath('/');
+    return {
+      ok: true,
+      message: `${wanted.length} ${wanted.length === 1 ? 'category' : 'categories'} budgeted for ${months} ${months === 1 ? 'month' : 'months'}.`,
+    };
+  });
+}

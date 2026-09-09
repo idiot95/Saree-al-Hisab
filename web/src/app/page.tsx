@@ -1,12 +1,14 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import {
-  actorOrNull, budgetFor, inboxCount, monthTotals, peopleFor, schedulesFor, setupProgress,
+  actorOrNull, budgetFor, claimsFor, inboxCount, monthlySeries, monthTotals, peopleFor,
+  schedulesFor, setupProgress,
 } from '@/db/queries';
 import { format, monthKey } from '@/lib/money';
 import { outstandingDues, ruleOf } from '@/lib/recur';
 import DueRow from './schedules/DueRow';
 import { headerBg } from './auth-ui';
+import HomeDeck from './HomeDeck';
 import { Icon } from './Icon';
 import GettingStarted from './GettingStarted';
 import MonthSoFar from './MonthSoFar';
@@ -29,13 +31,15 @@ export default async function Home() {
 
   const name = actor.household_name;
   const month = monthKey(new Date());
-  const [progress, totals, rows, people, inbox, schedules] = await Promise.all([
+  const [progress, totals, rows, people, inbox, schedules, trend, claims] = await Promise.all([
     setupProgress(actor.household_id),
     monthTotals(actor.household_id, month),
     budgetFor(actor.household_id, month),
     peopleFor(actor.household_id),
     inboxCount(actor.household_id),
     schedulesFor(actor.household_id),
+    monthlySeries(actor.household_id, 6),
+    claimsFor(actor.household_id),
   ]);
 
   const budget = Number(totals.budget);
@@ -52,6 +56,7 @@ export default async function Home() {
   const needsYou = inbox.duplicates + inbox.bills + dues;
   const byId = new Map(schedules.map((s) => [s.id, s]));
   const lent = people.reduce((n, p) => n + Number(p.balance), 0);
+  const owedOnClaims = claims.reduce((n, c) => n + Number(c.outstanding), 0);
   const monthName = new Date(month).toLocaleDateString('en-IN', { month: 'long' });
 
   return (
@@ -110,9 +115,17 @@ export default async function Home() {
 
         <div style={{ padding: '18px var(--gutter) 0', display: 'flex', flexDirection: 'column', gap: 14 }}>
           {/* The answer first. */}
-          {budget > 0
-            ? <MonthSoFar month={month} rows={rows} budget={budget} spent={spent} />
-            : <NoBudgetYet monthName={monthName} spent={spent} entries={progress.entries} />}
+          {/* One card you swipe: the month, the six months, the loans. All
+              three want to be first and only one can be. */}
+          <HomeDeck
+            trend={trend.map((t) => ({ month: t.month, spent: t.spent }))}
+            lent={lent}
+            owedToYou={owedOnClaims}
+          >
+            {budget > 0
+              ? <MonthSoFar month={month} rows={rows} budget={budget} spent={spent} />
+              : <NoBudgetYet monthName={monthName} spent={spent} entries={progress.entries} />}
+          </HomeDeck>
 
           {/* Then anything that actually wants a decision. */}
           {dueNow.length > 0 && (
@@ -176,12 +189,11 @@ export default async function Home() {
           <nav aria-label="More" style={{
             display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10, marginTop: 2,
           }}>
-            <Tile href="/trends" icon="invest" tint="green" label="Trends" note="Six months" />
             <Tile href="/worth" icon="worth" tint="cyan" label="Net worth" note="With what you are owed" />
             <Tile href="/schedules" icon="autodebit" tint="indigo" label="Scheduled"
               note={schedules.length ? `${schedules.length} set` : 'Rent, fees, EMIs'} />
-            <Tile href="/people" icon="person" tint="purple" label="Lending"
-              note={lent !== 0 ? format(Math.abs(lent)) : 'Who owes what'} />
+            <Tile href="/categories" icon="tag" tint="purple" label="Categories"
+              note="What you file things under" />
             <Tile href="/household" icon="settings" tint="blue" label="Household & settings"
               note={`${progress.members} ${progress.members === 1 ? 'member' : 'members'}`} />
             <Tile href="/guide" icon="book" tint="neutral" label="How it works" note="A walkthrough" />
@@ -214,7 +226,7 @@ function NoBudgetYet({ monthName, spent, entries }: {
         justifyContent: 'center', textDecoration: 'none',
         fontSize: 'var(--step-0)', fontWeight: 600,
         background: 'var(--g-primary)', color: 'var(--c-on-primary)',
-      }}>Set this month&rsquo;s budget</Link>
+      }}>Create a budget</Link>
     </section>
   );
 }

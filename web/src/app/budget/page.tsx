@@ -8,6 +8,7 @@ import { TAB_BAR_SPACE } from '../tabs';
 import BudgetForm from './BudgetForm';
 import CopyPrevious from './CopyPrevious';
 import Plans from './Plans';
+import CreateBudget from './CreateBudget';
 import Screen from '../Screen';
 import Back from '../Back';
 
@@ -152,6 +153,16 @@ export default async function Budget({ searchParams }: {
             Each month is its own set of figures. Changing {label(month)} leaves every earlier
             month exactly as it was.
           </p>
+
+          {canEdit && empty && plans.length === 0 && (
+            <div style={{ padding: '26px 0 0' }}>
+              <CreateBudget
+                categories={cats.filter((c) => c.scope !== 'income')}
+                thisMonth={month.slice(0, 7)}
+                defaultEnd="2026-12"
+              />
+            </div>
+          )}
 
           {canEdit && (
             <>
