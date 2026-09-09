@@ -75,7 +75,11 @@ export const config = {
     /* Everything except static assets, which need no policy and no session.
        The manifest and the icons MUST be in this list: a browser fetches them
        while deciding whether the app can be installed, and an HTML redirect
-       where JSON was expected means it simply cannot be. */
-    '/((?!_next/static|_next/image|icons|brands|manifest.webmanifest|favicon.ico|sw.js).*)',
+       where JSON was expected means it simply cannot be. So must `fonts`:
+       a font is fetched by the CSS engine, not by the page, and a redirect to
+       /signin where a woff2 was expected is a silently missing typeface —
+       which is how the Arabic line came back in a fallback face the first
+       time this shipped. */
+    '/((?!_next/static|_next/image|icons|brands|fonts|manifest.webmanifest|favicon.ico|sw.js).*)',
   ],
 };
