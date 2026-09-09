@@ -154,27 +154,38 @@ export async function saveEntry(d: Draft): Promise<SaveResult> {
     let covered = 0;
     let counts = true;
     if (d.tabId) {
-      if (d.kind !== 'expense') return { ok: false, error: 'Only a cost can be put on a tab.' };
+      /* A tab takes money going out and money coming in. A transfer is the one
+         kind it cannot take: that is money moving between your own accounts,
+         and it is nobody's running account with anybody. */
+      if (d.kind !== 'expense' && d.kind !== 'income') {
+        return { ok: false, error: 'A transfer cannot go on a tab.' };
+      }
       if (!UUID.test(d.tabId)) return { ok: false, error: 'That tab could not be read.' };
       const [b] = await sql`
         select id, closed_at from ledger_book
         where id = ${d.tabId} and household_id = ${household_id}`;
       if (!b) return { ok: false, error: 'That tab is not one of yours.' };
       if (b.closed_at) return { ok: false, error: 'That tab is closed. Reopen it under Lending first.' };
-      const members = await sql`
+      /* Nobody on the tab is a tab that is keeping a total, not a khata — the
+         trip you are tracking before you know who is coming, the insurer you
+         have not named. It takes costs and raises no claim, because a claim
+         needs somebody to owe it. Naming people later starts the claims from
+         that point; it does not rewrite what is already on it. */
+      const members = d.kind === 'expense' ? await sql`
         select cp.id from book_member bm
         join counterparty cp on cp.id = bm.counterparty_id and cp.archived_at is null
-        where bm.book_id = ${b.id} order by cp.id`;
-      if (members.length === 0) return { ok: false, error: 'Nobody is on that tab yet.' };
+        where bm.book_id = ${b.id} order by cp.id` : [];
 
-      covered = d.tabCoveredMinor ?? d.amountMinor;
-      if (!Number.isSafeInteger(covered) || covered <= 0) {
-        return { ok: false, error: 'Enter how much of it comes back.' };
+      if (d.kind === 'expense') {
+        covered = d.tabCoveredMinor ?? d.amountMinor;
+        if (!Number.isSafeInteger(covered) || covered <= 0) {
+          return { ok: false, error: 'Enter how much of it comes back.' };
+        }
+        if (covered > d.amountMinor) {
+          return { ok: false, error: 'That is more than the amount itself.' };
+        }
+        counts = d.countsAsSpend ?? true;
       }
-      if (covered > d.amountMinor) {
-        return { ok: false, error: 'That is more than the amount itself.' };
-      }
-      counts = d.countsAsSpend ?? true;
       tab = { id: b.id, members: members.map((m) => m.id as string) };
     }
 

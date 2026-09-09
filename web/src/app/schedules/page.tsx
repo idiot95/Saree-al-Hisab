@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { actorOrNull, categoriesFor, schedulesFor, type ScheduleRow } from '@/db/queries';
+import { actorOrNull, categoriesFor, schedulesFor, tabsForEntry, type ScheduleRow } from '@/db/queries';
 import { waysToPay } from '@/db/payment';
 import { format } from '@/lib/money';
 import { daysBetween, describeRule, isFinished, nextUnsettled, outstandingDues, parseRule, ruleOf } from '@/lib/recur';
@@ -23,10 +23,11 @@ export default async function Schedules() {
   if (!actor) redirect('/signin');
   if (!actor.household_id) redirect('/no-household');
 
-  const [schedules, ways, cats] = await Promise.all([
+  const [schedules, ways, cats, tabs] = await Promise.all([
     schedulesFor(actor.household_id),
     waysToPay(actor.household_id),
     categoriesFor(actor.household_id),
+    tabsForEntry(actor.household_id),
   ]);
   const canWrite = actor.role !== 'viewer';
   const today = new Date();
@@ -131,6 +132,7 @@ export default async function Schedules() {
               startOpen={schedules.length === 0}
               ways={ways}
               categories={cats}
+              tabs={tabs.map((t) => ({ id: t.id, name: t.name }))}
             />
           )}
 

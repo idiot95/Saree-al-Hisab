@@ -44,7 +44,7 @@ export default function NewTab({ people }: { people: Person[] }) {
 
       <fieldset style={{ border: 0, padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
         <legend style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)', padding: 0, marginBottom: 8 }}>
-          Who owes it back
+          Who owes it back (optional)
         </legend>
         {people.length > 0 && <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
           {people.map((p) => {
@@ -72,8 +72,7 @@ export default function NewTab({ people }: { people: Person[] }) {
         <NewPeople known={people.map((p) => p.name)} />
         <p style={{ margin: 0, fontSize: 'var(--step--2)', lineHeight: 1.45, color: 'var(--c-meta)' }}>
           {ticked.size === 0
-            ? (people.length ? 'Tick who this tab is for, or name someone new. You can add more later.'
-              : 'Name who this tab is for — the office, a cousin, the insurer. You can add more later.')
+            ? 'A tab works without anybody on it — it keeps the total for a trip or a project. Name people when you want what goes on it claimed from them; you can add them later.'
             : `A cost on this tab is owed back by ${ticked.size === 1 ? 'them' : `these ${ticked.size}, in equal shares`}.`}
         </p>
       </fieldset>

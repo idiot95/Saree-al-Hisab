@@ -449,6 +449,12 @@ export const schedule = pgTable('schedule', {
      Copied onto every entry the schedule records, because the entry is what
      spend_txn reads. */
   countsAsSpend: boolean('counts_as_spend').notNull().default(true),
+  /* A standing cost can belong to a tab — the rent you front for a cousin
+     every month, the office retainer. Every entry the rule records lands on
+     the tab, and raises the same claims a one-off would. Set null rather than
+     cascade: deleting a tab must not silently delete the standing order that
+     was filing into it. */
+  bookId: uuid('book_id').references(() => ledgerBook.id, { onDelete: 'set null' }),
   rrule: text('rrule'),
   hijriRule: text('hijri_rule'),
   /* Dues before this are not missed payments, they are history the app was

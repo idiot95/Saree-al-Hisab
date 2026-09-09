@@ -8,6 +8,7 @@ import { fromKeys } from '@/lib/money';
 import { buildRule, parseRule, nextDates, maxDay, rewriteRuleTo, ruleOf, describeRule, friendlyDate, type Calendar } from '@/lib/recur';
 import { rethrowControlFlow } from '@/lib/rethrow';
 import { fits, misfit } from '@/lib/scope';
+import { shares } from '../tab/splits';
 
 export type Result = { ok: true; message?: string } | { ok: false; error: string };
 
@@ -39,6 +40,18 @@ export async function createSchedule(_prev: Result | null, fd: FormData): Promis
        arriving is never "not your spending", so the question is not asked and
        the answer cannot be smuggled in through the form either. */
     const counts = kind === 'income' ? true : fd.get('counts_as_spend') !== 'no';
+    /* A standing cost can sit on a tab, and the tab matters more than who is
+       on it: a contactless tab keeps the total, a peopled one raises a claim
+       per person every time the rule records a due. */
+    const wantedBook = String(fd.get('bookId') ?? '').trim();
+    let bookId: string | null = null;
+    if (wantedBook) {
+      const [b] = await sql`
+        select id from ledger_book
+        where id = ${wantedBook}::uuid and household_id = ${actor.household_id} and closed_at is null`;
+      if (!b) return { ok: false, error: 'That tab is not one of yours, or it is closed.' };
+      bookId = b.id as string;
+    }
 
     // Which calendar the rule is written on. The Misri calendar is arithmetic,
     // so "the 1st of Ramadaan" is a date years ahead, not a sighting.
@@ -104,9 +117,9 @@ export async function createSchedule(_prev: Result | null, fd: FormData): Promis
     // the table's CHECK insists on one of the two.
     await sql`
       insert into schedule (household_id, name, kind, amount, amount_from_statement,
-                            account_id, category_id, counts_as_spend, rrule, hijri_rule)
+                            account_id, category_id, counts_as_spend, book_id, rrule, hijri_rule)
       values (${actor.household_id}, ${name}, ${kind}, ${minor}, false,
-              ${paid.account_id}, ${cat.id}, ${counts},
+              ${paid.account_id}, ${cat.id}, ${counts}, ${bookId},
               ${cal === 'gregorian' ? rule : null}, ${cal === 'hijri' ? rule : null})`;
 
     revalidatePath('/schedules');
@@ -146,7 +159,7 @@ export async function recordDue(_prev: Result | null, fd: FormData): Promise<Res
 
     const [s] = await sql`
       select s.id, s.name, s.kind, s.amount::bigint, s.account_id, s.category_id,
-             s.counts_as_spend, to_char(o.shifted_to, 'YYYY-MM-DD') as shifted_to
+             s.counts_as_spend, s.book_id, to_char(o.shifted_to, 'YYYY-MM-DD') as shifted_to
       from schedule s
       left join occurrence o on o.schedule_id = s.id and o.due_on = ${dueOn}::date
       where s.id = ${scheduleId} and s.household_id = ${actor.household_id} and s.archived_at is null`;
@@ -163,10 +176,28 @@ export async function recordDue(_prev: Result | null, fd: FormData): Promise<Res
       await sql.begin(async (tx) => {
         const [t] = await tx`
           insert into txn (household_id, created_by, kind, amount, occurred_on,
-                           account_id, category_id, merchant, counts_as_spend, source)
+                           account_id, category_id, merchant, counts_as_spend, book_id, source)
           values (${actor.household_id}, ${actor.user_id}, ${s.kind}, ${minor}, ${on}::date,
-                  ${s.account_id}, ${s.category_id}, ${s.name}, ${s.counts_as_spend}, 'manual')
+                  ${s.account_id}, ${s.category_id}, ${s.name}, ${s.counts_as_spend},
+                  ${s.book_id}, 'manual')
           returning id`;
+        /* The same rule a one-off cost on a tab follows: everybody on it owes
+           an equal share, the first few carrying the odd paisa. A tab with
+           nobody on it raises nothing, which is what makes it a running total
+           rather than a khata. */
+        if (s.book_id && s.kind === 'expense') {
+          const members = await tx`
+            select cp.id from book_member bm
+            join counterparty cp on cp.id = bm.counterparty_id and cp.archived_at is null
+            where bm.book_id = ${s.book_id} order by cp.id`;
+          const each = shares(minor, members.length);
+          for (let i = 0; i < members.length; i++) {
+            if (each[i] <= 0) continue;
+            await tx`
+              insert into claim (household_id, counterparty_id, txn_id, kind, expected_amount)
+              values (${actor.household_id}, ${members[i].id}, ${t.id}, 'reimbursement', ${each[i]})`;
+          }
+        }
         await tx`
           insert into occurrence (schedule_id, due_on, status, txn_id)
           values (${s.id}, ${dueOn}::date, 'paid', ${t.id})

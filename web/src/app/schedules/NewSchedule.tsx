@@ -6,7 +6,7 @@ import { buildRule, describeRule, friendlyDay, maxDay, nextDates, type Calendar 
 import { HIJRI_MONTHS_SHORT, formatHijri, toHijri } from '@/lib/hijri';
 import { DateChips, DayOfMonth, MonthOfYear, Segmented } from '../DatePick';
 import { createSchedule } from './actions';
-import PayPicker from '../PayPicker';
+import PayPicker, { CHIP, CHIP_TEXT } from '../PayPicker';
 import CategoryPick from '../CategoryPick';
 import type { Category } from '../CategoryFinder';
 import { defaultRef, type Way } from '@/lib/pay';
@@ -29,14 +29,15 @@ const ENDS = [['never', 'Never'], ['after', 'After a number'], ['on', 'On a date
    the rule will be and when it first lands. The end is one line, "Ends
    never", until someone wants otherwise. */
 
-export default function NewSchedule({ ways, categories, startOpen = false }: {
-  ways: Way[]; categories: Category[]; startOpen?: boolean;
+export default function NewSchedule({ ways, categories, tabs, startOpen = false }: {
+  ways: Way[]; categories: Category[]; tabs: { id: string; name: string }[]; startOpen?: boolean;
 }) {
   const [state, act, pending] = useActionState(createSchedule, null);
   const [open, setOpen] = useState(startOpen);
   const [freq, setFreq] = useState<'MONTHLY' | 'YEARLY'>('MONTHLY');
   const [kind, setKind] = useState<'expense' | 'income'>('expense');
   const [counts, setCounts] = useState(true);
+  const [bookId, setBookId] = useState<string | null>(null);
   const [cal, setCal] = useState<Calendar>('gregorian');
   const [month, setMonth] = useState({ gregorian: 4, hijri: 9 });   // April; Ramadaan
   const [day, setDay] = useState({ gregorian: 5, hijri: 1 });
@@ -208,6 +209,30 @@ export default function NewSchedule({ ways, categories, startOpen = false }: {
         label={kind === 'income' ? 'What for' : 'Category'}
         placeholder={offered.length ? 'Choose a category' : 'No categories for this yet'} />
 
+      {/* A standing cost can belong to a tab, and every due it records lands
+          there and claims the same shares a one-off would. */}
+      {tabs.length > 0 && (
+        <div role="group" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)' }}>
+            On a tab (optional)
+          </span>
+          <input type="hidden" name="bookId" value={bookId ?? ''} />
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            {tabs.map((t) => {
+              const on = t.id === bookId;
+              return (
+                <button key={t.id} type="button" aria-pressed={on}
+                  onClick={() => setBookId(on ? null : t.id)}
+                  style={{ ...CHIP, ...choice(on, 'var(--cat-purple-ink)') }}>
+                  <Icon name="tab" size={16} strokeWidth={1.9} />
+                  <span style={CHIP_TEXT}>{t.name}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* The same question a one-off expense answers, asked once for a rule
           that will answer it every month. Rent fronted for a cousin is never
           your spending however many times it goes out. */}
@@ -219,8 +244,8 @@ export default function NewSchedule({ ways, categories, startOpen = false }: {
           <input type="hidden" name="counts_as_spend" value={counts ? 'yes' : 'no'} />
           <div style={{ display: 'flex', gap: 8 }}>
             {([
-              [true, 'receivable', 'Yes, mine', 'Counts in your budget and charts'],
-              [false, 'person', 'Only fronted', 'Owed back, counted nowhere'],
+              [true, 'receivable', 'Reimbursed spend', 'Counts in your budget and charts'],
+              [false, 'person', 'Loan', 'Owed back, counted nowhere'],
             ] as const).map(([v, icon, label, what]) => (
               <button key={String(v)} type="button" aria-pressed={counts === v}
                 onClick={() => setCounts(v)}

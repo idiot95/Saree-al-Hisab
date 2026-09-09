@@ -193,7 +193,7 @@ export default function AddEntry({
     const draft = {
       kind, amountMinor: minor, categoryId: chosen?.id ?? null, paidWith: paid,
       counterAccountId: counterId, merchant, occurredOn, isShared: shared,
-      tabId: kind === 'expense' ? tabId : null,
+      tabId: kind === 'transfer' ? null : tabId,
       tabCoveredMinor: kind === 'expense' && tabId && coveredKeys ? fromKeys(coveredKeys) : null,
       countsAsSpend: kind === 'expense' && tabId ? mine : null,
       settles: settling.map((c) => c.id),
@@ -506,13 +506,16 @@ export default function AddEntry({
               whether it shows in the budget and the charts at all, and it was
               invisible to anyone who had not already discovered tabs — the
               section did not render until a tab existed to put it on. */}
-          {kind === 'expense' && (
+          {(kind === 'expense' || kind === 'income') && (
             <section aria-labelledby="add-tab" style={SECTION}>
-              <Eyebrow id="add-tab">Is someone paying this back?</Eyebrow>
+              <Eyebrow id="add-tab">
+                {kind === 'income' ? 'On a tab' : 'Is someone paying this back?'}
+              </Eyebrow>
               {tabs.length === 0 && (
                 <p style={{ margin: 0, fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--c-meta)' }}>
-                  Money someone owes you back rides on a tab — a cousin, the office, a trip.
-                  {' '}<Link href="/people" transitionTypes={['nav-forward']}
+                  {kind === 'income' ? 'Money that comes in against a trip, a person or the office rides on a tab. '
+                    : 'Money someone owes you back rides on a tab — a cousin, the office, a trip. '}
+                  <Link href="/people" transitionTypes={['nav-forward']}
                     style={{ color: 'var(--c-teal)', fontWeight: 600 }}>Open one under Lending</Link>
                   {' '}and it will be offered here.
                 </p>
@@ -532,7 +535,7 @@ export default function AddEntry({
                   );
                 })}
               </div>
-              {tab && (
+              {tab && kind === 'expense' && (
                 <>
                   <label style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
                     <span style={{ fontSize: 'var(--step--2)', fontWeight: 600, color: 'var(--c-meta)' }}>
@@ -558,8 +561,8 @@ export default function AddEntry({
                       the ticket you fronted that was never yours. */}
                   <div role="group" aria-label="Was this your spending?" style={{ display: 'flex', gap: 8 }}>
                     {([
-                      [true, 'receivable', 'Mine, paid back', 'Counts in your budget and charts'],
-                      [false, 'person', 'Only fronted', 'Owed back, counted nowhere'],
+                      [true, 'receivable', 'Reimbursed spend', 'Counts in your budget and charts'],
+                      [false, 'person', 'Loan', 'Owed back, counted nowhere'],
                     ] as const).map(([v, icon, label, what]) => {
                       const isOn = mine === v;
                       return (

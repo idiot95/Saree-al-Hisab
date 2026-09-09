@@ -183,6 +183,13 @@
       "when": 1788958193054,
       "tag": "0026_schedule_counts_as_spend",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1788973320949,
+      "tag": "0027_schedule_on_a_tab",
+      "breakpoints": true
     }
   ]
 }
