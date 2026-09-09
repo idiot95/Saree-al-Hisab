@@ -6,6 +6,7 @@ import { Field, ErrorNote } from '../../auth-ui';
 import { settleClaim, abandonClaim } from '../actions';
 import { useMoney } from '@/app/currency';
 import PayPicker from '../../PayPicker';
+import RemindShare from './RemindShare';
 import { defaultRef, type Way } from '@/lib/pay';
 
 type Claim = {
@@ -14,8 +15,10 @@ type Claim = {
   merchant: string | null; category: string | null; occurred_on: string;
 };
 
-export default function Claims({ claims, ways, canEdit }: {
-  claims: Claim[]; ways: Way[]; canEdit: boolean;
+export type Bill = { id: string; txn_id: string; name: string; mime: string };
+
+export default function Claims({ claims, ways, canEdit, person, bills = [] }: {
+  claims: Claim[]; ways: Way[]; canEdit: boolean; person: string; bills?: Bill[];
 }) {
   const { format, toKeys } = useMoney();
   const [settling, setSettling] = useState<string | null>(null);
@@ -99,18 +102,28 @@ export default function Claims({ claims, ways, canEdit }: {
                   </div>
                 </form>
               ) : (
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <button className="cta" type="button" onClick={() => setSettling(c.id)} style={{
-                    flex: 1, minHeight: 44, borderRadius: 11, fontSize: 'var(--step--1)', fontWeight: 600,
-                    background: 'var(--c-sunk)', color: 'var(--c-ink)',
-                  }}>They paid me</button>
-                  <form action={drop}>
-                    <input type="hidden" name="claimId" value={c.id} />
-                    <button className="cta" type="submit" style={{
-                      minHeight: 44, padding: '0 14px', borderRadius: 11, fontSize: 'var(--step--1)',
-                      fontWeight: 600, background: 'transparent', color: 'var(--c-meta)',
-                    }}>Write off</button>
-                  </form>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button className="cta" type="button" onClick={() => setSettling(c.id)} style={{
+                      flex: 1, minHeight: 44, borderRadius: 11, fontSize: 'var(--step--1)', fontWeight: 600,
+                      background: 'var(--c-sunk)', color: 'var(--c-ink)',
+                    }}>They paid me</button>
+                    <form action={drop}>
+                      <input type="hidden" name="claimId" value={c.id} />
+                      <button className="cta" type="submit" style={{
+                        minHeight: 44, padding: '0 14px', borderRadius: 11, fontSize: 'var(--step--1)',
+                        fontWeight: 600, background: 'transparent', color: 'var(--c-meta)',
+                      }}>Write off</button>
+                    </form>
+                  </div>
+                  {/* Asking for it back, with the bill attached where the phone
+                      can carry one. Sent through the share sheet, so it goes
+                      to whoever they already talk to. */}
+                  <RemindShare person={person} amount={format(Number(c.outstanding))}
+                    what={c.merchant || c.category || 'a shared cost'}
+                    on={new Date(c.occurred_on).toISOString().slice(0, 10)}
+                    bills={bills.filter((b) => b.txn_id === c.txn_id)
+                      .map((b) => ({ id: b.id, name: b.name, mime: b.mime }))} />
                 </div>
               )
             )}

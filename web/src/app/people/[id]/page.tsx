@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import {
-  actorOrNull, categoriesFor, claimsFor, personById, personLedger,
+  actorOrNull, attachmentsForTxns, categoriesFor, claimsFor, personById, personLedger,
 } from '@/db/queries';
 import { waysToPay } from '@/db/payment';
 import { format } from '@/lib/money';
@@ -38,6 +38,12 @@ export default async function Person({ params }: { params: Promise<{ id: string 
     categoriesFor(actor.household_id),
     claimsFor(actor.household_id, person.id),
   ]);
+  /* The bills behind whatever is still owed, so a reminder can carry the
+     evidence. Only the open ones: a settled claim needs no chasing. */
+  const bills = await attachmentsForTxns(
+    actor.household_id,
+    [...new Set(claims.filter((c) => Number(c.outstanding) > 0).map((c) => c.txn_id))],
+  );
   const balance = Number(person.balance);
   const owedOnClaims = claims
     .filter((c) => c.status === 'open' || c.status === 'part_paid')
@@ -100,6 +106,8 @@ export default async function Person({ params }: { params: Promise<{ id: string 
             }))}
             ways={ways}
             canEdit={canWrite}
+            person={person.name}
+            bills={bills.map((b) => ({ id: b.id, txn_id: b.txn_id, name: b.name, mime: b.mime }))}
           />
 
           {ledger.length > 0 && (

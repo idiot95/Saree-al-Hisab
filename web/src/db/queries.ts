@@ -1087,3 +1087,16 @@ export async function budgetPlansFor(householdId: string) {
   ` as Promise<{ id: string; amount: string; category_id: string; from_month: string;
                  to_month: string; name: string; icon: string; tint: string }[]>);
 }
+
+/** The bills on the entries a set of claims stand on — so a reminder can
+ *  carry the evidence, not just the figure. Metadata only; the bytes come
+ *  through /attachment/[id]. */
+export async function attachmentsForTxns(householdId: string, txnIds: string[]) {
+  if (txnIds.length === 0) return [];
+  return withHousehold(householdId, async () => sql`
+    select a.id, a.txn_id, a.name, a.mime, a.bytes
+    from attachment a
+    where a.household_id = ${householdId} and a.txn_id = any(${txnIds}::uuid[])
+    order by a.created_at
+  ` as Promise<{ id: string; txn_id: string; name: string; mime: string; bytes: number }[]>);
+}
