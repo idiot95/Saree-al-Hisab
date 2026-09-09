@@ -11,6 +11,8 @@ import CategoryPick from '../CategoryPick';
 import type { Category } from '../CategoryFinder';
 import { defaultRef, type Way } from '@/lib/pay';
 import { fits } from '@/lib/scope';
+import { choice } from '../choice';
+import { Icon } from '../Icon';
 
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -34,6 +36,7 @@ export default function NewSchedule({ ways, categories, startOpen = false }: {
   const [open, setOpen] = useState(startOpen);
   const [freq, setFreq] = useState<'MONTHLY' | 'YEARLY'>('MONTHLY');
   const [kind, setKind] = useState<'expense' | 'income'>('expense');
+  const [counts, setCounts] = useState(true);
   const [cal, setCal] = useState<Calendar>('gregorian');
   const [month, setMonth] = useState({ gregorian: 4, hijri: 9 });   // April; Ramadaan
   const [day, setDay] = useState({ gregorian: 5, hijri: 1 });
@@ -204,6 +207,38 @@ export default function NewSchedule({ ways, categories, startOpen = false }: {
       <CategoryPick name="categoryId" categories={offered}
         label={kind === 'income' ? 'What for' : 'Category'}
         placeholder={offered.length ? 'Choose a category' : 'No categories for this yet'} />
+
+      {/* The same question a one-off expense answers, asked once for a rule
+          that will answer it every month. Rent fronted for a cousin is never
+          your spending however many times it goes out. */}
+      {kind === 'expense' && (
+        <div role="group" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)' }}>
+            Is this your own spending?
+          </span>
+          <input type="hidden" name="counts_as_spend" value={counts ? 'yes' : 'no'} />
+          <div style={{ display: 'flex', gap: 8 }}>
+            {([
+              [true, 'receivable', 'Yes, mine', 'Counts in your budget and charts'],
+              [false, 'person', 'Only fronted', 'Owed back, counted nowhere'],
+            ] as const).map(([v, icon, label, what]) => (
+              <button key={String(v)} type="button" aria-pressed={counts === v}
+                onClick={() => setCounts(v)}
+                style={{
+                  flex: 1, minHeight: 56, padding: '8px 12px', borderRadius: 13, textAlign: 'left',
+                  display: 'flex', alignItems: 'center', gap: 9,
+                  ...choice(counts === v, 'var(--cat-purple-ink)'),
+                }}>
+                <Icon name={icon} size={17} strokeWidth={1.9} />
+                <span style={{ display: 'flex', flexDirection: 'column', gap: 1, minWidth: 0 }}>
+                  <span style={{ fontSize: 'var(--step--1)', fontWeight: 600 }}>{label}</span>
+                  <span style={{ fontSize: 'var(--step--2)', opacity: 0.82, lineHeight: 1.3 }}>{what}</span>
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {state && !state.ok && <ErrorNote>{state.error}</ErrorNote>}
       <div style={{ display: 'flex', gap: 9 }}>

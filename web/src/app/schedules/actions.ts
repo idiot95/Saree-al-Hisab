@@ -35,6 +35,10 @@ export async function createSchedule(_prev: Result | null, fd: FormData): Promis
     // be booked as an expense by the reminder that raised it.
     const kind = String(fd.get('kind') ?? 'expense');
     if (kind !== 'expense' && kind !== 'income') return { ok: false, error: 'Is it paid out, or paid to you?' };
+    /* Only a standing expense can be money laid out for someone else; income
+       arriving is never "not your spending", so the question is not asked and
+       the answer cannot be smuggled in through the form either. */
+    const counts = kind === 'income' ? true : fd.get('counts_as_spend') !== 'no';
 
     // Which calendar the rule is written on. The Misri calendar is arithmetic,
     // so "the 1st of Ramadaan" is a date years ahead, not a sighting.
@@ -100,9 +104,9 @@ export async function createSchedule(_prev: Result | null, fd: FormData): Promis
     // the table's CHECK insists on one of the two.
     await sql`
       insert into schedule (household_id, name, kind, amount, amount_from_statement,
-                            account_id, category_id, rrule, hijri_rule)
+                            account_id, category_id, counts_as_spend, rrule, hijri_rule)
       values (${actor.household_id}, ${name}, ${kind}, ${minor}, false,
-              ${paid.account_id}, ${cat.id},
+              ${paid.account_id}, ${cat.id}, ${counts},
               ${cal === 'gregorian' ? rule : null}, ${cal === 'hijri' ? rule : null})`;
 
     revalidatePath('/schedules');
@@ -142,7 +146,7 @@ export async function recordDue(_prev: Result | null, fd: FormData): Promise<Res
 
     const [s] = await sql`
       select s.id, s.name, s.kind, s.amount::bigint, s.account_id, s.category_id,
-             to_char(o.shifted_to, 'YYYY-MM-DD') as shifted_to
+             s.counts_as_spend, to_char(o.shifted_to, 'YYYY-MM-DD') as shifted_to
       from schedule s
       left join occurrence o on o.schedule_id = s.id and o.due_on = ${dueOn}::date
       where s.id = ${scheduleId} and s.household_id = ${actor.household_id} and s.archived_at is null`;
@@ -159,9 +163,9 @@ export async function recordDue(_prev: Result | null, fd: FormData): Promise<Res
       await sql.begin(async (tx) => {
         const [t] = await tx`
           insert into txn (household_id, created_by, kind, amount, occurred_on,
-                           account_id, category_id, merchant, source)
+                           account_id, category_id, merchant, counts_as_spend, source)
           values (${actor.household_id}, ${actor.user_id}, ${s.kind}, ${minor}, ${on}::date,
-                  ${s.account_id}, ${s.category_id}, ${s.name}, 'manual')
+                  ${s.account_id}, ${s.category_id}, ${s.name}, ${s.counts_as_spend}, 'manual')
           returning id`;
         await tx`
           insert into occurrence (schedule_id, due_on, status, txn_id)

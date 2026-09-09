@@ -5,6 +5,7 @@ import { Icon, tintOf } from '../Icon';
 import { defaultRef, findRef, payLabel, pickWay, type Way } from '@/lib/pay';
 import PayPicker, { CHIP, CHIP_TEXT, TILE_GRID, WayTile, describe } from '../PayPicker';
 import { HEADER_BG } from '../auth-ui';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { DateChips } from '../DatePick';
 import { friendlyDay } from '@/lib/recur';
@@ -137,6 +138,18 @@ export default function AddEntry({
   const way = paying?.way ?? ways[0];
   const tab = tabs.find((t) => t.id === tabId) ?? null;
   const mine = counts ?? tab?.last_counts ?? true;
+  /* Money coming back usually arrives as the exact figure that went out, so
+     the amount itself is the strongest clue about which loan it clears. Any
+     open claim whose outstanding equals what was typed is marked and floated
+     to the top of the list; if nothing has been ticked yet, the matches are
+     offered outright, because ticking the one that matches to the rupee is
+     what the person was about to do by hand. */
+  const exactIds = new Set(
+    minor > 0 ? claims.filter((c) => c.outstanding === minor).map((c) => c.id) : [],
+  );
+  const ordered = kind === 'income'
+    ? [...claims].sort((a, b) => Number(exactIds.has(b.id)) - Number(exactIds.has(a.id)))
+    : claims;
   const settling = kind === 'income' ? claims.filter((c) => settleIds.has(c.id)) : [];
   const owedBack = settling.reduce((n, c) => n + c.outstanding, 0);
   /* All of it is money back, so none of it needs a category. */
@@ -377,11 +390,26 @@ export default function AddEntry({
           {kind === 'income' && claims.length > 0 && (
             <section aria-labelledby="add-claims" style={SECTION}>
               <Eyebrow id="add-claims">Clears what is owed</Eyebrow>
+              {exactIds.size > 0 && settleIds.size === 0 && (
+                <button type="button" onClick={() => { haptic('success'); setSettleIds(new Set(exactIds)); }}
+                  style={{
+                    minHeight: 52, padding: '9px 13px', borderRadius: 13, display: 'flex',
+                    alignItems: 'center', gap: 10, textAlign: 'left',
+                    background: 'var(--c-teal-l)', border: '1px solid var(--c-teal)', color: 'var(--c-ink)',
+                  }}>
+                  <Icon name="receivable" size={18} strokeWidth={1.9} />
+                  <span style={{ flex: 1, minWidth: 0, fontSize: 'var(--step--1)', lineHeight: 1.35 }}>
+                    {exactIds.size === 1
+                      ? <>This is exactly what one open loan is owed. <b>Tick it?</b></>
+                      : <>{exactIds.size} open loans are owed exactly this. <b>Tick them?</b></>}
+                  </span>
+                </button>
+              )}
               <div role="group" aria-label="Which entries this money clears" style={{
                 display: 'flex', flexDirection: 'column', borderRadius: 14,
                 background: 'var(--c-card)', border: '1px solid var(--c-border)', overflow: 'hidden',
               }}>
-                {claims.map((c, i) => {
+                {ordered.map((c, i) => {
                   const isOn = settleIds.has(c.id);
                   const [bg, ink] = tintOf(c.tint);
                   return (
@@ -416,8 +444,16 @@ export default function AddEntry({
                           {friendlyDay(c.on, today)}{c.tab ? ` · ${c.tab}` : ''}
                         </span>
                       </span>
-                      <span className="t" style={{ fontSize: 'var(--step--1)', color: isOn ? 'var(--c-in)' : 'var(--c-meta)' }}>
-                        {format(c.outstanding)}
+                      <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}>
+                        <span className="t" style={{ fontSize: 'var(--step--1)', color: isOn ? 'var(--c-in)' : 'var(--c-meta)' }}>
+                          {format(c.outstanding)}
+                        </span>
+                        {exactIds.has(c.id) && (
+                          <span style={{
+                            fontSize: 9, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase',
+                            color: 'var(--c-teal)', whiteSpace: 'nowrap',
+                          }}>Exact match</span>
+                        )}
                       </span>
                     </button>
                   );
@@ -465,9 +501,22 @@ export default function AddEntry({
             />
           </section>
 
-          {kind === 'expense' && tabs.length > 0 && (
+          {/* Asked on every expense, not only once a tab has been attached.
+              Whether a cost was really yours is the question that decides
+              whether it shows in the budget and the charts at all, and it was
+              invisible to anyone who had not already discovered tabs — the
+              section did not render until a tab existed to put it on. */}
+          {kind === 'expense' && (
             <section aria-labelledby="add-tab" style={SECTION}>
-              <Eyebrow id="add-tab">On a tab</Eyebrow>
+              <Eyebrow id="add-tab">Is someone paying this back?</Eyebrow>
+              {tabs.length === 0 && (
+                <p style={{ margin: 0, fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--c-meta)' }}>
+                  Money someone owes you back rides on a tab — a cousin, the office, a trip.
+                  {' '}<Link href="/people" transitionTypes={['nav-forward']}
+                    style={{ color: 'var(--c-teal)', fontWeight: 600 }}>Open one under Lending</Link>
+                  {' '}and it will be offered here.
+                </p>
+              )}
               <div role="group" aria-label="Which tab" style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                 {tabs.map((t) => {
                   const isOn = t.id === tabId;
@@ -509,8 +558,8 @@ export default function AddEntry({
                       the ticket you fronted that was never yours. */}
                   <div role="group" aria-label="Was this your spending?" style={{ display: 'flex', gap: 8 }}>
                     {([
-                      [true, 'receivable', 'Mine, paid back', 'In the month and the charts'],
-                      [false, 'person', 'Lent, not mine', 'Owed back, counted nowhere'],
+                      [true, 'receivable', 'Mine, paid back', 'Counts in your budget and charts'],
+                      [false, 'person', 'Only fronted', 'Owed back, counted nowhere'],
                     ] as const).map(([v, icon, label, what]) => {
                       const isOn = mine === v;
                       return (

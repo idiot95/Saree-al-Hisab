@@ -94,10 +94,60 @@ export default async function People() {
         </header>
 
         <div style={{ paddingTop: 20 }}>
+          {/* Tabs lead. A tab is how lending actually starts — a person, a
+              trip, the office — and it used to sit below the people list and
+              only appear once a person had been added by hand, which made
+              "add a person" the front door to a thing nobody came here to do.
+              Opening a tab names the people it is for, from the phonebook if
+              the phone has one, so the person gets created on the way. */}
+          <Head>Tabs</Head>
+          <p style={{
+            margin: '-4px 20px 12px', fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--c-meta)',
+          }}>
+            A tab is one running account with somebody — a cousin, the office, a trip, an
+            insurer. Everything you pay for them and everything that comes back sits on it,
+            and each cost says for itself whether it was your spending or money you fronted.
+          </p>
+          {tabs.length > 0 && (
+            <section className="el card" style={{
+              margin: '0 var(--gutter) 16px', background: 'var(--c-card)', borderRadius: 18, padding: '0 var(--pad)', overflow: 'hidden',
+            }}>
+              {tabs.map((b, i) => {
+                const t = Number(b.outstanding);
+                return (
+                  <Swipeable key={b.id} actions={canWrite && !b.closed_at ? [
+                    { label: 'Add cost', icon: 'plus', tone: 'primary', href: `/add?tab=${b.id}` },
+                  ] : []}>
+                  <Link href={`/tab/${b.id}`} transitionTypes={['nav-forward']} draggable={false} style={{
+                    display: 'flex', alignItems: 'center', gap: 12, minHeight: 72,
+                    textDecoration: 'none', color: 'var(--c-ink)',
+                    opacity: b.closed_at ? 0.55 : 1,
+                    borderBottom: i === tabs.length - 1 ? undefined : '1px solid var(--c-rule)',
+                  }}>
+                    <Chip icon="tab" tint="indigo" />
+                    <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
+                      <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>{b.name}</span>
+                      <span style={{ fontSize: 'var(--step--2)', color: 'var(--c-meta)' }}>
+                        {b.people} {b.people === 1 ? 'person' : 'people'}
+                        {b.entries > 0 ? ` · ${b.entries} ${b.entries === 1 ? 'entry' : 'entries'}` : ''}
+                        {b.closed_at ? ' · closed' : ''}
+                      </span>
+                    </span>
+                    <span className="t" style={{ fontSize: 'var(--step-0)', color: t === 0 ? 'var(--c-meta)' : 'var(--c-ink)' }}>
+                      {t === 0 ? (b.entries > 0 ? 'settled' : '—') : format(t)}
+                    </span>
+                  </Link>
+                  </Swipeable>
+                );
+              })}
+            </section>
+          )}
+          {canWrite && <NewTab people={people.map((p) => ({ id: p.id, name: p.name, tint: p.tint }))} />}
+
+          {/* The people themselves, for the khata kept with one person rather
+              than under a name: who owes what, across every tab and claim. */}
           {open.length > 0 && <Head>Outstanding</Head>}
           {open.length > 0 && <List people={open} claimed={claimed} />}
-
-          {canWrite && <AddPerson startOpen={people.length === 0} />}
 
           {settled.length > 0 && (
             <>
@@ -106,63 +156,7 @@ export default async function People() {
             </>
           )}
 
-          {people.length > 0 && (
-            <>
-              <Head>Tabs</Head>
-              <p style={{
-                margin: '-4px 20px 12px', fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--c-meta)',
-              }}>
-                People who owe you back — the flat, a trip, office petrol, medical bills an
-                insurer refunds. A cost put on a tab is claimed from them the moment you save
-                it, and each cost says for itself whether it was your spending or money you
-                fronted.
-              </p>
-              {tabs.length > 0 && (
-                <section className="el card" style={{
-                  margin: '0 var(--gutter) 16px', background: 'var(--c-card)', borderRadius: 18, padding: '0 var(--pad)', overflow: 'hidden',
-                }}>
-                  {tabs.map((b, i) => {
-                    const t = Number(b.outstanding);
-                    return (
-                      <Swipeable key={b.id} actions={canWrite && !b.closed_at ? [
-                        { label: 'Add cost', icon: 'plus', tone: 'primary', href: `/add?tab=${b.id}` },
-                      ] : []}>
-                      <Link href={`/tab/${b.id}`} transitionTypes={['nav-forward']} draggable={false} style={{
-                        display: 'flex', alignItems: 'center', gap: 12, minHeight: 72,
-                        textDecoration: 'none', color: 'var(--c-ink)',
-                        opacity: b.closed_at ? 0.55 : 1,
-                        borderBottom: i === tabs.length - 1 ? undefined : '1px solid var(--c-rule)',
-                      }}>
-                        <Chip icon="tab" tint="indigo" />
-                        <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
-                          <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>{b.name}</span>
-                          <span style={{ fontSize: 'var(--step--2)', color: 'var(--c-meta)' }}>
-                            {b.people} {b.people === 1 ? 'person' : 'people'}
-                            {b.entries > 0 ? ` · ${b.entries} ${b.entries === 1 ? 'entry' : 'entries'}` : ''}
-                            {b.closed_at ? ' · closed' : ''}
-                          </span>
-                        </span>
-                        <span className="t" style={{ fontSize: 'var(--step-0)', color: t === 0 ? 'var(--c-meta)' : 'var(--c-ink)' }}>
-                          {t === 0 ? (b.entries > 0 ? 'settled' : '—') : format(t)}
-                        </span>
-                      </Link>
-                      </Swipeable>
-                    );
-                  })}
-                </section>
-              )}
-              {canWrite && <NewTab people={people.map((p) => ({ id: p.id, name: p.name, tint: p.tint }))} />}
-            </>
-          )}
-
-          {people.length === 0 && (
-            <p style={{
-              margin: '0 34px', textAlign: 'center', fontSize: 'var(--step--1)', lineHeight: 1.55,
-              color: 'var(--c-meta)',
-            }}>
-              Add someone you lend to or borrow from, and every rupee between you is tracked here.
-            </p>
-          )}
+          {canWrite && <AddPerson startOpen={false} />}
         </div>
         <TabBar current="/people" />
       </main>

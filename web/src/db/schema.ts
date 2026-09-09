@@ -443,6 +443,12 @@ export const schedule = pgTable('schedule', {
   amountFromStatement: boolean('amount_from_statement').notNull().default(false),
   accountId: uuid('account_id').notNull().references(() => account.id, { onDelete: 'restrict' }),
   categoryId: uuid('category_id').references(() => category.id, { onDelete: 'set null' }),
+  /* The same question a one-off expense answers, asked once for a standing
+     one: a monthly rent you front for a cousin is money you lay out and is
+     never your spending, while the office petrol you are reimbursed for is.
+     Copied onto every entry the schedule records, because the entry is what
+     spend_txn reads. */
+  countsAsSpend: boolean('counts_as_spend').notNull().default(true),
   rrule: text('rrule'),
   hijriRule: text('hijri_rule'),
   /* Dues before this are not missed payments, they are history the app was

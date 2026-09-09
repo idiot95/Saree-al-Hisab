@@ -54,7 +54,7 @@ export default function NewTab({ people }: { people: Person[] }) {
                 minHeight: 44, padding: '0 14px 0 10px', borderRadius: 999, display: 'flex',
                 alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 'var(--step--1)', fontWeight: 600,
                 background: on ? `var(--cat-${p.tint}-ink)` : `var(--cat-${p.tint})`,
-                color: on ? '#fff' : `var(--cat-${p.tint}-ink)`,
+                color: on ? 'var(--c-on-tint)' : `var(--cat-${p.tint}-ink)`,
                 transition: 'background .15s, color .15s',
               }}>
                 <input type="checkbox" name="counterpartyId" value={p.id} checked={on}

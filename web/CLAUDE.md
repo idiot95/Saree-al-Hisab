@@ -225,8 +225,8 @@ hidden input; there is no `<select>` of payment modes anywhere, because one
 listing every rail under every account showed "ICICI Amazon Pay" twice and
 read as nonsense. Wrap it in a `<div role="group">`, never a `<label>` — a
 label around buttons activates the first chip. The entries list shows the
-rail when there is one and the account when there is not. `sw.js` is v17 for
-the card wallet.
+rail when there is one and the account when there is not. `sw.js` is v18 for
+the payback question on every expense.
 Before Save, a debounced
 `checkDuplicate` shows what a household member already recorded within ±1% and
 ±2 days, which is the prevention half of the duplicate rule; the Inbox card is
@@ -650,6 +650,14 @@ office petrol, the medical bills an insurer refunds. A cost put on it raises one
 `claim` per person for their share the moment it is saved, in the same
 transaction as the entry.
 
+**Tabs lead the Lending screen**, and opening one is the front door. They used
+to sit below the people list AND render only once a person had been added by
+hand, which made "add a person" the way in to a thing nobody opens the screen to
+do. Naming a tab names the people on it — from the phone's own contact picker
+where there is one (`tab/NewPeople.tsx`) — so the counterparty is created on the
+way past. The people list stays underneath for the khata kept with one person
+across every tab and claim.
+
 **"Is it owed back" and "was it my spending" are different questions**, and
 conflating them is the whole reason this took two goes. Petrol you burn for work
 is *both* — you consumed it, and the office pays you back. Rent you front for a
@@ -662,6 +670,21 @@ fronted. Add Entry asks on every cost put on a tab, with two answers side by
 side; `tabsForEntry.last_counts` (the last cost's answer on that tab) preselects
 one, and the entry page lets you revisit it, but only on a cost somebody owes
 for — untick it on a plain expense and it would simply vanish from the month.
+
+**"Is someone paying this back?" is asked on every expense**, not only once a
+tab has been attached. The section used not to render at all until a tab
+existed, so the one question that decides whether a cost appears in the budget
+and the charts was invisible to anybody who had not already found tabs. With no
+tab yet it explains what a tab is and links to Lending; with one, the two
+answers appear as before. A **standing** expense answers the same question once
+(`schedule.counts_as_spend`, migration `0026`), and every entry the rule records
+carries the answer, because `spend_txn` reads the entry and not the rule.
+
+**Money coming back usually arrives as the exact figure that went out**, so on
+an income entry any open claim whose outstanding equals the amount typed is
+marked "exact match", floated to the top of "Clears what is owed", and — while
+nothing has been ticked — offered outright as one tap. It is a suggestion and
+never an assumption: nothing is ticked without the tap.
 
 **The reimbursement source is just a counterparty.** "Office" and "Insurer" are
 people as far as the ledger is concerned, which is why none of this needed new
@@ -1052,7 +1075,7 @@ storage after it opens. The design, in the order the pieces matter:
   person decides. Stuck entries are never retried on their own.
 - **`/offline` is `force-dynamic`** though it reads nothing, because every
   script tag carries the request's CSP nonce and a prerendered page ships
-  with none. The worker (`public/sw.js`, `VERSION = 'v17'`) fetches it once at
+  with none. The worker (`public/sw.js`, `VERSION = 'v18'`) fetches it once at
   install, `credentials: 'omit'`, together with every `/_next/static/` script
   and stylesheet the markup names, so the cached copy is a self-consistent
   snapshot: the nonce in its cached headers is the nonce in its cached
