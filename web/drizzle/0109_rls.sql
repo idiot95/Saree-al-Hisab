@@ -49,11 +49,21 @@ drop policy if exists attachment_household on attachment;
 create policy attachment_household on attachment
   using (household_id = app_household()) with check (household_id = app_household());
 
-alter table budget_plan enable row level security;
-alter table budget_plan force row level security;
-drop policy if exists budget_plan_household on budget_plan;
-create policy budget_plan_household on budget_plan
+alter table budget_set enable row level security;
+alter table budget_set force row level security;
+drop policy if exists budget_set_household on budget_set;
+create policy budget_set_household on budget_set
   using (household_id = app_household()) with check (household_id = app_household());
+
+/* A line has no household_id of its own — it belongs to a set, and the set
+   belongs to a household. The policy walks that one hop rather than
+   duplicating the column, so a line can never outlive the scope of its set. */
+alter table budget_line enable row level security;
+alter table budget_line force row level security;
+drop policy if exists budget_line_household on budget_line;
+create policy budget_line_household on budget_line
+  using (exists (select 1 from budget_set s where s.id = set_id and s.household_id = app_household()))
+  with check (exists (select 1 from budget_set s where s.id = set_id and s.household_id = app_household()));
 
 alter table counterparty enable row level security;
 alter table counterparty force row level security;

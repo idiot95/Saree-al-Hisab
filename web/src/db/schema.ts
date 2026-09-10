@@ -312,35 +312,47 @@ export const budget = pgTable('budget', {
   check('budget_month_is_first', sql`date_part('day', ${t.month}) = 1`),
 ]);
 
-/* A budget that runs between two dates instead of being retyped every month.
+/* A budget you can name, put away, and pick up again.
 
-   `budget` stays the truth every screen reads — one row per category per
-   month — because the month is what a budget is actually spent against, and
-   rewriting that model would have touched every chart in the app. A plan is a
-   GENERATOR over it: say ₹8,000 for Groceries from April to March and saving
-   it writes the twelve monthly rows. Edit the plan and they are rewritten;
-   the plan is the thing you keep, the rows are what the app reads.
+   There was one plan per category and no way to keep two of anything: to try
+   a leaner month you had to overwrite what you had and retype it afterwards
+   from memory. A budget is now a NAMED SET of lines — "Normal months",
+   "Ramadan", "After the wedding" — and exactly one of them is current.
+   Switching is a tap, and the one you left keeps every figure it had.
 
-   One plan per category, deliberately. Two overlapping plans for the same
-   heading would need a rule for which wins in the overlap, and there is no
-   answer to that a person would predict. */
-export const budgetPlan = pgTable('budget_plan', {
+   `budget` (one row per category per month) stays what every screen reads,
+   because a budget is spent against a month. A set is a generator over it:
+   making one current writes its lines across the months it covers. It writes
+   FROM THIS MONTH FORWARD only — a month already spent against is history,
+   and a budget you adopt today did not apply in March. */
+export const budgetSet = pgTable('budget_set', {
   id: uuid('id').primaryKey().defaultRandom(),
   householdId: uuid('household_id').notNull().references(() => household.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  startsOn: date('starts_on').notNull(),
+  endsOn: date('ends_on').notNull(),
+  /* When this one was last made current, and null for every set that is not.
+     A timestamp rather than a boolean so "the one before this" is answerable
+     without a second table. A partial unique index keeps it to one. */
+  currentAt: timestamp('current_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  index('budget_set_household').on(t.householdId),
+  check('budget_set_months', sql`
+    date_part('day', ${t.startsOn}) = 1 AND date_part('day', ${t.endsOn}) = 1`),
+  check('budget_set_order', sql`${t.endsOn} >= ${t.startsOn}`),
+  check('budget_set_named', sql`length(btrim(${t.name})) between 1 and 60`),
+]);
+
+export const budgetLine = pgTable('budget_line', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  setId: uuid('set_id').notNull().references(() => budgetSet.id, { onDelete: 'cascade' }),
   categoryId: uuid('category_id').notNull().references(() => category.id, { onDelete: 'cascade' }),
   /** Per month, in minor units. */
   amount: bigint('amount', { mode: 'number' }).notNull(),
-  startsOn: date('starts_on').notNull(),
-  endsOn: date('ends_on').notNull(),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [
-  uniqueIndex('budget_plan_one_per_category').on(t.categoryId),
-  index('budget_plan_household').on(t.householdId),
-  check('budget_plan_amount', sql`${t.amount} >= 0`),
-  // Both ends are the first of a month, like every row in `budget`.
-  check('budget_plan_months', sql`
-    date_part('day', ${t.startsOn}) = 1 AND date_part('day', ${t.endsOn}) = 1`),
-  check('budget_plan_order', sql`${t.endsOn} >= ${t.startsOn}`),
+  uniqueIndex('budget_line_pk').on(t.setId, t.categoryId),
+  check('budget_line_amount', sql`${t.amount} >= 0`),
 ]);
 
 export const txn = pgTable('txn', {

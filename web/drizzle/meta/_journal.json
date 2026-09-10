@@ -204,6 +204,20 @@
       "when": 1788974225582,
       "tag": "0029_budget_plans",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1789010357137,
+      "tag": "0030_budget_sets",
+      "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1789010381079,
+      "tag": "0031_drop_budget_plans",
+      "breakpoints": true
     }
   ]
 }

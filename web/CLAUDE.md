@@ -565,6 +565,34 @@ of the last (`on conflict do nothing`, so it can never overwrite work already
 done). An amount of zero deletes the row rather than storing a zero, so
 "unbudgeted" and "budgeted nothing" stay the same thing.
 
+**A budget is a thing you keep, not a figure you overwrite** (`budget_set` and
+`budget_line`, migrations `0030`/`0031`). A set is a NAME, a range of months,
+and a figure per category — "Normal months", "Ramadan", "After the wedding" —
+and exactly one is current, which a partial unique index on
+`(household_id) where current_at is not null` enforces rather than this code
+remembering to. There was one plan per category before and no way to keep two
+of anything: trying a leaner month meant overwriting what you had and retyping
+it from memory afterwards.
+
+`budget` stays what every screen reads, because a budget is spent against a
+month. A set is a **generator** over it, and `materialise()` has two rules that
+make switching predictable: it writes **from this month forward only** (a month
+already spent against is history, and a budget adopted today did not apply in
+March), and it **clears the future first**, so switching never strands the old
+budget's figures in months the new one does not mention. Putting one away is
+just clearing that future; the set keeps every line it had, which is the entire
+point. Proven: with August budgeted and "Normal months" running Sept–Aug,
+adopting a Feb–Mar "Ramadan" left August untouched, cleared Sept–Jan, and wrote
+Feb–Mar.
+
+The screen is the current budget — its headings, how each is going this month,
+the total — then the ones put away, each a tap from being current, then Create.
+Only **top-level** categories are offered: nobody budgets "Milk & dairy", they
+budget Groceries, and `budgetFor` rolls the children up anyway. The old grid of
+every heading with a zero in it is shut behind "Adjust this month only", a
+native `<details>`, still the way to change one month without touching the
+budget behind it.
+
 `MonthSoFar` on the home screen carries a **pace marker**: a tick on the bar for
 how far through the month it is. Being 60% through the money is fine on the
 20th and a problem on the 6th, and only one of those is visible from a total.

@@ -1,14 +1,15 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { actorOrNull, budgetFor, budgetPlansFor, categoriesFor, monthTotals, previousBudget } from '@/db/queries';
+import {
+  actorOrNull, budgetFor, budgetLinesFor, budgetSetsFor, categoriesFor, monthTotals, previousBudget,
+} from '@/db/queries';
 import { format, monthKey } from '@/lib/money';
 import { headerBg } from '../auth-ui';
 import TabBar from '../TabBar';
 import { TAB_BAR_SPACE } from '../tabs';
 import BudgetForm from './BudgetForm';
 import CopyPrevious from './CopyPrevious';
-import Plans from './Plans';
-import CreateBudget from './CreateBudget';
+import Budgets from './Budgets';
 import Screen from '../Screen';
 import Back from '../Back';
 
@@ -33,19 +34,19 @@ export default async function Budget({ searchParams }: {
   const { m } = await searchParams;
   const month = m && MONTH.test(m) ? m : monthKey(new Date());
 
-  const [rows, totals, previous, plans, cats] = await Promise.all([
+  const [rows, totals, previous, sets, cats, lines] = await Promise.all([
     budgetFor(actor.household_id, month),
     monthTotals(actor.household_id, month),
     previousBudget(actor.household_id, month),
-    budgetPlansFor(actor.household_id),
+    budgetSetsFor(actor.household_id),
     categoriesFor(actor.household_id),
+    budgetLinesFor(actor.household_id),
   ]);
 
   const budget = Number(totals.budget);
   const spent = Number(totals.spent);
   const left = budget - spent;
   const canEdit = actor.role !== 'viewer';
-  const spentBy = new Map(rows.map((r) => [r.category_id, r.spent]));
   const empty = budget === 0;
 
   return (
@@ -137,35 +138,23 @@ export default async function Budget({ searchParams }: {
             />
           )}
 
-          {canEdit && plans.length > 0 && (
-            <>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '4px var(--gutter) 11px' }}>
-                <h2 style={{ margin: 0, fontSize: 'var(--step-1)', fontWeight: 600, letterSpacing: '-.012em' }}>
-                  Your budget
-                </h2>
-                <span style={{ flex: 1, height: 1, background: 'var(--c-border)' }} />
-              </div>
-              <Plans
-                plans={plans.map((p) => ({ ...p, spent: spentBy.get(p.category_id) ?? '0' }))}
-                categories={cats.filter((c) => c.scope !== 'income')}
-                thisMonth={month.slice(0, 7)}
-              />
-            </>
-          )}
-
-          {canEdit && plans.length === 0 ? (
-            <CreateBudget
+          {canEdit && (
+            <Budgets
+              budgets={sets.map((b) => ({ ...b }))}
+              lines={lines.map((l) => ({ ...l }))}
               categories={cats.filter((c) => c.scope !== 'income')}
               thisMonth={month.slice(0, 7)}
-              defaultEnd="2026-12"
+              spentBy={Object.fromEntries(rows.map((r) => [r.category_id, r.spent]))}
             />
-          ) : (
-            /* The full grid, every heading including the ones with nothing
-               against them, is still the way to change a single month without
-               touching the plan behind it. It is shut by default: it was the
-               first thing on the screen and it asked forty questions to answer
-               two. <details> rather than state, so it works with no JS. */
-            <details style={{ margin: '18px var(--gutter) 0' }}>
+          )}
+
+          {/* The full grid, every heading including the ones with nothing
+              against them, is still the way to change a single month without
+              touching the budget behind it. Shut by default: it was the first
+              thing on the screen and it asked forty questions to answer two.
+              <details> rather than state, so it works with no JS. */}
+          {canEdit && sets.length > 0 && (
+            <details style={{ margin: '22px var(--gutter) 0' }}>
               <summary style={{
                 minHeight: 48, display: 'flex', alignItems: 'center', padding: '0 var(--pad)',
                 borderRadius: 14, background: 'var(--c-card)', border: '1px solid var(--c-border)',
@@ -185,16 +174,6 @@ export default async function Budget({ searchParams }: {
               </div>
             </details>
           )}
-
-          {!canEdit && (
-            <p style={{
-              margin: '4px 20px 0', fontSize: 'var(--step--1)', lineHeight: 1.5,
-              color: 'var(--c-meta)', textAlign: 'center',
-            }}>
-              Only owners and contributing members can change the budget.
-            </p>
-          )}
-
         </div>
         <TabBar current="/budget" />
       </main>

@@ -30,7 +30,7 @@ const ACCENT: Record<string, [string, string, string]> = {
      and scripts/contrast.test.mjs measures each one rather than trusting it. */
   //         lit           middle       deep
   teal:    ['#3A6B82', '#26485A', '#152833'],
-  gold:    ['#8A6416', '#5C420D', '#332507'],
+  gold:    ['#8E5B14', '#603C0C', '#372206'],
   indigo:  ['#4B52A8', '#2F3470', '#1B1E42'],
   blue:    ['#2A6E9B', '#1A4664', '#102D43'],
   green:   ['#327C5C', '#215741', '#14392A'],

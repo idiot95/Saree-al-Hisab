@@ -1073,19 +1073,33 @@ export async function attachmentsFor(householdId: string, txnId: string) {
   ` as Promise<{ id: string; name: string; mime: string; bytes: number }[]>);
 }
 
-/** The budget plans a household keeps, with the category each one is for. */
-export async function budgetPlansFor(householdId: string) {
+/* Every budget a household keeps, with what each covers. The current one is
+   first; the rest are what it can be swapped for. Lines come separately, so a
+   list of six budgets is not six joins deep. */
+export async function budgetSetsFor(householdId: string) {
   return withHousehold(householdId, async () => sql`
-    select p.id, p.amount::text, p.category_id,
-           to_char(p.starts_on, 'YYYY-MM') as from_month,
-           to_char(p.ends_on, 'YYYY-MM') as to_month,
-           c.name, c.icon, c.tint
-    from budget_plan p
-    join category c on c.id = p.category_id
-    where p.household_id = ${householdId}
+    select b.id, b.name, b.current_at is not null as current,
+           to_char(b.starts_on, 'YYYY-MM') as from_month,
+           to_char(b.ends_on, 'YYYY-MM') as to_month,
+           (select count(*)::int from budget_line l where l.set_id = b.id) as lines,
+           coalesce((select sum(l.amount) from budget_line l where l.set_id = b.id), 0)::text as total
+    from budget_set b
+    where b.household_id = ${householdId}
+    order by (b.current_at is null), b.created_at desc
+  ` as Promise<{ id: string; name: string; current: boolean; from_month: string;
+                 to_month: string; lines: number; total: string }[]>);
+}
+
+/** The lines of every budget, keyed by set, with the category they name. */
+export async function budgetLinesFor(householdId: string) {
+  return withHousehold(householdId, async () => sql`
+    select l.set_id, l.category_id, l.amount::text, c.name, c.icon, c.tint
+    from budget_line l
+    join budget_set b on b.id = l.set_id and b.household_id = ${householdId}
+    join category c on c.id = l.category_id
     order by c.sort_order, c.name
-  ` as Promise<{ id: string; amount: string; category_id: string; from_month: string;
-                 to_month: string; name: string; icon: string; tint: string }[]>);
+  ` as Promise<{ set_id: string; category_id: string; amount: string;
+                 name: string; icon: string; tint: string }[]>);
 }
 
 /** The bills on the entries a set of claims stand on — so a reminder can
