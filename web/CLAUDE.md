@@ -695,6 +695,18 @@ where there is one (`tab/NewPeople.tsx`) — so the counterparty is created on t
 way past. The people list stays underneath for the khata kept with one person
 across every tab and claim.
 
+**A tab with nobody on it works**, and getting there took two fixes, not one.
+Such a tab takes costs and raises no claim — a claim needs somebody to owe it —
+which is what makes it a running total rather than a khata: the trip before you
+know who is coming, the insurer you have not named. `saveEntry` stopped
+refusing it first, but `tabsForEntry` still carried
+`and exists (select 1 from book_member ...)`, so the tab was accepted by the
+server and never offered by the form. It existed and could not be used, which
+is the shape of half-fix that looks done until somebody tries it. With nobody
+on it the form also drops the "comes back" split, which has nothing to divide
+among, and `tabNote` says the cost goes on the tab with nobody down as owing —
+the arithmetic under it would otherwise read "0 people owe ₹0 each".
+
 **"Is it owed back" and "was it my spending" are different questions**, and
 conflating them is the whole reason this took two goes. Petrol you burn for work
 is *both* — you consumed it, and the office pays you back. Rent you front for a
