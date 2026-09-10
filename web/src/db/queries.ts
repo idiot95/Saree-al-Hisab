@@ -625,11 +625,20 @@ export async function tabById(householdId: string, id: string) {
   });
 }
 
-/** The open tabs a cost can be put on — only those with someone on them,
- *  because money laid out for nobody is not laid out. `last_counts` is what
- *  the most recent cost on the tab answered to "was this my spending?" — the
- *  question is asked afresh on every entry, but the last answer is the best
- *  guess at the next, because petrol on the office tab is petrol every week. */
+/** Every open tab a cost can go on, INCLUDING the ones with nobody on them.
+ *
+ *  This used to require a member — "money laid out for nobody is not laid
+ *  out" — which is true of a claim and not of a tab. A tab with no contact is
+ *  the one a person opens first: the trip before they know who is coming, the
+ *  insurer they have not named. It takes costs and raises no claim, and the
+ *  entry form has to offer it or the tab exists and cannot be used. The action
+ *  was taught that; this query was not, so contactless tabs were still absent
+ *  from the picker.
+ *
+ *  `last_counts` is what the most recent cost on the tab answered to "was this
+ *  my spending?" — the question is asked afresh on every entry, but the last
+ *  answer is the best guess at the next, because petrol on the office tab is
+ *  petrol every week. */
 export async function tabsForEntry(householdId: string) {
   return withHousehold(householdId, async () => {
     return sql`
@@ -640,7 +649,6 @@ export async function tabsForEntry(householdId: string) {
                order by t.occurred_on desc, t.created_at desc limit 1) as last_counts
       from ledger_book b
       where b.household_id = ${householdId} and b.closed_at is null
-        and exists (select 1 from book_member bm where bm.book_id = b.id)
       order by b.name
     ` as Promise<{ id: string; name: string; people: number; last_counts: boolean | null }[]>;
   });

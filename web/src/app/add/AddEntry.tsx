@@ -573,6 +573,7 @@ export default function AddEntry({
               </div>
               {tab && kind === 'expense' && (
                 <>
+                  {tab.people > 0 && (
                   <label style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
                     <span style={{ fontSize: 'var(--step--2)', fontWeight: 600, color: 'var(--c-meta)' }}>
                       Comes back
@@ -592,6 +593,7 @@ export default function AddEntry({
                       }}
                     />
                   </label>
+                  )}
                   {/* Two answers, both on screen, because a tab carries both
                       kinds: the petrol you burned and are paid back for, and
                       the ticket you fronted that was never yours. */}
@@ -767,6 +769,12 @@ function Glyph({ d, size = 21, w = 2, colour }: { d: string; size?: number; w?: 
 function tabNote(tab: Tab, minor: number, covered: number, counts: boolean, format: (n: number) => string): string {
   const who = `${tab.people} ${tab.people === 1 ? 'person' : 'people'}`;
   const mine = counts ? 'Counts as your spending' : 'Not your spending';
+  /* Nobody on the tab: it keeps a running total and claims nothing, because a
+     claim needs somebody to owe it. Saying "0 people owe ₹0 each" — which is
+     what the arithmetic below produces — would be worse than saying nothing. */
+  if (tab.people === 0) {
+    return `${mine} · goes on ${tab.name}, and nobody is down as owing for it.`;
+  }
   if (minor <= 0) {
     return tab.people === 1
       ? `${mine} · they owe all of it back.`
