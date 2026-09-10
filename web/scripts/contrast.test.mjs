@@ -88,6 +88,13 @@ const PAIRS = [
   ['c-on-warn', ['c-warn-fill']],
   ['c-on-danger', ['c-danger-fill']],
   ['c-on-fill', ['c-pollen']],
+  /* The washes the home deck's cards are painted with. A gradient that ends
+     in a tint means the text spends its last inch on that tint, so the ink
+     and the meta grey are measured there and not only on the flat card. */
+  ['c-ink', ['c-teal-l', 'cat-cyan', 'cat-indigo']],
+  ['c-meta', ['c-teal-l', 'cat-cyan', 'cat-indigo']],
+  ['c-in', ['c-teal-l', 'cat-cyan', 'cat-indigo']],
+  ['c-out', ['c-teal-l', 'cat-cyan', 'cat-indigo']],
   // the label on a chosen chip or tile, on every category ink it can wear —
   // and each ink as text on its own pale tint, the "wash" a family shows
   // while one of its children is the answer
