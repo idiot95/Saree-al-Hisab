@@ -1,8 +1,8 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import {
-  actorOrNull, budgetFor, claimsFor, inboxCount, monthlySeries, monthTotals, peopleFor,
-  schedulesFor, setupProgress,
+  actorOrNull, allBalances, budgetFor, claimsFor, inboxCount, monthTotals, peopleFor,
+  schedulesFor, setupProgress, worthSeries,
 } from '@/db/queries';
 import { format, monthKey } from '@/lib/money';
 import { outstandingDues, ruleOf } from '@/lib/recur';
@@ -31,15 +31,16 @@ export default async function Home() {
 
   const name = actor.household_name;
   const month = monthKey(new Date());
-  const [progress, totals, rows, people, inbox, schedules, trend, claims] = await Promise.all([
+  const [progress, totals, rows, people, inbox, schedules, worth, claims, balances] = await Promise.all([
     setupProgress(actor.household_id),
     monthTotals(actor.household_id, month),
     budgetFor(actor.household_id, month),
     peopleFor(actor.household_id),
     inboxCount(actor.household_id),
     schedulesFor(actor.household_id),
-    monthlySeries(actor.household_id, 6),
+    worthSeries(actor.household_id, 6),
     claimsFor(actor.household_id),
+    allBalances(actor.household_id),
   ]);
 
   const budget = Number(totals.budget);
@@ -57,6 +58,11 @@ export default async function Home() {
   const byId = new Map(schedules.map((s) => [s.id, s]));
   const lent = people.reduce((n, p) => n + Number(p.balance), 0);
   const owedOnClaims = claims.reduce((n, c) => n + Number(c.outstanding), 0);
+  /* What the household is worth right now: every real account, plus what is
+     still owed to it. The six-month series is the shape; this is the figure,
+     because the series' last point is the same month and may lag a fresh
+     entry by a query. */
+  const netWorth = balances.reduce((n, b) => n + Number(b.balance), 0) + owedOnClaims + Math.max(0, lent);
   const monthName = new Date(month).toLocaleDateString('en-IN', { month: 'long' });
 
   return (
@@ -118,9 +124,12 @@ export default async function Home() {
           {/* One card you swipe: the month, the six months, the loans. All
               three want to be first and only one can be. */}
           <HomeDeck
-            trend={trend.map((t) => ({ month: t.month, spent: t.spent }))}
+            worth={worth.map((w) => ({ month: w.month, worth: w.held }))}
+            netWorth={netWorth}
             lent={lent}
             owedToYou={owedOnClaims}
+            people={people.filter((p) => Number(p.balance) !== 0).length}
+            openLoans={claims.length}
           >
             {budget > 0
               ? <MonthSoFar month={month} rows={rows} budget={budget} spent={spent} />
@@ -189,7 +198,7 @@ export default async function Home() {
           <nav aria-label="More" style={{
             display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10, marginTop: 2,
           }}>
-            <Tile href="/worth" icon="worth" tint="cyan" label="Net worth" note="With what you are owed" />
+            <Tile href="/trends" icon="invest" tint="green" label="Trends" note="Six months of spending" />
             <Tile href="/schedules" icon="autodebit" tint="indigo" label="Scheduled"
               note={schedules.length ? `${schedules.length} set` : 'Rent, fees, EMIs'} />
             <Tile href="/categories" icon="tag" tint="purple" label="Categories"

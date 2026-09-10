@@ -20,6 +20,9 @@ import type { Category } from '../CategoryFinder';
 export type Plan = {
   id: string; amount: string; category_id: string;
   from_month: string; to_month: string; name: string; icon: string; tint: string;
+  /** Spent against it this month, so the row is the budget rather than a note
+   *  about one. Zero when nothing has been filed there yet. */
+  spent?: string;
 };
 
 const monthName = (m: string) => {
@@ -43,8 +46,8 @@ export default function Plans({ plans, categories, thisMonth }: {
       <p style={{
         margin: '0 var(--gutter)', fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--c-meta)',
       }}>
-        A plan sets one category&rsquo;s budget for every month between two dates, so it stays
-        put instead of being retyped. Change it and those months change with it.
+        Each heading runs at the same figure every month until the date beside it. Tap one to
+        change the amount or how long it runs.
       </p>
 
       {plans.length > 0 && (
@@ -61,11 +64,33 @@ export default function Plans({ plans, categories, thisMonth }: {
                   textAlign: 'left', color: 'var(--c-ink)',
                 }}>
                 <Chip icon={p.icon} tint={p.tint} />
-                <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
+                <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
                   <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>{p.name}</span>
-                  <span style={{ fontSize: 'var(--step--2)', color: 'var(--c-meta)' }}>
-                    {monthName(p.from_month)} — {monthName(p.to_month)}
-                  </span>
+                  {/* How this month is going against it, in the same red and
+                      green the rest of the app uses for over and under. */}
+                  {(() => {
+                    const cap = Number(p.amount);
+                    const used = Number(p.spent ?? 0);
+                    const share = cap > 0 ? Math.min(1, used / cap) : 0;
+                    return (
+                      <>
+                        <span aria-hidden style={{
+                          height: 5, borderRadius: 999, background: 'var(--c-track)', overflow: 'hidden',
+                        }}>
+                          <span style={{
+                            display: 'block', height: '100%', borderRadius: 999,
+                            width: `${share * 100}%`,
+                            background: used > cap ? 'var(--c-danger-fill)'
+                              : share > 0.85 ? 'var(--c-warn-fill)' : 'var(--c-ok-fill)',
+                          }} />
+                        </span>
+                        <span style={{ fontSize: 'var(--step--2)', color: 'var(--c-meta)' }}>
+                          {used > 0 ? `${format(used)} spent · ` : ''}
+                          until {monthName(p.to_month)}
+                        </span>
+                      </>
+                    );
+                  })()}
                 </span>
                 <span className="t n" style={{ fontSize: 'var(--step-0)' }}>
                   {format(Number(p.amount))}
@@ -104,7 +129,7 @@ export default function Plans({ plans, categories, thisMonth }: {
               <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor"
                 strokeWidth={2.2} strokeLinecap="round" aria-hidden><path d="M12 5v14M5 12h14" /></svg>
             </span>
-            Budget a category until a date
+            Add a category to the budget
           </button>
         )}
     </section>

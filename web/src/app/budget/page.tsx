@@ -45,6 +45,7 @@ export default async function Budget({ searchParams }: {
   const spent = Number(totals.spent);
   const left = budget - spent;
   const canEdit = actor.role !== 'viewer';
+  const spentBy = new Map(rows.map((r) => [r.category_id, r.spent]));
   const empty = budget === 0;
 
   return (
@@ -136,7 +137,54 @@ export default async function Budget({ searchParams }: {
             />
           )}
 
-          <BudgetForm month={month} rows={rows} canEdit={canEdit} />
+          {canEdit && plans.length > 0 && (
+            <>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '4px var(--gutter) 11px' }}>
+                <h2 style={{ margin: 0, fontSize: 'var(--step-1)', fontWeight: 600, letterSpacing: '-.012em' }}>
+                  Your budget
+                </h2>
+                <span style={{ flex: 1, height: 1, background: 'var(--c-border)' }} />
+              </div>
+              <Plans
+                plans={plans.map((p) => ({ ...p, spent: spentBy.get(p.category_id) ?? '0' }))}
+                categories={cats.filter((c) => c.scope !== 'income')}
+                thisMonth={month.slice(0, 7)}
+              />
+            </>
+          )}
+
+          {canEdit && plans.length === 0 ? (
+            <CreateBudget
+              categories={cats.filter((c) => c.scope !== 'income')}
+              thisMonth={month.slice(0, 7)}
+              defaultEnd="2026-12"
+            />
+          ) : (
+            /* The full grid, every heading including the ones with nothing
+               against them, is still the way to change a single month without
+               touching the plan behind it. It is shut by default: it was the
+               first thing on the screen and it asked forty questions to answer
+               two. <details> rather than state, so it works with no JS. */
+            <details style={{ margin: '18px var(--gutter) 0' }}>
+              <summary style={{
+                minHeight: 48, display: 'flex', alignItems: 'center', padding: '0 var(--pad)',
+                borderRadius: 14, background: 'var(--c-card)', border: '1px solid var(--c-border)',
+                fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-ink)', cursor: 'pointer',
+              }}>
+                Adjust {label(month)} only
+              </summary>
+              <div style={{ margin: '10px calc(var(--gutter) * -1) 0' }}>
+                <BudgetForm month={month} rows={rows} canEdit={canEdit} />
+                <p style={{
+                  margin: '14px var(--gutter) 0', fontSize: 'var(--step--1)',
+                  lineHeight: 1.5, color: 'var(--c-meta)',
+                }}>
+                  Each month is its own set of figures. Changing {label(month)} leaves every
+                  earlier month exactly as it was — and leaves the budget above untouched.
+                </p>
+              </div>
+            </details>
+          )}
 
           {!canEdit && (
             <p style={{
@@ -147,38 +195,6 @@ export default async function Budget({ searchParams }: {
             </p>
           )}
 
-          <p style={{
-            margin: '18px 20px 0', fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--c-meta)',
-          }}>
-            Each month is its own set of figures. Changing {label(month)} leaves every earlier
-            month exactly as it was.
-          </p>
-
-          {canEdit && empty && plans.length === 0 && (
-            <div style={{ padding: '26px 0 0' }}>
-              <CreateBudget
-                categories={cats.filter((c) => c.scope !== 'income')}
-                thisMonth={month.slice(0, 7)}
-                defaultEnd="2026-12"
-              />
-            </div>
-          )}
-
-          {canEdit && (
-            <>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '26px var(--gutter) 11px' }}>
-                <h2 style={{ margin: 0, fontSize: 'var(--step-1)', fontWeight: 600, letterSpacing: '-.012em' }}>
-                  Budget until a date
-                </h2>
-                <span style={{ flex: 1, height: 1, background: 'var(--c-border)' }} />
-              </div>
-              <Plans
-                plans={plans.map((p) => ({ ...p }))}
-                categories={cats.filter((c) => c.scope !== 'income')}
-                thisMonth={month.slice(0, 7)}
-              />
-            </>
-          )}
         </div>
         <TabBar current="/budget" />
       </main>

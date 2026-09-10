@@ -423,6 +423,27 @@
      and the dots under it do the same job for a finger that never swipes. */
   .deck { scrollbar-width: none; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; }
   .deck::-webkit-scrollbar { display: none; }
+  /* Every card in a deck is the height of the tallest, because three cards of
+     three different heights make the shorter ones look like they are missing
+     something. The slide stretches and whatever is inside it fills the slide —
+     which has to be a rule rather than an inline style, since the card inside
+     is written by whoever uses the deck. */
+  .deck { align-items: stretch; }
+  .deck-slide { display: flex; }
+  .deck-slide > * { flex: 1; min-width: 0; }
+
+}
+:root {
+  /* The three grounds of the home deck. The month is the brand's own teal
+     wash; net worth takes the cyan it wears on its own screen; loans take the
+     indigo that Lending wears everywhere else. None of them touches the red and green inside — an
+     over-budget bar and a figure in the ink of money are semantic and keep
+     their own contrast against these grounds, which is why all three are pale
+     washes over --c-card rather than colours in their own right. */
+  --g-deck-worth: linear-gradient(158deg, var(--c-card) 0%, var(--c-sunk2) 62%, var(--cat-cyan) 168%);
+  --g-deck-loan: linear-gradient(158deg, var(--c-card) 0%, var(--c-sunk2) 58%, var(--cat-indigo) 172%);
+}
+@layer components {
 
   .snack { animation: snack-in .22s cubic-bezier(.2,.8,.2,1); }
   @keyframes snack-in { from { opacity: 0; translate: 0 14px } to { opacity: 1; translate: 0 } }
