@@ -199,7 +199,10 @@ export async function createBudgetSet(_prev: Result | null, fd: FormData): Promi
     if ('error' in head) return { ok: false, error: head.error };
     const body = await readLines(actor.household_id, fd);
     if ('error' in body) return { ok: false, error: body.error };
-    const makeCurrent = fd.get('current') !== 'no';
+    /* An unchecked box sends nothing at all, so the presence of the value is
+       the answer — reading it as "not no" would have made every budget
+       current, including the ones written for next year. */
+    const makeCurrent = fd.get('current') === 'yes';
 
     await sql.begin(async (tx) => {
       if (makeCurrent) {
@@ -284,30 +287,6 @@ export async function useBudgetSet(_prev: Result | null, fd: FormData): Promise<
     revalidatePath('/budget');
     revalidatePath('/');
     return { ok: true, message: `${set.name} is your budget now.` };
-  });
-}
-
-/** Put the current budget away without adopting another: the figures for the
- *  months ahead go, the set keeps its lines, and the screen offers it back. */
-export async function retireBudgetSet(_prev: Result | null, fd: FormData): Promise<Result> {
-  let actor;
-  try { actor = await mustWrite(); }
-  catch (e) { rethrowControlFlow(e); return { ok: false, error: (e as Error).message }; }
-  return withHousehold(actor.household_id, async () => {
-    const id = String(fd.get('id') ?? '');
-    if (!UUID.test(id)) return { ok: false, error: 'That budget could not be read.' };
-    await sql.begin(async (tx) => {
-      const [set] = await tx`
-        select id from budget_set
-        where id = ${id} and household_id = ${actor.household_id} and current_at is not null`;
-      if (!set) return;
-      await tx`update budget_set set current_at = null where id = ${id}`;
-      await tx`delete from budget
-               where household_id = ${actor.household_id} and month >= ${thisMonth()}::date`;
-    });
-    revalidatePath('/budget');
-    revalidatePath('/');
-    return { ok: true, message: 'Put away. Nothing about it is lost.' };
   });
 }
 

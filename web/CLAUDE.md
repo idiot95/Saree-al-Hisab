@@ -579,14 +579,23 @@ month. A set is a **generator** over it, and `materialise()` has two rules that
 make switching predictable: it writes **from this month forward only** (a month
 already spent against is history, and a budget adopted today did not apply in
 March), and it **clears the future first**, so switching never strands the old
-budget's figures in months the new one does not mention. Putting one away is
-just clearing that future; the set keeps every line it had, which is the entire
-point. Proven: with August budgeted and "Normal months" running Sept–Aug,
-adopting a Feb–Mar "Ramadan" left August untouched, cleared Sept–Jan, and wrote
-Feb–Mar.
+budget's figures in months the new one does not mention. The set keeps every
+line it had whatever happens to it, which is the entire point. Proven: with
+August budgeted and "Normal months" running Sept–Aug, adopting a Feb–Mar
+"Ramadan" left August untouched, cleared Sept–Jan, and wrote Feb–Mar.
 
-The screen is the current budget — its headings, how each is going this month,
-the total — then the ones put away, each a tap from being current, then Create.
+**One list, every budget the same shape**, the one in use wearing a badge and a
+green edge. A row shut is its name, what it costs a month and how many
+headings; tapped, it opens the headings with their figures — and, on the one in
+use only, how each is going this month, because a bar on a budget nobody is
+spending against measures against a figure that does not apply. Making current
+and Delete are the swipe (`SwipeRow`, `commit={false}` so a long swipe never
+fires either outright), and the open row repeats both as buttons, so neither is
+reachable only by gesture. Creating asks in two steps and ends with a
+**checkbox**: a budget written for next Ramadan is not one to apply to this
+month, so whether it takes over is asked rather than assumed — and an unchecked
+box sends nothing at all, so the action reads `=== 'yes'` rather than `!== 'no'`.
+
 Only **top-level** categories are offered: nobody budgets "Milk & dairy", they
 budget Groceries, and `budgetFor` rolls the children up anyway. The old grid of
 every heading with a zero in it is shut behind "Adjust this month only", a
