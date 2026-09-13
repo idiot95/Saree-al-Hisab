@@ -13,6 +13,7 @@ import { addBills, removeEntry, restoreEntry } from '../../entries/actions';
 import { shrink } from '../../add/Bills';
 import { reminderText, shareReminder } from '../../remind';
 import { Face, tabTint } from '../look';
+import { startPending } from '../../pending';
 
 export type TabEntry = {
   id: string; on: string; incoming: boolean; title: string;
@@ -94,7 +95,7 @@ export default function TabEntries({
   const edit = (id: string) => `/entries/${id}?from=/tab/${tabId}`;
   const actionsFor = (e: TabEntry): SwipeAction[] => [
     { label: 'Edit', icon: glyph('pencil'), tone: 'neutral' as const,
-      act: () => router.push(edit(e.id), { transitionTypes: ['nav-forward'] }) },
+      act: () => { startPending(edit(e.id)); router.push(edit(e.id), { transitionTypes: ['nav-forward'] }); } },
     ...(!e.incoming && owedOn(e.id).length > 0
       ? [{ label: 'Remind', icon: glyph('bell'), tone: 'neutral' as const,
            act: () => setOpen({ kind: 'remind', txnId: e.id }) }]

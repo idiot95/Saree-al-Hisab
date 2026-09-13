@@ -5,6 +5,7 @@ import { actorOrNull } from '@/db/queries';
 import { CurrencyProvider } from './currency';
 import RegisterSW from './RegisterSW';
 import SyncQueue from './SyncQueue';
+import PendingSkeleton from './PendingSkeleton';
 import { Inter } from 'next/font/google';
 import './globals.css';
 
@@ -95,6 +96,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <CurrencyProvider currency={actor?.currency ?? 'INR'}>
           {children}
           <SyncQueue />
+          <PendingSkeleton />
         </CurrencyProvider>
         <RegisterSW />
       </body>

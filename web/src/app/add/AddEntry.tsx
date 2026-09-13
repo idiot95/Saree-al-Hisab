@@ -11,6 +11,7 @@ import { DateChips } from '../DatePick';
 import { friendlyDay } from '@/lib/recur';
 import { useMoney } from '@/app/currency';
 import { saveEntry, checkDuplicate } from './actions';
+import { startPending } from '../pending';
 import { haptic } from '../haptics';
 import { enqueue, writePickers, type Queued } from './queue';
 import { shares } from '../tab/splits';
@@ -238,8 +239,9 @@ export default function AddEntry({
            this entry, because the paper is in hand right now and not later. */
         if (draft.tabId) {
           const bill = draft.kind === 'expense' && draft.attachments.length === 0 ? `?saved=${r.id}` : '';
+          startPending(`/tab/${draft.tabId}`);
           router.push(`/tab/${draft.tabId}${bill}`, { transitionTypes: ['nav-forward'] });
-        } else router.push(`/?saved=${r.id}`);
+        } else { startPending('/'); router.push(`/?saved=${r.id}`); }
       }
       else { haptic('warn'); setError(r.error); }
     });

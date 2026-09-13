@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useState, type ComponentProps } from 'react';
+import { startPending } from './pending';
 
 /* Every link in the app, prefetching on intent rather than on sight.
 
@@ -16,7 +17,7 @@ import { useState, type ComponentProps } from 'react';
    So a link stays quiet until someone shows they mean it — a finger coming
    down on it, a pointer over it, keyboard focus — and only then asks for the
    route, a beat ahead of the click. A `prefetch` passed explicitly still wins. */
-export default function NavLink({ prefetch, onPointerDown, onMouseEnter, onFocus, ...rest }: ComponentProps<typeof Link>) {
+export default function NavLink({ prefetch, onPointerDown, onMouseEnter, onFocus, onClick, ...rest }: ComponentProps<typeof Link>) {
   const [intent, setIntent] = useState(false);
   const arm = () => { if (!intent) setIntent(true); };
   return (
@@ -26,6 +27,15 @@ export default function NavLink({ prefetch, onPointerDown, onMouseEnter, onFocus
       onPointerDown={(e) => { arm(); onPointerDown?.(e); }}
       onMouseEnter={(e) => { arm(); onMouseEnter?.(e); }}
       onFocus={(e) => { arm(); onFocus?.(e); }}
+      onClick={(e) => {
+        onClick?.(e);
+        /* A plain tap on a link that goes somewhere of ours draws that screen's
+           skeleton at once. Not a click the handler above took over (the Add
+           tab opens its options), not a new tab or a modified click. */
+        if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+        if (rest.target === '_blank' || typeof rest.href !== 'string') return;
+        startPending(rest.href);
+      }}
     />
   );
 }

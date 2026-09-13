@@ -9,6 +9,7 @@ import SwipeRow from '../SwipeRow';
 import { editAccount, archiveAccount } from './actions';
 import CardIdentityFields from './CardIdentityFields';
 import { bankFromName } from '@/lib/card-brand';
+import { startPending } from '../pending';
 
 /* Tap the row and it becomes its own form; save and it becomes a row again.
    The same move as a category, because a person who has learnt one should
@@ -51,9 +52,9 @@ export default function EditAccount({ account, canWrite, last, block = false, ch
         { label: 'Edit', icon: <Icon name="pencil" size={20} strokeWidth={2} />, act: () => setOpen(true) },
         { label: credit ? 'Pay it' : 'Move', tone: 'primary',
           icon: <Icon name="move" size={20} strokeWidth={2} />,
-          act: () => router.push(move, { transitionTypes: ['nav-forward'] }) },
+          act: () => { startPending(move); router.push(move, { transitionTypes: ['nav-forward'] }); } },
         { label: 'Reconcile', icon: <Icon name="check" size={20} strokeWidth={2} />,
-          act: () => router.push(`/accounts/${account.id}/reconcile`, { transitionTypes: ['nav-forward'] }) },
+          act: () => { startPending(`/accounts/${account.id}/reconcile`); router.push(`/accounts/${account.id}/reconcile`, { transitionTypes: ['nav-forward'] }); } },
       ]} commit={false}>
         <button type="button" onClick={() => { haptic('select'); setOpen(true); }}
           aria-label={`Edit ${account.name}`}

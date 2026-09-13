@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import SwipeRow, { type SwipeAction } from './SwipeRow';
 import Snack, { type SnackState } from './Snack';
 import { Icon } from './Icon';
+import { startPending } from './pending';
 
 /* A swipe row a server page can use.
 
@@ -43,7 +44,7 @@ export default function Swipeable({ actions, commit = true, grip = true, childre
     tone: a.tone,
     icon: <Icon name={a.icon} size={20} strokeWidth={2} />,
     act: () => {
-      if (a.href) { router.push(a.href, { transitionTypes: ['nav-forward'] }); return; }
+      if (a.href) { startPending(a.href); router.push(a.href, { transitionTypes: ['nav-forward'] }); return; }
       if (!a.act) return;
       const fd = new FormData();
       for (const [k, v] of Object.entries(a.fields ?? {})) fd.append(k, v);

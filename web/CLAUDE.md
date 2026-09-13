@@ -225,7 +225,7 @@ hidden input; there is no `<select>` of payment modes anywhere, because one
 listing every rail under every account showed "ICICI Amazon Pay" twice and
 read as nonsense. Wrap it in a `<div role="group">`, never a `<label>` — a
 label around buttons activates the first chip. The entries list shows the
-rail when there is one and the account when there is not. `sw.js` is v24 for Add Entry landing on Home with an Edit on the saved entry.
+rail when there is one and the account when there is not. `sw.js` is v25 for the skeleton drawn on tap (`PendingSkeleton`), which the offline screen's layout now carries.
 Before Save, a debounced
 `checkDuplicate` shows what a household member already recorded within ±1% and
 ±2 days, which is the prevention half of the duplicate rule; the Inbox card is
@@ -1205,7 +1205,7 @@ storage after it opens. The design, in the order the pieces matter:
   person decides. Stuck entries are never retried on their own.
 - **`/offline` is `force-dynamic`** though it reads nothing, because every
   script tag carries the request's CSP nonce and a prerendered page ships
-  with none. The worker (`public/sw.js`, `VERSION = 'v24'`) fetches it once at
+  with none. The worker (`public/sw.js`, `VERSION = 'v25'`) fetches it once at
   install, `credentials: 'omit'`, together with every `/_next/static/` script
   and stylesheet the markup names, so the cached copy is a self-consistent
   snapshot: the nonce in its cached headers is the nonce in its cached
@@ -1401,6 +1401,19 @@ building the FormData, showing the error or the confirmation, and refreshing.
 A card holding swipe rows uses `padding: 0 var(--pad)` with `overflow:
 hidden`, because the row slides out past the card's own padding and the
 revealed actions must stop at its rounded corner.
+
+**A tap draws the destination's skeleton at once** (`PendingSkeleton` in the
+root layout, `pending.ts`). Links prefetch only on intent (`NavLink`), so a
+route's loading.tsx is not on the phone ahead of the tap; without this the old
+screen sat unchanged until the server streamed the loading shell. `NavLink`
+and every `router.push` that navigates (swipe actions, Add Entry after Save,
+the saved snack) call `startPending(href)`; the overlay waits 120ms (a cached
+screen is faster and a one-frame flash reads as flicker), draws
+`SkeletonFor(path)` under the real tab bar, and comes down when the pathname
+changes or after 10s. `frameFor` in `Skeleton.tsx` is the one map from a path
+to its frame — a list, a form, a tab with its figure, people and two buttons,
+Home's deck and tiles — and every loading.tsx draws from it, so the frame on
+tap and the frame the server streams are the same picture.
 
 **Undo instead of "Are you sure"** (`src/app/Snack.tsx`): delete and retire
 happen at once and can be taken back for fifteen minutes — `removeEntry` sets

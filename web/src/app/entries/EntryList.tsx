@@ -8,6 +8,7 @@ import SwipeRow from '../SwipeRow';
 import Snack, { type SnackState } from '../Snack';
 import { useMoney } from '@/app/currency';
 import { removeEntry, restoreEntry } from './actions';
+import { startPending } from '../pending';
 
 export type Row = {
   id: string; kind: string; amount: string; merchant: string | null;
@@ -75,7 +76,7 @@ export default function EntryList({ days, canEdit }: {
               {rows.map((e, i) => (
                 <SwipeRow key={e.id} actions={canEdit ? [
                   { label: 'Edit', tone: 'primary', icon: <Pen />,
-                    act: () => router.push(`/entries/${e.id}`, { transitionTypes: ['nav-forward'] }) },
+                    act: () => { startPending(`/entries/${e.id}`); router.push(`/entries/${e.id}`, { transitionTypes: ['nav-forward'] }); } },
                   { label: 'Delete', tone: 'danger', icon: <Bin />, act: () => del(e) },
                 ] : []}>
                   <Entry e={e} last={i === rows.length - 1} />

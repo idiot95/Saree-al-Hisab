@@ -3,6 +3,7 @@
 import { useCallback, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Snack, { type SnackState } from './Snack';
+import { startPending } from './pending';
 
 /* "Saved", with Edit on it, the moment Add Entry lands back on Home.
 
@@ -15,7 +16,7 @@ export default function SavedSnack({ id }: { id: string }) {
   const router = useRouter();
   const [snack, setSnack] = useState<SnackState>(() => ({
     text: 'Entry saved.',
-    action: { label: 'Edit', run: () => router.push(`/entries/${id}?from=/`, { transitionTypes: ['nav-forward'] }) },
+    action: { label: 'Edit', run: () => { startPending(`/entries/${id}`); router.push(`/entries/${id}?from=/`, { transitionTypes: ['nav-forward'] }); } },
   }));
   const close = useCallback(() => {
     setSnack(null);
