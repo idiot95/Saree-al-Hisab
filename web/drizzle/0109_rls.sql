@@ -49,6 +49,12 @@ drop policy if exists attachment_household on attachment;
 create policy attachment_household on attachment
   using (household_id = app_household()) with check (household_id = app_household());
 
+alter table reconciliation enable row level security;
+alter table reconciliation force row level security;
+drop policy if exists reconciliation_household on reconciliation;
+create policy reconciliation_household on reconciliation
+  using (household_id = app_household()) with check (household_id = app_household());
+
 alter table budget_set enable row level security;
 alter table budget_set force row level security;
 drop policy if exists budget_set_household on budget_set;

@@ -106,6 +106,23 @@ export default async function Accounts() {
           </div>
         </header>
 
+        {canWrite && accounts.length > 0 && (
+          <Link href="/accounts/reconcile" transitionTypes={['nav-forward']} className="el card" style={{
+            margin: '18px var(--gutter) 0', minHeight: 64, borderRadius: 16, display: 'flex', alignItems: 'center',
+            gap: 12, padding: '0 var(--pad)', background: 'var(--c-card)', color: 'var(--c-ink)', textDecoration: 'none',
+          }}>
+            <Chip icon="check" tint="blue" size={36} radius={10} iconSize={18} />
+            <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>Reconcile with a statement</span>
+              <span style={{ fontSize: 'var(--step--2)', color: 'var(--c-meta)' }}>
+                Match a bank account or card to what its statement says
+              </span>
+            </span>
+            <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="var(--c-meta)"
+              strokeWidth={2} strokeLinecap="round" aria-hidden><path d="M9 5l7 7-7 7" /></svg>
+          </Link>
+        )}
+
         <Head>Bank and cash</Head>
         <Card>
           {holdings.map((a, i) => (
@@ -116,6 +133,7 @@ export default async function Accounts() {
                 <span style={{ fontSize: 'var(--step--1)', color: 'var(--c-meta)' }}>
                   {KIND_LABEL[a.kind]}{a.last4 && ` · ends ${a.last4}`}
                   {a.kind === 'savings' && ' · outside the budget'}
+                  {a.reconciled_on && ` · matched ${new Date(`${a.reconciled_on}T00:00:00`).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}`}
                 </span>
                 {railsOn(a.id).length > 0 && (
                   <span style={{ fontSize: 'var(--step--2)', color: 'var(--c-meta)' }}>

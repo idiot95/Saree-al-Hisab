@@ -214,6 +214,7 @@ export type AccountRow = {
   bank_key: string | null; card_network: string | null;
   credit_limit: string | null; statement_day: number | null; due_day: number | null;
   methods: number;
+  reconciled_on: string | null;
 };
 
 /** Balances come from `account_balance`, never from a stored figure — a
@@ -225,6 +226,8 @@ export async function accountsWithBalances(householdId: string) {
       select b.id, b.name, b.kind, b.last4, b.bank_key, b.card_network,
              b.opening_balance::text, b.balance::text,
              b.entries::int, b.credit_limit::text, b.statement_day, b.due_day,
+             (select to_char(max(r.statement_on), 'YYYY-MM-DD') from reconciliation r
+               where r.account_id = b.id) as reconciled_on,
              (select count(*)::int from payment_method m
               where m.funding_account_id = b.id and m.archived_at is null) as methods
       from account_balance b
@@ -447,7 +450,9 @@ export async function entryById(householdId: string, id: string) {
       select t.id, t.kind, t.amount::text, t.occurred_on, t.merchant, t.note, t.is_shared,
              t.category_id, t.account_id, t.payment_method_id, t.counter_account_id, t.book_id, t.counts_as_spend,
              c.name as category, c.tint, m.name as method,
-             a.name as account, ca.name as counter_account, u.name as who, t.created_at
+             a.name as account, ca.name as counter_account, u.name as who, t.created_at,
+             (select to_char(r.statement_on, 'YYYY-MM-DD') from reconciliation r
+               where r.id = coalesce(t.reconciled_id, t.counter_reconciled_id)) as reconciled_on
       from txn t
       join account a on a.id = t.account_id
       left join account ca on ca.id = t.counter_account_id
@@ -457,7 +462,7 @@ export async function entryById(householdId: string, id: string) {
       where t.id = ${id} and t.household_id = ${householdId} and t.deleted_at is null`;
     return (r ?? null) as null | (EntryRow & {
       account_id: string; payment_method_id: string | null; counter_account_id: string | null;
-      book_id: string | null; counts_as_spend: boolean });
+      book_id: string | null; counts_as_spend: boolean; reconciled_on: string | null });
   });
 }
 
@@ -1070,9 +1075,9 @@ export async function worthSeries(householdId: string, months = 6) {
                + coalesce((
                    select sum(case
                      when t.account_id = a.id
-                          and t.kind in ('expense','transfer','card_payment') then -t.amount
+                          and t.kind in ('expense','transfer','card_payment','adjust_out') then -t.amount
                      when t.account_id = a.id
-                          and t.kind in ('income','claim_receipt','refund')   then  t.amount
+                          and t.kind in ('income','claim_receipt','refund','adjust_in')   then  t.amount
                      when t.counter_account_id = a.id                          then  t.amount
                      else 0 end)
                    from txn t
@@ -1191,4 +1196,96 @@ export async function attachmentsForTxns(householdId: string, txnIds: string[]) 
     where a.household_id = ${householdId} and a.txn_id = any(${txnIds}::uuid[])
     order by a.created_at
   ` as Promise<{ id: string; txn_id: string; name: string; mime: string; bytes: number }[]>);
+}
+
+/* ── reconciling an account against its statement ──────────────────────────
+
+   What an entry does to ONE account, signed as balances are. The same CASE as
+   account_balance (0104), so the figure a reconciliation works from can never
+   drift from the balance on the Accounts screen. */
+const signedFor = (acc: string) => sql`case
+  when t.account_id = ${acc} and t.kind in ('expense','transfer','card_payment','adjust_out') then -t.amount
+  when t.account_id = ${acc} and t.kind in ('income','claim_receipt','refund','adjust_in') then t.amount
+  when t.counter_account_id = ${acc} then t.amount
+  else 0 end`;
+
+/* The side of an entry that touches the account, reconciled or not. A
+   transfer between two accounts is on both their statements, so each side is
+   ticked off on its own. */
+const sideIs = (acc: string, reconciled: boolean) => reconciled
+  ? sql`((t.account_id = ${acc} and t.reconciled_id is not null)
+         or (t.counter_account_id = ${acc} and t.counter_reconciled_id is not null))`
+  : sql`((t.account_id = ${acc} and t.reconciled_id is null)
+         or (t.counter_account_id = ${acc} and t.counter_reconciled_id is null))`;
+
+/** Every account a statement could be matched against, with when it last was. */
+export async function reconcileTargets(householdId: string) {
+  return withHousehold(householdId, async () => sql`
+    select b.id, b.name, b.kind, b.last4, b.balance::text,
+           (select to_char(max(r.statement_on), 'YYYY-MM-DD') from reconciliation r
+             where r.account_id = b.id) as last_on,
+           (select count(*)::int from txn t
+             where t.household_id = ${householdId} and t.deleted_at is null
+               and ((t.account_id = b.id and t.reconciled_id is null)
+                    or (t.counter_account_id = b.id and t.counter_reconciled_id is null))) as open
+    from account_balance b
+    where b.household_id = ${householdId} and b.archived_at is null and b.kind <> 'person'
+    order by case b.kind when 'spending' then 0 when 'credit' then 1 when 'cash' then 2 else 3 end, b.name
+  ` as Promise<{ id: string; name: string; kind: string; last4: string | null; balance: string;
+                 last_on: string | null; open: number }[]>);
+}
+
+/** One account's reconciliation screen: the balance everything already
+ *  ticked off adds up to, the entries not yet matched, and past statements. */
+export async function reconcileAccount(householdId: string, accountId: string) {
+  return withHousehold(householdId, async () => {
+    const [account] = await sql`
+      select b.id, b.name, b.kind, b.last4, b.balance::text,
+             (b.opening_balance + coalesce((select sum(${signedFor(accountId)}) from txn t
+                where t.household_id = ${householdId} and t.deleted_at is null
+                  and ${sideIs(accountId, true)}), 0))::text as cleared
+      from account_balance b
+      where b.id = ${accountId} and b.household_id = ${householdId}
+        and b.archived_at is null and b.kind <> 'person'`;
+    if (!account) return null;
+    const [entries, history] = await Promise.all([
+      sql`
+        select t.id, to_char(t.occurred_on, 'YYYY-MM-DD') as on, t.kind,
+               (${signedFor(accountId)})::text as signed,
+               coalesce(t.merchant, c.name,
+                 case t.kind when 'claim_receipt' then 'Money back'
+                             when 'card_payment' then 'Card payment'
+                             when 'adjust_in' then 'Balance adjustment'
+                             when 'adjust_out' then 'Balance adjustment'
+                             else null end,
+                 case when t.counter_account_id = ${accountId} then 'From ' || a.name
+                      when t.counter_account_id is not null then 'To ' || ca.name
+                      else 'Entry' end) as what,
+               m.name as via
+        from txn t
+        join account a on a.id = t.account_id
+        left join account ca on ca.id = t.counter_account_id
+        left join category c on c.id = t.category_id
+        left join payment_method m on m.id = t.payment_method_id
+        where t.household_id = ${householdId} and t.deleted_at is null and ${sideIs(accountId, false)}
+        order by t.occurred_on, t.created_at`,
+      sql`
+        select r.id, to_char(r.statement_on, 'YYYY-MM-DD') as on, r.statement_balance::text as balance,
+               (select case when t.kind = 'adjust_in' then t.amount else -t.amount end from txn t
+                 where t.id = r.adjustment_txn_id and t.deleted_at is null)::text as adjustment,
+               (select count(*)::int from txn t
+                 where t.deleted_at is null and (t.reconciled_id = r.id or t.counter_reconciled_id = r.id)) as entries,
+               u.name as who
+        from reconciliation r
+        left join app_user u on u.id = r.created_by
+        where r.account_id = ${accountId} and r.household_id = ${householdId}
+        order by r.statement_on desc, r.created_at desc
+        limit 12`,
+    ]);
+    return {
+      account: account as { id: string; name: string; kind: string; last4: string | null; balance: string; cleared: string },
+      entries: entries as unknown as { id: string; on: string; kind: string; signed: string; what: string; via: string | null }[],
+      history: history as unknown as { id: string; on: string; balance: string; adjustment: string | null; entries: number; who: string | null }[],
+    };
+  });
 }

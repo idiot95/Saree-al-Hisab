@@ -225,7 +225,7 @@ hidden input; there is no `<select>` of payment modes anywhere, because one
 listing every rail under every account showed "ICICI Amazon Pay" twice and
 read as nonsense. Wrap it in a `<div role="group">`, never a `<label>` — a
 label around buttons activates the first chip. The entries list shows the
-rail when there is one and the account when there is not. `sw.js` is v23 for links that prefetch on intent (`NavLink`), which the offline screen's tab bar and Add Entry now use.
+rail when there is one and the account when there is not. `sw.js` is v24 for Add Entry landing on Home with an Edit on the saved entry.
 Before Save, a debounced
 `checkDuplicate` shows what a household member already recorded within ±1% and
 ±2 days, which is the prevention half of the duplicate rule; the Inbox card is
@@ -1039,6 +1039,54 @@ on 1 Ramadaan. First on Sat 6 Feb 2027 · 1 Ramadaan 1448.") and a collapsed
 "Ends never · Change" that opens the end choices only when asked. `sw.js` was
 v10 for this change.
 
+## Reconciling against a statement
+
+`/accounts/reconcile` lists every bank, cash, savings and card account with
+when it was last matched; `/accounts/[id]/reconcile` does the matching. The
+person gives the statement date and balance (for a card, what the statement
+says is owed — the books keep that negative), every entry up to that date not
+yet matched is listed ticked, and the screen shows statement, ticked-off total
+and the difference, live. Untick what the statement does not show. At zero it
+finishes; otherwise the two honest ways out are said plainly — add the missing
+entry, or record the difference as **one adjustment** and finish.
+
+**An adjustment is its own kind** (`adjust_in` / `adjust_out`, migration
+`0033`). `account_balance` (0104) and `worthSeries` count it, `spend_txn` and
+`income_txn` select other kinds so it is never spending or income, the card
+cycle trigger does not file it, and `moves_carry_no_category` refuses a
+category on it. **A reconciliation always balances to the paisa**:
+`finishReconcile` recomputes everything from the database — what is already
+matched, which ticked ids are really this account's and unmatched, and that
+none is dated after the statement — and refuses a difference unless the
+adjustment was asked for. A statement cannot be dated before the last one
+matched, and only the latest can be undone (`undoReconcile` clears its ticks
+and soft-deletes its adjustment).
+
+**Matched is per side of an entry.** `txn.reconciled_id` marks the
+`account_id` side and `txn.counter_reconciled_id` the `counter_account_id`
+side, because a transfer is on two statements. `signedFor(acc)` in
+`db/queries.ts` is the same CASE as `account_balance`, so the figure a
+reconciliation starts from cannot drift from the balance on Accounts. An edit
+that changes an entry's amount, date or account clears both markers — it no
+longer says what the statement said — and the entry screen warns before that
+happens. Accounts has a "Reconcile with a statement" card, each bank row swipes
+to Reconcile, each card face has Match, and rows say when they were last
+matched. `reconciliation` is under row security in `0109`.
+
+## Editing an entry after saving
+
+Tap any entry — on Entries, a tab, a person — to open it: the form is the
+screen. It is one move away everywhere: Edit is the first swipe action on a
+tab's entries, "Attach the bill?" after saving on a tab carries an Edit
+button, and saving from Add Entry to Home shows "Entry saved" with Edit on it
+(`SavedSnack`, `/?saved=<id>`). **Save goes back to where the entry was opened
+from** (`?from=`, checked against a fixed list of our own paths), not always to
+Entries. **Changing the amount of a cost that is owed back re-splits what is
+owed**: each open claim keeps its share of the whole — three equal shares stay
+equal, half owed stays half — worked in paise with the odd paisa to the
+largest remainders, and refused if a share would fall below what that person
+has already paid back.
+
 ## Net worth
 
 `/worth` is everything held, plus what people owe you, less what you owe, in
@@ -1157,7 +1205,7 @@ storage after it opens. The design, in the order the pieces matter:
   person decides. Stuck entries are never retried on their own.
 - **`/offline` is `force-dynamic`** though it reads nothing, because every
   script tag carries the request's CSP nonce and a prerendered page ships
-  with none. The worker (`public/sw.js`, `VERSION = 'v23'`) fetches it once at
+  with none. The worker (`public/sw.js`, `VERSION = 'v24'`) fetches it once at
   install, `credentials: 'omit'`, together with every `/_next/static/` script
   and stylesheet the markup names, so the cached copy is a self-consistent
   snapshot: the nonce in its cached headers is the nonce in its cached

@@ -239,7 +239,7 @@ export default function AddEntry({
         if (draft.tabId) {
           const bill = draft.kind === 'expense' && draft.attachments.length === 0 ? `?saved=${r.id}` : '';
           router.push(`/tab/${draft.tabId}${bill}`, { transitionTypes: ['nav-forward'] });
-        } else router.push('/');
+        } else router.push(`/?saved=${r.id}`);
       }
       else { haptic('warn'); setError(r.error); }
     });

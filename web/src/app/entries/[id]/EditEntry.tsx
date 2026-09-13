@@ -10,7 +10,7 @@ import type { Category } from '@/app/CategoryFinder';
 import { accountRef, railRef, type Way } from '@/lib/pay';
 import { fits } from '@/lib/scope';
 
-export default function EditEntry({ entry, categories, ways, canEdit }: {
+export default function EditEntry({ entry, categories, ways, canEdit, back = '/entries' }: {
   entry: {
     id: string; kind: string; amount: string; occurred_on: string;
     merchant: string | null; note: string | null; is_shared: boolean;
@@ -18,8 +18,10 @@ export default function EditEntry({ entry, categories, ways, canEdit }: {
     counts_as_spend: boolean;
     /** Somebody owes for it — on a tab, or with a claim — so "was it mine" is a live question. */
     owed: boolean;
+    /** The statement this entry was ticked off against, if any. */
+    reconciled_on?: string | null;
   };
-  categories: Category[]; ways: Way[]; canEdit: boolean;
+  categories: Category[]; ways: Way[]; canEdit: boolean; back?: string;
 }) {
   const { format, toKeys, fromKeys } = useMoney();
   const [state, act, pending] = useActionState(updateEntry, null);
@@ -28,7 +30,7 @@ export default function EditEntry({ entry, categories, ways, canEdit }: {
   const [categoryId, setCategoryId] = useState(entry.category_id ?? '');
   const [confirming, setConfirming] = useState(false);
 
-  const wantsCategory = !['transfer', 'card_payment', 'claim_receipt'].includes(entry.kind);
+  const wantsCategory = !['transfer', 'card_payment', 'claim_receipt', 'adjust_in', 'adjust_out'].includes(entry.kind);
   // An entry keeps its kind, so the list is the categories that file it.
   const offered = categories.filter((c) => fits(c.scope, entry.kind));
   const minor = fromKeys(amount.replace(/[^0-9.]/g, ''));
@@ -40,6 +42,7 @@ export default function EditEntry({ entry, categories, ways, canEdit }: {
         display: 'flex', flexDirection: 'column', gap: 14,
       }}>
         <input type="hidden" name="id" value={entry.id} />
+        <input type="hidden" name="back" value={back} />
 
         {/* The amount is what people come here to fix, so it is the biggest
             thing on the screen and already focused. */}
@@ -118,6 +121,16 @@ export default function EditEntry({ entry, categories, ways, canEdit }: {
             style={{ width: 20, height: 20, accentColor: 'var(--c-seagrass)' }} />
           <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>Shared with the household</span>
         </label>
+
+        {entry.reconciled_on && (
+          <p style={{
+            margin: 0, padding: '11px 13px', borderRadius: 12, background: 'var(--c-teal-l)',
+            color: 'var(--c-ink)', fontSize: 'var(--step--1)', lineHeight: 1.5,
+          }}>
+            Reconciled against the {new Date(`${entry.reconciled_on}T00:00:00`).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })} statement.
+            Changing the amount, date or account takes it off that reconciliation.
+          </p>
+        )}
 
         {state && !state.ok && <ErrorNote>{state.error}</ErrorNote>}
 

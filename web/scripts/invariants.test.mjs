@@ -471,6 +471,30 @@ await sql`insert into txn ${sql({ household_id: hh.id, created_by: user.id, kind
   amount: 200000, occurred_on: '2026-09-12', account_id: spend, claim_id: heldClaim.id, currency: 'INR' })}`;
 ok(await heldOn() === 300000, 'money back on the tab brings its own claim down');
 
+console.log('\nRECONCILING — an adjustment moves one balance and nothing else');
+/* What matching a statement may write: an adjustment in or out of one account.
+   It has to move the balance — that is what it is for — and must never show
+   up as spending or income, because it is neither; it is only what the books
+   were missing. */
+const adjBalanceOf = async (id) => Number((await sql`select balance from account_balance where id = ${id}`)[0].balance);
+const balBefore = await adjBalanceOf(spend);
+const spentBeforeAdj = await spent();
+const [{ n: incomeBefore }] = await sql`select count(*)::int as n from income_txn where household_id = ${hh.id}`;
+const [adjIn] = await txn({ kind: 'adjust_in', account_id: spend, amount: 12345, occurred_on: '2026-09-13' });
+await txn({ kind: 'adjust_out', account_id: spend, amount: 345, occurred_on: '2026-09-13' });
+ok(await adjBalanceOf(spend) === balBefore + 12000, 'adjustments in and out move the balance by exactly their difference');
+ok(await spent() === spentBeforeAdj, 'an adjustment is never spending');
+const [{ n: incomeAfter }] = await sql`select count(*)::int as n from income_txn where household_id = ${hh.id}`;
+ok(incomeAfter === incomeBefore, 'an adjustment is never income');
+await refuses('an adjustment cannot carry a category',
+  () => txn({ kind: 'adjust_in', account_id: spend, amount: 100, category_id: cat }));
+const [rec] = await sql`insert into reconciliation ${sql({ household_id: hh.id, account_id: spend,
+  statement_on: '2026-09-13', statement_balance: 0 })} returning id`;
+await sql`update txn set reconciled_id = ${rec.id} where id = ${adjIn.id}`;
+await sql`delete from reconciliation where id = ${rec.id}`;
+const [{ reconciled_id: tickAfter, deleted_at: adjGone }] = await sql`select reconciled_id, deleted_at from txn where id = ${adjIn.id}`;
+ok(tickAfter === null && adjGone === null, 'removing a reconciliation clears its ticks and leaves the entries');
+
 console.log('\nSCHEDULES — a salary comes round the way rent does');
 await allows('a schedule can be income',
   () => sql`insert into schedule ${sql({ household_id: hh.id, kind: 'income', name: 'Salary', amount: 12000000,

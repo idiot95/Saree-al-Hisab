@@ -9,6 +9,9 @@ import { fromKeys } from '@/lib/money';
 import { rethrowControlFlow } from '@/lib/rethrow';
 import { fits, misfit } from '@/lib/scope';
 
+/** Where an edit may send you back to: a screen of ours, never a URL from the form. */
+const BACK = /^\/(?:|entries|accounts|people|tab\/[0-9a-f-]{36}|people\/[0-9a-f-]{36})$/;
+
 export type Result = { ok: true; message?: string } | { ok: false; error: string };
 
 const amount = (v: FormDataEntryValue | null) =>
@@ -33,7 +36,8 @@ export async function updateEntry(_prev: Result | null, fd: FormData): Promise<R
 
     const id = String(fd.get('id') ?? '');
     const [existing] = await sql`
-      select t.id, t.kind, t.counts_as_spend,
+      select t.id, t.kind, t.counts_as_spend, t.amount::bigint as amount,
+             to_char(t.occurred_on, 'YYYY-MM-DD') as occurred_on, t.account_id,
              (t.book_id is not null or exists (select 1 from claim c where c.txn_id = t.id)) as owed
       from txn t
       where t.id = ${id} and t.household_id = ${actor.household_id} and t.deleted_at is null`;
@@ -58,7 +62,7 @@ export async function updateEntry(_prev: Result | null, fd: FormData): Promise<R
     const isShared = fd.get('is_shared') === 'on';
 
     // A move carries no category; everything else must have one.
-    const wantsCategory = !['transfer', 'card_payment', 'claim_receipt'].includes(existing.kind);
+    const wantsCategory = !['transfer', 'card_payment', 'claim_receipt', 'adjust_in', 'adjust_out'].includes(existing.kind);
     let categoryId: string | null = null;
     if (wantsCategory) {
       const raw = String(fd.get('category_id') ?? '');
@@ -80,13 +84,56 @@ export async function updateEntry(_prev: Result | null, fd: FormData): Promise<R
       if (!paid) return { ok: false, error: 'That account is not one of yours.' };
     }
 
+    /* What is owed for it follows the amount. Each share keeps its part of
+       the whole — a cost split three ways stays split three ways, a cost only
+       half owed back stays half — worked in paise with the odd paisa going to
+       the largest remainders, so the shares still add up exactly. A share
+       cannot fall below what that person has already paid back. */
+    const oldAmount = Number(existing.amount);
+    const reshared: { id: string; amount: number }[] = [];
+    if (minor !== oldAmount) {
+      const claims = await sql`
+        select cs.id, cs.expected_amount::bigint as expected, cs.received::bigint as received
+        from claim_state cs
+        where cs.txn_id = ${id} and cs.household_id = ${actor.household_id} and cs.written_off_at is null
+        order by cs.created_at, cs.id`;
+      const total = claims.reduce((n, c) => n + Number(c.expected), 0);
+      if (claims.length && total > 0) {
+        const target = Math.min(minor, Math.round((total * minor) / oldAmount));
+        const raw = claims.map((c) => (Number(c.expected) * target) / total);
+        const each = raw.map(Math.floor);
+        let left = target - each.reduce((n, v) => n + v, 0);
+        [...raw.keys()].sort((a, b) => (raw[b] - each[b]) - (raw[a] - each[a]))
+          .forEach((k) => { if (left > 0) { each[k] += 1; left -= 1; } });
+        for (let k = 0; k < claims.length; k++) {
+          if (each[k] <= 0) return { ok: false, error: 'That is too small to split between the people who owe for it.' };
+          if (each[k] < Number(claims[k].received)) {
+            return { ok: false, error: 'Someone has already paid back more than their share of the new amount. Record the difference as money back instead.' };
+          }
+          reshared.push({ id: claims[k].id as string, amount: each[k] });
+        }
+      }
+    }
+    /* Reconciled against a statement, the entry said what the bank said. A new
+       amount, day or account no longer does, so it comes off that
+       reconciliation; a new note or category does not change the figure. */
+    const moved = minor !== oldAmount || occurredOn !== existing.occurred_on
+      || (paid !== null && paid.account_id !== existing.account_id);
+
     try {
-      await sql`
-        update txn set amount = ${minor}, occurred_on = ${occurredOn}::date,
-                       category_id = ${categoryId}, merchant = ${merchant}, note = ${note},
-                       ${paid ? sql`account_id = ${paid.account_id}, payment_method_id = ${paid.payment_method_id},` : sql``}
-                       is_shared = ${isShared}, counts_as_spend = ${counts}
-        where id = ${id} and household_id = ${actor.household_id}`;
+      await sql.begin(async (tx) => {
+        await tx`
+          update txn set amount = ${minor}, occurred_on = ${occurredOn}::date,
+                         category_id = ${categoryId}, merchant = ${merchant}, note = ${note},
+                         ${paid ? tx`account_id = ${paid.account_id}, payment_method_id = ${paid.payment_method_id},` : tx``}
+                         ${moved ? tx`reconciled_id = null, counter_reconciled_id = null,` : tx``}
+                         is_shared = ${isShared}, counts_as_spend = ${counts}
+          where id = ${id} and household_id = ${actor.household_id}`;
+        for (const r of reshared) {
+          await tx`update claim set expected_amount = ${r.amount}
+                   where id = ${r.id} and household_id = ${actor.household_id}`;
+        }
+      });
     } catch (e) {
       const pg = e as { code?: string; constraint_name?: string };
       console.error('updateEntry refused:', pg.code ?? 'unknown', pg.constraint_name ?? '');
@@ -96,7 +143,10 @@ export async function updateEntry(_prev: Result | null, fd: FormData): Promise<R
     revalidatePath('/entries');
     revalidatePath('/');
     revalidatePath('/accounts');
-    redirect('/entries');
+    revalidatePath('/people');
+    const back = String(fd.get('back') ?? '');
+    if (back.startsWith('/tab/')) revalidatePath(back);
+    redirect(BACK.test(back) ? back : '/entries');
   });
 }
 

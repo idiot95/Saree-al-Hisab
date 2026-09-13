@@ -52,7 +52,9 @@ export default function EditAccount({ account, canWrite, last, block = false, ch
         { label: credit ? 'Pay it' : 'Move', tone: 'primary',
           icon: <Icon name="move" size={20} strokeWidth={2} />,
           act: () => router.push(move, { transitionTypes: ['nav-forward'] }) },
-      ]}>
+        { label: 'Reconcile', icon: <Icon name="check" size={20} strokeWidth={2} />,
+          act: () => router.push(`/accounts/${account.id}/reconcile`, { transitionTypes: ['nav-forward'] }) },
+      ]} commit={false}>
         <button type="button" onClick={() => { haptic('select'); setOpen(true); }}
           aria-label={`Edit ${account.name}`}
           style={{ ...shape, width: '100%', textAlign: 'left', borderBottom: rule, color: 'inherit' }}>

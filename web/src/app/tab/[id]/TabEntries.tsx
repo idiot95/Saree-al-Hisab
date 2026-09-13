@@ -91,7 +91,10 @@ export default function TabEntries({
 
   const owedOn = (txnId: string) => claims.filter((c) => c.txnId === txnId && c.outstanding > 0);
   const glyph = (name: string) => <Icon name={name} size={20} strokeWidth={2} />;
+  const edit = (id: string) => `/entries/${id}?from=/tab/${tabId}`;
   const actionsFor = (e: TabEntry): SwipeAction[] => [
+    { label: 'Edit', icon: glyph('pencil'), tone: 'neutral' as const,
+      act: () => router.push(edit(e.id), { transitionTypes: ['nav-forward'] }) },
     ...(!e.incoming && owedOn(e.id).length > 0
       ? [{ label: 'Remind', icon: glyph('bell'), tone: 'neutral' as const,
            act: () => setOpen({ kind: 'remind', txnId: e.id }) }]
@@ -136,7 +139,7 @@ export default function TabEntries({
           }}>
             {m.rows.map((e, i) => (
               <SwipeRow key={e.id} commit={false} actions={canEdit ? actionsFor(e) : []}>
-                <Link href={`/entries/${e.id}`} transitionTypes={['nav-forward']} draggable={false} style={{
+                <Link href={edit(e.id)} transitionTypes={['nav-forward']} draggable={false} style={{
                   display: 'flex', alignItems: 'center', gap: 12, minHeight: 66,
                   textDecoration: 'none', color: 'var(--c-ink)',
                   borderBottom: i === m.rows.length - 1 ? undefined : '1px solid var(--c-rule)',
@@ -173,7 +176,7 @@ export default function TabEntries({
       <Sheet open={open?.kind === 'bill' && !!target} onClose={close}
         label={open?.kind === 'bill' && open.fresh ? 'Attach the bill' : 'Bills'}>
         {open?.kind === 'bill' && target && (
-          <BillBody entry={target} fresh={open.fresh} tabName={tabName}
+          <BillBody entry={target} fresh={open.fresh} tabName={tabName} editHref={edit(target.id)}
             bills={bills.filter((b) => b.txnId === target.id)}
             onDone={(text) => { close(); setSnack({ text }); router.refresh(); }}
             onSkip={close} />
@@ -195,8 +198,8 @@ export default function TabEntries({
 
 /* The bill, right after a cost is saved or any time from the swipe. Images
    are shrunk on the phone exactly as Add Entry shrinks them, then sent. */
-function BillBody({ entry, bills, fresh, tabName, onDone, onSkip }: {
-  entry: TabEntry; bills: TabBill[]; fresh: boolean; tabName: string;
+function BillBody({ entry, bills, fresh, tabName, editHref, onDone, onSkip }: {
+  entry: TabEntry; bills: TabBill[]; fresh: boolean; tabName: string; editHref: string;
   onDone: (text: string) => void; onSkip: () => void;
 }) {
   const { format } = useMoney();
@@ -260,6 +263,13 @@ function BillBody({ entry, bills, fresh, tabName, onDone, onSkip }: {
                 {entry.outstanding > 0 ? ` · ${format(entry.outstanding)} to come back` : ''}
               </span>
             </span>
+            <Link href={editHref} transitionTypes={['nav-forward']} className="cta" style={{
+              minHeight: 44, padding: '0 14px', borderRadius: 11, fontSize: 'var(--step--1)', fontWeight: 600,
+              background: 'var(--c-sunk)', color: 'var(--c-ink)', textDecoration: 'none', flex: 'none',
+            }}>
+              <Icon name="pencil" size={15} strokeWidth={2} />
+              Edit
+            </Link>
           </div>
           <span style={{ height: 1, background: 'var(--c-rule)' }} />
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>

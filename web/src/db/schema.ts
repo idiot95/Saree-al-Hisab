@@ -2,6 +2,7 @@ import {
   pgTable, pgEnum, uuid, text, integer, bigint, date, timestamp,
   boolean, jsonb, index, uniqueIndex, check, foreignKey, customType,
 } from 'drizzle-orm/pg-core';
+import type { AnyPgColumn } from 'drizzle-orm/pg-core';
 import { sql, relations } from 'drizzle-orm';
 
 /* Drizzle has no bytea column, and the one place we store bytes is worth being
@@ -24,6 +25,10 @@ export const accountKind = pgEnum('account_kind', ['spending', 'savings', 'credi
                     category in the month the refund lands.                  */
 export const txnKind = pgEnum('txn_kind', [
   'expense', 'income', 'transfer', 'card_payment', 'claim_receipt', 'refund',
+  /* Corrections found by reconciling against a statement: money the books
+     were missing, in or out of one account. Never spending, never income —
+     spend_txn and income_txn select other kinds — and they carry no category. */
+  'adjust_in', 'adjust_out',
 ]);
 export const memberRole = pgEnum('member_role', ['owner', 'adult', 'viewer']);
 export const txnSource = pgEnum('txn_source', ['manual', 'receipt', 'shared']);
@@ -399,6 +404,13 @@ export const txn = pgTable('txn', {
      second row. Entries saved online never carry one. */
   clientRef: uuid('client_ref'),
   deletedAt: timestamp('deleted_at', { withTimezone: true }),
+  /* Matched against a bank or card statement. One marker per side, because a
+     transfer is on two statements: reconciled_id is the account_id side,
+     counter_reconciled_id the counter_account_id side. Changing the amount,
+     date or account of an entry clears both — it no longer says what the
+     statement said. */
+  reconciledId: uuid('reconciled_id').references((): AnyPgColumn => reconciliation.id, { onDelete: 'set null' }),
+  counterReconciledId: uuid('counter_reconciled_id').references((): AnyPgColumn => reconciliation.id, { onDelete: 'set null' }),
 }, (t) => [
   uniqueIndex('txn_client_ref').on(t.householdId, t.clientRef)
     .where(sql`${t.clientRef} IS NOT NULL`),
@@ -427,7 +439,7 @@ export const txn = pgTable('txn', {
      category it wears. The txn_category_shape trigger holds it to transfers
      into a person's account, which is the only case that means anything. */
   check('moves_carry_no_category', sql`
-    ${t.kind} NOT IN ('card_payment','claim_receipt') OR ${t.categoryId} IS NULL`),
+    ${t.kind} NOT IN ('card_payment','claim_receipt','adjust_in','adjust_out') OR ${t.categoryId} IS NULL`),
   check('no_self_transfer', sql`
     ${t.counterAccountId} IS NULL OR ${t.counterAccountId} <> ${t.accountId}`),
   /* An entry in a currency other than the household's own must carry a rate
@@ -629,3 +641,24 @@ export const rateLimit = pgTable('rate_limit', {
   windowStart: timestamp('window_start', { withTimezone: true }).notNull().defaultNow(),
   hits: integer('hits').notNull().default(1),
 });
+
+/* A statement, matched. On `statement_on` the bank or card said the account
+   held `statement_balance` (signed as balances are: a card that owes is
+   negative), and every entry ticked off against it carries this id on the
+   side that touches the account. Whatever did not match was either added as
+   a real entry or recorded as one adjustment (`adjustment_txn_id`), so a
+   finished reconciliation always balances to the paisa. Undoing the latest
+   one clears the ticks and deletes its adjustment. */
+export const reconciliation = pgTable('reconciliation', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  householdId: uuid('household_id').notNull().references(() => household.id, { onDelete: 'cascade' }),
+  accountId: uuid('account_id').notNull().references(() => account.id, { onDelete: 'cascade' }),
+  statementOn: date('statement_on').notNull(),
+  statementBalance: bigint('statement_balance', { mode: 'number' }).notNull(),
+  adjustmentTxnId: uuid('adjustment_txn_id').references((): AnyPgColumn => txn.id, { onDelete: 'set null' }),
+  createdBy: uuid('created_by').references(() => appUser.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  index('reconciliation_account').on(t.accountId, t.statementOn),
+  index('reconciliation_household').on(t.householdId),
+]);

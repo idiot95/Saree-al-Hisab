@@ -27,10 +27,10 @@ SELECT a.id,
          CASE
            -- money leaving this account
            WHEN t.account_id = a.id
-                AND t.kind IN ('expense', 'transfer', 'card_payment') THEN -t.amount
+                AND t.kind IN ('expense', 'transfer', 'card_payment', 'adjust_out') THEN -t.amount
            -- money arriving in this account
            WHEN t.account_id = a.id
-                AND t.kind IN ('income', 'claim_receipt', 'refund')   THEN  t.amount
+                AND t.kind IN ('income', 'claim_receipt', 'refund', 'adjust_in') THEN  t.amount
            -- the far side of a move: a transfer or a bill payment landing here
            WHEN t.counter_account_id = a.id                            THEN  t.amount
            ELSE 0

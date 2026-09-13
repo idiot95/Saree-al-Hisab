@@ -22,7 +22,7 @@ export type Row = {
 };
 
 const MOVES = new Set(['transfer', 'card_payment']);
-const INCOMING = new Set(['income', 'claim_receipt', 'refund']);
+const INCOMING = new Set(['income', 'claim_receipt', 'refund', 'adjust_in']);
 
 /* The month's entries, a card per day. Tap a row to open it; swipe it left
    for Edit and Delete, and all the way across to delete in one move. Delete

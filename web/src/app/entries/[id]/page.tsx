@@ -17,14 +17,23 @@ export const dynamic = 'force-dynamic';
 const KIND = {
   expense: 'Expense', income: 'Income', transfer: 'Transfer',
   card_payment: 'Card payment', claim_receipt: 'Money back', refund: 'Refund',
+  adjust_in: 'Balance adjustment', adjust_out: 'Balance adjustment',
 } as Record<string, string>;
 
-export default async function Entry({ params }: { params: Promise<{ id: string }> }) {
+/* Where Back and Save return to: the screen the entry was opened from, when it
+   is one of ours. A tab's entry goes back to its tab, not to Entries. */
+const FROM = /^\/(?:|entries|accounts|people|tab\/[0-9a-f-]{36}|people\/[0-9a-f-]{36})$/;
+
+export default async function Entry({ params, searchParams }: {
+  params: Promise<{ id: string }>; searchParams: Promise<{ from?: string }>;
+}) {
   const actor = await actorOrNull();
   if (!actor) redirect('/signin');
   if (!actor.household_id) redirect('/no-household');
 
   const { id } = await params;
+  const { from } = await searchParams;
+  const back = from && FROM.test(from) ? from : '/entries';
   if (!/^[0-9a-f-]{36}$/.test(id)) notFound();
 
   const entry = await entryById(actor.household_id, id);
@@ -50,7 +59,7 @@ export default async function Entry({ params }: { params: Promise<{ id: string }
           background: headerBg('indigo'), color: '#fff', borderRadius: '0 0 26px 26px',
           padding: '18px var(--gutter) 22px', display: 'flex', flexDirection: 'column', gap: 10,
         }}>
-          <Link transitionTypes={['nav-back']} href="/entries" aria-label="Back to entries" style={{
+          <Link transitionTypes={['nav-back']} href={back} aria-label="Back" style={{
             width: 44, height: 44, marginLeft: -11, borderRadius: 999, display: 'flex',
             alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,.92)',
           }}>
@@ -78,7 +87,9 @@ export default async function Entry({ params }: { params: Promise<{ id: string }
               payment_method_id: entry.payment_method_id,
               counts_as_spend: entry.counts_as_spend,
               owed: entry.kind === 'expense' && (!!entry.book_id || claims.length > 0),
+              reconciled_on: entry.reconciled_on,
             }}
+            back={back}
             categories={cats}
             ways={ways}
             canEdit={actor.role !== 'viewer'}

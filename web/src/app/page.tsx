@@ -16,6 +16,7 @@ import MonthSoFar from './MonthSoFar';
 import TabBar from './TabBar';
 import { TAB_BAR_SPACE } from './tabs';
 import Screen from './Screen';
+import SavedSnack from './SavedSnack';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,11 +26,12 @@ const ROLE = { owner: 'Owner', adult: 'Contributing member', viewer: 'Viewer' } 
    the way. Everything else is a way to somewhere else, so it is small, and the
    setup checklist is one line rather than the tall card that used to push the
    answer below the fold. */
-export default async function Home() {
+export default async function Home({ searchParams }: { searchParams: Promise<{ saved?: string }> }) {
   const actor = await actorOrNull();
   if (!actor) redirect('/signin');
   if (!actor.household_id) redirect('/no-household');
 
+  const { saved } = await searchParams;
   const name = actor.household_name;
   const month = monthKey(new Date());
   const hh = actor.household_id;
@@ -219,6 +221,7 @@ export default async function Home() {
             <Tile href="/guide" icon="book" tint="neutral" label="How it works" note="A walkthrough" />
           </nav>
         </div>
+        {saved && /^[0-9a-f-]{36}$/.test(saved) && <SavedSnack id={saved} />}
         <TabBar current="/" />
       </main>
     </Screen>

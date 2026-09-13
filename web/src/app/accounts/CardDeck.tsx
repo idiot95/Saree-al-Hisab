@@ -152,6 +152,17 @@ function CardBlock({ card, canWrite }: { card: CardInfo; canWrite: boolean }) {
             <Icon name="pencil" size={16} strokeWidth={2} />
             Edit
           </button>
+          <Link href={`/accounts/${account.id}/reconcile`} transitionTypes={['nav-forward']}
+            aria-label={`Reconcile ${account.name} with its statement`}
+            style={{
+              flex: 'none', minHeight: 46, padding: '0 14px', borderRadius: 13,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+              fontSize: 'var(--step--1)', fontWeight: 600, textDecoration: 'none',
+              background: 'var(--c-sunk)', color: 'var(--c-ink)',
+            }}>
+            <Icon name="check" size={16} strokeWidth={2.2} />
+            Match
+          </Link>
         </div>
       )}
     </div>
