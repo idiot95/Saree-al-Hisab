@@ -1,7 +1,8 @@
-import Link from 'next/link';
+import Link from '@/app/NavLink';
 import { Chip } from '../Icon';
 import { redirect } from 'next/navigation';
 import { actorOrNull, categoryTrend, monthlySeries, receiptsByMonth, tabList } from '@/db/queries';
+import { withHousehold } from '@/db/client';
 import { tabTint } from '../tab/look';
 import { format, monthKey } from '@/lib/money';
 import { headerBg } from '../auth-ui';
@@ -20,12 +21,13 @@ export default async function Trends() {
   if (!actor.household_id) redirect('/no-household');
 
   const month = monthKey(new Date());
-  const [series, cats, tabs, receipts] = await Promise.all([
-    monthlySeries(actor.household_id, 6),
-    categoryTrend(actor.household_id, month),
-    tabList(actor.household_id),
-    receiptsByMonth(actor.household_id, 6),
-  ]);
+  const hh = actor.household_id;
+  const [series, cats, tabs, receipts] = await withHousehold(hh, () => Promise.all([
+    monthlySeries(hh, 6),
+    categoryTrend(hh, month),
+    tabList(hh),
+    receiptsByMonth(hh, 6),
+  ]));
 
   /* What is owed, by TAB and never by person: a tab is how the household
      thinks of the money ("the Dubai trip"), and a tab with nobody named on it

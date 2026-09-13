@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import Link from '@/app/NavLink';
 import { useRouter } from 'next/navigation';
 import { useCallback, useState, useTransition } from 'react';
 import { Chip } from '../Icon';

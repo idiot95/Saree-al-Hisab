@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/app/NavLink';
 import { Chip } from './Icon';
 import { format } from '@/lib/money';
 

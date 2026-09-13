@@ -1,6 +1,7 @@
-import Link from 'next/link';
+import Link from '@/app/NavLink';
 import { redirect } from 'next/navigation';
 import { actorOrNull, budgetFor, entriesFor, monthTotals } from '@/db/queries';
+import { withHousehold } from '@/db/client';
 import { format, monthKey } from '@/lib/money';
 import { headerBg } from '../auth-ui';
 import TabBar from '../TabBar';
@@ -32,11 +33,12 @@ export default async function Entries({ searchParams }: {
   const month = m && MONTH.test(m) ? m : monthKey(new Date());
   const categoryId = c && /^[0-9a-f-]{36}$/.test(c) ? c : null;
 
-  const [entries, categories, totals] = await Promise.all([
-    entriesFor(actor.household_id, month, categoryId),
-    budgetFor(actor.household_id, month),
-    monthTotals(actor.household_id, month),
-  ]);
+  const hh = actor.household_id;
+  const [entries, categories, totals] = await withHousehold(hh, () => Promise.all([
+    entriesFor(hh, month, categoryId),
+    budgetFor(hh, month),
+    monthTotals(hh, month),
+  ]));
   const filtered = categories.find((x) => x.category_id === categoryId)
     ?? categories.flatMap((x) => x.kids.map((k) => ({ ...k, name: `${x.name} › ${k.name}` })))
       .find((k) => k.id === categoryId);

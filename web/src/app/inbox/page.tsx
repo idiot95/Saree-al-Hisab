@@ -1,6 +1,7 @@
-import Link from 'next/link';
+import Link from '@/app/NavLink';
 import { redirect } from 'next/navigation';
 import { actorOrNull, billsDue, duplicatesFor, schedulesFor } from '@/db/queries';
+import { withHousehold } from '@/db/client';
 import { outstandingDues, ruleOf } from '@/lib/recur';
 import { format } from '@/lib/money';
 import { headerBg } from '../auth-ui';
@@ -23,11 +24,12 @@ export default async function Inbox() {
   if (!actor) redirect('/signin');
   if (!actor.household_id) redirect('/no-household');
 
-  const [dupes, bills, schedules] = await Promise.all([
-    duplicatesFor(actor.household_id),
-    billsDue(actor.household_id),
-    schedulesFor(actor.household_id),
-  ]);
+  const hh = actor.household_id;
+  const [dupes, bills, schedules] = await withHousehold(hh, () => Promise.all([
+    duplicatesFor(hh),
+    billsDue(hh),
+    schedulesFor(hh),
+  ]));
   const canWrite = actor.role !== 'viewer';
   const now = new Date();
   const dues = outstandingDues(schedules, now, 7);

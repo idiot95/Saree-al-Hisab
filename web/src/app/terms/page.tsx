@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/app/NavLink';
 import { actorOrNull } from '@/db/queries';
 import { headerBg } from '../auth-ui';
 import Screen from '../Screen';

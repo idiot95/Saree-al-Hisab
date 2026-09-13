@@ -1,9 +1,10 @@
-import Link from 'next/link';
+import Link from '@/app/NavLink';
 import { Icon } from '../../Icon';
 import { notFound, redirect } from 'next/navigation';
 import {
   actorOrNull, attachmentsFor, categoriesFor, claimsOnEntry, entryById, peopleFor,
 } from '@/db/queries';
+import { withHousehold } from '@/db/client';
 import { waysToPay } from '@/db/payment';
 import { headerBg } from '../../auth-ui';
 import EditEntry from './EditEntry';
@@ -29,13 +30,14 @@ export default async function Entry({ params }: { params: Promise<{ id: string }
   const entry = await entryById(actor.household_id, id);
   if (!entry) notFound();
 
-  const [cats, ways, people, claims, bills] = await Promise.all([
-    categoriesFor(actor.household_id),
-    waysToPay(actor.household_id),
-    peopleFor(actor.household_id),
-    claimsOnEntry(actor.household_id, entry.id),
-    attachmentsFor(actor.household_id, entry.id),
-  ]);
+  const hh = actor.household_id;
+  const [cats, ways, people, claims, bills] = await withHousehold(hh, () => Promise.all([
+    categoriesFor(hh),
+    waysToPay(hh),
+    peopleFor(hh),
+    claimsOnEntry(hh, entry.id),
+    attachmentsFor(hh, entry.id),
+  ]));
 
   const recorded = new Date(entry.created_at).toLocaleDateString('en-IN', {
     day: 'numeric', month: 'short', year: 'numeric',

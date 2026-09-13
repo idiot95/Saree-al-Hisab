@@ -1,6 +1,7 @@
-import Link from 'next/link';
+import Link from '@/app/NavLink';
 import { redirect } from 'next/navigation';
 import { actorOrNull, categoriesFor, schedulesFor, tabsForEntry, type ScheduleRow } from '@/db/queries';
+import { withHousehold } from '@/db/client';
 import { waysToPay } from '@/db/payment';
 import { format } from '@/lib/money';
 import { daysBetween, describeRule, isFinished, nextUnsettled, outstandingDues, parseRule, ruleOf } from '@/lib/recur';
@@ -23,12 +24,13 @@ export default async function Schedules() {
   if (!actor) redirect('/signin');
   if (!actor.household_id) redirect('/no-household');
 
-  const [schedules, ways, cats, tabs] = await Promise.all([
-    schedulesFor(actor.household_id),
-    waysToPay(actor.household_id),
-    categoriesFor(actor.household_id),
-    tabsForEntry(actor.household_id),
-  ]);
+  const hh = actor.household_id;
+  const [schedules, ways, cats, tabs] = await withHousehold(hh, () => Promise.all([
+    schedulesFor(hh),
+    waysToPay(hh),
+    categoriesFor(hh),
+    tabsForEntry(hh),
+  ]));
   const canWrite = actor.role !== 'viewer';
   const today = new Date();
   const dues = outstandingDues(schedules, today, 14);

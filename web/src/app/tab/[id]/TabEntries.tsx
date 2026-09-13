@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import Link from '@/app/NavLink';
 import { useCallback, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import SwipeRow, { type SwipeAction } from '../../SwipeRow';

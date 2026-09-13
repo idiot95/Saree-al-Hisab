@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import Link from '@/app/NavLink';
 import { useCallback, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { Icon } from '../Icon';
 import Sheet from '../Sheet';

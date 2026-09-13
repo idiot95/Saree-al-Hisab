@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import Link from 'next/link';
+import Link from '@/app/NavLink';
 import { haptic } from './haptics';
 import { useMoney } from '@/app/currency';
 import { Chip } from './Icon';

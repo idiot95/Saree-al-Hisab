@@ -1,8 +1,9 @@
-import Link from 'next/link';
+import Link from '@/app/NavLink';
 import { notFound, redirect } from 'next/navigation';
 import {
   actorOrNull, attachmentsForTxns, categoriesFor, claimsFor, personById, personLedger,
 } from '@/db/queries';
+import { withHousehold } from '@/db/client';
 import { waysToPay } from '@/db/payment';
 import { format } from '@/lib/money';
 import { headerBg } from '../../auth-ui';
@@ -32,12 +33,13 @@ export default async function Person({ params }: { params: Promise<{ id: string 
   const person = await personById(actor.household_id, id);
   if (!person) notFound();
 
-  const [ledger, ways, cats, claims] = await Promise.all([
-    personLedger(actor.household_id, person.account_id),
-    waysToPay(actor.household_id),
-    categoriesFor(actor.household_id),
-    claimsFor(actor.household_id, person.id),
-  ]);
+  const hh = actor.household_id;
+  const [ledger, ways, cats, claims] = await withHousehold(hh, () => Promise.all([
+    personLedger(hh, person.account_id),
+    waysToPay(hh),
+    categoriesFor(hh),
+    claimsFor(hh, person.id),
+  ]));
   /* The bills behind whatever is still owed, so a reminder can carry the
      evidence. Only the open ones: a settled claim needs no chasing. */
   const bills = await attachmentsForTxns(

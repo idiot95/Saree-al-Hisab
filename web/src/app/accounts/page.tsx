@@ -1,9 +1,10 @@
-import Link from 'next/link';
+import Link from '@/app/NavLink';
 import { redirect } from 'next/navigation';
 import { Chip, RAIL_ICON, RAIL_TINT, ACCOUNT_ICON, ACCOUNT_TINT } from '../Icon';
 import {
   actorOrNull, accountsWithBalances, methodsWithFunding, openCyclesFor,
 } from '@/db/queries';
+import { withHousehold } from '@/db/client';
 import { format } from '@/lib/money';
 import { headerBg } from '../auth-ui';
 import TabBar from '../TabBar';
@@ -29,11 +30,12 @@ export default async function Accounts() {
   if (!actor.household_id) redirect('/no-household');
 
   const name = actor.household_name;
-  const [accounts, methods, cycles] = await Promise.all([
-    accountsWithBalances(actor.household_id),
-    methodsWithFunding(actor.household_id),
-    openCyclesFor(actor.household_id),
-  ]);
+  const hh = actor.household_id;
+  const [accounts, methods, cycles] = await withHousehold(hh, () => Promise.all([
+    accountsWithBalances(hh),
+    methodsWithFunding(hh),
+    openCyclesFor(hh),
+  ]));
 
   const canWrite = actor.role !== 'viewer';
   const holdings = accounts.filter((a) => a.kind !== 'credit');

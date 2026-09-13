@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import Link from '@/app/NavLink';
 import { usePathname } from 'next/navigation';
 import { useCallback, useState } from 'react';
 import AddOptions from './AddOptions';

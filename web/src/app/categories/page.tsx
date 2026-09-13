@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/app/NavLink';
 import { redirect } from 'next/navigation';
 import { actorOrNull, allCategories } from '@/db/queries';
 import { headerBg } from '../auth-ui';

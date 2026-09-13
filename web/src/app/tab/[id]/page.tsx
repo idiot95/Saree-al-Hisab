@@ -1,8 +1,9 @@
-import Link from 'next/link';
+import Link from '@/app/NavLink';
 import { notFound, redirect } from 'next/navigation';
 import {
   actorOrNull, attachmentsForTxns, openClaimsFor, peopleForTab, tabById, tabEntries,
 } from '@/db/queries';
+import { withHousehold } from '@/db/client';
 import { waysToPay } from '@/db/payment';
 import { format } from '@/lib/money';
 import { headerBg } from '../../auth-ui';
@@ -41,15 +42,17 @@ export default async function Tab({ params, searchParams }: {
   if (!UUID.test(id)) notFound();
   const q = await searchParams;
 
-  const tab = await tabById(actor.household_id, id);
+  /* One transaction for the whole screen: every query below shares it, rather
+     than each opening, scoping and committing its own. */
+  const hh = actor.household_id;
+  const { tab, people, entries, ways, open, bills } = await withHousehold(hh, async () => {
+    const [tab, people, entries, ways, open] = await Promise.all([
+      tabById(hh, id), peopleForTab(hh, id), tabEntries(hh, id), waysToPay(hh), openClaimsFor(hh, id),
+    ]);
+    const bills = tab ? await attachmentsForTxns(hh, entries.map((e) => e.id)) : [];
+    return { tab, people, entries, ways, open, bills };
+  });
   if (!tab) notFound();
-  const [people, entries, ways, open] = await Promise.all([
-    peopleForTab(actor.household_id, tab.id),
-    tabEntries(actor.household_id, tab.id),
-    waysToPay(actor.household_id),
-    openClaimsFor(actor.household_id, tab.id),
-  ]);
-  const bills = await attachmentsForTxns(actor.household_id, entries.map((e) => e.id));
 
   const outstanding = Number(tab.outstanding);
   const back = Number(tab.back);

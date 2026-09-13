@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import Link from '@/app/NavLink';
 import { useActionState, useState } from 'react';
 import { Field, ErrorNote } from '../../auth-ui';
 import { settleClaim, abandonClaim } from '../actions';

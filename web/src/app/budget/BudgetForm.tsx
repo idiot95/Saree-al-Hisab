@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import Link from '@/app/NavLink';
 import { Chip, tintOf } from '../Icon';
 import { useActionState, useEffect, useState } from 'react';
 import { ErrorNote } from '../auth-ui';

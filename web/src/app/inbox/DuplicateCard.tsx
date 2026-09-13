@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import Link from '@/app/NavLink';
 import { useActionState } from 'react';
 import { notDuplicate, dropDuplicate } from './actions';
 import { useMoney } from '@/app/currency';

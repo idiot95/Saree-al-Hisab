@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import AddEntry from './AddEntry';
 import { actorOrNull, categoriesFor, tabsForEntry, openClaimsFor } from '@/db/queries';
+import { withHousehold } from '@/db/client';
 import { waysToPay } from '@/db/payment';
 import Screen from '../Screen';
 
@@ -15,12 +16,12 @@ export default async function Page({ searchParams }: {
   if (!actor) redirect('/signin');
   if (!actor.household_id) redirect('/no-household');
   const household_id = actor.household_id;
-  const [categories, ways, tabs, claims] = await Promise.all([
+  const [categories, ways, tabs, claims] = await withHousehold(household_id, () => Promise.all([
     categoriesFor(household_id),
     waysToPay(household_id),
     tabsForEntry(household_id),
     openClaimsFor(household_id),
-  ]);
+  ]));
   const today = new Date().toISOString().slice(0, 10);
 
   /* A draft handed over from a scan. Every value is re-checked here: it

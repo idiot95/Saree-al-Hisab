@@ -1,6 +1,7 @@
-import Link from 'next/link';
+import Link from '@/app/NavLink';
 import { redirect } from 'next/navigation';
 import { actorOrNull, claimsFor, peopleFor, receiptsByMonth, tabList, type TabRow } from '@/db/queries';
+import { withHousehold } from '@/db/client';
 import { format } from '@/lib/money';
 import { headerBg } from '../auth-ui';
 import TabBar from '../TabBar';
@@ -33,12 +34,13 @@ export default async function LoanCentre() {
   if (!actor) redirect('/signin');
   if (!actor.household_id) redirect('/no-household');
 
-  const [tabs, people, claims, receipts] = await Promise.all([
-    tabList(actor.household_id),
-    peopleFor(actor.household_id),
-    claimsFor(actor.household_id),
-    receiptsByMonth(actor.household_id, 1),
-  ]);
+  const hh = actor.household_id;
+  const [tabs, people, claims, receipts] = await withHousehold(hh, () => Promise.all([
+    tabList(hh),
+    peopleFor(hh),
+    claimsFor(hh),
+    receiptsByMonth(hh, 1),
+  ]));
   const canWrite = actor.role !== 'viewer';
 
   const onClaims = claims

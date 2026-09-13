@@ -1,9 +1,10 @@
-import Link from 'next/link';
+import Link from '@/app/NavLink';
 import { redirect } from 'next/navigation';
 import {
   actorOrNull, allBalances, budgetFor, claimsFor, inboxCount, monthTotals, peopleFor,
   schedulesFor, setupProgress, tabList, worthSeries,
 } from '@/db/queries';
+import { withHousehold } from '@/db/client';
 import { format, monthKey } from '@/lib/money';
 import { outstandingDues, ruleOf } from '@/lib/recur';
 import DueRow from './schedules/DueRow';
@@ -31,18 +32,19 @@ export default async function Home() {
 
   const name = actor.household_name;
   const month = monthKey(new Date());
-  const [progress, totals, rows, people, inbox, schedules, worth, claims, balances, tabs] = await Promise.all([
-    setupProgress(actor.household_id),
-    monthTotals(actor.household_id, month),
-    budgetFor(actor.household_id, month),
-    peopleFor(actor.household_id),
-    inboxCount(actor.household_id),
-    schedulesFor(actor.household_id),
-    worthSeries(actor.household_id, 6),
-    claimsFor(actor.household_id),
-    allBalances(actor.household_id),
-    tabList(actor.household_id),
-  ]);
+  const hh = actor.household_id;
+  const [progress, totals, rows, people, inbox, schedules, worth, claims, balances, tabs] = await withHousehold(hh, () => Promise.all([
+    setupProgress(hh),
+    monthTotals(hh, month),
+    budgetFor(hh, month),
+    peopleFor(hh),
+    inboxCount(hh),
+    schedulesFor(hh),
+    worthSeries(hh, 6),
+    claimsFor(hh),
+    allBalances(hh),
+    tabList(hh),
+  ]));
 
   const budget = Number(totals.budget);
   const spent = Number(totals.spent);

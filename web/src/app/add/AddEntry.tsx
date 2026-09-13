@@ -5,7 +5,7 @@ import { Icon, tintOf } from '../Icon';
 import { defaultRef, findRef, payLabel, pickWay, type Way } from '@/lib/pay';
 import PayPicker, { CHIP, CHIP_TEXT, TILE_GRID, WayTile, describe } from '../PayPicker';
 import { HEADER_BG } from '../auth-ui';
-import Link from 'next/link';
+import Link from '@/app/NavLink';
 import { useRouter } from 'next/navigation';
 import { DateChips } from '../DatePick';
 import { friendlyDay } from '@/lib/recur';

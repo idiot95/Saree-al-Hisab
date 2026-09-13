@@ -1,8 +1,9 @@
-import Link from 'next/link';
+import Link from '@/app/NavLink';
 import { cookies, headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { signOut } from '@/auth';
 import { actorOrNull, entryCount, membersOf, openInvitesOf, scanningState } from '@/db/queries';
+import { withHousehold } from '@/db/client';
 import { householdsOf } from '@/db/membership';
 import InviteForm from './InviteForm';
 import MemberRow from './MemberRow';
@@ -34,13 +35,14 @@ export default async function Household() {
   if (!actor.household_id) redirect('/no-household');
 
   const name = actor.household_name;
-  const [members, invites, books, scanning, entries] = await Promise.all([
-    membersOf(actor.household_id),
-    openInvitesOf(actor.household_id),
+  const hh = actor.household_id;
+  const [members, invites, books, scanning, entries] = await withHousehold(hh, () => Promise.all([
+    membersOf(hh),
+    openInvitesOf(hh),
     householdsOf(actor.user_id),
-    scanningState(actor.household_id),
-    entryCount(actor.household_id),
-  ]);
+    scanningState(hh),
+    entryCount(hh),
+  ]));
   const canManage = actor.role === 'owner';
   const h = await headers();
   const origin = `${h.get('x-forwarded-proto') ?? 'http'}://${h.get('host')}`;

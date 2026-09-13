@@ -1,8 +1,9 @@
-import Link from 'next/link';
+import Link from '@/app/NavLink';
 import { redirect } from 'next/navigation';
 import {
   actorOrNull, budgetFor, budgetLinesFor, budgetSetsFor, categoriesFor, monthTotals, previousBudget,
 } from '@/db/queries';
+import { withHousehold } from '@/db/client';
 import { format, monthKey } from '@/lib/money';
 import { headerBg } from '../auth-ui';
 import TabBar from '../TabBar';
@@ -34,14 +35,15 @@ export default async function Budget({ searchParams }: {
   const { m } = await searchParams;
   const month = m && MONTH.test(m) ? m : monthKey(new Date());
 
-  const [rows, totals, previous, sets, cats, lines] = await Promise.all([
-    budgetFor(actor.household_id, month),
-    monthTotals(actor.household_id, month),
-    previousBudget(actor.household_id, month),
-    budgetSetsFor(actor.household_id),
-    categoriesFor(actor.household_id),
-    budgetLinesFor(actor.household_id),
-  ]);
+  const hh = actor.household_id;
+  const [rows, totals, previous, sets, cats, lines] = await withHousehold(hh, () => Promise.all([
+    budgetFor(hh, month),
+    monthTotals(hh, month),
+    previousBudget(hh, month),
+    budgetSetsFor(hh),
+    categoriesFor(hh),
+    budgetLinesFor(hh),
+  ]));
 
   const budget = Number(totals.budget);
   const spent = Number(totals.spent);

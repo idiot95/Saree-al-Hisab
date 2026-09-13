@@ -1,7 +1,8 @@
-import Link from 'next/link';
+import Link from '@/app/NavLink';
 import { Chip, ACCOUNT_ICON, ACCOUNT_TINT } from '../Icon';
 import { redirect } from 'next/navigation';
 import { actorOrNull, allBalances, owedByPerson, tabHeldOwed, worthSeries } from '@/db/queries';
+import { withHousehold } from '@/db/client';
 import { format } from '@/lib/money';
 import { headerBg } from '../auth-ui';
 import TabBar from '../TabBar';
@@ -21,12 +22,13 @@ export default async function Worth() {
   if (!actor) redirect('/signin');
   if (!actor.household_id) redirect('/no-household');
 
-  const [accounts, owed, series, held] = await Promise.all([
-    allBalances(actor.household_id),
-    owedByPerson(actor.household_id),
-    worthSeries(actor.household_id, 6),
-    tabHeldOwed(actor.household_id),
-  ]);
+  const hh = actor.household_id;
+  const [accounts, owed, series, held] = await withHousehold(hh, () => Promise.all([
+    allBalances(hh),
+    owedByPerson(hh),
+    worthSeries(hh, 6),
+    tabHeldOwed(hh),
+  ]));
 
   /* Three figures, and the headline is their sum.
 
