@@ -1,0 +1,123 @@
+{
+  "artboards": [
+    {
+      "file": "Main.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "Loan centre — tabs lead"
+    },
+    {
+      "file": "NewTab.dc.html",
+      "x": 470,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "New tab — name and contacts optional"
+    },
+    {
+      "file": "Tab.dc.html",
+      "x": 940,
+      "y": 0,
+      "w": 390,
+      "h": 900,
+      "title": "A tab — entries swipe"
+    },
+    {
+      "file": "AttachBill.dc.html",
+      "x": 1410,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "Right after saving a cost"
+    },
+    {
+      "file": "Remind.dc.html",
+      "x": 1880,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "Remind, with the bill"
+    },
+    {
+      "file": "SwipeActions.dc.html",
+      "x": 0,
+      "y": 1400,
+      "w": 390,
+      "h": 900,
+      "title": "Swipe: Remind · Bill · Delete"
+    },
+    {
+      "file": "HomeLoanCard.dc.html",
+      "x": 470,
+      "y": 1400,
+      "w": 390,
+      "h": 430,
+      "title": "Home — the roll-up"
+    },
+    {
+      "file": "TrendsByTab.dc.html",
+      "x": 940,
+      "y": 1400,
+      "w": 390,
+      "h": 740,
+      "title": "Trends — by tab, not by person"
+    },
+    {
+      "file": "LoanCentreFolders.dc.html",
+      "x": 1410,
+      "y": 1400,
+      "w": 390,
+      "h": 844,
+      "title": "Option B — tabs as folder tiles"
+    }
+  ],
+  "annotations": [
+    {
+      "id": "model",
+      "x": 0,
+      "y": -330,
+      "w": 390,
+      "text": "THE MODEL\nA tab is a folder. It holds costs and money back, and it has a name if you give it one.\nContacts are optional labels on a tab, picked from the phone book. There is no People list to keep and no Add person screen — the People and Settled sections on today’s Lending page go away."
+    },
+    {
+      "id": "rollup",
+      "x": 470,
+      "y": -330,
+      "w": 390,
+      "text": "WHAT COUNTS\nEvery cost on an open tab adds to Owed to you, whether or not anyone is named on it. Today a tab with nobody on it raises no claim, so it never reaches the total — that has to change underneath (a claim held by the tab itself).\nNo name typed? The tab takes its contacts’ names, or the first cost’s."
+    },
+    {
+      "id": "iphone",
+      "x": 940,
+      "y": -330,
+      "w": 390,
+      "text": "IPHONE\nSafari has no contact picker. On an iPhone the Contacts button is not there, so typing a name stays the way in. A typed name is still only a label on the tab."
+    },
+    {
+      "id": "bill",
+      "x": 1410,
+      "y": -330,
+      "w": 390,
+      "text": "BILLS AND REMINDERS\nAttaching is offered the moment a cost is saved, and any time after from the swipe. Remind uses the share sheet and carries the bill, as the person page already does. When nobody is named, Remind opens the share sheet with the message and no names."
+    },
+    {
+      "id": "swipe",
+      "x": 0,
+      "y": 1210,
+      "w": 390,
+      "text": "SWIPE\nThe same SwipeRow as Budgets: commit off, so a long swipe never deletes. Delete undoes for 15 minutes. A tab row on the Loan centre swipes to Remind · Add cost."
+    },
+    {
+      "id": "optb",
+      "x": 1410,
+      "y": 1210,
+      "w": 390,
+      "text": "OPTION B — FOLDER TILES\nFor: reads most like folders, and each tab gets more room.\nAgainst: amounts no longer share one right edge, and past about six tabs you scroll a grid, and a tile cannot swipe, so Remind and Add cost move inside the tab. The list (Main) is the recommendation."
+    }
+  ],
+  "launch": {
+    "view": "canvas"
+  }
+}

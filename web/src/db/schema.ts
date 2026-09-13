@@ -459,7 +459,12 @@ export const txn = pgTable('txn', {
 export const claim = pgTable('claim', {
   id: uuid('id').primaryKey().defaultRandom(),
   householdId: uuid('household_id').notNull().references(() => household.id, { onDelete: 'cascade' }),
-  counterpartyId: uuid('counterparty_id').notNull().references(() => counterparty.id, { onDelete: 'cascade' }),
+  /* Who owes it. NULL is a claim the tab holds itself — a cost on a tab with
+     nobody named on it, which is still money you expect back (the office,
+     the insurer, the trip before you know who is coming) and so still counts
+     in what you are owed. Only an entry filed under a tab may carry one; the
+     claim_holder_shape trigger in 0106 holds that. */
+  counterpartyId: uuid('counterparty_id').references(() => counterparty.id, { onDelete: 'cascade' }),
   // The expense this is a claim on. Delete the entry and the claim goes too:
   // there is nothing left to be owed for.
   txnId: uuid('txn_id').notNull().references(() => txn.id, { onDelete: 'cascade' }),
@@ -473,6 +478,8 @@ export const claim = pgTable('claim', {
   index('claim_household').on(t.householdId),
   index('claim_counterparty').on(t.counterpartyId),
   uniqueIndex('claim_one_per_person_per_entry').on(t.txnId, t.counterpartyId),
+  // NULLs are distinct in a unique index, so the tab's own claim needs its own.
+  uniqueIndex('claim_one_held_by_tab_per_entry').on(t.txnId).where(sql`${t.counterpartyId} is null`),
   check('claim_amount_positive', sql`${t.expectedAmount} > 0`),
 ]);
 

@@ -49,20 +49,34 @@ export async function createTab(_prev: Result | null, fd: FormData): Promise<Res
     const named = readNames(fd.getAll('newName').map(String), fd.getAll('newPhone').map(String));
     if (!named) return { ok: false, error: 'Names are between 2 and 60 characters.' };
 
-    /* A tab for one person can go without a name of its own: "Fatema" is what
-       you would have typed anyway. */
-    if (name.length === 0) {
-      const only = people.length + named.length === 1 ? (people[0]?.name ?? named[0]?.name) : null;
-      if (!only) return { ok: false, error: 'Give the tab a name.' };
-      name = only;
+    /* The name is optional. Left blank, the tab is named after whoever is on
+       it — "Fatema", "Ahmed & Sara" — which is what you would have typed
+       anyway; with nobody on it either, after the day it was opened. A name
+       that is only a default steps aside for a clash ("Ahmed 2") rather than
+       refusing a form nobody typed a name into. */
+    const typed = name.length > 0;
+    if (!typed) {
+      const who = [...people.map((p) => String(p.name)), ...named.map((p) => p.name)];
+      name = who.length === 0
+        ? `Tab from ${new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}`
+        : who.length === 1 ? who[0]
+        : who.length === 2 ? `${who[0]} & ${who[1]}`
+        : `${who[0]} & ${who.length - 1} others`;
+      name = name.slice(0, 60);
     }
-    if (name.length < 2) return { ok: false, error: 'Give the tab a name.' };
+    if (name.length < 2) return { ok: false, error: 'Use at least 2 characters for the name.' };
     if (name.length > 60) return { ok: false, error: 'Names are 60 characters at most.' };
 
-    const [clash] = await sql`
-      select 1 from ledger_book
-      where household_id = ${actor.household_id} and lower(name) = ${name.toLowerCase()}`;
-    if (clash) return { ok: false, error: 'You already have a tab by that name.' };
+    const taken = new Set((await sql`
+      select lower(name) as n from ledger_book where household_id = ${actor.household_id}`)
+      .map((r) => String(r.n)));
+    if (taken.has(name.toLowerCase())) {
+      if (typed) return { ok: false, error: 'You already have a tab by that name.' };
+      const base = name.slice(0, 56);
+      let n = 2;
+      while (taken.has(`${base} ${n}`.toLowerCase())) n++;
+      name = `${base} ${n}`;
+    }
 
     const [b] = await sql.begin(async (tx) => {
       const [row] = await tx`
@@ -197,8 +211,19 @@ export async function deleteTab(_prev: Result | null, fd: FormData): Promise<Res
   catch (e) { rethrowControlFlow(e); return { ok: false, error: (e as Error).message }; }
   return withHousehold(actor.household_id, async () => {
     const id = String(fd.get('tabId') ?? '');
-    const done = await sql`delete from ledger_book
-      where id = ${id} and household_id = ${actor.household_id} returning id`;
+    if (!UUID.test(id)) return { ok: false, error: 'That tab is not one of yours.' };
+    /* What the tab itself was owed — costs put on it with nobody named — has
+       nobody left to owe it once the tab is gone, so it is written off in the
+       same transaction. People's shares stay: they still owe them. */
+    const done = await sql.begin(async (tx) => {
+      await tx`
+        update claim c set written_off_at = now()
+        from txn t
+        where t.id = c.txn_id and t.book_id = ${id} and c.household_id = ${actor.household_id}
+          and c.counterparty_id is null and c.written_off_at is null`;
+      return tx`delete from ledger_book
+        where id = ${id} and household_id = ${actor.household_id} returning id`;
+    });
     if (!done.length) return { ok: false, error: 'That tab is not one of yours.' };
     revalidatePath('/people');
     revalidatePath('/add');
@@ -234,6 +259,10 @@ export async function settleTab(_prev: Result | null, fd: FormData): Promise<Res
     const paid = await resolvePayment(actor.household_id, String(fd.get('paidWith') ?? ''));
     if (!paid) return { ok: false, error: 'Choose where the money went.' };
 
+    /* Whose money: a person on the tab, or — with no person sent — the tab's
+       own claims, from costs put on it while nobody was named. */
+    if (personId && !UUID.test(personId)) return { ok: false, error: 'That person could not be read.' };
+
     /* Which of their entries: the ones ticked, or all of them. Either way only
        this person's open claims on this tab qualify, whatever ids were sent. */
     const picked = fd.getAll('claimId').map(String).filter((id) => UUID.test(id));
@@ -241,7 +270,8 @@ export async function settleTab(_prev: Result | null, fd: FormData): Promise<Res
       select cs.id, cs.outstanding::bigint
       from claim_state cs
       join txn t on t.id = cs.txn_id and t.deleted_at is null
-      where cs.household_id = ${actor.household_id} and cs.counterparty_id = ${personId}
+      where cs.household_id = ${actor.household_id}
+        and ${personId ? sql`cs.counterparty_id = ${personId}` : sql`cs.counterparty_id is null`}
         and t.book_id = ${b.id} and cs.status in ('open', 'part_paid')
         ${picked.length ? sql`and cs.id = any(${picked}::uuid[])` : sql``}
       order by t.occurred_on, t.created_at`;

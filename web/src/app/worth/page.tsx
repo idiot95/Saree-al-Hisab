@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { Chip, ACCOUNT_ICON, ACCOUNT_TINT } from '../Icon';
 import { redirect } from 'next/navigation';
-import { actorOrNull, allBalances, owedByPerson, worthSeries } from '@/db/queries';
+import { actorOrNull, allBalances, owedByPerson, tabHeldOwed, worthSeries } from '@/db/queries';
 import { format } from '@/lib/money';
 import { headerBg } from '../auth-ui';
 import TabBar from '../TabBar';
@@ -21,10 +21,11 @@ export default async function Worth() {
   if (!actor) redirect('/signin');
   if (!actor.household_id) redirect('/no-household');
 
-  const [accounts, owed, series] = await Promise.all([
+  const [accounts, owed, series, held] = await Promise.all([
     allBalances(actor.household_id),
     owedByPerson(actor.household_id),
     worthSeries(actor.household_id, 6),
+    tabHeldOwed(actor.household_id),
   ]);
 
   /* Three figures, and the headline is their sum.
@@ -35,7 +36,8 @@ export default async function Worth() {
      one of them is simply in someone else's pocket for now, and a household
      that has lent a lot should see that as a line, not have it folded in
      silently. */
-  const claims = owed.reduce((n, o) => n + Number(o.claimed), 0);
+  // Plus what the tabs are owed with nobody named — no person's row carries it.
+  const claims = owed.reduce((n, o) => n + Number(o.claimed), 0) + held;
   const own = accounts.filter((a) => a.kind !== 'person');
   const people = accounts.filter((a) => a.kind === 'person');
   const lent = people.filter((a) => Number(a.balance) > 0);
@@ -154,7 +156,7 @@ export default async function Worth() {
                 margin: '12px 0 0', fontSize: 'var(--step--2)', lineHeight: 1.5, color: 'var(--c-meta)',
               }}>
                 Counted in your net worth: it is your money, in someone else&apos;s pocket for now.
-                Settle up under Lending.
+                Settle up in the Loan centre.
               </p>
             </Section>
           )}

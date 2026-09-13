@@ -449,6 +449,28 @@ const [{ n: sharesLeft }] = await sql`select count(*)::int as n from claim where
 ok(petrolAfter.book_id === null && petrolAfter.deleted_at === null && sharesLeft === 1,
   'deleting the tab takes only the tab — the entry and what is owed for it stay');
 
+/* A tab with nobody named on it still expects the money back — the insurer,
+   the office, the trip before anyone is named — so it holds the claim itself,
+   and that claim counts in what is owed like any person's share. */
+const [insurer] = await sql`insert into ledger_book ${sql({ household_id: hh.id, name: 'Insurer' })} returning id`;
+const [surgery] = await txn({ kind: 'expense', account_id: spend, category_id: cat,
+  amount: 500000, book_id: insurer.id, occurred_on: '2026-09-11' });
+const [heldClaim] = await sql`insert into claim ${sql({ household_id: hh.id, counterparty_id: null,
+  txn_id: surgery.id, kind: 'reimbursement', expected_amount: 500000 })} returning id`;
+const heldOn = async () => Number((await sql`
+  select coalesce(sum(outstanding), 0)::bigint as n from tab_balance
+  where book_id = ${insurer.id} and counterparty_id is null`)[0].n);
+ok(await heldOn() === 500000, 'a cost on a tab with nobody named is owed to the tab itself');
+await refuses('a second claim held by the tab on the same entry is refused',
+  () => sql`insert into claim ${sql({ household_id: hh.id, counterparty_id: null, txn_id: surgery.id, kind: 'reimbursement', expected_amount: 1 })}`);
+const [loose] = await txn({ kind: 'expense', account_id: spend, category_id: cat,
+  amount: 20000, occurred_on: '2026-09-11' });
+await refuses('a claim with nobody named on an entry that is on no tab is refused',
+  () => sql`insert into claim ${sql({ household_id: hh.id, counterparty_id: null, txn_id: loose.id, kind: 'reimbursement', expected_amount: 20000 })}`);
+await sql`insert into txn ${sql({ household_id: hh.id, created_by: user.id, kind: 'claim_receipt',
+  amount: 200000, occurred_on: '2026-09-12', account_id: spend, claim_id: heldClaim.id, currency: 'INR' })}`;
+ok(await heldOn() === 300000, 'money back on the tab brings its own claim down');
+
 console.log('\nSCHEDULES — a salary comes round the way rent does');
 await allows('a schedule can be income',
   () => sql`insert into schedule ${sql({ household_id: hh.id, kind: 'income', name: 'Salary', amount: 12000000,

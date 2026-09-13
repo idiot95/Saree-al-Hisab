@@ -1,21 +1,27 @@
 'use client';
 
-import { useActionState, useState } from 'react';
+import { useActionState, useCallback, useState } from 'react';
 import { Field, ErrorNote } from '../auth-ui';
 import { Icon } from '../Icon';
+import { haptic } from '../haptics';
+import Sheet from '../Sheet';
 import { createTab } from './actions';
 import NewPeople from './NewPeople';
 
-type Person = { id: string; name: string; tint: string };
-
-export default function NewTab({ people }: { people: Person[] }) {
-  const [state, act, pending] = useActionState(createTab, null);
+/* Opening a tab asks for nothing it cannot do without. The name is optional —
+   left blank, the tab is named after whoever is on it — and so are the people:
+   a tab with nobody on it still takes costs and still counts in what you are
+   owed. People come from the phone's address book where the browser has one,
+   or are typed; either way they are only names on this tab, and a name that
+   is already on another tab is the same person, not a second one. */
+export default function NewTab() {
   const [open, setOpen] = useState(false);
-  const [ticked, setTicked] = useState<Set<string>>(() => new Set());
+  const close = useCallback(() => setOpen(false), []);
+  const [state, act, pending] = useActionState(createTab, null);
 
-  if (!open) {
-    return (
-      <button type="button" onClick={() => setOpen(true)} className="el card" style={{
+  return (
+    <>
+      <button type="button" onClick={() => { haptic('select'); setOpen(true); }} className="el card" style={{
         margin: '0 var(--gutter) 22px', width: 'calc(100% - 36px)', minHeight: 56, borderRadius: 16,
         display: 'flex', alignItems: 'center', gap: 11, padding: '0 var(--pad)',
         background: 'var(--c-card)', border: '1px dashed var(--c-dash)',
@@ -26,72 +32,44 @@ export default function NewTab({ people }: { people: Person[] }) {
           alignItems: 'center', justifyContent: 'center',
           background: 'var(--c-sunk)', color: 'var(--c-meta)',
         }}>
-          <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-            strokeWidth={2.2} strokeLinecap="round" aria-hidden><path d="M12 5v14M5 12h14" /></svg>
+          <Icon name="plus" size={16} strokeWidth={2.2} />
         </span>
         New tab
       </button>
-    );
-  }
 
-  return (
-    <form action={act} className="el card" style={{
-      margin: '0 var(--gutter) 22px', background: 'var(--c-card)', borderRadius: 18, padding: 16,
-      display: 'flex', flexDirection: 'column', gap: 13,
-    }}>
-      <Field label="Name" name="name" maxLength={60}
-        placeholder="Office expenses — or leave blank to name it after them" autoFocus />
+      <Sheet open={open} onClose={close} label="New tab">
+        <form action={act} style={{ display: 'flex', flexDirection: 'column', gap: 16, paddingTop: 2 }}>
+          <h2 style={{ fontSize: 'var(--step-2)', fontWeight: 600 }}>New tab</h2>
+          <Field label="Name · optional" name="name" maxLength={60}
+            placeholder="Goa weekend, Office petrol…" autoComplete="off" />
 
-      <fieldset style={{ border: 0, padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
-        <legend style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)', padding: 0, marginBottom: 8 }}>
-          Who owes it back (optional)
-        </legend>
-        {people.length > 0 && <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-          {people.map((p) => {
-            const on = ticked.has(p.id);
-            return (
-              <label key={p.id} style={{
-                minHeight: 44, padding: '0 14px 0 10px', borderRadius: 999, display: 'flex',
-                alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 'var(--step--1)', fontWeight: 600,
-                background: on ? `var(--cat-${p.tint}-ink)` : `var(--cat-${p.tint})`,
-                color: on ? 'var(--c-on-tint)' : `var(--cat-${p.tint}-ink)`,
-                transition: 'background .15s, color .15s',
-              }}>
-                <input type="checkbox" name="counterpartyId" value={p.id} checked={on}
-                  onChange={(e) => setTicked((s) => {
-                    const n = new Set(s);
-                    if (e.target.checked) n.add(p.id); else n.delete(p.id);
-                    return n;
-                  })}
-                  style={{ width: 18, height: 18, margin: 0, accentColor: 'currentColor' }} />
-                {p.name}
-              </label>
-            );
-          })}
-        </div>}
-        <NewPeople known={people.map((p) => p.name)} />
-        <p style={{ margin: 0, fontSize: 'var(--step--2)', lineHeight: 1.45, color: 'var(--c-meta)' }}>
-          {ticked.size === 0
-            ? 'A tab works without anybody on it — it keeps the total for a trip or a project. Name people when you want what goes on it claimed from them; you can add them later.'
-            : `A cost on this tab is owed back by ${ticked.size === 1 ? 'them' : `these ${ticked.size}, in equal shares`}.`}
-        </p>
-      </fieldset>
+          <div role="group" aria-label="Who owes on it" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)' }}>
+              Who owes on it · optional
+            </span>
+            <NewPeople />
+            <p style={{ margin: 0, fontSize: 'var(--step--2)', lineHeight: 1.45, color: 'var(--c-meta)' }}>
+              A cost on this tab splits equally between the people on it. Leave it empty and the
+              tab still counts in what you are owed.
+            </p>
+          </div>
 
-      <Field label="Note (optional)" name="note" maxLength={200} />
-      {state && !state.ok && <ErrorNote>{state.error}</ErrorNote>}
-      <div style={{ display: 'flex', gap: 9 }}>
-        <button className="cta" type="button" onClick={() => setOpen(false)} style={{
-          minHeight: 50, padding: '0 16px', borderRadius: 13, fontSize: 'var(--step-0)', fontWeight: 600,
-          background: 'var(--c-sunk)', color: 'var(--c-meta)',
-        }}>Cancel</button>
-        <button className="cta" type="submit" disabled={pending} style={{
-          flex: 1, minHeight: 50, borderRadius: 13, fontSize: 'var(--step-0)', fontWeight: 600,
-          background: 'var(--g-primary)', color: 'var(--c-on-primary)', opacity: pending ? 0.65 : 1,
-        }}>
-          <Icon name="tab" size={18} strokeWidth={2} />
-          {pending ? 'Opening…' : 'Open the tab'}
-        </button>
-      </div>
-    </form>
+          {state && !state.ok && <ErrorNote>{state.error}</ErrorNote>}
+          <div style={{ display: 'flex', gap: 9 }}>
+            <button className="cta" type="button" onClick={close} style={{
+              minHeight: 50, padding: '0 16px', borderRadius: 13, fontSize: 'var(--step-0)', fontWeight: 600,
+              background: 'var(--c-sunk)', color: 'var(--c-meta)',
+            }}>Cancel</button>
+            <button className="cta" type="submit" disabled={pending} style={{
+              flex: 1, minHeight: 50, borderRadius: 13, fontSize: 'var(--step-0)', fontWeight: 600,
+              background: 'var(--g-primary)', color: 'var(--c-on-primary)', opacity: pending ? 0.65 : 1,
+            }}>
+              <Icon name="folder" size={18} strokeWidth={2} />
+              {pending ? 'Opening…' : 'Open the tab'}
+            </button>
+          </div>
+        </form>
+      </Sheet>
+    </>
   );
 }

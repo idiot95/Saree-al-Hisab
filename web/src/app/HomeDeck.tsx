@@ -4,6 +4,8 @@ import { useRef, useState } from 'react';
 import Link from 'next/link';
 import { haptic } from './haptics';
 import { useMoney } from '@/app/currency';
+import { Chip } from './Icon';
+import { tabTint } from './tab/look';
 
 /* The top of the home screen, as a deck rather than a stack.
 
@@ -26,7 +28,9 @@ import { useMoney } from '@/app/currency';
 
 export type Point = { month: string; worth: string };
 
-export default function HomeDeck({ children, worth, netWorth, lent, owedToYou, people, openLoans }: {
+export type DeckTab = { id: string; name: string; outstanding: number };
+
+export default function HomeDeck({ children, worth, netWorth, lent, owedToYou, people, tabs, openTabs }: {
   /** The month card, rendered by the server: budget maths belongs there. */
   children: React.ReactNode;
   worth: Point[];
@@ -34,7 +38,9 @@ export default function HomeDeck({ children, worth, netWorth, lent, owedToYou, p
   lent: number;
   owedToYou: number;
   people: number;
-  openLoans: number;
+  /** The open tabs with the most still owed, largest first — at most three. */
+  tabs: DeckTab[];
+  openTabs: number;
 }) {
   const track = useRef<HTMLDivElement>(null);
   const [at, setAt] = useState(0);
@@ -62,7 +68,7 @@ export default function HomeDeck({ children, worth, netWorth, lent, owedToYou, p
       }}>
         <Slide>{children}</Slide>
         <Slide><WorthCard worth={worth} netWorth={netWorth} owedToYou={owedToYou} /></Slide>
-        <Slide><LoanCard lent={lent} owedToYou={owedToYou} people={people} openLoans={openLoans} /></Slide>
+        <Slide><LoanCard lent={lent} owedToYou={owedToYou} people={people} tabs={tabs} openTabs={openTabs} /></Slide>
       </div>
       <div role="group" aria-label="Which card" style={{ display: 'flex', justifyContent: 'center' }}>
         {['This month', 'Net worth', 'Loan centre'].map((label, i) => (
@@ -164,8 +170,8 @@ function WorthCard({ worth, netWorth, owedToYou }: {
    spending, so it never shows in the month card — which is exactly why it
    needs a card of its own rather than being invisible until somebody goes
    looking for it. */
-function LoanCard({ lent, owedToYou, people, openLoans }: {
-  lent: number; owedToYou: number; people: number; openLoans: number;
+function LoanCard({ lent, owedToYou, people, tabs, openTabs }: {
+  lent: number; owedToYou: number; people: number; tabs: DeckTab[]; openTabs: number;
 }) {
   const { format } = useMoney();
   const youOwe = lent < 0 ? -lent : 0;
@@ -188,20 +194,44 @@ function LoanCard({ lent, owedToYou, people, openLoans }: {
       <span style={{ fontSize: 'var(--step--1)', color: 'var(--c-meta)', marginTop: -6 }}>
         {out === 0
           ? 'owed to you — nothing outstanding'
-          : `owed to you across ${openLoans} ${openLoans === 1 ? 'loan' : 'loans'}`}
+          : openTabs > 0
+            ? `owed to you across ${openTabs} ${openTabs === 1 ? 'tab' : 'tabs'}`
+            : 'owed to you'}
       </span>
 
+      {/* The tabs the figure is made of, so the roll-up is answerable from
+          here: every cost on an open tab counts, named or not. */}
+      {tabs.length > 0 ? (
+        <span style={{
+          display: 'flex', flexDirection: 'column', borderRadius: 11, background: 'var(--c-sunk2)', padding: '4px 11px',
+        }}>
+          {tabs.map((t, i) => (
+            <span key={t.id} style={{
+              display: 'flex', alignItems: 'center', gap: 9, minHeight: 40,
+              borderBottom: i === tabs.length - 1 ? undefined : '1px solid var(--c-rule)',
+            }}>
+              <Chip icon="folder" tint={tabTint(t.id)} size={26} radius={7} iconSize={14} />
+              <span style={{
+                flex: 1, minWidth: 0, fontSize: 'var(--step--1)', fontWeight: 600,
+                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              }}>{t.name}</span>
+              <span className="t" style={{ fontSize: 'var(--step--1)' }}>{format(t.outstanding)}</span>
+            </span>
+          ))}
+        </span>
+      ) : (
       <span style={{ display: 'flex', gap: 9, marginTop: 2 }}>
         <Fact label="People" value={String(people)} />
         <Fact label="You owe" value={youOwe > 0 ? format(youOwe) : '—'}
           tone={youOwe > 0 ? 'var(--c-out)' : undefined} />
       </span>
+      )}
 
       <span style={{
         marginTop: 'auto', paddingTop: 10, borderTop: '1px solid var(--c-rule)',
         fontSize: 'var(--step--1)', color: 'var(--c-meta)', lineHeight: 1.45,
       }}>
-        Money lent is not spending — it sits here until it comes back.
+        Every cost on an open tab counts here — with or without a name on it.
       </span>
     </Link>
   );

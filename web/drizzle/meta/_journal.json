@@ -218,6 +218,13 @@
       "when": 1789010381079,
       "tag": "0031_drop_budget_plans",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1789283288144,
+      "tag": "0032_tab_holds_claims",
+      "breakpoints": true
     }
   ]
 }

@@ -1,7 +1,8 @@
 import Link from 'next/link';
 import { Chip } from '../Icon';
 import { redirect } from 'next/navigation';
-import { actorOrNull, categoryTrend, monthlySeries } from '@/db/queries';
+import { actorOrNull, categoryTrend, monthlySeries, receiptsByMonth, tabList } from '@/db/queries';
+import { tabTint } from '../tab/look';
 import { format, monthKey } from '@/lib/money';
 import { headerBg } from '../auth-ui';
 import TabBar from '../TabBar';
@@ -19,10 +20,23 @@ export default async function Trends() {
   if (!actor.household_id) redirect('/no-household');
 
   const month = monthKey(new Date());
-  const [series, cats] = await Promise.all([
+  const [series, cats, tabs, receipts] = await Promise.all([
     monthlySeries(actor.household_id, 6),
     categoryTrend(actor.household_id, month),
+    tabList(actor.household_id),
+    receiptsByMonth(actor.household_id, 6),
   ]);
+
+  /* What is owed, by TAB and never by person: a tab is how the household
+     thinks of the money ("the Dubai trip"), and a tab with nobody named on it
+     has no person to chart at all. Longest bar first, each in its tab's own
+     colour, the figure written beside it. */
+  const owing = tabs
+    .filter((t) => !t.closed_at && Number(t.outstanding) > 0)
+    .sort((a, b) => Number(b.outstanding) - Number(a.outstanding));
+  const owingMax = Math.max(1, ...owing.map((t) => Number(t.outstanding)));
+  const owingTotal = owing.reduce((n, t) => n + Number(t.outstanding), 0);
+  const cameBack = receipts.some((r) => Number(r.back) > 0);
 
   const withSpend = series.filter((p) => Number(p.spent) > 0);
   const average = withSpend.length
@@ -43,7 +57,7 @@ export default async function Trends() {
     .sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta))
     .slice(0, 5);
 
-  const nothing = sliceTotal === 0 && withSpend.length === 0;
+  const nothing = sliceTotal === 0 && withSpend.length === 0 && owing.length === 0 && !cameBack;
 
   return (
     <Screen>
@@ -146,6 +160,64 @@ export default async function Trends() {
                 </ul>
               </Card>
             )}
+
+            {owing.length > 0 && (
+              <Card title="Owed to you, by tab">
+                <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 16 }}>
+                  {owing.map((t) => {
+                    const owed = Number(t.outstanding);
+                    const tint = tabTint(t.id);
+                    return (
+                      <li key={t.id} style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+                        <Link transitionTypes={['nav-forward']} href={`/tab/${t.id}`} style={{
+                          display: 'flex', alignItems: 'center', gap: 8, minHeight: 28,
+                          textDecoration: 'none', color: 'var(--c-ink)', fontSize: 'var(--step--1)',
+                        }}>
+                          <Chip icon="folder" tint={tint} size={22} radius={6} iconSize={12} />
+                          <span style={{
+                            flex: 1, minWidth: 0, fontWeight: 600,
+                            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                          }}>{t.name}</span>
+                          <span style={{ fontWeight: 600, minWidth: 62, textAlign: 'right' }}>{format(owed)}</span>
+                        </Link>
+                        <span role="img" aria-label={`${t.name}: ${format(owed)} owed`} style={{
+                          display: 'block', height: 10, borderRadius: 4, background: 'var(--c-track)', overflow: 'hidden',
+                        }}>
+                          <span style={{
+                            display: 'block', height: 10, borderRadius: '0 4px 4px 0',
+                            width: `${((owed / owingMax) * 100).toFixed(1)}%`, background: `var(--cat-${tint}-ink)`,
+                          }} />
+                        </span>
+                        <span style={{ fontSize: 'var(--step--2)', color: 'var(--c-meta)' }}>
+                          {Number(t.back) > 0
+                            ? `${format(Number(t.back))} of ${format(Number(t.owed_in_all))} back`
+                            : 'none back yet'}
+                          {t.members.length === 0 ? ' · no one named' : ''}
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
+                <div style={{
+                  display: 'flex', alignItems: 'baseline', gap: 10, marginTop: 14, paddingTop: 12,
+                  borderTop: '1px solid var(--c-rule)', fontSize: 'var(--step--1)',
+                }}>
+                  <span style={{ flex: 1, color: 'var(--c-meta)' }}>All open tabs</span>
+                  <span style={{ fontWeight: 600 }}>{format(owingTotal)}</span>
+                </div>
+              </Card>
+            )}
+
+            {cameBack && (
+              <Card title="Came back, six months">
+                <BackBars points={receipts} />
+                <Table rows={receipts.map((r) => ({
+                  key: r.month,
+                  left: new Date(r.month).toLocaleDateString('en-IN', { month: 'long' }),
+                  right: Number(r.back) === 0 ? '—' : format(Number(r.back)),
+                }))} />
+              </Card>
+            )}
           </div>
         )}
         <TabBar current="/trends" />
@@ -167,6 +239,35 @@ function Card({ title, children }: { title: string; children: React.ReactNode })
         margin: '0 var(--gutter)', background: 'var(--c-card)', borderRadius: 18, padding: 16,
       }}>{children}</div>
     </section>
+  );
+}
+
+/* Money that came back, a bar a month. One series and one axis; this month is
+   the lit bar and the rest recede. The table under it carries the figures. */
+function BackBars({ points }: { points: { month: string; back: string }[] }) {
+  const max = Math.max(1, ...points.map((p) => Number(p.back)));
+  return (
+    <div role="img" aria-label={`Money back over ${points.length} months. `
+      + points.map((p) => `${new Date(p.month).toLocaleDateString('en-IN', { month: 'short' })} ${format(Number(p.back))}`).join(', ')}
+      style={{ display: 'flex', alignItems: 'flex-end', gap: 12, height: 110, padding: '0 4px' }}>
+      {points.map((p, i) => {
+        const v = Number(p.back);
+        return (
+          <span key={p.month} style={{
+            flex: 1, height: '100%', display: 'flex', flexDirection: 'column',
+            alignItems: 'center', justifyContent: 'flex-end', gap: 6,
+          }}>
+            <span style={{
+              width: '100%', height: v ? Math.max(4, Math.round((v / max) * 80)) : 0, borderRadius: '4px 4px 0 0',
+              background: i === points.length - 1 ? 'var(--c-seagrass)' : 'var(--c-dash)',
+            }} />
+            <span style={{ fontSize: 9.5, color: 'var(--c-meta)' }}>
+              {new Date(p.month).toLocaleDateString('en-IN', { month: 'short' })}
+            </span>
+          </span>
+        );
+      })}
+    </div>
   );
 }
 

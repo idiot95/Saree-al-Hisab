@@ -22,7 +22,7 @@ const MAX_FILES = 5;
 const MAX_BYTES = 2 * 1024 * 1024;
 const EDGE = 1400;
 
-async function shrink(file: File): Promise<Staged | null> {
+export async function shrink(file: File): Promise<Staged | null> {
   const asBase64 = (blob: Blob) => new Promise<string>((res, rej) => {
     const r = new FileReader();
     r.onload = () => res(String(r.result).split(',')[1] ?? '');

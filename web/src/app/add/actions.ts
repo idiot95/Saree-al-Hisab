@@ -177,7 +177,7 @@ export async function saveEntry(d: Draft): Promise<SaveResult> {
         select id, closed_at from ledger_book
         where id = ${d.tabId} and household_id = ${household_id}`;
       if (!b) return { ok: false, error: 'That tab is not one of yours.' };
-      if (b.closed_at) return { ok: false, error: 'That tab is closed. Reopen it under Lending first.' };
+      if (b.closed_at) return { ok: false, error: 'That tab is closed. Reopen it in the Loan centre first.' };
       /* Nobody on the tab is a tab that is keeping a total, not a khata — the
          trip you are tracking before you know who is coming, the insurer you
          have not named. It takes costs and raises no claim, because a claim
@@ -272,7 +272,16 @@ export async function saveEntry(d: Draft): Promise<SaveResult> {
         /* The entry and the shares land together or not at all: a cost on a tab
            with nobody down as owing for it would be a split that never happened.
            A share of zero paise is nothing owed and is not written. */
-        if (entry && tab) {
+        if (entry && tab && d.kind === 'expense') {
+          if (tab.members.length === 0) {
+            /* Nobody named: the tab holds the claim itself, for what comes
+               back. It is still money expected back — the office, the
+               insurer, the trip before anyone is named — so it counts in
+               what is owed, and money back on the tab clears it. */
+            await tx`
+              insert into claim (household_id, counterparty_id, txn_id, kind, expected_amount)
+              values (${household_id}, null, ${entry.id}, 'reimbursement', ${covered})`;
+          }
           const each = shares(covered, tab.members.length);
           for (let i = 0; i < tab.members.length; i++) {
             if (each[i] <= 0) continue;

@@ -169,3 +169,52 @@ export async function restoreEntry(id: unknown): Promise<Result> {
     return { ok: true };
   });
 }
+
+/* Bills added after the entry exists — the moment right after a cost is saved
+   on a tab, or any time later from a swipe. The same ceilings as saveEntry:
+   five to an entry, two megabytes each, images and PDFs only, checked here
+   because the client is not a gatekeeper. The entry is checked to be this
+   household's and not deleted before a byte is written. */
+const BILL_MIME = new Set(['image/jpeg', 'image/png', 'image/webp', 'application/pdf']);
+const BILLS_PER_ENTRY = 5;
+const BILL_BYTES = 2 * 1024 * 1024;
+
+export async function addBills(txnId: unknown, files: unknown): Promise<Result> {
+  let actor;
+  try { actor = await mustWrite(); }
+  catch (e) { rethrowControlFlow(e); return { ok: false, error: (e as Error).message }; }
+  return withHousehold(actor.household_id, async () => {
+    if (typeof txnId !== 'string' || !/^[0-9a-f-]{36}$/.test(txnId)) {
+      return { ok: false, error: 'That entry could not be read.' };
+    }
+    if (!Array.isArray(files) || files.length === 0) return { ok: false, error: 'Choose a bill to attach.' };
+    const [t] = await sql`
+      select t.id, t.book_id, (select count(*)::int from attachment a where a.txn_id = t.id) as bills
+      from txn t
+      where t.id = ${txnId} and t.household_id = ${actor.household_id} and t.deleted_at is null`;
+    if (!t) return { ok: false, error: 'That entry is not one of yours.' };
+    const room = BILLS_PER_ENTRY - Number(t.bills);
+    if (room <= 0) return { ok: false, error: 'An entry keeps five bills at most.' };
+
+    const good: { name: string; mime: string; buf: Buffer }[] = [];
+    for (const f of files.slice(0, room)) {
+      const { name, mime, data } = (f ?? {}) as { name?: unknown; mime?: unknown; data?: unknown };
+      if (typeof mime !== 'string' || !BILL_MIME.has(mime) || typeof data !== 'string') continue;
+      const buf = Buffer.from(data, 'base64');
+      if (buf.length === 0 || buf.length > BILL_BYTES) continue;
+      good.push({ name: String(name ?? '').slice(0, 120) || 'Bill', mime, buf });
+    }
+    if (good.length === 0) return { ok: false, error: 'That file could not be attached — images and PDFs under 2 MB.' };
+
+    await sql.begin(async (tx) => {
+      for (const g of good) {
+        await tx`
+          insert into attachment (household_id, txn_id, name, mime, bytes, data, created_by)
+          values (${actor.household_id}, ${t.id}, ${g.name}, ${g.mime}, ${g.buf.length}, ${g.buf}, ${actor.user_id})`;
+      }
+    });
+    revalidatePath(`/entries/${t.id}`);
+    if (t.book_id) revalidatePath(`/tab/${t.book_id}`);
+    return { ok: true, message: good.length === 1 ? 'Bill attached.' : `${good.length} bills attached.` };
+  });
+}

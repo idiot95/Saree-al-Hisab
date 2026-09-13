@@ -231,7 +231,16 @@ export default function AddEntry({
       let r;
       try { r = await saveEntry(draft); }
       catch { keep(); return; }  // the request itself failed: no signal, or it dropped mid-way
-      if (r.ok) { haptic('success'); clear(); router.push('/'); }
+      if (r.ok) {
+        haptic('success'); clear();
+        /* A cost put on a tab lands on that tab — the place it now shows — and
+           when no bill came with it, the tab opens on "Attach the bill?" for
+           this entry, because the paper is in hand right now and not later. */
+        if (draft.tabId) {
+          const bill = draft.kind === 'expense' && draft.attachments.length === 0 ? `?saved=${r.id}` : '';
+          router.push(`/tab/${draft.tabId}${bill}`, { transitionTypes: ['nav-forward'] });
+        } else router.push('/');
+      }
       else { haptic('warn'); setError(r.error); }
     });
   }
@@ -552,7 +561,7 @@ export default function AddEntry({
                   {kind === 'income' ? 'Money that comes in against a trip, a person or the office rides on a tab. '
                     : 'Money someone owes you back rides on a tab — a cousin, the office, a trip. '}
                   <Link href="/people" transitionTypes={['nav-forward']}
-                    style={{ color: 'var(--c-teal)', fontWeight: 600 }}>Open one under Lending</Link>
+                    style={{ color: 'var(--c-teal)', fontWeight: 600 }}>Open one in the Loan centre</Link>
                   {' '}and it will be offered here.
                 </p>
               )}

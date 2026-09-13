@@ -1,50 +1,60 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { actorOrNull, owedByPerson, peopleFor, tabList } from '@/db/queries';
+import { actorOrNull, claimsFor, peopleFor, receiptsByMonth, tabList, type TabRow } from '@/db/queries';
 import { format } from '@/lib/money';
 import { headerBg } from '../auth-ui';
 import TabBar from '../TabBar';
 import { TAB_BAR_SPACE } from '../tabs';
-import AddPerson from './AddPerson';
 import NewTab from '../tab/NewTab';
-import { Chip } from '../Icon';
+import { Chip, Icon } from '../Icon';
 import Screen from '../Screen';
 import Back from '../Back';
 import Swipeable from '../Swipeable';
+import { Face, Faces, tabTint } from '../tab/look';
 
-export const metadata = { title: 'People · Saree al-Hisab' };
+export const metadata = { title: 'Loan centre · Saree al-Hisab' };
 export const dynamic = 'force-dynamic';
 
-const TINT: Record<string, [string, string]> = {
-  green: ['var(--cat-green)', 'var(--cat-green-ink)'],
-  orange: ['var(--cat-orange)', 'var(--cat-orange-ink)'],
-  blue: ['var(--cat-blue)', 'var(--cat-blue-ink)'],
-  purple: ['var(--cat-purple)', 'var(--cat-purple-ink)'],
-  pink: ['var(--cat-pink)', 'var(--cat-pink-ink)'],
-  cyan: ['var(--cat-cyan)', 'var(--cat-cyan-ink)'],
-  rust: ['var(--cat-rust)', 'var(--cat-rust-ink)'],
-  indigo: ['var(--cat-indigo)', 'var(--cat-indigo-ink)'],
-};
+/* The Loan centre is a list of tabs, and nothing else asks to be managed.
 
-export default async function People() {
+   A tab is a folder: a trip, the office, a cousin's rent. It holds what you
+   put down and what came back, it has a name if you give it one, and the
+   people on it are optional labels picked from the phone book. There used to
+   be a People list here as well, with its own Add person — a second thing to
+   keep for no gain, since every person worth listing is on a tab. They are
+   still in the books underneath (a claim needs somebody to owe it), and a
+   loan made outside any tab still shows, in its own short section, so no
+   money owed ever drops off this screen.
+
+   "Owed to you" here is the same figure as Home's card: every open claim — a
+   tab's own included — plus what people hold of money lent. */
+export default async function LoanCentre() {
   const actor = await actorOrNull();
   if (!actor) redirect('/signin');
   if (!actor.household_id) redirect('/no-household');
 
-  const [people, owed, tabs] = await Promise.all([
-    peopleFor(actor.household_id),
-    owedByPerson(actor.household_id),
+  const [tabs, people, claims, receipts] = await Promise.all([
     tabList(actor.household_id),
+    peopleFor(actor.household_id),
+    claimsFor(actor.household_id),
+    receiptsByMonth(actor.household_id, 1),
   ]);
-  const claimed = new Map(owed.map((o) => [o.id, Number(o.claimed)]));
-  const claimsTotal = owed.reduce((n, o) => n + Number(o.claimed), 0);
   const canWrite = actor.role !== 'viewer';
-  const owedToYou = people.reduce((n, p) => n + Math.max(0, Number(p.balance)), 0);
-  const youOwe = people.reduce((n, p) => n + Math.min(0, Number(p.balance)), 0);
-  const outstanding = (p: { id: string; balance: string }) =>
-    Number(p.balance) !== 0 || (claimed.get(p.id) ?? 0) > 0;
-  const settled = people.filter((p) => !outstanding(p));
-  const open = people.filter(outstanding);
+
+  const onClaims = claims
+    .filter((c) => c.status === 'open' || c.status === 'part_paid')
+    .reduce((n, c) => n + Number(c.outstanding), 0);
+  const lent = people.filter((p) => Number(p.balance) !== 0);
+  const lentOut = lent.reduce((n, p) => n + Math.max(0, Number(p.balance)), 0);
+  const youOwe = lent.reduce((n, p) => n - Math.min(0, Number(p.balance)), 0);
+  const owed = onClaims + lentOut;
+  const backThisMonth = Number(receipts[0]?.back ?? 0);
+
+  /* A tab stays in the open list while anything is owed on it, or while it is
+     new and empty; settled and closed tabs fold away underneath. */
+  const open = tabs.filter((t) => !t.closed_at && (Number(t.outstanding) > 0 || t.costs === 0));
+  const done = tabs.filter((t) => !open.includes(t));
+  const month = new Date().toLocaleDateString('en-IN', { month: 'long' });
 
   return (
     <Screen>
@@ -64,103 +74,180 @@ export default async function People() {
             </svg>
           </Link>
           <h1 className="t" style={{ margin: 0, fontSize: 'var(--step-3)', letterSpacing: '-.018em' }}>
-            Lending
+            Loan centre
           </h1>
           <div style={{ display: 'flex', gap: 24, marginTop: 2 }}>
             <span style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
               <span style={{ fontSize: 'var(--step--2)', color: 'rgba(255,255,255,.66)', letterSpacing: '.04em' }}>
                 OWED TO YOU
               </span>
-              <span className="t" style={{ fontSize: 'var(--step-3)', letterSpacing: '-.02em' }}>
-                {format(owedToYou + claimsTotal)}
+              <span className="t" style={{ fontSize: 'var(--step-4)', letterSpacing: '-.022em' }}>
+                {format(owed)}
               </span>
             </span>
-            {youOwe < 0 && (
-              <span style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            {youOwe > 0 && (
+              <span style={{ display: 'flex', flexDirection: 'column', gap: 3, justifyContent: 'flex-end' }}>
                 <span style={{ fontSize: 'var(--step--2)', color: 'rgba(255,255,255,.66)', letterSpacing: '.04em' }}>
                   YOU OWE
                 </span>
-                <span className="t" style={{ fontSize: 'var(--step-3)', letterSpacing: '-.02em' }}>
-                  {format(-youOwe)}
+                <span className="t" style={{ fontSize: 'var(--step-2)', letterSpacing: '-.02em' }}>
+                  {format(youOwe)}
                 </span>
               </span>
             )}
           </div>
           <p style={{ margin: 0, fontSize: 'var(--step--1)', lineHeight: 1.45, color: 'rgba(255,255,255,.78)' }}>
-            {claimsTotal > 0
-              ? `${format(owedToYou)} lent · ${format(claimsTotal)} owed for things you paid for`
-              : 'Money lent is not spending. It sits here until it comes back — or until you decide it will not.'}
+            {tabs.length === 0
+              ? 'A tab keeps what you put down for others — a trip, the office, a cousin — and what comes back.'
+              : [
+                  `across ${open.length} open ${open.length === 1 ? 'tab' : 'tabs'}`,
+                  backThisMonth > 0 ? `${format(backThisMonth)} came back in ${month}` : null,
+                ].filter(Boolean).join(' · ')}
           </p>
         </header>
 
         <div style={{ paddingTop: 20 }}>
-          {/* Tabs lead. A tab is how lending actually starts — a person, a
-              trip, the office — and it used to sit below the people list and
-              only appear once a person had been added by hand, which made
-              "add a person" the front door to a thing nobody came here to do.
-              Opening a tab names the people it is for, from the phonebook if
-              the phone has one, so the person gets created on the way. */}
-          <Head>Tabs</Head>
-          <p style={{
-            margin: '-4px 20px 12px', fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--c-meta)',
-          }}>
-            A tab is one running account with somebody — a cousin, the office, a trip, an
-            insurer. Everything you pay for them and everything that comes back sits on it,
-            and each cost says for itself whether it was your spending or money you fronted.
-          </p>
-          {tabs.length > 0 && (
-            <section className="el card" style={{
-              margin: '0 var(--gutter) 16px', background: 'var(--c-card)', borderRadius: 18, padding: '0 var(--pad)', overflow: 'hidden',
-            }}>
-              {tabs.map((b, i) => {
-                const t = Number(b.outstanding);
-                return (
-                  <Swipeable key={b.id} actions={canWrite && !b.closed_at ? [
-                    { label: 'Add cost', icon: 'plus', tone: 'primary', href: `/add?tab=${b.id}` },
-                  ] : []}>
-                  <Link href={`/tab/${b.id}`} transitionTypes={['nav-forward']} draggable={false} style={{
-                    display: 'flex', alignItems: 'center', gap: 12, minHeight: 72,
-                    textDecoration: 'none', color: 'var(--c-ink)',
-                    opacity: b.closed_at ? 0.55 : 1,
-                    borderBottom: i === tabs.length - 1 ? undefined : '1px solid var(--c-rule)',
-                  }}>
-                    <Chip icon="tab" tint="indigo" />
-                    <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
-                      <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>{b.name}</span>
-                      <span style={{ fontSize: 'var(--step--2)', color: 'var(--c-meta)' }}>
-                        {b.people} {b.people === 1 ? 'person' : 'people'}
-                        {b.entries > 0 ? ` · ${b.entries} ${b.entries === 1 ? 'entry' : 'entries'}` : ''}
-                        {b.closed_at ? ' · closed' : ''}
-                      </span>
-                    </span>
-                    <span className="t" style={{ fontSize: 'var(--step-0)', color: t === 0 ? 'var(--c-meta)' : 'var(--c-ink)' }}>
-                      {t === 0 ? (b.entries > 0 ? 'settled' : '—') : format(t)}
-                    </span>
-                  </Link>
-                  </Swipeable>
-                );
-              })}
-            </section>
-          )}
-          {canWrite && <NewTab people={people.map((p) => ({ id: p.id, name: p.name, tint: p.tint }))} />}
-
-          {/* The people themselves, for the khata kept with one person rather
-              than under a name: who owes what, across every tab and claim. */}
-          {open.length > 0 && <Head>Outstanding</Head>}
-          {open.length > 0 && <List people={open} claimed={claimed} />}
-
-          {settled.length > 0 && (
+          {open.length > 0 && (
             <>
-              <Head>Settled up</Head>
-              <List people={settled} claimed={claimed} />
+              <Head>Open tabs</Head>
+              <section className="el card" style={{
+                margin: '0 var(--gutter) 14px', background: 'var(--c-card)', borderRadius: 18,
+                padding: '0 var(--pad)', overflow: 'hidden',
+              }}>
+                {open.map((t, i) => (
+                  <TabItem key={t.id} t={t} last={i === open.length - 1} canWrite={canWrite} />
+                ))}
+              </section>
             </>
           )}
 
-          {canWrite && <AddPerson startOpen={false} />}
+          {canWrite && <NewTab />}
+
+          {done.length > 0 && (
+            <details className="el card" style={{
+              margin: '0 var(--gutter) 22px', background: 'var(--c-card)', borderRadius: 18,
+              padding: '0 var(--pad)', overflow: 'hidden',
+            }}>
+              <summary style={{
+                listStyle: 'none', display: 'flex', alignItems: 'center', gap: 12, minHeight: 60,
+                cursor: 'pointer', color: 'var(--c-meta)',
+              }}>
+                <span style={{
+                  width: 40, height: 40, flex: 'none', borderRadius: 11, display: 'flex',
+                  alignItems: 'center', justifyContent: 'center', background: 'var(--c-sunk)', color: 'var(--c-faint)',
+                }}><Icon name="check" size={19} strokeWidth={2.2} /></span>
+                <span style={{ flex: 1, fontSize: 'var(--step-0)', fontWeight: 500 }}>
+                  {done.length} settled or closed {done.length === 1 ? 'tab' : 'tabs'}
+                </span>
+                <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                  strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M6 9l6 6 6-6" /></svg>
+              </summary>
+              <div style={{ borderTop: '1px solid var(--c-rule)' }}>
+                {done.map((t, i) => (
+                  <TabItem key={t.id} t={t} last={i === done.length - 1} canWrite={false} quiet />
+                ))}
+              </div>
+            </details>
+          )}
+
+          {/* Money handed to someone outside any tab — the older khata. Only
+              shown when there is some, so it never asks to be managed. */}
+          {lent.length > 0 && (
+            <>
+              <Head>Lent outside a tab</Head>
+              <section className="el card" style={{
+                margin: '0 var(--gutter) 22px', background: 'var(--c-card)', borderRadius: 18, padding: '0 var(--pad)',
+              }}>
+                {lent.map((p, i) => {
+                  const bal = Number(p.balance);
+                  return (
+                    <Link key={p.id} href={`/people/${p.id}`} transitionTypes={['nav-forward']} style={{
+                      display: 'flex', alignItems: 'center', gap: 12, minHeight: 66,
+                      textDecoration: 'none', color: 'var(--c-ink)',
+                      borderBottom: i === lent.length - 1 ? undefined : '1px solid var(--c-rule)',
+                    }}>
+                      <Face name={p.name} tint={p.tint} />
+                      <span style={{ flex: 1, minWidth: 0, fontSize: 'var(--step-0)', fontWeight: 600 }}>{p.name}</span>
+                      <span style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', gap: 2 }}>
+                        <span className="t" style={{ fontSize: 'var(--step-1)', color: bal < 0 ? 'var(--c-out)' : 'var(--c-ink)' }}>
+                          {format(Math.abs(bal))}
+                        </span>
+                        <span style={{ fontSize: 'var(--step--2)', color: 'var(--c-meta)' }}>
+                          {bal > 0 ? 'owes you' : 'you owe'}
+                        </span>
+                      </span>
+                    </Link>
+                  );
+                })}
+              </section>
+            </>
+          )}
         </div>
         <TabBar current="/people" />
       </main>
     </Screen>
+  );
+}
+
+/* One tab: its colour, who is on it, what is still owed and how much of it has
+   come back. Swipe for Remind and Add cost — both also a tap away inside. */
+function TabItem({ t, last, canWrite, quiet = false }: {
+  t: TabRow; last: boolean; canWrite: boolean; quiet?: boolean;
+}) {
+  const outstanding = Number(t.outstanding);
+  const inAll = Number(t.owed_in_all);
+  const back = Number(t.back);
+  const pct = inAll > 0 ? Math.min(100, Math.round((back / inAll) * 100)) : 0;
+  const actions = canWrite && !t.closed_at ? [
+    ...(outstanding > 0 ? [{ label: 'Remind', icon: 'bell', tone: 'neutral' as const, href: `/tab/${t.id}?remind=all` }] : []),
+    { label: 'Add cost', icon: 'plus', tone: 'primary' as const, href: `/add?tab=${t.id}` },
+  ] : [];
+
+  return (
+    <Swipeable actions={actions} commit={false}>
+      <Link href={`/tab/${t.id}`} transitionTypes={['nav-forward']} draggable={false} style={{
+        display: 'flex', flexDirection: 'column', gap: 10, padding: '14px 0 13px',
+        textDecoration: 'none', color: 'var(--c-ink)', opacity: quiet ? 0.72 : 1,
+        borderBottom: last ? undefined : '1px solid var(--c-rule)',
+      }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <Chip icon="folder" tint={tabTint(t.id)} />
+          <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 5 }}>
+            <span style={{
+              fontSize: 'var(--step-0)', fontWeight: 600, overflow: 'hidden',
+              textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            }}>{t.name}</span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 'var(--step--2)', color: 'var(--c-meta)' }}>
+              <Faces people={t.members} />
+              <span>
+                {t.members.length === 0 ? '· ' : ''}
+                {t.costs === 0 ? 'nothing on it yet' : `${t.costs} ${t.costs === 1 ? 'cost' : 'costs'}`}
+                {t.closed_at ? ' · closed' : ''}
+              </span>
+            </span>
+          </span>
+          <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2, flex: 'none' }}>
+            <span className="t" style={{
+              fontSize: 'var(--step-1)', color: outstanding === 0 ? 'var(--c-meta)' : 'var(--c-ink)',
+            }}>{outstanding === 0 ? (t.costs > 0 ? 'settled' : '—') : format(outstanding)}</span>
+            {inAll > 0 && (
+              <span style={{ fontSize: 'var(--step--2)', color: 'var(--c-meta)' }}>
+                {back > 0 ? `${format(back)} back` : 'none back yet'}
+              </span>
+            )}
+          </span>
+        </span>
+        {inAll > 0 && outstanding > 0 && (
+          <span role="img" aria-label={`${pct}% come back`} style={{
+            marginLeft: 52, height: 4, borderRadius: 999, background: 'var(--c-track)', overflow: 'hidden', display: 'block',
+          }}>
+            <span style={{
+              display: 'block', width: `${pct}%`, height: 4, borderRadius: 999, background: 'var(--c-seagrass)',
+            }} />
+          </span>
+        )}
+      </Link>
+    </Swipeable>
   );
 }
 
@@ -170,56 +257,5 @@ function Head({ children }: { children: React.ReactNode }) {
       <h2 style={{ margin: 0, fontSize: 'var(--step-1)', fontWeight: 600, letterSpacing: '-.012em' }}>{children}</h2>
       <span style={{ flex: 1, height: 1, background: 'var(--c-border)' }} />
     </div>
-  );
-}
-
-function List({ people, claimed }: {
-  people: Awaited<ReturnType<typeof peopleFor>>; claimed: Map<string, number>;
-}) {
-  return (
-    <section className="el card" style={{
-      margin: '0 var(--gutter) 22px', background: 'var(--c-card)', borderRadius: 18, padding: '0 var(--pad)',
-    }}>
-      {people.map((p, i) => {
-        const bal = Number(p.balance);
-        const total = bal + (claimed.get(p.id) ?? 0);
-        const [bg, ink] = TINT[p.tint] ?? ['var(--cat-neutral)', 'var(--cat-neutral-ink)'];
-        return (
-          <Link key={p.id} href={`/people/${p.id}`} transitionTypes={['nav-forward']} style={{
-            display: 'flex', alignItems: 'center', gap: 12, minHeight: 74,
-            textDecoration: 'none', color: 'var(--c-ink)',
-            borderBottom: i === people.length - 1 ? undefined : '1px solid var(--c-rule)',
-          }}>
-            <span style={{
-              width: 42, height: 42, flex: 'none', borderRadius: 999, display: 'flex',
-              alignItems: 'center', justifyContent: 'center', fontSize: 'var(--step--1)', fontWeight: 700,
-              background: bg, color: ink,
-            }}>{p.name.slice(0, 2).toUpperCase()}</span>
-            <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
-              <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>{p.name}</span>
-              <span style={{ fontSize: 'var(--step--1)', color: 'var(--c-meta)' }}>
-                {(claimed.get(p.id) ?? 0) > 0 && bal !== 0
-                  ? `${format(bal)} lent · ${format(claimed.get(p.id)!)} shared`
-                  : (claimed.get(p.id) ?? 0) > 0
-                    ? 'shared costs'
-                    : p.entries === 0 ? 'nothing yet'
-                      : `${p.entries} ${p.entries === 1 ? 'entry' : 'entries'}`}
-              </span>
-            </span>
-            <span style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <span className="t" style={{
-                fontSize: 'var(--step-1)', letterSpacing: '-.01em',
-                color: total > 0 ? 'var(--c-ink)' : total < 0 ? 'var(--c-danger)' : 'var(--c-meta)',
-              }}>{total === 0 ? '—' : format(Math.abs(total))}</span>
-              {total !== 0 && (
-                <span style={{ fontSize: 'var(--step--2)', color: 'var(--c-meta)' }}>
-                  {total > 0 ? 'owes you' : 'you owe'}
-                </span>
-              )}
-            </span>
-          </Link>
-        );
-      })}
-    </section>
   );
 }

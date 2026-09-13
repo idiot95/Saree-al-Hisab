@@ -1,30 +1,45 @@
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
-import { actorOrNull, openClaimsFor, peopleForTab, tabById, tabEntries } from '@/db/queries';
+import {
+  actorOrNull, attachmentsForTxns, openClaimsFor, peopleForTab, tabById, tabEntries,
+} from '@/db/queries';
 import { waysToPay } from '@/db/payment';
 import { format } from '@/lib/money';
 import { headerBg } from '../../auth-ui';
-import { Chip, Icon } from '../../Icon';
-import TabPeople from './TabPeople';
+import { Icon } from '../../Icon';
 import Screen from '../../Screen';
 import Back from '../../Back';
-import { BACK_SPACE } from '../../tabs';
-import Swipeable from '../../Swipeable';
+import TabEntries from './TabEntries';
+import TabMenu from './TabMenu';
+import TabContacts from './TabContacts';
+import MoneyBack from './MoneyBack';
 
 export const metadata = { title: 'Tab · Saree al-Hisab' };
 export const dynamic = 'force-dynamic';
 
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const iso = (d: Date) => new Date(d).toISOString().slice(0, 10);
+
 /* A tab's screen answers one question — where do we stand on this — and then
-   lets you act on the answer: take money back from whoever owes, put more on
-   it, change who is on it. The figures come from the same arithmetic as the
-   khata, only filtered to this tab, so the two can never disagree. */
-export default async function Tab({ params }: { params: Promise<{ id: string }> }) {
+   lets you act on the answer. Who is on it sits in the header; what went on it
+   is a list you swipe (Remind, the bill, Delete); money back and the next cost
+   are the two buttons under the thumb. The figures are the same arithmetic as
+   the Loan centre's, filtered to this tab, so the two can never disagree.
+
+   `?saved=<entry>` is how Add Entry hands over a cost it just put here: the
+   screen opens on "Attach the bill?" for it. `?remind=all` is the Loan
+   centre's swipe. */
+export default async function Tab({ params, searchParams }: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ saved?: string; remind?: string }>;
+}) {
   const actor = await actorOrNull();
   if (!actor) redirect('/signin');
   if (!actor.household_id) redirect('/no-household');
 
   const { id } = await params;
-  if (!/^[0-9a-f-]{36}$/.test(id)) notFound();
+  if (!UUID.test(id)) notFound();
+  const q = await searchParams;
 
   const tab = await tabById(actor.household_id, id);
   if (!tab) notFound();
@@ -34,154 +49,138 @@ export default async function Tab({ params }: { params: Promise<{ id: string }> 
     waysToPay(actor.household_id),
     openClaimsFor(actor.household_id, tab.id),
   ]);
+  const bills = await attachmentsForTxns(actor.household_id, entries.map((e) => e.id));
 
-  const members = people.filter((p) => p.on_tab);
-  const owed = people.reduce((n, p) => n + Number(p.owed), 0);
-  const claimed = people.reduce((n, p) => n + Number(p.owed_in_all), 0);
-  const back = people.reduce((n, p) => n + Number(p.back), 0);
-  const costs = entries.filter((e) => !e.incoming);
+  const outstanding = Number(tab.outstanding);
+  const back = Number(tab.back);
+  const held = Number(tab.held);
   const canEdit = actor.role !== 'viewer';
+  const closed = !!tab.closed_at;
   const today = new Date().toISOString().slice(0, 10);
+
+  const claims = open.map((c) => ({
+    id: c.id, personId: c.counterparty_id, person: c.person, tint: c.tint, txnId: c.txn_id,
+    what: c.what, on: iso(c.occurred_on), outstanding: Number(c.outstanding),
+  }));
+  /* Who money can come back from: each person still owing, and the tab itself
+     for what was put on it while nobody was named. */
+  const owing = [
+    ...people.filter((p) => Number(p.owed) > 0).map((p) => ({
+      id: p.id as string | null, name: p.name, tint: p.tint, owed: Number(p.owed),
+      claims: claims.filter((c) => c.personId === p.id),
+    })),
+    ...(held > 0 ? [{
+      id: null, name: 'The tab itself', tint: 'indigo', owed: held,
+      claims: claims.filter((c) => c.personId === null),
+    }] : []),
+  ];
 
   return (
     <Screen>
       <Back to="/people" />
-      <main style={{ minHeight: '100dvh', background: 'var(--c-bg)', paddingBottom: BACK_SPACE }}>
+      <main style={{
+        minHeight: '100dvh', background: 'var(--c-bg)',
+        paddingBottom: canEdit ? 'calc(104px + env(safe-area-inset-bottom, 0px))' : 'calc(80px + env(safe-area-inset-bottom, 0px))',
+      }}>
         <header className="el2" style={{
           background: headerBg('purple'), color: '#fff', borderRadius: '0 0 28px 28px',
-          padding: '18px var(--gutter) 24px', display: 'flex', flexDirection: 'column', gap: 10,
+          padding: '18px var(--gutter) 22px', display: 'flex', flexDirection: 'column', gap: 10,
         }}>
-          <Link href="/people" transitionTypes={['nav-back']} aria-label="Back" style={{
-            width: 44, height: 44, marginLeft: -11, borderRadius: 999, display: 'flex',
-            alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,.92)',
-          }}>
-            <svg width={21} height={21} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-              strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-              <path d="M15 5l-7 7 7 7" />
-            </svg>
-          </Link>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Link href="/people" transitionTypes={['nav-back']} aria-label="Back" style={{
+              width: 44, height: 44, marginLeft: -11, borderRadius: 999, display: 'flex',
+              alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,.92)',
+            }}>
+              <svg width={21} height={21} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <path d="M15 5l-7 7 7 7" />
+              </svg>
+            </Link>
+            {canEdit && (
+              <TabMenu tabId={tab.id} name={tab.name} note={tab.note} closed={closed} held={held} />
+            )}
+          </div>
           <span style={{
             alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: 6,
             fontSize: 'var(--step--2)', fontWeight: 700, letterSpacing: '.05em',
             padding: '5px 10px', borderRadius: 7, background: 'rgba(255,255,255,.16)',
           }}>
-            <Icon name="tab" size={14} strokeWidth={2.2} />
-            TAB{tab.closed_at && ' · CLOSED'}
+            <Icon name="folder" size={14} strokeWidth={2.2} />
+            TAB{closed && ' · CLOSED'}
           </span>
           <h1 className="t" style={{ margin: 0, fontSize: 'var(--step-3)', letterSpacing: '-.018em' }}>
             {tab.name}
           </h1>
           <span className="t" style={{ fontSize: 'var(--step-4)', letterSpacing: '-.022em' }}>
-            {owed === 0 ? 'Settled up' : format(owed)}
+            {outstanding > 0 ? format(outstanding) : tab.costs === 0 ? 'Nothing on it yet' : 'Settled up'}
           </span>
           <p style={{ margin: 0, fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'rgba(255,255,255,.82)' }}>
-            {owed > 0 ? 'still to come back · ' : ''}
-            {costs.length === 0
-              ? 'Nothing on it yet'
-              : `${format(claimed)} claimed across ${costs.length} ${costs.length === 1 ? 'cost' : 'costs'}`}
-            {back > 0 ? ` · ${format(back)} back` : ''}
+            {[
+              outstanding > 0 ? 'still to come back' : null,
+              tab.costs > 0 ? `${format(Number(tab.put_on))} put on across ${tab.costs} ${tab.costs === 1 ? 'cost' : 'costs'}` : null,
+              back > 0 ? `${format(back)} back` : null,
+            ].filter(Boolean).join(' · ') || 'Add the first cost below.'}
           </p>
           {tab.note && (
             <p style={{ margin: 0, fontSize: 'var(--step--1)', color: 'rgba(255,255,255,.7)' }}>{tab.note}</p>
           )}
+          <TabContacts tabId={tab.id} canEdit={canEdit && !closed}
+            people={people.map((p) => ({
+              id: p.id, name: p.name, tint: p.tint, onTab: p.on_tab,
+              inAll: Number(p.owed_in_all), owed: Number(p.owed),
+            }))} />
         </header>
 
         <div style={{ paddingTop: 20 }}>
-          {canEdit && !tab.closed_at && (
-            <Link href={`/add?tab=${tab.id}`} transitionTypes={['nav-forward']} className="el cta" style={{
-              margin: '0 var(--gutter) 22px', width: 'calc(100% - 36px)', minHeight: 54, borderRadius: 15,
-              background: 'var(--g-primary)', color: 'var(--c-on-primary)',
-              fontSize: 'var(--step-0)', fontWeight: 600, textDecoration: 'none',
-              opacity: members.length === 0 ? 0.5 : 1, pointerEvents: members.length === 0 ? 'none' : undefined,
-            }}>
-              <Icon name="plus" size={18} strokeWidth={2.2} />
-              Put a cost on this tab
-            </Link>
-          )}
-
-          <TabPeople
-            tabId={tab.id} tabName={tab.name} note={tab.note}
-            people={people} closed={!!tab.closed_at} canEdit={canEdit}
-            ways={ways}
-            open={open.map((c) => ({
-              id: c.id, person_id: c.counterparty_id, what: c.what,
-              on: new Date(c.occurred_on).toISOString().slice(0, 10), outstanding: Number(c.outstanding),
+          <TabEntries
+            tabId={tab.id} tabName={tab.name} canEdit={canEdit} today={today}
+            saved={q.saved && UUID.test(q.saved) ? q.saved : null}
+            remindAll={q.remind === 'all' && outstanding > 0}
+            entries={entries.map((e) => ({
+              id: e.id, on: iso(e.occurred_on), incoming: e.incoming,
+              title: e.incoming
+                ? (e.people ? `Came back from ${e.people}` : 'Came back')
+                : (e.merchant || e.category || 'Cost'),
+              icon: e.icon, tint: e.tint, amount: Number(e.amount),
+              outstanding: Number(e.outstanding), bills: e.bills,
             }))}
-            today={today}
+            claims={claims}
+            bills={bills.map((b) => ({ id: b.id, txnId: b.txn_id, name: b.name, mime: b.mime }))}
           />
-
-          {entries.length > 0 && (
-            <>
-              <Head>What went on it</Head>
-              <section className="el card" style={{
-                margin: '0 var(--gutter) 22px', background: 'var(--c-card)', borderRadius: 18,
-                padding: '0 var(--pad)', overflow: 'hidden',
-              }}>
-                {entries.map((e, i) => (
-                  <Swipeable key={e.id} actions={canEdit ? [
-                    { label: 'Edit', icon: 'pencil', tone: 'primary', href: `/entries/${e.id}` },
-                  ] : []}>
-                  <Link href={`/entries/${e.id}`} transitionTypes={['nav-forward']} draggable={false} style={{
-                    display: 'flex', alignItems: 'center', gap: 12, minHeight: 66,
-                    textDecoration: 'none', color: 'var(--c-ink)',
-                    borderBottom: i === entries.length - 1 ? undefined : '1px solid var(--c-rule)',
-                  }}>
-                    {e.incoming
-                      ? <Chip icon="receivable" tint="green" />
-                      : <Chip icon={e.icon} tint={e.tint} />}
-                    <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
-                      <span style={{
-                        fontSize: 'var(--step-0)', fontWeight: 600, overflow: 'hidden',
-                        textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                      }}>
-                        {e.incoming
-                          ? `Came back from ${e.people ?? 'them'}`
-                          : e.merchant || e.category || 'Cost'}
-                      </span>
-                      <span style={{ fontSize: 'var(--step--2)', color: 'var(--c-meta)' }}>
-                        {new Date(e.occurred_on).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
-                        {' · '}{e.who}
-                        {!e.incoming && e.people ? ` · ${e.people}` : ''}
-                        {!e.incoming && Number(e.outstanding) > 0
-                          ? ` · ${format(Number(e.outstanding))} still owed`
-                          : !e.incoming ? ' · settled' : ''}
-                        {!e.incoming && !e.counts_as_spend ? ' · not your spending' : ''}
-                      </span>
-                    </span>
-                    <span className="t" style={{
-                      fontSize: 'var(--step-0)',
-                      color: e.incoming ? 'var(--c-in)' : 'var(--c-out)',
-                    }}>
-                      {e.incoming ? '+' : ''}{format(Number(e.amount))}
-                    </span>
-                  </Link>
-                  </Swipeable>
-                ))}
-              </section>
-            </>
-          )}
 
           <p style={{
             margin: '4px 20px 0', fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--c-meta)',
           }}>
-            A cost put on this tab is owed back in full unless you say otherwise, divided
-            equally among the people on it, and each share becomes a claim the moment it is
-            saved. Whether the cost was <em>your</em> spending is a separate question, asked
-            of each entry: petrol you burned and are paid back for counts in your month;
-            a ticket you fronted for someone else does not. Either way, taking money back
-            here brings it into whichever of your accounts it actually arrived in.
+            A cost on this tab is owed back in full, split equally between the people on it — or
+            held by the tab itself while nobody is named. Whether it was <em>your</em> spending is
+            asked of each cost, and money back is never counted as income.
           </p>
         </div>
+
+        {canEdit && (
+          <div style={{
+            position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 30,
+            display: 'flex', gap: 9, padding: '12px var(--gutter) calc(14px + env(safe-area-inset-bottom, 0px))',
+            background: 'var(--c-bg)', borderTop: '1px solid var(--c-border)',
+          }}>
+            <MoneyBack tabId={tab.id} ways={ways} today={today} owing={owing} />
+            {closed ? (
+              <span className="cta" style={{
+                flex: 1.3, minHeight: 54, borderRadius: 15, fontSize: 'var(--step-0)', fontWeight: 600,
+                background: 'var(--c-sunk)', color: 'var(--c-meta)',
+              }}>Closed</span>
+            ) : (
+              <Link href={`/add?tab=${tab.id}`} transitionTypes={['nav-forward']} className="el cta" style={{
+                flex: 1.3, minHeight: 54, borderRadius: 15, fontSize: 'var(--step-0)', fontWeight: 600,
+                background: 'var(--g-primary)', color: 'var(--c-on-primary)', textDecoration: 'none',
+              }}>
+                <Icon name="plus" size={18} strokeWidth={2.2} />
+                Add cost
+              </Link>
+            )}
+          </div>
+        )}
       </main>
     </Screen>
-  );
-}
-
-function Head({ children }: { children: React.ReactNode }) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0 20px 11px' }}>
-      <h2 style={{ margin: 0, fontSize: 'var(--step-1)', fontWeight: 600, letterSpacing: '-.012em' }}>{children}</h2>
-      <span style={{ flex: 1, height: 1, background: 'var(--c-border)' }} />
-    </div>
   );
 }

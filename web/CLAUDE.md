@@ -225,8 +225,7 @@ hidden input; there is no `<select>` of payment modes anywhere, because one
 listing every rail under every account showed "ICICI Amazon Pay" twice and
 read as nonsense. Wrap it in a `<div role="group">`, never a `<label>` — a
 label around buttons activates the first chip. The entries list shows the
-rail when there is one and the account when there is not. `sw.js` is v21 for
-the labelled home deck and the budget wizard.
+rail when there is one and the account when there is not. `sw.js` is v22 for Add Entry landing on the tab it saved to.
 Before Save, a debounced
 `checkDuplicate` shows what a household member already recorded within ±1% and
 ±2 days, which is the prevention half of the duplicate rule; the Inbox card is
@@ -687,25 +686,59 @@ office petrol, the medical bills an insurer refunds. A cost put on it raises one
 `claim` per person for their share the moment it is saved, in the same
 transaction as the entry.
 
-**Tabs lead the Lending screen**, and opening one is the front door. They used
-to sit below the people list AND render only once a person had been added by
-hand, which made "add a person" the way in to a thing nobody opens the screen to
-do. Naming a tab names the people on it — from the phone's own contact picker
-where there is one (`tab/NewPeople.tsx`) — so the counterparty is created on the
-way past. The people list stays underneath for the khata kept with one person
-across every tab and claim.
+**The Loan centre (`/people`) is a list of tabs and nothing else to manage.**
+A tab is a folder: named if you name it, holding what was put down and what
+came back. Contacts are optional labels on a tab, from the phone's contact
+picker where there is one (`tab/NewPeople.tsx`) or typed; `people/ensure.ts`
+finds a name already in the books rather than making a second person, so the
+same Ahmed on two tabs is one counterparty. The People list, its Add person and
+its Settled section are gone — every person worth listing is on a tab. People
+still exist underneath (a claim needs somebody to owe it), `/people/[id]` is
+reached from a tab's contact sheet, and money lent outside any tab still shows
+in a short "Lent outside a tab" section that renders only when there is some,
+so nothing owed drops off the screen. The name is optional: blank takes the
+contacts' names ("Ahmed & Sara"), or "Tab from 13 Sep" with nobody, and a
+default that clashes gets a number rather than refusing a form nobody typed a
+name into. A tab has no stored colour; `tabTint(id)` in `tab/look.tsx` derives
+one so the same tab wears the same tint on the Loan centre, Home and Trends.
 
-**A tab with nobody on it works**, and getting there took two fixes, not one.
-Such a tab takes costs and raises no claim — a claim needs somebody to owe it —
-which is what makes it a running total rather than a khata: the trip before you
-know who is coming, the insurer you have not named. `saveEntry` stopped
-refusing it first, but `tabsForEntry` still carried
-`and exists (select 1 from book_member ...)`, so the tab was accepted by the
-server and never offered by the form. It existed and could not be used, which
-is the shape of half-fix that looks done until somebody tries it. With nobody
-on it the form also drops the "comes back" split, which has nothing to divide
-among, and `tabNote` says the cost goes on the tab with nobody down as owing —
-the arithmetic under it would otherwise read "0 people owe ₹0 each".
+**A tab with nobody on it holds the claim itself** (`claim.counterparty_id`
+NULL, migration `0032`). It used to take costs and raise no claim, which kept
+them out of "owed to you" — and the whole point of the office or insurer tab is
+that the money is expected back. Now `saveEntry` writes one claim with no
+counterparty for what comes back; `tab_balance` groups it under a NULL
+counterparty, `tabById.held` reads it, Money back on the tab clears it
+(`settleTab` with no person), and every claim query left-joins the counterparty
+and names such a claim after its tab. `claim_holder_check` (0106) refuses a
+NULL-counterparty claim on an entry that is not filed under a tab, and
+`claim_one_held_by_tab_per_entry` keeps it to one per entry — NULLs are
+distinct in the older per-person unique index. Deleting a tab writes off its
+own open claims in the same transaction, because nobody is left to owe them;
+people's shares stay. `0032` backfilled such a claim for every existing
+expense on a tab that carried no claim at all. Two earlier fixes still stand:
+`tabsForEntry` offers contactless tabs, and the form drops the split with
+nobody to divide it among. **"Owed to you" counts open claims only** — a
+written-off claim keeps an outstanding figure in `claim_state`, so Home filters
+on status, and Net worth adds `tabHeldOwed`, which no person's row carries.
+
+**A tab's screen** (`tab/[id]`) is its contacts as chips in the header (the
+sheet behind them adds, removes and links to each person), its entries by month,
+and two buttons under the thumb: Money back (from a person or the tab itself,
+blank amount is all of it, `DateChips` for the day) and Add cost. Rename,
+close and delete are behind the dots (`TabMenu`). Every entry is a `SwipeRow`
+with `commit={false}`: **Remind** (only where something is still owed),
+**Attach bill / View bill**, **Delete** with fifteen minutes of Undo. Remind
+is a drawer with one Send per person — a share has to come from a tap — and
+`remind.ts` composes and shares the sentence with the bills, the same helper
+the person page uses; a tab's own claim has nobody to name, so its message
+names nobody. Bills after the fact go through `addBills` (the same five-bill,
+2 MB, image-or-PDF ceilings as `saveEntry`), shrunk on the phone by the same
+`shrink()` Add Entry uses. **After a cost is saved on a tab, Add Entry lands on
+that tab with `?saved=<entry>`**, which opens "Attach the bill?" when no bill
+came with it; the query comes off the address when the drawer closes. The Loan
+centre's tab rows swipe to Remind (`?remind=all`) and Add cost. Home's loan
+card lists the three open tabs with the most owed, and Trends charts **owed to
+you by tab, never by person**, plus six months of money back.
 
 **"Is it owed back" and "was it my spending" are different questions**, and
 conflating them is the whole reason this took two goes. Petrol you burn for work
@@ -1124,7 +1157,7 @@ storage after it opens. The design, in the order the pieces matter:
   person decides. Stuck entries are never retried on their own.
 - **`/offline` is `force-dynamic`** though it reads nothing, because every
   script tag carries the request's CSP nonce and a prerendered page ships
-  with none. The worker (`public/sw.js`, `VERSION = 'v21'`) fetches it once at
+  with none. The worker (`public/sw.js`, `VERSION = 'v22'`) fetches it once at
   install, `credentials: 'omit'`, together with every `/_next/static/` script
   and stylesheet the markup names, so the cached copy is a self-consistent
   snapshot: the nonce in its cached headers is the nonce in its cached

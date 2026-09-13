@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import {
   actorOrNull, allBalances, budgetFor, claimsFor, inboxCount, monthTotals, peopleFor,
-  schedulesFor, setupProgress, worthSeries,
+  schedulesFor, setupProgress, tabList, worthSeries,
 } from '@/db/queries';
 import { format, monthKey } from '@/lib/money';
 import { outstandingDues, ruleOf } from '@/lib/recur';
@@ -31,7 +31,7 @@ export default async function Home() {
 
   const name = actor.household_name;
   const month = monthKey(new Date());
-  const [progress, totals, rows, people, inbox, schedules, worth, claims, balances] = await Promise.all([
+  const [progress, totals, rows, people, inbox, schedules, worth, claims, balances, tabs] = await Promise.all([
     setupProgress(actor.household_id),
     monthTotals(actor.household_id, month),
     budgetFor(actor.household_id, month),
@@ -41,6 +41,7 @@ export default async function Home() {
     worthSeries(actor.household_id, 6),
     claimsFor(actor.household_id),
     allBalances(actor.household_id),
+    tabList(actor.household_id),
   ]);
 
   const budget = Number(totals.budget);
@@ -57,7 +58,14 @@ export default async function Home() {
   const needsYou = inbox.duplicates + inbox.bills + dues;
   const byId = new Map(schedules.map((s) => [s.id, s]));
   const lent = people.reduce((n, p) => n + Number(p.balance), 0);
-  const owedOnClaims = claims.reduce((n, c) => n + Number(c.outstanding), 0);
+  /* Open claims only: a written-off claim still has an outstanding figure in
+     claim_state (nothing came back), but nobody is expected to pay it. */
+  const owedOnClaims = claims
+    .filter((c) => c.status === 'open' || c.status === 'part_paid')
+    .reduce((n, c) => n + Number(c.outstanding), 0);
+  const openTabs = tabs
+    .filter((t) => !t.closed_at && Number(t.outstanding) > 0)
+    .sort((a, b) => Number(b.outstanding) - Number(a.outstanding));
   /* What the household is worth right now: every real account, plus what is
      still owed to it. The six-month series is the shape; this is the figure,
      because the series' last point is the same month and may lag a fresh
@@ -129,7 +137,8 @@ export default async function Home() {
             lent={lent}
             owedToYou={owedOnClaims}
             people={people.filter((p) => Number(p.balance) !== 0).length}
-            openLoans={claims.length}
+            tabs={openTabs.slice(0, 3).map((t) => ({ id: t.id, name: t.name, outstanding: Number(t.outstanding) }))}
+            openTabs={openTabs.length}
           >
             {budget > 0
               ? <MonthSoFar month={month} rows={rows} budget={budget} spent={spent} />

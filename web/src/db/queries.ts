@@ -529,7 +529,7 @@ export async function personLedger(householdId: string, accountId: string) {
 /* ── claims: money owed for things you already paid for ─────────────────── */
 
 export type ClaimRow = {
-  id: string; counterparty_id: string; person: string; tint: string;
+  id: string; counterparty_id: string | null; person: string; tint: string;
   txn_id: string; expected_amount: string; received: string; outstanding: string;
   status: 'open' | 'part_paid' | 'settled' | 'written_off';
   note: string | null; merchant: string | null; category: string | null;
@@ -539,12 +539,14 @@ export type ClaimRow = {
 export async function claimsFor(householdId: string, counterpartyId?: string) {
   return withHousehold(householdId, async () => {
     return sql`
-      select cs.id, cs.counterparty_id, cp.name as person, cp.tint, cs.txn_id,
+      select cs.id, cs.counterparty_id, coalesce(cp.name, lb.name, 'A tab') as person,
+             coalesce(cp.tint, 'indigo') as tint, cs.txn_id,
              cs.expected_amount::text, cs.received::text, cs.outstanding::text, cs.status,
              cs.note, t.merchant, c.name as category, t.occurred_on, t.amount::text as txn_amount
       from claim_state cs
-      join counterparty cp on cp.id = cs.counterparty_id
+      left join counterparty cp on cp.id = cs.counterparty_id
       join txn t on t.id = cs.txn_id and t.deleted_at is null
+      left join ledger_book lb on lb.id = t.book_id
       left join category c on c.id = t.category_id
       where cs.household_id = ${householdId}
         and (${counterpartyId ?? null}::uuid is null
@@ -559,13 +561,14 @@ export async function claimsFor(householdId: string, counterpartyId?: string) {
 export async function claimsOnEntry(householdId: string, txnId: string) {
   return withHousehold(householdId, async () => {
     return sql`
-      select cs.id, cs.counterparty_id, cp.name as person, cp.tint,
+      select cs.id, cs.counterparty_id, coalesce(cp.name, 'This tab') as person,
+             coalesce(cp.tint, 'indigo') as tint,
              cs.expected_amount::text, cs.received::text, cs.outstanding::text, cs.status, cs.note
       from claim_state cs
-      join counterparty cp on cp.id = cs.counterparty_id
+      left join counterparty cp on cp.id = cs.counterparty_id
       where cs.household_id = ${householdId} and cs.txn_id = ${txnId}
-      order by cp.name
-    ` as Promise<{ id: string; counterparty_id: string; person: string; tint: string;
+      order by (cp.id is null), cp.name
+    ` as Promise<{ id: string; counterparty_id: string | null; person: string; tint: string;
                    expected_amount: string; received: string; outstanding: string;
                    status: string; note: string | null }[]>;
   });
@@ -590,24 +593,39 @@ export async function owedByPerson(householdId: string) {
 
 /* ── tabs: people you cover costs for ───────────────────────────────────── */
 
+export type TabMember = { id: string; name: string; tint: string };
+
 export type TabRow = {
-  id: string; name: string; note: string | null;
-  closed_at: Date | null; people: number; entries: number; outstanding: string;
+  id: string; name: string; note: string | null; closed_at: Date | null;
+  members: TabMember[]; people: number; costs: number; entries: number;
+  owed_in_all: string; back: string; outstanding: string; last_on: Date | null;
 };
 
-/** Every tab, with how many are on it and what is still owed across it. The
- *  outstanding figure comes from tab_balance — money laid out under this tab
- *  less money that has come back under it — so it can never disagree with the
- *  khata, which is the same arithmetic without the tab in the way. */
+/* The figures every tab carries, as one fragment so the list and a tab's own
+   screen cannot add up differently. All of it is tab_balance — the claims on
+   entries filed under the tab, the tab's own claims included — less what has
+   come back against them, so it can never disagree with the khata either. */
+const tabFigures = () => sql`
+  coalesce((select json_agg(json_build_object('id', cp.id, 'name', cp.name, 'tint', cp.tint)
+                            order by cp.name)
+            from book_member bm
+            join counterparty cp on cp.id = bm.counterparty_id and cp.archived_at is null
+            where bm.book_id = b.id), '[]'::json) as members,
+  (select count(*)::int from book_member bm where bm.book_id = b.id) as people,
+  (select count(*)::int from txn t
+    where t.book_id = b.id and t.deleted_at is null and t.kind = 'expense') as costs,
+  (select count(*)::int from txn t
+    where t.book_id = b.id and t.deleted_at is null) as entries,
+  coalesce((select sum(tb.owed_in_all) from tab_balance tb where tb.book_id = b.id), 0)::text as owed_in_all,
+  coalesce((select sum(tb.back) from tab_balance tb where tb.book_id = b.id), 0)::text as back,
+  coalesce((select sum(tb.outstanding) from tab_balance tb where tb.book_id = b.id), 0)::text as outstanding,
+  (select max(t.occurred_on) from txn t where t.book_id = b.id and t.deleted_at is null) as last_on`;
+
+/** Every tab, with who is on it and what is still owed across it. */
 export async function tabList(householdId: string) {
   return withHousehold(householdId, async () => {
     return sql`
-      select b.id, b.name, b.note, b.closed_at,
-             (select count(*)::int from book_member bm where bm.book_id = b.id) as people,
-             (select count(*)::int from txn t
-               where t.book_id = b.id and t.deleted_at is null) as entries,
-             coalesce((select sum(tb.outstanding) from tab_balance tb
-                        where tb.book_id = b.id), 0)::text as outstanding
+      select b.id, b.name, b.note, b.closed_at, ${tabFigures()}
       from ledger_book b
       where b.household_id = ${householdId}
       order by (b.closed_at is not null), b.name
@@ -615,13 +633,56 @@ export async function tabList(householdId: string) {
   });
 }
 
+/** One tab with the same figures, plus what the tab itself is owed — the
+ *  claims on costs put on it while nobody was named. */
 export async function tabById(householdId: string, id: string) {
   return withHousehold(householdId, async () => {
     const [b] = await sql`
-      select id, name, note, closed_at from ledger_book
-      where id = ${id} and household_id = ${householdId}`;
-    return (b ?? null) as null | {
-      id: string; name: string; note: string | null; closed_at: Date | null };
+      select b.id, b.name, b.note, b.closed_at, ${tabFigures()},
+             coalesce((select sum(t.amount) from txn t
+                        where t.book_id = b.id and t.deleted_at is null and t.kind = 'expense'), 0)::text as put_on,
+             coalesce((select sum(tb.outstanding) from tab_balance tb
+                        where tb.book_id = b.id and tb.counterparty_id is null), 0)::text as held
+      from ledger_book b
+      where b.id = ${id} and b.household_id = ${householdId}`;
+    return (b ?? null) as null | (TabRow & { put_on: string; held: string });
+  });
+}
+
+/** What the tabs themselves are owed across the household — the one part of
+ *  "owed to you" that no person's row carries. */
+export async function tabHeldOwed(householdId: string) {
+  return withHousehold(householdId, async () => {
+    const [r] = await sql`
+      select coalesce(sum(cs.outstanding), 0)::text as owed
+      from claim_state cs
+      join txn t on t.id = cs.txn_id and t.deleted_at is null
+      where cs.household_id = ${householdId} and cs.counterparty_id is null
+        and cs.status in ('open', 'part_paid')`;
+    return Number(r.owed);
+  });
+}
+
+/** Money that has come back against what was owed, by month — the six bars on
+ *  Trends. Empty months stay in, for the same reason they do in monthlySeries. */
+export async function receiptsByMonth(householdId: string, months = 6) {
+  return withHousehold(householdId, async () => {
+    return sql`
+      with span as (
+        select generate_series(
+          date_trunc('month', current_date) - make_interval(months => ${months - 1}),
+          date_trunc('month', current_date),
+          interval '1 month')::date as month
+      )
+      select to_char(s.month, 'YYYY-MM-DD') as month,
+             coalesce((select sum(r.amount) from txn r
+                       where r.household_id = ${householdId} and r.kind = 'claim_receipt'
+                         and r.deleted_at is null
+                         and r.occurred_on >= s.month
+                         and r.occurred_on <  (s.month + interval '1 month')), 0)::text as back
+      from span s
+      order by s.month
+    ` as Promise<{ month: string; back: string }[]>;
   });
 }
 
@@ -670,6 +731,7 @@ export async function peopleForTab(householdId: string, tabId: string) {
       left join book_member bm on bm.counterparty_id = cp.id and bm.book_id = ${tabId}
       left join tab_balance tb on tb.counterparty_id = cp.id and tb.book_id = ${tabId}
       where cp.household_id = ${householdId} and cp.archived_at is null
+        and (bm.book_id is not null or coalesce(tb.owed_in_all, 0) > 0)
       order by (bm.book_id is null), cp.name
     ` as Promise<{ id: string; name: string; tint: string; on_tab: boolean;
                    owed_in_all: string; back: string; owed: string }[]>;
@@ -692,7 +754,9 @@ export async function tabEntries(householdId: string, tabId: string) {
              u.name as who, c.name as category, c.icon, c.tint,
              (select string_agg(distinct cp.name, ', ') from claim cl
                join counterparty cp on cp.id = cl.counterparty_id
-               where cl.txn_id = t.id) as people
+               where cl.txn_id = t.id) as people,
+             (select count(*)::int from attachment a where a.txn_id = t.id) as bills,
+             t.created_at
       from txn t
       join app_user u on u.id = t.created_by
       left join category c on c.id = t.category_id
@@ -702,19 +766,22 @@ export async function tabEntries(householdId: string, tabId: string) {
 
       select r.id::text, r.occurred_on, null, r.amount::text,
              false, true, '0', '0',
-             u.name, null, null, null, cp.name
+             u.name, null, null, null, cp.name,
+             (select count(*)::int from attachment a where a.txn_id = r.id),
+             r.created_at
       from txn r
       join claim cl on cl.id = r.claim_id
       join txn t on t.id = cl.txn_id and t.book_id = ${tabId} and t.deleted_at is null
-      join counterparty cp on cp.id = cl.counterparty_id
+      left join counterparty cp on cp.id = cl.counterparty_id
       join app_user u on u.id = r.created_by
       where r.household_id = ${householdId} and r.kind = 'claim_receipt' and r.deleted_at is null
 
-      order by occurred_on desc
+      order by occurred_on desc, created_at desc
     ` as Promise<{ id: string; occurred_on: Date; merchant: string | null; amount: string;
                    counts_as_spend: boolean; incoming: boolean; owed_in_all: string;
                    outstanding: string; who: string; category: string | null;
-                   icon: string | null; tint: string | null; people: string | null }[]>;
+                   icon: string | null; tint: string | null; people: string | null;
+                   bills: number; created_at: Date }[]>;
   });
 }
 
@@ -723,18 +790,21 @@ export async function tabEntries(householdId: string, tabId: string) {
  *  be pointed at the three entries it clears. Oldest first, which is the order
  *  a part payment is spread in. */
 export type OpenClaim = {
-  id: string; counterparty_id: string; person: string; tint: string; tab: string | null;
-  what: string; occurred_on: Date; outstanding: string;
+  id: string; counterparty_id: string | null; person: string; tint: string; tab: string | null;
+  txn_id: string; what: string; occurred_on: Date; outstanding: string;
 };
+/* A claim the tab holds itself has no person, so it is named after the tab —
+   "Office petrol · Fuel" reads right in the income screen's list. */
 export async function openClaimsFor(householdId: string, tabId?: string) {
   return withHousehold(householdId, async () => {
     return sql`
-      select cs.id, cs.counterparty_id, cp.name as person, cp.tint, b.name as tab,
+      select cs.id, cs.counterparty_id, coalesce(cp.name, b.name, 'A tab') as person,
+             coalesce(cp.tint, 'indigo') as tint, b.name as tab, cs.txn_id,
              coalesce(t.merchant, c.name, 'Cost') as what,
              t.occurred_on, cs.outstanding::text
       from claim_state cs
       join txn t on t.id = cs.txn_id and t.deleted_at is null
-      join counterparty cp on cp.id = cs.counterparty_id
+      left join counterparty cp on cp.id = cs.counterparty_id
       left join ledger_book b on b.id = t.book_id
       left join category c on c.id = t.category_id
       where cs.household_id = ${householdId} and cs.status in ('open', 'part_paid')

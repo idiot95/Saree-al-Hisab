@@ -8,6 +8,7 @@ import {
   IconSunHigh, IconMoon, IconChartAreaLine, IconArrowDownLeft, IconUsersGroup,
   IconPlus, IconCamera, IconUpload, IconPencil, IconCheck,
   IconTrash, IconPlayerSkipForward, IconPlayerStop, IconArrowsRightLeft,
+  IconFolder, IconDots, IconBell, IconPaperclip,
   type Icon as TablerIcon,
 } from '@tabler/icons-react';
 import dynamic from 'next/dynamic';
@@ -87,6 +88,12 @@ const SET: Record<string, TablerIcon> = {
   skip: IconPlayerSkipForward,
   stop: IconPlayerStop,
   move: IconArrowsRightLeft,
+  // The Loan centre: a tab is a folder of costs, a reminder is a bell, a bill
+  // is clipped to its entry, and a tab's settings are behind the dots.
+  folder: IconFolder,
+  dots: IconDots,
+  bell: IconBell,
+  clip: IconPaperclip,
 };
 
 /* The long tail of glyphs lives in its own chunk (glyphs-more.tsx) and is

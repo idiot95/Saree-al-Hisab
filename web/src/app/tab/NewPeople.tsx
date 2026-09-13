@@ -32,7 +32,7 @@ const hasBook = () => typeof navigator !== 'undefined' && 'contacts' in navigato
   && typeof (navigator as unknown as { contacts?: ContactsApi }).contacts?.select === 'function';
 const noop = () => () => {};
 
-export default function NewPeople({ known = [] }: { known?: string[] }) {
+export default function NewPeople() {
   const [typed, setTyped] = useState('');
   const [people, setPeople] = useState<Picked[]>([]);
   const book = useSyncExternalStore(noop, hasBook, () => false);
@@ -47,10 +47,6 @@ export default function NewPeople({ known = [] }: { known?: string[] }) {
         if (name.length < 2) continue;
         const key = name.toLowerCase();
         if (out.some((q) => q.name.toLowerCase() === key)) continue;
-        if (known.some((k) => k.toLowerCase() === key)) {
-          setNote(`${name} is already in your people — tick them above.`);
-          continue;
-        }
         out.push({ name, phone: p.phone });
       }
       return out;
@@ -106,7 +102,7 @@ export default function NewPeople({ known = [] }: { known?: string[] }) {
           value={typed}
           onChange={(e) => setTyped(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addTyped(); } }}
-          placeholder="Someone new — type a name"
+          placeholder="Type a name"
           aria-label="Add someone by name"
           maxLength={60}
           autoComplete="off"

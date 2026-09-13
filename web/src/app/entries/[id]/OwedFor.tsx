@@ -116,7 +116,7 @@ export default function OwedFor({ txnId, entryAmount, people, claims, canEdit }:
 
       {people.length === 0 && (
         <p style={{ margin: 0, fontSize: 'var(--step--1)', color: 'var(--c-meta)' }}>
-          Add someone under Lending first.
+          Add someone to a tab in the Loan centre first.
         </p>
       )}
     </section>
