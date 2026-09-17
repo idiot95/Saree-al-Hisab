@@ -28,6 +28,10 @@
    file is not touched: these live here because they are composition, not
    palette. */
 :root {
+  /* UIKit's navigation and sheet curve, and a spring that overshoots a touch
+     for the small things that should feel alive — a tab icon, a check. */
+  --ease-ios: cubic-bezier(.32, .72, 0, 1);
+  --ease-spring: linear(0, .18 6%, .62 17%, .92 27%, 1.06 37%, 1.09 45%, 1.05 58%, .99 73%, 1);
   --sheen: radial-gradient(120% 100% at 25% 0%, rgba(255,255,255,.24) 0%, rgba(255,255,255,0) 60%);
   --shade: linear-gradient(180deg, rgba(23,43,55,0) 55%, rgba(23,43,55,.06) 100%);
   --edge: rgba(255,255,255,.7);
@@ -308,40 +312,71 @@
   ::view-transition-old(tab-bar)   { display: none; }
   ::view-transition-new(tab-bar)   { animation: none; }
 
-  /* Asymmetric on purpose: the screen you are leaving goes quickly so it
-     stops competing for attention, and the one you are arriving at comes in
-     more slowly so there is time to read it. 60px is far enough to show a
-     direction and near enough that the eye is not asked to track it. */
-  ::view-transition-old(.nav-forward) {
-    --slide: -60px;
-    animation: 150ms ease-in both vt-fade reverse, 380ms ease-in-out both vt-slide reverse;
-  }
+  /* The way an iPhone moves between screens.
+
+     Going deeper is a PUSH: the new screen slides in from the right edge,
+     over the old one, which drifts a quarter of the way left and dims as it
+     goes under — the parallax that says "this is on top of that". Coming back
+     is a POP, the same move undone: the screen on top slides off to the right
+     and the one beneath is uncovered where it was left. The groups are
+     stacked in capture order, so the arriving screen is always the top layer;
+     on a pop it is clipped to exactly the part the departing screen has
+     uncovered, which keeps the departing screen visually on top without
+     needing to reorder anything.
+
+     The curve is UIKit's own navigation curve, fast off the mark and a long
+     soft landing, and the length is iOS's — anything much shorter reads as a
+     web page, much longer as a slow app. */
+  ::view-transition-old(root), ::view-transition-new(root) { animation: none; }
+
   ::view-transition-new(.nav-forward) {
-    --slide: 60px;
-    animation: 210ms ease-out 130ms both vt-fade, 380ms ease-in-out both vt-slide;
+    animation: 480ms var(--ease-ios) both vt-push-in;
+    box-shadow: -10px 0 28px rgba(15, 30, 40, .16);
+  }
+  ::view-transition-old(.nav-forward) {
+    animation: 480ms var(--ease-ios) both vt-push-under;
   }
   ::view-transition-old(.nav-back) {
-    --slide: 60px;
-    animation: 150ms ease-in both vt-fade reverse, 380ms ease-in-out both vt-slide reverse;
+    animation: 440ms var(--ease-ios) both vt-pop-out;
   }
   ::view-transition-new(.nav-back) {
-    --slide: -60px;
-    animation: 210ms ease-out 130ms both vt-fade, 380ms ease-in-out both vt-slide;
+    animation: 440ms var(--ease-ios) both vt-pop-uncover;
+  }
+  @keyframes vt-push-in    { from { translate: 100% 0 } to { translate: 0 0 } }
+  @keyframes vt-push-under { from { translate: 0 0; filter: brightness(1) } to { translate: -26% 0; filter: brightness(.88) } }
+  @keyframes vt-pop-out    { from { translate: 0 0 } to { translate: 100% 0 } }
+  /* The uncovered screen's right edge always sits at the departing screen's
+     left edge: moving from -26% to 0 while its clip opens from 74% to 0 keeps
+     the two in lock-step under the same curve. */
+  @keyframes vt-pop-uncover {
+    from { translate: -26% 0; clip-path: inset(0 74% 0 0); filter: brightness(.88) }
+    to   { translate: 0 0;    clip-path: inset(0 0 0 0);   filter: brightness(1) }
   }
 
-  /* Sideways, at the same depth. No horizontal travel at all, so it can
-     never be mistaken for going deeper or coming back — just a short lift
-     and a fade, which is the smallest movement that still registers. */
+  /* Between tabs: the same depth, so no push — the content glides a short way
+     in the direction of the tab that was chosen and fades through, the way a
+     segmented control changes pages. Right-hand tab, content moves left. The
+     bar itself never moves. */
+  ::view-transition-old(.nav-tab-right) { animation: 160ms ease-in both vt-fade reverse, 320ms var(--ease-ios) both vt-nudge-left; }
+  ::view-transition-new(.nav-tab-right) { animation: 240ms ease-out 70ms both vt-fade, 360ms var(--ease-ios) both vt-from-right; }
+  ::view-transition-old(.nav-tab-left)  { animation: 160ms ease-in both vt-fade reverse, 320ms var(--ease-ios) both vt-nudge-right; }
+  ::view-transition-new(.nav-tab-left)  { animation: 240ms ease-out 70ms both vt-fade, 360ms var(--ease-ios) both vt-from-left; }
+  @keyframes vt-nudge-left  { to   { translate: -36px 0 } }
+  @keyframes vt-nudge-right { to   { translate: 36px 0 } }
+  @keyframes vt-from-right  { from { translate: 36px 0 } }
+  @keyframes vt-from-left   { from { translate: -36px 0 } }
+
+  /* Sideways at the same depth without a direction (a tile to Budget): a
+     short lift and a fade, the smallest movement that still registers. */
   ::view-transition-old(.nav-lateral) {
     animation: 120ms ease-in both vt-fade reverse, 220ms ease-in both vt-lift reverse;
   }
   ::view-transition-new(.nav-lateral) {
-    animation: 200ms ease-out 100ms both vt-fade, 280ms ease-out both vt-lift;
+    animation: 200ms ease-out 100ms both vt-fade, 300ms var(--ease-ios) both vt-lift;
   }
 
   @keyframes vt-lift  { from { translate: 0 7px } to { translate: 0 } }
   @keyframes vt-fade  { from { opacity: 0 } to { opacity: 1 } }
-  @keyframes vt-slide { from { translate: var(--slide) } to { translate: 0 } }
 
   /* Movement across the viewport is the commonest trigger for motion
      sickness, and this app is used by whoever is in the household — not
@@ -497,8 +532,24 @@
   /* A drawer rises from the bottom edge over the veil: the day you tapped
      is still there above it, softened, and the drawer's handle says it can
      be pushed back down. */
-  .sheet { animation: sheet-in .26s cubic-bezier(.2,.8,.2,1) both; }
-  @keyframes sheet-in { from { translate: 0 40px; opacity: 0 } to { translate: 0; opacity: 1 } }
+  .sheet { animation: sheet-in .5s var(--ease-ios) both; }
+  @keyframes sheet-in { from { translate: 0 100% } to { translate: 0 0 } }
+  /* And back down the way it came, a little quicker than it rose, with the
+     veil clearing behind it. Drag the handle and it follows the finger. */
+  .sheet[data-leaving] { animation: sheet-out .3s cubic-bezier(.4, 0, 1, 1) both; }
+  @keyframes sheet-out { from { translate: 0 0 } to { translate: 0 100% } }
+  .veil[data-leaving] { animation: veil-out .3s ease both; }
+  @keyframes veil-out { from { opacity: 1 } to { opacity: 0 } }
+
+  /* A tab's icon gives a small bounce when its screen arrives — the same
+     acknowledgement an iPhone tab bar gives — and only on the live bar, never
+     the still copy a loading skeleton draws. */
+  .tab-here svg { animation: tab-pop .5s var(--ease-spring) both; transform-origin: 50% 60%; }
+  @keyframes tab-pop { 0% { scale: .72 } 100% { scale: 1 } }
+
+  /* The check on a success line draws itself in. */
+  .check-draw path { stroke-dasharray: 24; stroke-dashoffset: 24; animation: check-draw .42s var(--ease-ios) .08s forwards; }
+  @keyframes check-draw { to { stroke-dashoffset: 0 } }
 
   /* Focus has to be visible for anyone on a keyboard, and must not be a ring
      that vanishes against a dark header. */

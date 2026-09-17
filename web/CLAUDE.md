@@ -225,7 +225,7 @@ hidden input; there is no `<select>` of payment modes anywhere, because one
 listing every rail under every account showed "ICICI Amazon Pay" twice and
 read as nonsense. Wrap it in a `<div role="group">`, never a `<label>` — a
 label around buttons activates the first chip. The entries list shows the
-rail when there is one and the account when there is not. `sw.js` is v25 for the skeleton drawn on tap (`PendingSkeleton`), which the offline screen's layout now carries.
+rail when there is one and the account when there is not. `sw.js` is v26 for the tab bar's directional motion and bouncing icon.
 Before Save, a debounced
 `checkDuplicate` shows what a household member already recorded within ±1% and
 ±2 days, which is the prevention half of the duplicate rule; the Inbox card is
@@ -1205,7 +1205,7 @@ storage after it opens. The design, in the order the pieces matter:
   person decides. Stuck entries are never retried on their own.
 - **`/offline` is `force-dynamic`** though it reads nothing, because every
   script tag carries the request's CSP nonce and a prerendered page ships
-  with none. The worker (`public/sw.js`, `VERSION = 'v25'`) fetches it once at
+  with none. The worker (`public/sw.js`, `VERSION = 'v26'`) fetches it once at
   install, `credentials: 'omit'`, together with every `/_next/static/` script
   and stylesheet the markup names, so the cached copy is a self-consistent
   snapshot: the nonce in its cached headers is the nonce in its cached
@@ -1401,6 +1401,22 @@ building the FormData, showing the error or the confirmation, and refreshing.
 A card holding swipe rows uses `padding: 0 var(--pad)` with `overflow:
 hidden`, because the row slides out past the card's own padding and the
 revealed actions must stop at its rounded corner.
+
+**Motion is an iPhone's** (`globals.css`, `Screen.tsx`). Going deeper
+(`nav-forward`) is a push: the new screen slides in from the right over the
+old, which drifts a quarter left and dims. Coming back (`nav-back`) is a pop:
+the top screen slides off right and the one beneath is uncovered — the
+arriving group is always the top layer (groups stack in capture order), so it
+is clip-pathed to exactly what the departing screen has uncovered. Tabs
+(`nav-tab-left` / `nav-tab-right`, chosen in TabBar by index against the lit
+tab) glide 36px towards the tab picked and fade through; the bar never moves.
+Root's own cross-fade is off. Curves are `--ease-ios` (UIKit's
+`cubic-bezier(.32,.72,0,1)`) and `--ease-spring` (a `linear()` spring for small
+things). Sheets spring up, slide back down on any close (they stay mounted for
+the exit, worked out during render so no effect sets state), and follow a drag
+on the handle — past a third, or a flick, closes. The live tab icon bounces
+when its screen arrives; success lines draw their check in (`.check-draw`).
+Reduced motion shortens all of it to nothing.
 
 **A tap draws the destination's skeleton at once** (`PendingSkeleton` in the
 root layout, `pending.ts`). Links prefetch only on intent (`NavLink`), so a

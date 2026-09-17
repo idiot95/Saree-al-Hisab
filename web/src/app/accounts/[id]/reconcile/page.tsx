@@ -75,7 +75,7 @@ export default async function ReconcileAccount({ params, searchParams }: {
             alignItems: 'center', background: 'var(--c-ok-tint)', color: 'var(--c-ok)',
             fontSize: 'var(--step--1)', fontWeight: 600, lineHeight: 1.45,
           }}>
-            <Icon name="check" size={18} strokeWidth={2.4} />
+            <Icon name="check" size={18} strokeWidth={2.4} className="check-draw" />
             <span style={{ flex: 1 }}>
               Matched to the {day(justDone.on, true)} statement — {justDone.entries} {justDone.entries === 1 ? 'entry' : 'entries'} ticked off
               {justDone.adjustment ? `, and a ${format(Math.abs(Number(justDone.adjustment)))} adjustment recorded` : ''}.

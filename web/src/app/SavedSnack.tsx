@@ -16,6 +16,7 @@ export default function SavedSnack({ id }: { id: string }) {
   const router = useRouter();
   const [snack, setSnack] = useState<SnackState>(() => ({
     text: 'Entry saved.',
+    check: true,
     action: { label: 'Edit', run: () => { startPending(`/entries/${id}`); router.push(`/entries/${id}?from=/`, { transitionTypes: ['nav-forward'] }); } },
   }));
   const close = useCallback(() => {

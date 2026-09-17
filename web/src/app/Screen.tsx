@@ -17,7 +17,8 @@ import { ViewTransition } from 'react';
    Moving between tabs is neither of those — it is sideways, at the same
    depth — so a slide would be a lie about the shape of the app. Those get a
    fade-through with a slight lift instead, which reads as "same level, new
-   place". Three motions, each meaning one thing.
+   place". Tabs slide a short way towards the tab chosen, so the bar and the
+   motion agree about where you went. Each motion means one thing.
 
    `default: 'none'` matters. Without it, every untyped transition — the
    browser's own back button, a router.refresh(), a Suspense boundary
@@ -28,6 +29,8 @@ const DIRECTIONAL = {
   'nav-forward': 'nav-forward',
   'nav-back': 'nav-back',
   'nav-lateral': 'nav-lateral',
+  'nav-tab-left': 'nav-tab-left',
+  'nav-tab-right': 'nav-tab-right',
   default: 'none',
 } as const;
 

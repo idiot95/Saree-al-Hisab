@@ -116,7 +116,11 @@ export default function TabEntries({
     month: 'long', ...(key.slice(0, 4) !== today.slice(0, 4) ? { year: 'numeric' } : {}),
   });
 
-  const target = open ? entries.find((e) => e.id === open.txnId) ?? null : null;
+  /* A sheet slides down after it is closed, so it keeps drawing what it last
+     showed rather than going blank on the way out. */
+  const [shown, setShown] = useState<Open>(open);
+  if (open && open !== shown) setShown(open);
+  const target = shown ? entries.find((e) => e.id === shown.txnId) ?? null : null;
 
   return (
     <>
@@ -175,9 +179,9 @@ export default function TabEntries({
       ))}
 
       <Sheet open={open?.kind === 'bill' && !!target} onClose={close}
-        label={open?.kind === 'bill' && open.fresh ? 'Attach the bill' : 'Bills'}>
-        {open?.kind === 'bill' && target && (
-          <BillBody entry={target} fresh={open.fresh} tabName={tabName} editHref={edit(target.id)}
+        label={shown?.kind === 'bill' && shown.fresh ? 'Attach the bill' : 'Bills'}>
+        {shown?.kind === 'bill' && target && (
+          <BillBody entry={target} fresh={shown.fresh} tabName={tabName} editHref={edit(target.id)}
             bills={bills.filter((b) => b.txnId === target.id)}
             onDone={(text) => { close(); setSnack({ text }); router.refresh(); }}
             onSkip={close} />
@@ -185,9 +189,9 @@ export default function TabEntries({
       </Sheet>
 
       <Sheet open={open?.kind === 'remind'} onClose={close} label="Remind">
-        {open?.kind === 'remind' && (
-          <RemindBody entry={open.txnId ? target : null} tabId={tabId} tabName={tabName}
-            claims={open.txnId ? owedOn(open.txnId) : claims.filter((c) => c.outstanding > 0)}
+        {shown?.kind === 'remind' && (
+          <RemindBody entry={shown.txnId ? target : null} tabId={tabId} tabName={tabName}
+            claims={shown.txnId ? owedOn(shown.txnId) : claims.filter((c) => c.outstanding > 0)}
             bills={bills} />
         )}
       </Sheet>
@@ -256,7 +260,7 @@ function BillBody({ entry, bills, fresh, tabName, editHref, onDone, onSkip }: {
             <span style={{
               width: 40, height: 40, flex: 'none', borderRadius: 999, display: 'flex', alignItems: 'center',
               justifyContent: 'center', background: 'var(--c-ok-tint)', color: 'var(--c-ok)',
-            }}><Icon name="check" size={20} strokeWidth={2.4} /></span>
+            }}><Icon name="check" size={20} strokeWidth={2.4} className="check-draw" /></span>
             <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
               <span style={{ fontSize: 'var(--step-1)', fontWeight: 600 }}>Saved on {tabName}</span>
               <span style={{ fontSize: 'var(--step--1)', color: 'var(--c-meta)' }}>

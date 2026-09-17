@@ -31,6 +31,9 @@ export default function TabBar({ current }: { current: string }) {
   const [openOn, setOpenOn] = useState<string | null>(null);
   const open = openOn === path;
   const close = useCallback(() => setOpenOn(null), []);
+  /* Which way a tab switch moves: towards the tab chosen, measured from the
+     one lit now. From a screen no tab owns, it is a plain lateral fade. */
+  const litAt = TABS.findIndex((t) => tabLook(t, current).on);
   return (
     <>
     <AddOptions open={open} onClose={close} />
@@ -39,11 +42,13 @@ export default function TabBar({ current }: { current: string }) {
         /* A screen inside a tab lights that tab, but not as brightly as the
            tab's own screen — you are in Home's territory, not on Home. */
         const { on, here, add } = tabLook(t, current);
+        const i = TABS.indexOf(t);
+        const motion = litAt < 0 || i === litAt ? 'nav-lateral' : i > litAt ? 'nav-tab-right' : 'nav-tab-left';
         return (
           <Link
             key={t.href} href={t.href}
             /* Sideways between tabs — never a forward or back slide. */
-            transitionTypes={['nav-lateral']}
+            transitionTypes={[motion]}
             aria-current={here ? 'page' : on ? 'true' : undefined}
             /* A tick under the thumb as the tab is taken — the moment of the
                tap, not the moment the screen arrives. */
@@ -57,7 +62,7 @@ export default function TabBar({ current }: { current: string }) {
             className="press"
             style={tabStyle(on, add)}
           >
-            <TabGlyph t={t} on={on} here={here} add={add} open={add && open} />
+            <TabGlyph t={t} on={on} here={here} add={add} open={add && open} live />
           </Link>
         );
       })}

@@ -14,6 +14,8 @@ import { haptic } from './haptics';
 
 export type SnackState = {
   text: string; undo?: () => void; tone?: 'ok' | 'error';
+  /** A check that draws itself in, for a line that says something worked. */
+  check?: boolean;
   /** A named action in Undo's place, for a snack that offers something else. */
   action?: { label: string; run: () => void };
 } | null;
@@ -39,6 +41,12 @@ export default function Snack({ snack, onClose, ttl = 6000 }: {
       color: err ? 'var(--c-on-danger)' : 'var(--c-bg)',
       boxShadow: '0 8px 24px -8px rgba(35,61,77,.45)',
     }}>
+      {snack.check && (
+        <svg className="check-draw" width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="var(--c-ok-fill)"
+          strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round" aria-hidden style={{ flex: 'none' }}>
+          <path d="M5 12.5l4.5 4.5L19 7.5" />
+        </svg>
+      )}
       <span style={{ flex: 1, fontSize: 'var(--step--1)', fontWeight: 600, lineHeight: 1.35 }}>
         {snack.text}
       </span>

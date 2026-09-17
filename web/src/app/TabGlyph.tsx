@@ -3,10 +3,12 @@ import type { TABS } from './tabs';
 /* The inside of one tab: the rule across the top, the glyph in its pill,
    the label. No handlers and no state, so the loading skeleton can draw it
    as a still without a line of client JavaScript. */
-export function TabGlyph({ t, on, here, add, open = false }: {
+export function TabGlyph({ t, on, here, add, open = false, live = false }: {
   t: (typeof TABS)[number]; on: boolean; here: boolean; add: boolean;
   /** The plus with its options fanned out: the same glyph, turned to a cross. */
   open?: boolean;
+  /** The real bar, not a skeleton's still copy: only this one bounces. */
+  live?: boolean;
 }) {
   return (
     <>
@@ -21,7 +23,7 @@ export function TabGlyph({ t, on, here, add, open = false }: {
           opacity: here ? 1 : .45,
         }} />
       )}
-      <span style={add ? {
+      <span className={live && here && !add ? 'tab-here' : undefined} style={add ? {
         /* Raised and filled: the one thing done many times a day should
            not look like the four things done occasionally. */
         width: 46, height: 46, borderRadius: 999, marginTop: -14,
