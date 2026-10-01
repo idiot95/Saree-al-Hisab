@@ -1,26 +1,19 @@
 import Link from '@/app/NavLink';
 import { redirect } from 'next/navigation';
-import {
-  actorOrNull, allBalances, budgetFor, claimsFor, inboxCount, monthTotals, peopleFor,
-  schedulesFor, setupProgress, tabList, worthSeries,
-} from '@/db/queries';
+import { actorOrNull, entriesFor, inboxCount, monthTotals, schedulesFor, setupProgress } from '@/db/queries';
 import { withHousehold } from '@/db/client';
 import { format, monthKey } from '@/lib/money';
 import { outstandingDues, ruleOf } from '@/lib/recur';
 import DueRow from './schedules/DueRow';
-import { headerBg } from './auth-ui';
-import HomeDeck from './HomeDeck';
-import { Icon } from './Icon';
+import { Chip } from './Icon';
 import GettingStarted from './GettingStarted';
-import MonthSoFar from './MonthSoFar';
+import MonthRing from './home/MonthRing';
 import TabBar from './TabBar';
 import { TAB_BAR_SPACE } from './tabs';
 import Screen from './Screen';
 import SavedSnack from './SavedSnack';
 
 export const dynamic = 'force-dynamic';
-
-const ROLE = { owner: 'Owner', adult: 'Contributing member', viewer: 'Viewer' } as const;
 
 /* Home answers one question — how is this month going — and then gets out of
    the way. Everything else is a way to somewhere else, so it is small, and the
@@ -35,17 +28,13 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ s
   const name = actor.household_name;
   const month = monthKey(new Date());
   const hh = actor.household_id;
-  const [progress, totals, rows, people, inbox, schedules, worth, claims, balances, tabs] = await withHousehold(hh, () => Promise.all([
+  /* Home asks only what it shows. Net worth, loans and tabs moved to Money, and the per-category budget to Plan. */
+  const [progress, totals, inbox, schedules, recent] = await withHousehold(hh, () => Promise.all([
     setupProgress(hh),
     monthTotals(hh, month),
-    budgetFor(hh, month),
-    peopleFor(hh),
     inboxCount(hh),
     schedulesFor(hh),
-    worthSeries(hh, 6),
-    claimsFor(hh),
-    allBalances(hh),
-    tabList(hh),
+    entriesFor(hh, month),
   ]));
 
   const budget = Number(totals.budget);
@@ -61,102 +50,52 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ s
   const dues = allDues.length - dueNow.length;
   const needsYou = inbox.duplicates + inbox.bills + dues;
   const byId = new Map(schedules.map((s) => [s.id, s]));
-  const lent = people.reduce((n, p) => n + Number(p.balance), 0);
-  /* Open claims only: a written-off claim still has an outstanding figure in
-     claim_state (nothing came back), but nobody is expected to pay it. */
-  const owedOnClaims = claims
-    .filter((c) => c.status === 'open' || c.status === 'part_paid')
-    .reduce((n, c) => n + Number(c.outstanding), 0);
-  const openTabs = tabs
-    .filter((t) => !t.closed_at && Number(t.outstanding) > 0)
-    .sort((a, b) => Number(b.outstanding) - Number(a.outstanding));
-  /* What the household is worth right now: every real account, plus what is
-     still owed to it. The six-month series is the shape; this is the figure,
-     because the series' last point is the same month and may lag a fresh
-     entry by a query. */
-  const netWorth = balances.reduce((n, b) => n + Number(b.balance), 0) + owedOnClaims + Math.max(0, lent);
   const monthName = new Date(month).toLocaleDateString('en-IN', { month: 'long' });
+
+  const todays = recent.filter((e) => String(e.occurred_on).slice(0, 10) === todayIso);
+  const latest = todays.length ? todays : recent.slice(0, 5);
+  const dueSoon = allDues.filter((d) => d.daysAway > 0);
+  const dueSoonTotal = dueSoon.reduce((n, d) => n + Number(byId.get(d.scheduleId)?.amount ?? 0), 0);
 
   return (
     <Screen>
-      <main style={{ minHeight: '100dvh', background: 'var(--c-bg)', paddingBottom: TAB_BAR_SPACE }}>
-        {/* The header is the door to Settings. Where every app keeps it — your
-            name and picture at the top, a cog at the far end — because "where
-            do I manage my household" was being answered by a tile at the
-            bottom of the grid, wearing the same icon as Lending. */}
-        <header className="el2" style={{
-          background: headerBg('teal'), color: '#fff', borderRadius: '0 0 26px 26px',
-          padding: '12px var(--gutter) 16px',
-        }}>
-          <Link href="/household" transitionTypes={['nav-forward']} className="press"
-            aria-label="Household and settings" style={{
-              display: 'flex', alignItems: 'center', gap: 12, minHeight: 50,
-              textDecoration: 'none', color: '#fff', borderRadius: 14,
-            }}>
-            <span style={{
-              width: 38, height: 38, flex: 'none', borderRadius: 999, display: 'flex',
-              alignItems: 'center', justifyContent: 'center',
-              fontSize: 'var(--step--1)', fontWeight: 700,
-              background: 'rgba(255,255,255,.16)', border: '1px solid rgba(255,255,255,.22)',
-            }}>{(actor.user_name || '?').slice(0, 2).toUpperCase()}</span>
-            <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1 }}>
-              <h1 style={{
-                fontSize: 'var(--step-1)', fontWeight: 600, overflow: 'hidden',
-                textOverflow: 'ellipsis', whiteSpace: 'nowrap', letterSpacing: '-.01em',
-              }}>{name}</h1>
-              <span style={{ fontSize: 'var(--step--1)', color: 'rgba(255,255,255,.72)' }}>
-                {actor.user_name} · {actor.role ? ROLE[actor.role] : ''}
-              </span>
-            </span>
-            <span aria-hidden style={{
-              width: 44, height: 44, flex: 'none', borderRadius: 999, display: 'flex',
-              alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,.92)',
-              background: 'rgba(255,255,255,.12)',
-            }}>
-              <Icon name="settings" size={21} strokeWidth={1.9} />
-            </span>
+      <main className="min-h-dvh bg-background text-foreground" style={{ paddingBottom: TAB_BAR_SPACE }}>
+        {/* Quiet Ledger: no dark header. The month and the household, and your initials at the far end — the door to
+            household and settings, where people look for them. */}
+        <header className="flex items-center gap-3 px-[var(--gutter)] pb-2 pt-4">
+          <div className="min-w-0 flex-1">
+            <p className="text-xs text-muted-foreground">{now.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })}</p>
+            <h1 className="truncate font-display text-[28px] leading-tight">{name}</h1>
+          </div>
+          <Link href="/household" transitionTypes={['nav-forward']} aria-label="Household and settings"
+            className="press grid size-11 flex-none place-items-center rounded-full bg-accent text-sm font-bold text-accent-foreground">
+            {(actor.user_name || '?').slice(0, 2).toUpperCase()}
           </Link>
-
-          {/* Where the name comes from. Sūrat al-Baqara 202 and elsewhere:
-              "indeed, God is swift in the reckoning". Set in Amiri, quiet, and
-              marked lang="ar" dir="rtl" so a screen reader hands it to an
-              Arabic voice rather than spelling it out in English. */}
-          <p lang="ar" dir="rtl" style={{
-            margin: '10px 0 0', textAlign: 'right',
-            fontFamily: "'Amiri Subset', serif",
-            fontSize: 'var(--step-1)', lineHeight: 1.6,
-            color: 'rgba(255,255,255,.62)',
-          }}>
-            إِنَّ ٱللَّهَ سَرِيعُ ٱلْحِسَابِ
-          </p>
         </header>
 
-        <div style={{ padding: '18px var(--gutter) 0', display: 'flex', flexDirection: 'column', gap: 14 }}>
-          {/* The answer first. */}
-          {/* One card you swipe: the month, the six months, the loans. All
-              three want to be first and only one can be. */}
-          <HomeDeck
-            worth={worth.map((w) => ({ month: w.month, worth: w.held }))}
-            netWorth={netWorth}
-            lent={lent}
-            owedToYou={owedOnClaims}
-            people={people.filter((p) => Number(p.balance) !== 0).length}
-            tabs={openTabs.slice(0, 3).map((t) => ({ id: t.id, name: t.name, outstanding: Number(t.outstanding) }))}
-            openTabs={openTabs.length}
-          >
-            {budget > 0
-              ? <MonthSoFar month={month} rows={rows} budget={budget} spent={spent} />
-              : <NoBudgetYet monthName={monthName} spent={spent} entries={progress.entries} />}
-          </HomeDeck>
+        <div className="flex flex-col gap-3.5 px-[var(--gutter)] pt-2">
+          {budget > 0
+            ? <MonthRing month={month} budget={budget} spent={spent} />
+            : <NoBudgetYet monthName={monthName} spent={spent} entries={progress.entries} />}
 
-          {/* Then anything that actually wants a decision. */}
+          {/* What needs you: decisions waiting, and what's due in the coming week. Nothing else. */}
+          <div className="grid grid-cols-2 gap-2.5">
+            <Link href="/inbox" transitionTypes={['nav-forward']}
+              className={`press flex min-h-[72px] flex-col justify-center gap-0.5 rounded-2xl border px-3.5 ${needsYou > 0
+                ? 'border-attention/40 bg-attention-soft text-attention-soft-foreground' : 'border-border bg-card'}`}>
+              <span className="text-xs opacity-80">Needs you</span>
+              <span className="text-base font-semibold">{needsYou > 0 ? `${needsYou} to look at` : 'All clear'}</span>
+            </Link>
+            <Link href="/schedules" transitionTypes={['nav-forward']}
+              className="press flex min-h-[72px] flex-col justify-center gap-0.5 rounded-2xl border border-border bg-card px-3.5">
+              <span className="text-xs text-muted-foreground">Due this week</span>
+              <span className="text-base font-semibold tabular-nums">{dueSoon.length ? format(dueSoonTotal) : 'Nothing'}</span>
+            </Link>
+          </div>
+
           {dueNow.length > 0 && (
-            <section className="el card" aria-label="Due today" style={{
-              borderRadius: 18, padding: '4px var(--pad) 0', background: 'var(--c-card)',
-            }}>
-              <h2 style={{ margin: 0, padding: '10px 0 2px', fontSize: 'var(--step-0)', fontWeight: 600 }}>
-                {dueNow.some((d) => d.daysAway < 0) ? 'Due now' : 'Due today'}
-              </h2>
+            <section aria-label="Due today" className="rounded-2xl border border-border bg-card px-[var(--pad)]">
+              <h2 className="pb-0.5 pt-3 text-sm font-semibold">{dueNow.some((d) => d.daysAway < 0) ? 'Due now' : 'Due today'}</h2>
               {dueNow.map((d) => {
                 const s = byId.get(d.scheduleId)!;
                 return (
@@ -170,61 +109,53 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ s
             </section>
           )}
 
-          {needsYou > 0 && (
-            <Link transitionTypes={['nav-forward']} href="/inbox" className="el" style={{
-              minHeight: 62, borderRadius: 15, display: 'flex', alignItems: 'center', gap: 12,
-              padding: '0 var(--pad)', textDecoration: 'none', background: 'var(--c-warn-tint)',
-              border: '1px solid var(--c-warn-fill)', color: 'var(--c-ink)',
-            }}>
-              <span style={{
-                width: 34, height: 34, flex: 'none', borderRadius: 999, display: 'flex',
-                alignItems: 'center', justifyContent: 'center',
-                background: 'var(--c-warn-fill)', color: 'var(--c-on-warn)',
-              }}>
-                <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                  strokeWidth={2.1} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                  <path d="M3.5 12.5h4l1.5 3h6l1.5-3h4" />
-                  <path d="M5.5 6.5h13l2 6v5a1.5 1.5 0 0 1-1.5 1.5h-14A1.5 1.5 0 0 1 3.5 17.5v-5z" />
-                </svg>
-              </span>
-              <span style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
-                <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>
-                  {needsYou} {needsYou === 1 ? 'thing' : 'things'} to look at
-                </span>
-                <span style={{ fontSize: 'var(--step--1)', color: 'var(--c-warn)' }}>
-                  {[dues > 0 ? `${dues} due this week` : null,
-                    inbox.bills > 0 ? `${inbox.bills} card ${inbox.bills === 1 ? 'bill' : 'bills'}` : null,
-                    inbox.duplicates > 0 ? `${inbox.duplicates} possible ${inbox.duplicates === 1 ? 'duplicate' : 'duplicates'}` : null,
-                  ].filter(Boolean).join(' · ')}
-                </span>
-              </span>
-              <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="var(--c-warn)"
-                strokeWidth={2} strokeLinecap="round" aria-hidden><path d="M9 5l7 7-7 7" /></svg>
-            </Link>
-          )}
-
-          {/* Setting up is one line, and only until it is done. */}
           <GettingStarted progress={{ ...progress, budget }} />
 
-          {/* Everywhere else, as a grid: five destinations scan faster in two
-              columns than they read as five identical stacked rows. */}
-          <nav aria-label="More" style={{
-            display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10, marginTop: 2,
-          }}>
-            <Tile href="/trends" icon="invest" tint="green" label="Trends" note="Six months of spending" />
-            <Tile href="/schedules" icon="autodebit" tint="indigo" label="Scheduled"
-              note={schedules.length ? `${schedules.length} set` : 'Rent, fees, EMIs'} />
-            <Tile href="/categories" icon="tag" tint="purple" label="Categories"
-              note="What you file things under" />
-            <Tile href="/household" icon="settings" tint="blue" label="Household & settings"
-              note={`${progress.members} ${progress.members === 1 ? 'member' : 'members'}`} />
-            <Tile href="/guide" icon="book" tint="neutral" label="How it works" note="A walkthrough" />
-          </nav>
+          {latest.length > 0 && (
+            <section aria-label={todays.length ? 'Today' : 'Latest'} className="flex flex-col gap-2">
+              <div className="flex items-baseline justify-between px-1">
+                <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{todays.length ? 'Today' : 'Latest'}</h2>
+                <Link href="/entries" transitionTypes={['nav-lateral']} className="text-sm font-medium text-primary">See all</Link>
+              </div>
+              <ul className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card">
+                {latest.map((e) => <EntryLine key={e.id} e={e} />)}
+              </ul>
+            </section>
+          )}
+
+          <Link href="/guide" transitionTypes={['nav-forward']} className="self-center py-2 text-sm text-muted-foreground underline-offset-4 hover:underline">
+            How the app works
+          </Link>
         </div>
         {saved && /^[0-9a-f-]{36}$/.test(saved) && <SavedSnack id={saved} />}
         <TabBar current="/" />
       </main>
     </Screen>
+  );
+}
+
+/* One entry, as every list in the app will draw it: its category chip, where the money went (or came from), what it
+   was filed under, and the figure in the colour of its direction. A move between your own accounts is neither. */
+function EntryLine({ e }: { e: Awaited<ReturnType<typeof entriesFor>>[number] }) {
+  const out = e.kind === 'expense';
+  const into = e.kind === 'income' || e.kind === 'claim_receipt' || e.kind === 'refund';
+  const title = e.merchant || e.category || (e.kind === 'card_payment' ? 'Card payment' : e.kind === 'transfer' ? 'Transfer' : 'Entry');
+  const sub = e.kind === 'card_payment' || e.kind === 'transfer'
+    ? [e.account, e.counter_account].filter(Boolean).join(' → ')
+    : [e.category, e.method ?? e.account].filter(Boolean).join(' · ');
+  return (
+    <li>
+      <Link href={`/entries/${e.id}`} transitionTypes={['nav-forward']} className="press flex min-h-[56px] items-center gap-3 px-3.5 py-2">
+        <Chip icon={e.icon ?? (e.kind === 'card_payment' ? 'card' : e.kind === 'transfer' ? 'transfer' : 'tag')} tint={e.tint ?? 'neutral'} size={34} radius={10} />
+        <span className="flex min-w-0 flex-1 flex-col">
+          <span className="truncate text-[15px] font-medium">{title}</span>
+          <span className="truncate text-xs text-muted-foreground">{sub}{e.is_shared ? ' · Shared' : ''}</span>
+        </span>
+        <span className={`flex-none text-[15px] font-semibold tabular-nums ${out ? 'text-money-out' : into ? 'text-money-in' : ''}`}>
+          {out ? '−' : into ? '+' : ''}{format(Number(e.amount))}
+        </span>
+      </Link>
+    </li>
   );
 }
 
@@ -251,32 +182,5 @@ function NoBudgetYet({ monthName, spent, entries }: {
         background: 'var(--g-primary)', color: 'var(--c-on-primary)',
       }}>Create a budget</Link>
     </section>
-  );
-}
-
-function Tile({ href, icon, tint, label, note }: {
-  href: string; icon: string; tint: string; label: string; note: string;
-}) {
-  return (
-    <Link transitionTypes={['nav-forward']} href={href} className="el press" style={{
-      minHeight: 92, borderRadius: 16, display: 'flex', flexDirection: 'column',
-      justifyContent: 'space-between', gap: 8, padding: '12px 13px', textDecoration: 'none',
-      background: 'var(--c-card)', border: '1px solid var(--c-border)', color: 'var(--c-ink)',
-    }}>
-      <span style={{
-        width: 32, height: 32, borderRadius: 9, display: 'flex', alignItems: 'center',
-        justifyContent: 'center',
-        background: `var(--cat-${tint})`, color: `var(--cat-${tint}-ink)`,
-      }}>
-        <Icon name={icon} size={17} />
-      </span>
-      <span style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-        <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>{label}</span>
-        <span style={{
-          fontSize: 'var(--step--2)', color: 'var(--c-meta)',
-          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-        }}>{note}</span>
-      </span>
-    </Link>
   );
 }
