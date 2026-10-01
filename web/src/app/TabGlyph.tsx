@@ -19,7 +19,7 @@ export function TabGlyph({ t, on, here, add, open = false, live = false }: {
       {on && !add && (
         <span aria-hidden style={{
           position: 'absolute', top: 0, left: '22%', right: '22%', height: 3,
-          borderRadius: '0 0 3px 3px', background: 'var(--c-teal)',
+          borderRadius: '0 0 3px 3px', background: 'var(--primary)',
           opacity: here ? 1 : .45,
         }} />
       )}
@@ -28,9 +28,9 @@ export function TabGlyph({ t, on, here, add, open = false, live = false }: {
            not look like the four things done occasionally. */
         width: 46, height: 46, borderRadius: 999, marginTop: -14,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        color: 'var(--c-on-pumpkin)',
-        background: 'var(--g-pumpkin)',
-        boxShadow: 'inset 0 1px 0 rgba(255,255,255,.35), 0 6px 16px -4px rgba(254,127,45,.55)',
+        color: 'var(--attention-foreground)',
+        background: 'var(--attention)',
+        boxShadow: '0 6px 16px -6px rgba(254,127,45,.6)',
         /* A quarter turn less one eighth: the plus IS the cross, so opening
            and closing is one glyph turning rather than two swapping. */
         transform: open ? 'rotate(45deg)' : 'none',
@@ -40,10 +40,10 @@ export function TabGlyph({ t, on, here, add, open = false, live = false }: {
         height: 26, minWidth: 44, borderRadius: 999,
         /* A tinted pill behind the live tab's glyph — shape as well as
            colour, so it survives a bright screen and colour blindness. */
-        background: here ? 'var(--c-teal-pill)' : 'transparent',
+        background: here ? 'var(--accent)' : 'transparent',
       }}>
         <svg width={add ? 24 : 21} height={add ? 24 : 21} viewBox="0 0 24 24"
-          fill={here && !add ? 'var(--c-teal-pill)' : 'none'}
+          fill={here && !add ? 'var(--accent)' : 'none'}
           stroke="currentColor" strokeWidth={add ? 2.4 : on ? 2.2 : 1.8}
           strokeLinecap="round" strokeLinejoin="round" aria-hidden>
           <path d={t.d} />

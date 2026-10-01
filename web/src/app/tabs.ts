@@ -6,12 +6,14 @@
    behind it at all, which is what keeps them free of script tags the CSP
    nonce cannot reach. */
 
+/* Quiet Ledger: every area has a tab. Activity is every entry (with the inbox and what's coming up), Plan is the
+   budget and its trends, Money is what you own and owe — accounts, cards, people, net worth. */
 export const TABS = [
   { href: '/', label: 'Home', d: 'M4 10.5 12 4l8 6.5V19a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 19z' },
-  { href: '/budget', label: 'Budget', d: 'M4.5 19.5V10M9.8 19.5V5M15.2 19.5v-6.5M20.5 19.5V8' },
+  { href: '/entries', label: 'Activity', d: 'M9 6.5h11M9 12h11M9 17.5h11M4.5 6.5h.01M4.5 12h.01M4.5 17.5h.01' },
   { href: '/add', label: 'Add', d: 'M12 5v14M5 12h14' },
-  { href: '/entries', label: 'Entries', d: 'M6 4.5h12a1.5 1.5 0 0 1 1.5 1.5v13.5L12 16l-7.5 3.5V6A1.5 1.5 0 0 1 6 4.5zM8.5 9h7M8.5 12.5h4' },
-  { href: '/accounts', label: 'Accounts', d: 'M3.5 9.5h17M4.5 6.5h15a1.6 1.6 0 0 1 1.6 1.6v7.8a1.6 1.6 0 0 1-1.6 1.6h-15a1.6 1.6 0 0 1-1.6-1.6V8.1a1.6 1.6 0 0 1 1.6-1.6z' },
+  { href: '/budget', label: 'Plan', d: 'M10 3.5A8.5 8.5 0 1 0 20.5 14H12a2 2 0 0 1-2-2zM14 3.6a8.5 8.5 0 0 1 6.4 6.4H14z' },
+  { href: '/accounts', label: 'Money', d: 'M4 7.5h14.5a1.5 1.5 0 0 1 1.5 1.5v9.5a1.5 1.5 0 0 1-1.5 1.5H5.5A1.5 1.5 0 0 1 4 18.5V6a1.5 1.5 0 0 1 1.5-1.5H16M16 13.5h.01' },
 ] as const;
 
 /* Which tab OWNS a screen that is not itself a tab.
@@ -22,9 +24,11 @@ export const TABS = [
    with "nowhere". Every one of them is opened from a tile on Home, so Home is
    the tab they belong to and the tab that should be lit while you are in one. */
 export const OWNED_BY: Record<string, string> = {
-  '/trends': '/', '/worth': '/', '/people': '/', '/household': '/',
-  '/schedules': '/', '/inbox': '/', '/guide': '/', '/tab': '/',
-  '/scan': '/add', '/categories': '/budget',
+  '/inbox': '/entries', '/schedules': '/entries',
+  '/trends': '/budget', '/categories': '/budget',
+  '/worth': '/accounts', '/people': '/accounts', '/tab': '/accounts',
+  '/household': '/', '/guide': '/',
+  '/scan': '/add',
 };
 
 /** Height of the bar, so pages can leave room for it. */
@@ -50,8 +54,7 @@ export const BAR_STYLE = {
   position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 40,
   display: 'flex', alignItems: 'stretch',
   paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-  background: 'var(--c-card)', borderTop: '1px solid var(--c-border)',
-  boxShadow: '0 -1px 12px rgba(35,61,77,.06)',
+  background: 'var(--card)', borderTop: '1px solid var(--border)',
   /* Anchored: the bar must not slide with the content during a page
      transition, or the one fixed point on the screen moves too. */
   viewTransitionName: 'tab-bar',
@@ -62,7 +65,7 @@ export function tabStyle(on: boolean, add: boolean) {
     flex: 1, minHeight: 60, display: 'flex', flexDirection: 'column',
     alignItems: 'center', justifyContent: 'center', gap: 4,
     textDecoration: 'none', paddingTop: add ? 0 : 6,
-    color: on ? 'var(--c-teal)' : 'var(--c-meta)',
+    color: on ? 'var(--primary)' : 'var(--muted-foreground)',
     position: 'relative',
   } as const;
 }

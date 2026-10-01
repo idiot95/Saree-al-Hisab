@@ -6,7 +6,7 @@ import { CurrencyProvider } from './currency';
 import RegisterSW from './RegisterSW';
 import SyncQueue from './SyncQueue';
 import PendingSkeleton from './PendingSkeleton';
-import { Inter } from 'next/font/google';
+import { Inter, Instrument_Serif } from 'next/font/google';
 import './globals.css';
 
 /* Inter, for a ledger, for two reasons that are not taste.
@@ -32,6 +32,10 @@ const inter = Inter({
      version of most of what opsz was doing, so the axis was being paid for
      twice. */
 });
+
+/* Quiet Ledger's display face: page titles and the one big figure a screen exists to give. Inter stays for
+   everything else, for the tabular figures and slashed zero above. One weight, latin only. */
+const display = Instrument_Serif({ subsets: ['latin'], weight: '400', variable: '--font-display-loaded', display: 'swap' });
 
 export const metadata: Metadata = {
   title: 'Saree al-Hisab',
@@ -90,7 +94,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
      of them. Nobody signed in, or no household yet, and it is rupees. */
   const actor = await actorOrNull();
   return (
-    <html lang="en" className={inter.variable} data-theme={forced ?? undefined}
+    <html lang="en" className={`${inter.variable} ${display.variable}`} data-theme={forced ?? undefined}
       style={forced ? { colorScheme: forced } : undefined}>
       <body>
         <CurrencyProvider currency={actor?.currency ?? 'INR'}>
