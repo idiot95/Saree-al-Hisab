@@ -153,5 +153,46 @@ for (const [name, stops] of heroes) {
   if (!ok) console.log(`  FAIL white on ${name} lit  ${r.toFixed(2)}:1 (needs 3)`);
 }
 
+/* Quiet Ledger (src/app/ql.css), the redesign's palette. Dark falls back to light for anything it does not
+   redefine (the attention fill is the same in both). A token whose value is another token — money-out is the ink
+   itself — is followed to its colour. Text pairs need 4.5:1; marks that are only drawn (a bar on its track, the
+   ring in attention ink) need the 3:1 WCAG asks of graphics. */
+{
+  const css = readFileSync(join(root, 'src/app/ql.css'), 'utf8');
+  const block = (from) => { const a = css.indexOf(from); return a < 0 ? '' : css.slice(a, css.indexOf('}', a)); };
+  const refs = (text) => Object.fromEntries([...text.matchAll(/--([\w-]+)\s*:\s*var\(--([\w-]+)\)\s*;/g)].map((m) => [m[1], m[2]]));
+  const lightText = block(':root {');
+  const darkText = block(':root[data-theme="dark"]');
+  const L = { ...vars(lightText) }, Lr = refs(lightText);
+  const D = { ...L, ...vars(darkText) }, Dr = { ...Lr, ...refs(darkText) };
+  const get = (T, R, k) => T[k] ?? (R[k] ? T[R[k]] : undefined);
+  const TEXT = [
+    ['foreground', ['background', 'card', 'muted', 'accent', 'raised']],
+    ['muted-foreground', ['background', 'card', 'muted']],
+    ['primary', ['background', 'card']],
+    ['primary-foreground', ['primary']],
+    ['accent-foreground', ['accent']],
+    ['attention-foreground', ['attention']],
+    ['attention-soft-foreground', ['attention-soft']],
+    ['destructive', ['background', 'card']],
+    ['destructive-foreground', ['destructive']],
+    ['money-in', ['background', 'card']],
+    ['money-out', ['background', 'card']],
+  ];
+  const MARKS = [['primary', ['muted']], ['destructive', ['muted']], ['attention-ink', ['card', 'muted']]];
+  for (const [theme, T, R] of [['light', L, Lr], ['dark', D, Dr]]) {
+    console.log(`\n  QUIET LEDGER ${theme.toUpperCase()}`);
+    for (const [list, min] of [[TEXT, MIN], [MARKS, 3]]) {
+      for (const [ink, grounds] of list) for (const ground of grounds) {
+        const a = get(T, R, ink), b = get(T, R, ground);
+        if (!a || !b) { fail++; console.log(`  MISS ${ink} on ${ground} — token not defined`); continue; }
+        const r = ratio(a, b), ok = r >= min;
+        ok ? pass++ : fail++;
+        if (!ok) console.log(`  FAIL ${ink} on ${ground}  ${r.toFixed(2)}:1 (needs ${min})  (${a} on ${b})`);
+      }
+    }
+  }
+}
+
 console.log(`\n  ${pass} pairs at ${MIN}:1 or better, ${fail} below\n`);
 process.exit(fail ? 1 : 0);

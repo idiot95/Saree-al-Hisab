@@ -27,6 +27,43 @@ the single source of truth for the palette.
   (ok / warn / danger) and always ships with an icon and a word, never colour alone.
   The redesign's palette lives in `src/app/ql.css`, beside the generated tokens.
 
+## Quiet Ledger (the redesign, Oct 2026) — where it overrides what follows
+
+The screens were rebuilt on shadcn/ui (Radix, vaul, sonner) with Tabler icons,
+Tailwind 4 and a palette of its own in `src/app/ql.css` (paper, navy ink,
+marigold for Add and attention). `tokens.css` is still generated and still
+read by the category tints; nothing else should reach for a `--c-*` token.
+Business logic, queries and invariants were left alone except where a
+paragraph below says otherwise. Where an older section disagrees, this wins:
+
+- **Five tabs, each one place**: Home · Activity (Entries · To review ·
+  Upcoming) · Add · Plan (Budget · Trends) · Money (Accounts · Loans · Net
+  worth). The views inside a tab are a `Segments` switch under one
+  `PageHead`; a screen pushed on top (an entry, a tab, Categories) gets a back
+  arrow instead. `OWNED_BY` in `tabs.ts` lights the owning tab.
+- **One name per thing**, the same on the tab, the switch, the page and the
+  browser title: To review (was Inbox / Needs you), Upcoming (was Scheduled),
+  Loans (was Loan centre), Money (was Accounts), categories (never headings).
+- **To review is decisions only** — card bills and possible duplicates. Home's
+  tile and Activity's badge count exactly those two (`inboxCount`). What is
+  merely due lives under Upcoming.
+- **Add goes straight to the entry**: the plus opens the drawer over the
+  current screen (`@modal/(.)add`); the type/scan/upload fan-out was removed.
+  The camera in the drawer's header appears only when a scanning key is set.
+- **One selected state**: `choice.ts` `on()` is navy for every chosen chip or
+  tile; a category's colour stays on its icon, never on a selection or a bar.
+- **Money's direction**: arriving is green with a +; leaving is plain ink.
+  Red means over budget (with an icon and the word).
+- **Card bills are derived, not marked.** Nothing sets `card_cycle.status` to
+  paid, so `card_bill` (0104) caps each cycle's outstanding by the card's debt
+  after newer cycles — payments clear the oldest bills first, and a card in
+  credit owes no bill. `billsDue` and `inboxCount` read it. Four invariants.
+- **Net worth has one definition**, `lib/worth.ts` `netWorth()`, used by Money
+  and Net worth alike. (Home's old figure counted money lent twice.)
+- **Trends** takes `?m=`; the running month is compared day for day with last
+  month (`categoryTrend(…, days)`), the average is of finished months only.
+- `npm run test:contrast` measures the Quiet Ledger pairs too (228 pairs).
+
 ## The four invariants — enforced in Postgres, not in components
 
 The audit of v1 found the app disagreeing with itself on arithmetic. These live
@@ -228,7 +265,7 @@ hidden input; there is no `<select>` of payment modes anywhere, because one
 listing every rail under every account showed "ICICI Amazon Pay" twice and
 read as nonsense. Wrap it in a `<div role="group">`, never a `<label>` — a
 label around buttons activates the first chip. The entries list shows the
-rail when there is one and the account when there is not. `sw.js` is v26 for the tab bar's directional motion and bouncing icon.
+rail when there is one and the account when there is not. `sw.js` is v30 (Quiet Ledger).
 Before Save, a debounced
 `checkDuplicate` shows what a household member already recorded within ±1% and
 ±2 days, which is the prevention half of the duplicate rule; the Inbox card is
@@ -1241,7 +1278,7 @@ sits in and is the same component everywhere, so categories, accounts and rails
 read as one kind of thing because one piece of code draws them. **People keep
 their initials** — a person is not a category.
 
-**Every section has its own header colour.** One dark teal across twelve
+**Superseded by Quiet Ledger (paper headers, one palette).** **Every section had its own header colour.** One dark teal across twelve
 screens made each look like the last: you could not tell at a glance where you
 were. Budget is gold, entries indigo, accounts blue, trends and net worth
 green, people purple, inbox pumpkin, schedules cyan, household slate; home and
@@ -1450,7 +1487,7 @@ glyph in `TabGlyph.tsx` — both plain modules — so the still and the live bar
 are one drawing. Re-check with the crawl: every `<script>` on every dynamic
 route carries the response's nonce.
 
-**The plus button fans out its options** (`AddOptions.tsx`): type it in,
+**Superseded: Add now opens the entry directly.** **The plus button fanned out its options** (`AddOptions.tsx`, removed): type it in,
 scan a receipt with the camera, or upload a photo or PDF already on the
 phone. They float above the plus as see-through pills over the screen
 blurred (`.veil`, `backdrop-filter`, a near-solid scrim where the browser
@@ -1492,7 +1529,7 @@ inside `.el`/`.el2`. Each has a dark-mode value under the same guards
 `tokens.css` uses. `.card` is a separate class from `.el` on purpose:
 `.el` also dresses buttons whose background is the gradient.
 
-**Grey until chosen.** Every choice control — account and rail chips, date
+**Grey until chosen** (Quiet Ledger: chosen is always navy, see above). Every choice control — account and rail chips, date
 chips, category tiles and chips, tab and role toggles — is drawn from one
 rule in `src/app/choice.ts`: `OFF` (sunk grey, meta text) until selected,
 `on(ink)` (the option's own ink) when it is. The colour *is* the
