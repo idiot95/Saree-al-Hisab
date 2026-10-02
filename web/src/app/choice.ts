@@ -7,16 +7,17 @@ import type { CSSProperties } from 'react';
    the only coloured thing in a section is the answer, so the text is not
    needed and is gone. */
 export const OFF: CSSProperties = {
-  background: 'var(--c-sunk)', color: 'var(--c-meta)', border: '1px solid transparent',
+  /* Quiet Ledger: an unchosen choice is a white chip with a hairline, so the one in colour reads as the answer. */
+  background: 'var(--card)', color: 'var(--foreground)', border: '1px solid var(--border)',
 };
 
 /** The brand green: dark in both themes, so its label is always white. Every
  *  other ink is a category tint — deep in light, pastel in dark — and takes
  *  --c-on-tint, which flips with the theme. */
-export const PRIMARY = 'var(--c-primary-hi)';
+export const PRIMARY = 'var(--primary)';
 
 export const on = (ink: string): CSSProperties => ({
-  background: ink, color: ink === PRIMARY ? 'var(--c-on-primary)' : 'var(--c-on-tint)', border: `1px solid ${ink}`,
+  background: ink, color: ink === PRIMARY ? 'var(--primary-foreground)' : 'var(--c-on-tint)', border: `1px solid ${ink}`,
 });
 
 /** The chip's look for whether it is chosen, in the ink it wears when it is. */

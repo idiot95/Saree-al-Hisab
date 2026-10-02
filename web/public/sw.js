@@ -19,7 +19,7 @@
    for are the chunks that were cached beside it. Bump VERSION when the
    offline screen changes, so the snapshot is taken again. */
 
-const VERSION = 'v27';
+const VERSION = 'v28';
 const SHELL = `shell-${VERSION}`;
 const ASSETS = `assets-${VERSION}`;
 const OFFLINE = '/offline';

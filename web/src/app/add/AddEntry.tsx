@@ -4,7 +4,6 @@ import { useState, useTransition, useEffect, useRef } from 'react';
 import { Icon, tintOf } from '../Icon';
 import { defaultRef, findRef, payLabel, pickWay, type Way } from '@/lib/pay';
 import PayPicker, { CHIP, CHIP_TEXT, TILE_GRID, WayTile, describe } from '../PayPicker';
-import { HEADER_BG } from '../auth-ui';
 import Link from '@/app/NavLink';
 import { useRouter } from 'next/navigation';
 import { DateChips } from '../DatePick';
@@ -57,13 +56,15 @@ export type Claim = {
 };
 
 export default function AddEntry({
-  categories, ways, tabs = [], claims = [], today, householdId, draft, offline = false, onQueued, children,
+  categories, ways, tabs = [], claims = [], today, householdId, draft, offline = false, onQueued, children, sheet = false,
 }: {
   categories: Category[];
   /** Every real account, each with the rails that draw on it. See src/lib/pay.ts. */
   ways: Way[];
   tabs?: Tab[]; claims?: Claim[]; today: string;
   householdId: string;
+  /** Opened as a drawer over another screen: Close steps back to it instead of going Home. */
+  sheet?: boolean;
   draft?: {
     amountMinor: number | null; occurredOn: string | null; merchant: string | null;
     kind: Kind | null; categoryId: string | null; tabId?: string | null;
@@ -256,19 +257,18 @@ export default function AddEntry({
   ].filter(Boolean).join(' · ');
 
   return (
-    <main style={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column', background: 'var(--c-bg)' }}>
+    <main style={{ minHeight: sheet ? undefined : '100dvh', display: 'flex', flexDirection: 'column', background: 'var(--background)' }}>
       <header
-        className="el2"
         style={{
-          flex: 'none', background: HEADER_BG, color: '#fff',
-          borderRadius: '0 0 22px 22px', padding: '8px var(--gutter) 16px',
+          flex: 'none', background: 'var(--background)', color: 'var(--foreground)',
+          padding: '8px var(--gutter) 14px', borderBottom: '1px solid var(--border)',
           display: 'flex', flexDirection: 'column', gap: 10, position: 'relative', zIndex: 1,
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
           {step === 1 ? (
             <button aria-label="Close" style={iconBtn}
-              onClick={() => { haptic('select'); router.push('/', { transitionTypes: ['nav-back'] }); }}>
+              onClick={() => { haptic('select'); if (sheet) router.back(); else router.push('/', { transitionTypes: ['nav-back'] }); }}>
               <Glyph d="M6 6l12 12M18 6L6 18" />
             </button>
           ) : (
@@ -276,13 +276,13 @@ export default function AddEntry({
               <Glyph d="M15 5l-7 7 7 7" />
             </button>
           )}
-          <h1 className="t" style={{ margin: 0, fontSize: 'var(--step-2)' }}>
+          <h1 className="font-display" style={{ margin: 0, fontSize: 26, fontWeight: 400, lineHeight: 1.1 }}>
             {step === 1 ? 'New entry' : kind === 'income' ? 'What for' : 'Category'}
           </h1>
           {step === 1 && !offline ? (
             <a href="/scan" aria-label="Scan a receipt" style={{
               width: 44, height: 44, borderRadius: 999, display: 'flex',
-              alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,.92)',
+              alignItems: 'center', justifyContent: 'center', color: 'var(--foreground)',
             }}>
               <svg width={21} height={21} viewBox="0 0 24 24" fill="none" stroke="currentColor"
                 strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
@@ -297,7 +297,7 @@ export default function AddEntry({
 
         {step === 1 ? (
           <>
-            <div role="tablist" aria-label="Kind of entry" style={{ display: 'flex', gap: 3, padding: 3, background: 'rgba(0,0,0,.22)', borderRadius: 999 }}>
+            <div role="tablist" aria-label="Kind of entry" style={{ display: 'flex', gap: 3, padding: 4, background: 'var(--muted)', borderRadius: 14 }}>
               {KINDS.map((k) => {
                 const isOn = k.id === kind;
                 return (
@@ -308,9 +308,10 @@ export default function AddEntry({
                     onClick={() => { haptic('select'); chooseKind(k.id); }}
                     style={{
                       flex: 1, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      borderRadius: 999, fontSize: 'var(--step--1)', fontWeight: 600,
-                      background: isOn ? '#fff' : 'transparent',
-                      color: isOn ? '#233D4D' : 'rgba(255,255,255,.72)',
+                      borderRadius: 11, fontSize: 'var(--step--1)', fontWeight: 600,
+                      background: isOn ? 'var(--card)' : 'transparent',
+                      color: isOn ? 'var(--foreground)' : 'var(--muted-foreground)',
+                      boxShadow: isOn ? '0 1px 3px rgba(29,42,46,.12)' : 'none',
                     }}
                   >
                     {k.label}
@@ -324,7 +325,7 @@ export default function AddEntry({
                 currency, the minor digits completed when the field is left —
                 and what it holds is only ever the digits typed. */}
             <label style={{ display: 'flex', alignItems: 'baseline', gap: 8, minWidth: 0 }}>
-              <span className="n" aria-hidden style={{ fontSize: 'var(--step-3)', fontWeight: 500, color: 'rgba(255,255,255,.62)', flex: 'none' }}>
+              <span className="n" aria-hidden style={{ fontSize: 'var(--step-3)', fontWeight: 500, color: 'var(--muted-foreground)', flex: 'none' }}>
                 {symbol.trim()}
               </span>
               <input
@@ -345,14 +346,14 @@ export default function AddEntry({
                 aria-label={`Amount in ${currency}`}
                 style={{
                   flex: 1, minWidth: 0, width: '100%', background: 'transparent', border: 0, padding: 0,
-                  color: '#fff', caretColor: '#fff', fontSize: 'var(--step-4)', fontWeight: 600,
+                  color: 'var(--foreground)', caretColor: 'var(--primary)', fontSize: 'var(--step-4)', fontWeight: 600,
                   letterSpacing: '-.036em', lineHeight: 1.15, outline: 'none',
                 }}
               />
               {/* The code, for a symbol that does not spell it: ₹ says INR to
                   one household and nothing to a guest. AED already says AED. */}
               {symbol.trim() !== currency && (
-                <span className="n" style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'rgba(255,255,255,.55)', flex: 'none' }}>
+                <span className="n" style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--muted-foreground)', flex: 'none' }}>
                   {currency}
                 </span>
               )}
@@ -361,11 +362,11 @@ export default function AddEntry({
         ) : (
           <button type="button" onClick={() => go(1)} style={{
             display: 'flex', alignItems: 'center', gap: 10, minHeight: 44, padding: '8px 12px',
-            borderRadius: 12, background: 'rgba(0,0,0,.22)', color: 'rgba(255,255,255,.92)',
+            borderRadius: 12, background: 'var(--card)', color: 'var(--foreground)', border: '1px solid var(--border)',
             fontSize: 'var(--step--1)', fontWeight: 600, minWidth: 0, lineHeight: 1.35,
           }}>
             <span style={{ flex: 1, minWidth: 0 }}>{summary}</span>
-            <span style={{ flex: 'none', color: 'rgba(255,255,255,.62)', fontWeight: 600, fontSize: 'var(--step--2)' }}>Change</span>
+            <span style={{ flex: 'none', color: 'var(--primary)', fontWeight: 600, fontSize: 'var(--step--2)' }}>Change</span>
           </button>
         )}
       </header>
@@ -706,12 +707,12 @@ export default function AddEntry({
           (the viewport asks for that) and is a tap away otherwise. */}
       <div style={{
         position: 'sticky', bottom: 0, zIndex: 2, flex: 'none',
-        padding: '10px var(--gutter) calc(10px + env(safe-area-inset-bottom))', background: 'var(--c-card)',
-        borderTop: '1px solid var(--c-border)', display: 'flex', gap: 10,
+        padding: '10px var(--gutter) calc(10px + env(safe-area-inset-bottom))', background: 'var(--background)',
+        borderTop: '1px solid var(--border)', display: 'flex', gap: 10,
       }}>
         {step === 2 && (
           <button type="button" className="cta" onClick={() => go(1)} style={{
-            ...BAR, flex: 'none', padding: '0 18px', ...OFF, color: 'var(--c-ink)',
+            ...BAR, flex: 'none', padding: '0 18px', ...OFF, color: 'var(--foreground)',
           }}>
             <Glyph d="M15 5l-7 7 7 7" size={20} w={2.2} />
             Back
@@ -737,17 +738,15 @@ export default function AddEntry({
 
 const iconBtn: React.CSSProperties = {
   width: 44, height: 44, marginLeft: -10, borderRadius: 999,
-  display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,.86)',
+  display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--foreground)',
 };
 const SECTION: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: 9 };
 const BAR: React.CSSProperties = {
   flex: 1, minHeight: 52, borderRadius: 14, fontSize: 'var(--step-0)', fontWeight: 600,
 };
 const PRIMARY: React.CSSProperties = {
-  color: '#fff',
-  background:
-    'radial-gradient(120% 100% at 25% 0%, rgba(255,255,255,.18) 0%, rgba(255,255,255,0) 60%),' +
-    'linear-gradient(145deg,#2C5063 0%,#1C3541 100%)',
+  color: 'var(--primary-foreground)', background: 'var(--primary)',
+  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
 };
 
 /** The name of a question, in small capitals. Nothing else on the line: the
@@ -756,7 +755,7 @@ function Eyebrow({ id, children }: { id: string; children: React.ReactNode }) {
   return (
     <span id={id} style={{
       fontSize: 'var(--step--2)', fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase',
-      color: 'var(--c-meta)',
+      color: 'var(--muted-foreground)',
     }}>{children}</span>
   );
 }

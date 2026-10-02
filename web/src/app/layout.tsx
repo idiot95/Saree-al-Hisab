@@ -83,7 +83,7 @@ export async function generateViewport(): Promise<Viewport> {
   };
 }
 
-export default async function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children, modal }: { children: React.ReactNode; modal: React.ReactNode }) {
   /* data-theme is what tokens.css switches on; color-scheme is what the
      browser switches on for its own scrollbars and form controls. Both, or a
      dark page gets a light date picker. Absent, both follow the phone. */
@@ -99,6 +99,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body>
         <CurrencyProvider currency={actor?.currency ?? 'INR'}>
           {children}
+          {/* Add Entry as a drawer over the screen it was opened from (app/@modal). */}
+          {modal}
           <SyncQueue />
           <PendingSkeleton />
         </CurrencyProvider>
