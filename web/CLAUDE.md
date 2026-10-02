@@ -65,6 +65,14 @@ paragraph below says otherwise. Where an older section disagrees, this wins:
   and Net worth alike. (Home's old figure counted money lent twice.)
 - **Trends** takes `?m=`; the running month is compared day for day with last
   month (`categoryTrend(…, days)`), the average is of finished months only.
+- **Back returns to where you were** (`backStack.ts`): `NavTrail` in the root
+  layout records each in-app address for the session; the header arrow
+  (`BackLink`) and the edge swipe step back through history when there is an
+  in-app screen to return to — same month, filter and scroll — and use the
+  screen's fixed parent only when it was opened directly. (Fixed parents sent
+  an entry opened from Home to Activity, and a September entry to October.)
+- **A tapped tab lights at once**, before its screen arrives, so the bar agrees
+  with the loading frame instead of pointing at the screen being left.
 - `npm run test:contrast` measures the Quiet Ledger pairs too (192 pairs; the old header ramps are gone).
 
 ## The four invariants — enforced in Postgres, not in components

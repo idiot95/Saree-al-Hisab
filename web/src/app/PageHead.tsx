@@ -1,9 +1,9 @@
-import Link from '@/app/NavLink';
-import { IconChevronLeft } from '@tabler/icons-react';
+import BackLink from './BackLink';
 import Back from './Back';
 
 /* The Quiet Ledger header every screen shares: paper, the serif title, a line under it, and either the tab's
-   segmented switch (children) or — on a screen pushed on top of a tab — a back arrow to where it came from.
+   segmented switch (children) or — on a screen pushed on top of a tab — a back arrow to where it came from
+   (BackLink: history when there is any, `back` when the screen was opened directly).
    `back` also arms the edge swipe and the floating Back pill (Back.tsx), so a screen is never left with no way out. */
 export default function PageHead({ title, sub, right, back, eyebrow, children }: {
   title: React.ReactNode; sub?: React.ReactNode; right?: React.ReactNode; back?: string; eyebrow?: React.ReactNode;
@@ -13,12 +13,7 @@ export default function PageHead({ title, sub, right, back, eyebrow, children }:
     <>
       {back && <Back to={back} />}
       <header className="flex flex-col gap-3 px-[var(--gutter)] pb-4 pt-4">
-        {back && (
-          <Link href={back} transitionTypes={['nav-back']} aria-label="Back"
-            className="-mb-1 -ml-3 grid size-11 place-items-center rounded-full text-foreground">
-            <IconChevronLeft size={22} aria-hidden />
-          </Link>
-        )}
+        {back && <BackLink to={back} />}
         <div className="flex items-end justify-between gap-3">
           <div className="min-w-0">
             {eyebrow && <p className="text-xs text-muted-foreground">{eyebrow}</p>}

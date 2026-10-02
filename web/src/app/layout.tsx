@@ -3,6 +3,8 @@ import { cookies } from 'next/headers';
 import { forcedTheme, THEME_COOKIE } from '@/lib/theme';
 import { actorOrNull } from '@/db/queries';
 import { CurrencyProvider } from './currency';
+import { Suspense } from 'react';
+import NavTrail from './NavTrail';
 import RegisterSW from './RegisterSW';
 import SyncQueue from './SyncQueue';
 import PendingSkeleton from './PendingSkeleton';
@@ -103,6 +105,8 @@ export default async function RootLayout({ children, modal }: { children: React.
           {modal}
           <SyncQueue />
           <PendingSkeleton />
+          {/* useSearchParams needs a boundary of its own, or the whole tree would wait on it. */}
+          <Suspense fallback={null}><NavTrail /></Suspense>
         </CurrencyProvider>
         <RegisterSW />
       </body>

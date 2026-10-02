@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import Link from '@/app/NavLink';
 import { haptic } from './haptics';
 import { TABS, BAR_STYLE, ADD_FAB, PLUS, tabLook, tabStyle } from './tabs';
@@ -22,6 +23,13 @@ export default function TabBar({ current }: { current: string }) {
   /* The plus goes straight to a new entry — the drawer over this screen
      (app/@modal/(.)add). It floats above the bar rather than sitting in it, so
      Loans could have the fifth tab. */
+  /* The tab tapped lights at once, before its screen has arrived: the loading
+     frame says where you are going, and the bar should agree with it rather
+     than keep pointing at the screen being left. Remembered against the
+     screen it was tapped on, so arriving (a new `current`) clears it with no
+     effect to run. */
+  const [tapped, setTapped] = useState<{ from: string; href: string } | null>(null);
+  const showing = tapped && tapped.from === current ? tapped.href : current;
   /* Which way a tab switch moves: towards the tab chosen, measured from the
      one lit now. From a screen no tab owns, it is a plain lateral fade. */
   const litAt = TABS.findIndex((t) => tabLook(t, current).on);
@@ -36,7 +44,7 @@ export default function TabBar({ current }: { current: string }) {
       {TABS.map((t) => {
         /* A screen inside a tab lights that tab, but not as brightly as the
            tab's own screen — you are in Home's territory, not on Home. */
-        const { on, here, add } = tabLook(t, current);
+        const { on, here, add } = tabLook(t, showing);
         const i = TABS.indexOf(t);
         const motion = litAt < 0 || i === litAt ? 'nav-lateral' : i > litAt ? 'nav-tab-right' : 'nav-tab-left';
         return (
@@ -47,7 +55,7 @@ export default function TabBar({ current }: { current: string }) {
             aria-current={here ? 'page' : on ? 'true' : undefined}
             /* A tick under the thumb as the tab is taken — the moment of the
                tap, not the moment the screen arrives. */
-            onClick={() => { if (!here) haptic('tap'); }}
+            onClick={() => { if (!here) { haptic('tap'); setTapped({ from: current, href: t.href }); } }}
             className="press"
             style={tabStyle(on, add)}
           >

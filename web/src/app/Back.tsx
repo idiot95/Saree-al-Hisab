@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { haptic } from './haptics';
+import { goBack } from './backStack';
 
 /* The way back that is not the arrow in the header: a swipe from the left
    edge.
@@ -82,7 +83,7 @@ export default function Back({ to }: { to: string }) {
       // The same motion the Back arrow produces, so the gesture and the
       // button are visibly the same move — and a tick to say it took.
       haptic('select');
-      router.push(to, { transitionTypes: ['nav-back'] });
+      goBack(router, to);
     };
 
     // Passive: this never calls preventDefault, so it cannot make scrolling
