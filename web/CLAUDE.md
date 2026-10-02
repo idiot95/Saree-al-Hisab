@@ -65,7 +65,7 @@ paragraph below says otherwise. Where an older section disagrees, this wins:
   and Net worth alike. (Home's old figure counted money lent twice.)
 - **Trends** takes `?m=`; the running month is compared day for day with last
   month (`categoryTrend(…, days)`), the average is of finished months only.
-- `npm run test:contrast` measures the Quiet Ledger pairs too (228 pairs).
+- `npm run test:contrast` measures the Quiet Ledger pairs too (192 pairs; the old header ramps are gone).
 
 ## The four invariants — enforced in Postgres, not in components
 

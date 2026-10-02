@@ -415,30 +415,13 @@
   .el  { box-shadow: inset 0 1px 0 var(--edge), var(--el); }
   .el2 { box-shadow: inset 0 1px 0 var(--edge), var(--el2); }
 
-  /* ── surfaces, in three weights ───────────────────────────────────────
-     A screen built from one card repeated has no foreground: everything asks
-     for attention equally, so nothing gets it. A screen should rarely need
-     more than two of these at once.
-
-       .hero   the one answer this screen exists to give — its own tinted
-               ground, a wider radius and the deeper shadow.
-       .card   an ordinary raised surface, and the default.
-       .quiet  supporting material: a note, a list nobody is reading yet.
-               Recessed rather than raised, so it sits behind the rest. */
-  .hero {
-    background-color: var(--c-card);
-    background-image: var(--g-hero);
-    border: 1px solid var(--c-teal-l);
-  }
+  /* Quiet Ledger draws its surfaces with Tailwind (bg-card, border-border); the old .hero and .card face are gone.
+     .quiet stays for supporting material: recessed rather than raised, so it sits behind the rest. */
   .quiet {
-    background: var(--c-sunk2);
-    border: 1px solid var(--c-border);
+    background: var(--background);
+    border: 1px solid var(--border);
     box-shadow: none;
   }
-  /* A card's face: a whisper of shade toward the bottom edge, so a white
-     card on a pale ground has a surface rather than being a hole in it.
-     Inline styles set the colour; this only lays the light over it. */
-  .card { background-image: var(--shade) !important; }
 
   /* Anything pressable gives a little under the thumb. The phone's own
      buttons do this and a control that does not feels painted on. Short on

@@ -9,51 +9,6 @@ import { CURRENCIES } from '@/lib/money';
    It used to carry a repeating 1px line every 26px, meant to read as ruled
    ledger paper. On a phone it read as banding across the header instead, so it
    is gone. A soft highlight and the gradient are the whole thing now. */
-/* Each section of the app gets its own header colour.
-
-   One dark teal on twelve screens made every one look like the last, which is
-   the complaint that prompted this: you could not tell at a glance which part
-   of the app you were in. The base stays dark so white text keeps working —
-   every accent below was measured against white and the worst is 6.32:1,
-   comfortably past the 4.5:1 that body text needs.
-
-   The hue carries meaning where there is meaning to carry: money owed is
-   pumpkin, the same colour as over-budget; savings and net worth are green. */
-const ACCENT: Record<string, [string, string, string]> = {
-  /* Every hero used to run from dark to slightly darker: all three stops sat
-     between 2% and 8% relative luminance, so the gradient was invisible and
-     the hero read as one flat slab of near-black. A page then had two levels —
-     dark block, pale content — and nothing in between, which is what "cannot
-     distinguish visual hierarchy" means. The lightest stop is now genuinely
-     lit and the darkest genuinely deep, so the hero has a form and a light
-     source. Every top stop still clears 4.5:1 against the white text on it,
-     and scripts/contrast.test.mjs measures each one rather than trusting it. */
-  //         lit           middle       deep
-  teal:    ['#3A6B82', '#26485A', '#152833'],
-  gold:    ['#8E5B14', '#603C0C', '#372206'],
-  indigo:  ['#4B52A8', '#2F3470', '#1B1E42'],
-  blue:    ['#2A6E9B', '#1A4664', '#102D43'],
-  green:   ['#327C5C', '#215741', '#14392A'],
-  purple:  ['#763D82', '#4B2754', '#2E1733'],
-  pumpkin: ['#A94C19', '#73310F', '#461D08'],
-  cyan:    ['#22797E', '#134E51', '#0C3234'],
-  slate:   ['#4E606A', '#313D45', '#1F272C'],
-};
-
-export type Accent = keyof typeof ACCENT;
-
-export function headerBg(accent: Accent = 'teal'): string {
-  const [a, b, c] = ACCENT[accent] ?? ACCENT.teal;
-  /* Three layers: a light source off the top-right corner, a deepening at the
-     bottom edge so the hero's rounded corners read as a lifted surface rather
-     than a crop, and the ramp itself. */
-  return 'radial-gradient(115% 90% at 80% -16%, rgba(255,255,255,.22) 0%, rgba(255,255,255,0) 56%),'
-    + 'radial-gradient(120% 70% at 20% 118%, rgba(0,0,0,.28) 0%, rgba(0,0,0,0) 60%),'
-    + `linear-gradient(158deg,${a} 0%,${b} 54%,${c} 100%)`;
-}
-
-/** The default, kept so screens that have not chosen an accent still work. */
-export const HEADER_BG = headerBg('teal');
 
 /* Quiet Ledger: the one filled button is flat navy. The gradients went with the coloured headers. */
 export const primaryBtn: React.CSSProperties = {
