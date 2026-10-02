@@ -101,7 +101,7 @@ export default function Sheet({ open, onClose, label, focus, children }: {
         style={{
           position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 42,
           maxHeight: '86dvh', display: 'flex', flexDirection: 'column',
-          background: 'var(--c-card)', color: 'var(--c-ink)', borderRadius: '24px 24px 0 0',
+          background: 'var(--card)', color: 'var(--foreground)', borderRadius: '24px 24px 0 0',
           paddingBottom: 'env(safe-area-inset-bottom)',
           transform: drag ? `translateY(${drag}px)` : undefined,
           transition: dragging ? 'none' : 'transform .45s var(--ease-ios)',
@@ -117,7 +117,7 @@ export default function Sheet({ open, onClose, label, focus, children }: {
             background: 'transparent', flex: 'none', borderRadius: '24px 24px 0 0',
             touchAction: 'none', cursor: 'grab',
           }}>
-          <span aria-hidden style={{ width: 40, height: 5, borderRadius: 999, background: 'var(--c-border)' }} />
+          <span aria-hidden style={{ width: 40, height: 5, borderRadius: 999, background: 'var(--border)' }} />
         </button>
         <div style={{ overflowY: 'auto', padding: '0 var(--gutter) 18px', overscrollBehavior: 'contain' }}>
           {children}

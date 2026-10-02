@@ -14,7 +14,7 @@ export default function Segments({ label, items, current }: { label: string; ite
         return (
           <Link key={i.key} href={i.href} transitionTypes={['nav-lateral']} aria-current={on ? 'page' : undefined}
             className={`flex min-h-11 items-center justify-center gap-1.5 rounded-[11px] text-sm font-semibold ${on
-              ? 'bg-card text-foreground shadow-[0_1px_3px_rgba(29,42,46,.12)]' : 'text-muted-foreground'}`}>
+              ? 'bg-raised text-foreground shadow-[0_1px_3px_rgba(16,24,40,.14)]' : 'text-muted-foreground'}`}>
             {i.label}
             {!!i.count && i.count > 0 && (
               <span className="grid min-w-5 place-items-center rounded-full bg-attention px-1.5 text-[11px] font-bold leading-5 text-attention-foreground">

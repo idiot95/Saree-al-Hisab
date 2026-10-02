@@ -27,22 +27,22 @@ export default function CategoryPick({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-      <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)' }}>{label}</span>
+      <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--muted-foreground)' }}>{label}</span>
       {name && <input type="hidden" name={name} value={chosen?.id ?? ''} />}
       <button type="button" disabled={disabled} aria-haspopup="dialog" aria-expanded={open}
         onClick={() => { haptic('tap'); setOpen(true); }}
         style={{
           minHeight: 58, display: 'flex', alignItems: 'center', gap: 12, width: '100%',
-          padding: '8px 12px', borderRadius: 14, border: '1px solid var(--c-border)',
-          background: 'var(--c-sunk2)', color: 'var(--c-ink)', opacity: disabled ? 0.6 : 1,
+          padding: '8px 12px', borderRadius: 14, border: '1px solid var(--border)',
+          background: 'var(--background)', color: 'var(--foreground)', opacity: disabled ? 0.6 : 1,
         }}>
         {chosen ? (
           <Chip icon={chosen.icon} tint={chosen.tint} size={38} />
         ) : (
           <span aria-hidden style={{
             width: 38, height: 38, flex: 'none', borderRadius: 11, display: 'flex',
-            alignItems: 'center', justifyContent: 'center', color: 'var(--c-teal)',
-            border: '1px dashed var(--c-dash)',
+            alignItems: 'center', justifyContent: 'center', color: 'var(--primary)',
+            border: '1px dashed var(--input)',
           }}>
             <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor"
               strokeWidth={2.2} strokeLinecap="round">
@@ -53,17 +53,17 @@ export default function CategoryPick({
         <span style={{ flex: 1, minWidth: 0 }}>
           <span style={{
             display: 'block', fontWeight: 600, fontSize: 'var(--step-0)', overflowWrap: 'anywhere',
-            color: chosen ? 'var(--c-ink)' : 'var(--c-meta)',
+            color: chosen ? 'var(--foreground)' : 'var(--muted-foreground)',
           }}>
             {chosen ? chosen.name : placeholder}
           </span>
           {chosen?.parent && (
-            <span style={{ display: 'block', fontSize: 'var(--step--2)', color: 'var(--c-meta)' }}>
+            <span style={{ display: 'block', fontSize: 'var(--step--2)', color: 'var(--muted-foreground)' }}>
               under {chosen.parent}
             </span>
           )}
         </span>
-        <span style={{ fontSize: 'var(--step--2)', fontWeight: 600, color: 'var(--c-teal)', flex: 'none' }}>
+        <span style={{ fontSize: 'var(--step--2)', fontWeight: 600, color: 'var(--primary)', flex: 'none' }}>
           {chosen ? 'Change' : 'Find'}
         </span>
       </button>

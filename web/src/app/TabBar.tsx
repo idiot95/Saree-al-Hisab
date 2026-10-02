@@ -1,9 +1,6 @@
 'use client';
 
 import Link from '@/app/NavLink';
-import { usePathname } from 'next/navigation';
-import { useCallback, useState } from 'react';
-import AddOptions from './AddOptions';
 import { haptic } from './haptics';
 import { TABS, BAR_STYLE, tabLook, tabStyle } from './tabs';
 import { TabGlyph } from './TabGlyph';
@@ -22,21 +19,14 @@ import { TabGlyph } from './TabGlyph';
    costing more in deliberation than it saves in walking. */
 
 export default function TabBar({ current }: { current: string }) {
-  /* The plus fans out its options — type it, scan it, upload it — rather
-     than going straight to Add Entry. It stays a link to /add underneath, so
-     before the script has arrived, or without it, the tap still lands
-     somewhere. The open state remembers the path it was opened on: leave
-     that screen by any tab and it is closed, with no effect to run. */
-  const path = usePathname();
-  const [openOn, setOpenOn] = useState<string | null>(null);
-  const open = openOn === path;
-  const close = useCallback(() => setOpenOn(null), []);
+  /* The plus goes straight to a new entry — the drawer over this screen
+     (app/@modal/(.)add). It used to fan out three choices first (type, scan,
+     upload), which cost every entry a tap to save a rare one; scanning lives
+     behind the camera in the entry's own header. */
   /* Which way a tab switch moves: towards the tab chosen, measured from the
      one lit now. From a screen no tab owns, it is a plain lateral fade. */
   const litAt = TABS.findIndex((t) => tabLook(t, current).on);
   return (
-    <>
-    <AddOptions open={open} onClose={close} />
     <nav aria-label="Main" style={BAR_STYLE}>
       {TABS.map((t) => {
         /* A screen inside a tab lights that tab, but not as brightly as the
@@ -52,21 +42,15 @@ export default function TabBar({ current }: { current: string }) {
             aria-current={here ? 'page' : on ? 'true' : undefined}
             /* A tick under the thumb as the tab is taken — the moment of the
                tap, not the moment the screen arrives. */
-            onClick={(e) => {
-              if (add) { e.preventDefault(); haptic('tap'); setOpenOn(open ? null : path); return; }
-              if (!here) haptic('tap');
-            }}
-            aria-haspopup={add ? 'dialog' : undefined}
-            aria-expanded={add ? open : undefined}
-            aria-label={add ? (open ? 'Close' : 'Add') : undefined}
+            onClick={() => { if (!here || add) haptic('tap'); }}
+            aria-label={add ? 'Add an entry' : undefined}
             className="press"
             style={tabStyle(on, add)}
           >
-            <TabGlyph t={t} on={on} here={here} add={add} open={add && open} live />
+            <TabGlyph t={t} on={on} here={here} add={add} live />
           </Link>
         );
       })}
     </nav>
-    </>
   );
 }

@@ -56,8 +56,8 @@ export default async function Entries({ searchParams }: {
             <div className="min-w-0">
               <h1 className="truncate font-display text-[30px] leading-tight">{filtered ? filtered.name : 'Activity'}</h1>
               <p className="text-sm text-muted-foreground">
-                <span className="whitespace-nowrap">{entries.length} {entries.length === 1 ? 'entry' : 'entries'}</span>
-                {' · '}<span className="whitespace-nowrap">{format(spent)} spent</span>
+                <span className="whitespace-nowrap">{entries.length} {entries.length === 1 ? 'entry' : 'entries'} ·</span>
+                {' '}<span className="whitespace-nowrap">{format(spent)} spent</span>
               </p>
             </div>
             <MonthPill month={month} path="/entries" keep={keep} />

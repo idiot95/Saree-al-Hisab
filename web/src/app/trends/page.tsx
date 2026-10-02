@@ -10,20 +10,30 @@ import { TAB_BAR_SPACE } from '../tabs';
 import { MonthBars, CategoryDonut } from './charts';
 import Screen from '../Screen';
 import PlanNav from '../budget/PlanNav';
+import MonthPill from '../MonthPill';
 
 export const metadata = { title: 'Trends · Saree al-Hisab' };
 export const dynamic = 'force-dynamic';
 
-export default async function Trends() {
+const MONTH = /^\d{4}-\d{2}-01$/;
+
+export default async function Trends({ searchParams }: { searchParams: Promise<{ m?: string }> }) {
   const actor = await actorOrNull();
   if (!actor) redirect('/signin');
   if (!actor.household_id) redirect('/no-household');
 
-  const month = monthKey(new Date());
+  const { m } = await searchParams;
+  const now = new Date();
+  const current = monthKey(now);
+  const month = m && MONTH.test(m) && m <= current ? m : current;
+  /* The month still running is compared day for day: on the 2nd, two days of it against the first two days of
+     last month, never against all thirty. */
+  const partial = month === current;
+  const day = now.getDate();
   const hh = actor.household_id;
   const [series, cats, tabs, receipts] = await withHousehold(hh, () => Promise.all([
-    monthlySeries(hh, 6),
-    categoryTrend(hh, month),
+    monthlySeries(hh, 6, month),
+    categoryTrend(hh, month, partial ? day : null),
     tabList(hh),
     receiptsByMonth(hh, 6),
   ]));
@@ -39,12 +49,17 @@ export default async function Trends() {
   const owingTotal = owing.reduce((n, t) => n + Number(t.outstanding), 0);
   const cameBack = receipts.some((r) => Number(r.back) > 0);
 
-  const withSpend = series.filter((p) => Number(p.spent) > 0);
-  const average = withSpend.length
-    ? Math.round(withSpend.reduce((n, p) => n + Number(p.spent), 0) / withSpend.length)
+  /* Months before anything was recorded are not months of nothing: they are left off the chart. */
+  const firstData = series.findIndex((p) => p.entries > 0);
+  const shown = firstData < 0 ? [] : series.slice(firstData);
+  /* The average is of finished months only: a month two days old would drag it down. */
+  const finished = shown.filter((p) => !(partial && p.month.slice(0, 10) === month) && p.entries > 0);
+  const average = finished.length
+    ? Math.round(finished.reduce((n, p) => n + Number(p.spent), 0) / finished.length)
     : 0;
-  const thisMonth = Number(series[series.length - 1]?.spent ?? 0);
-  const lastMonth = Number(series[series.length - 2]?.spent ?? 0);
+  const thisMonth = cats.reduce((n, c) => n + Number(c.now), 0);
+  const lastMonth = cats.reduce((n, c) => n + Number(c.before), 0);
+  const monthName = (iso: string) => new Date(iso).toLocaleDateString('en-IN', { month: 'long' });
 
   const slices = cats
     .filter((c) => Number(c.now) > 0)
@@ -58,24 +73,25 @@ export default async function Trends() {
     .sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta))
     .slice(0, 5);
 
-  const nothing = sliceTotal === 0 && withSpend.length === 0 && owing.length === 0 && !cameBack;
+  const nothing = sliceTotal === 0 && shown.length === 0 && owing.length === 0 && !cameBack;
+  const since = partial ? ` (to the ${ordinal(day)})` : '';
+  const prevName = monthName(series[series.length - 2]?.month ?? month);
 
   return (
     <Screen>
       <main className="min-h-dvh bg-background text-foreground" style={{ paddingBottom: TAB_BAR_SPACE }}>
         <header className="flex flex-col gap-3 px-[var(--gutter)] pb-4 pt-4">
-          <div className="min-w-0">
-            <h1 className="font-display text-[30px] leading-tight">Plan</h1>
-            {!nothing && average > 0 && (
-              <p className="text-sm text-muted-foreground">
-                <span className="whitespace-nowrap">{format(average)} a month on average</span>
-                {lastMonth > 0 && thisMonth > 0 && (
-                  <>{' · '}<span className="whitespace-nowrap">{thisMonth > lastMonth
-                    ? `${format(thisMonth - lastMonth)} more than last month`
-                    : `${format(lastMonth - thisMonth)} less than last month`}</span></>
-                )}
-              </p>
-            )}
+          <div className="flex items-end justify-between gap-3">
+            <div className="min-w-0">
+              <h1 className="font-display text-[30px] leading-tight">Plan</h1>
+              {average > 0 && (
+                <p className="text-sm text-muted-foreground">
+                  <span className="whitespace-nowrap">{format(average)} a month</span>{' '}
+                  <span className="whitespace-nowrap">on average</span>
+                </p>
+              )}
+            </div>
+            <MonthPill month={month} path="/trends" />
           </div>
           <PlanNav current="trends" />
         </header>
@@ -89,9 +105,21 @@ export default async function Trends() {
           </p>
         ) : (
           <div style={{ padding: '4px 0 0', display: 'flex', flexDirection: 'column', gap: 20 }}>
-            <Card title="Six months">
-              <MonthBars points={series} />
-              <Table rows={series.map((p) => ({
+            {lastMonth > 0 && thisMonth > 0 && (
+              <p className="mx-[var(--gutter)] -mt-1 flex items-center gap-2 rounded-2xl border border-border bg-card px-4 py-3 text-sm">
+                <span className="font-semibold tabular-nums">{format(thisMonth)}</span>
+                <span className="text-muted-foreground">
+                  {partial ? `so far in ${monthName(month)},` : `in ${monthName(month)},`}{' '}
+                  {thisMonth > lastMonth
+                    ? `${format(thisMonth - lastMonth)} more than ${partial ? `by the ${ordinal(day)} of ${prevName}` : prevName}`
+                    : `${format(lastMonth - thisMonth)} less than ${partial ? `by the ${ordinal(day)} of ${prevName}` : prevName}`}
+                </span>
+              </p>
+            )}
+
+            <Card title={shown.length > 1 ? `${shown.length} months` : 'This month'}>
+              <MonthBars points={shown} />
+              <Table rows={shown.map((p) => ({
                 key: p.month,
                 left: new Date(p.month).toLocaleDateString('en-IN', { month: 'long' }),
                 right: Number(p.spent) === 0 ? '—' : format(Number(p.spent)),
@@ -110,13 +138,13 @@ export default async function Trends() {
             </Card>
 
             {slices.length > 0 && (
-              <Card title="Where it went this month">
-                <CategoryDonut slices={slices} total={sliceTotal} />
+              <Card title={`Where it went in ${monthName(month)}${since}`}>
+                <CategoryDonut slices={slices} total={sliceTotal} caption={partial ? 'so far' : monthName(month)} />
               </Card>
             )}
 
             {movers.length > 0 && (
-              <Card title="Biggest changes on last month">
+              <Card title={partial ? `Changes on ${prevName}, day for day` : `Changes on ${prevName}`}>
                 <ul style={{
                   margin: 0, padding: 0, listStyle: 'none',
                   display: 'flex', flexDirection: 'column',
@@ -278,4 +306,10 @@ function Table({ rows }: {
       ))}
     </ul>
   );
+}
+
+function ordinal(n: number) {
+  const t = n % 100;
+  if (t >= 11 && t <= 13) return `${n}th`;
+  return `${n}${({ 1: 'st', 2: 'nd', 3: 'rd' } as Record<number, string>)[n % 10] ?? 'th'}`;
 }

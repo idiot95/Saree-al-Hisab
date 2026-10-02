@@ -60,7 +60,7 @@ export function DateChips({ value, onChange, today, from = today, dir, min, max,
           );
         })}
         <button type="button" onClick={() => { haptic('tap'); setOpen(true); }} style={{
-          ...chip, background: 'transparent', color: 'var(--c-meta)', border: '1px dashed var(--c-dash)',
+          ...chip, background: 'transparent', color: 'var(--muted-foreground)', border: '1px dashed var(--input)',
         }}>
           Another day…
         </button>
@@ -80,7 +80,7 @@ export function DateSheet({ open, onClose, label, value, today, min, max, onPick
     <Sheet open={open} onClose={onClose} label={label}>
       <h3 style={{ margin: '0 0 8px', fontSize: 'var(--step-0)', fontWeight: 600 }}>{label}</h3>
       <MonthGrid value={value} today={today} min={min} max={max} onPick={(iso) => { haptic('select'); onPick(iso); }} />
-      <p style={{ margin: '10px 0 4px', fontSize: 'var(--step--2)', lineHeight: 1.45, color: 'var(--c-meta)' }}>
+      <p style={{ margin: '10px 0 4px', fontSize: 'var(--step--2)', lineHeight: 1.45, color: 'var(--muted-foreground)' }}>
         Chosen: {friendlyDay(value, today)} · {formatHijri(toHijri(civil(value)), true)}
       </p>
     </Sheet>
@@ -118,7 +118,7 @@ export function MonthGrid({ value, today, min, max, onPick }: {
         </button>
         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
           <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>{MONTHS[m - 1]} {y}</span>
-          <span style={{ fontSize: 'var(--step--2)', color: 'var(--c-meta)' }}>{hijriSpan}</span>
+          <span style={{ fontSize: 'var(--step--2)', color: 'var(--muted-foreground)' }}>{hijriSpan}</span>
         </div>
         <button type="button" onClick={() => step(1)} disabled={!canOn} aria-label="Next month"
           style={{ ...nav, opacity: canOn ? 1 : 0.3 }}>
@@ -128,7 +128,7 @@ export function MonthGrid({ value, today, min, max, onPick }: {
       <div role="grid" aria-label={`${MONTHS[m - 1]} ${y}`} style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 2 }}>
         {DOW.map((d) => (
           <span key={d} role="columnheader" style={{
-            textAlign: 'center', fontSize: 'var(--step--2)', fontWeight: 600, color: 'var(--c-meta)', paddingBottom: 2,
+            textAlign: 'center', fontSize: 'var(--step--2)', fontWeight: 600, color: 'var(--muted-foreground)', paddingBottom: 2,
           }}>{d}</span>
         ))}
         {Array.from({ length: lead }, (_, i) => <span key={`b${i}`} aria-hidden />)}
@@ -144,15 +144,15 @@ export function MonthGrid({ value, today, min, max, onPick }: {
               aria-label={`${d} ${MONTHS[m - 1]}, ${formatHijri(h, true)}`} onClick={() => onPick(iso)} style={{
                 minHeight: 50, borderRadius: 10, padding: '5px 0 4px',
                 display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
-                background: on ? 'var(--c-primary-hi)' : 'transparent',
-                color: on ? 'var(--c-on-primary)' : 'var(--c-ink)',
-                boxShadow: isToday && !on ? 'inset 0 0 0 2px var(--c-seagrass)' : undefined,
+                background: on ? 'var(--primary)' : 'transparent',
+                color: on ? 'var(--primary-foreground)' : 'var(--foreground)',
+                boxShadow: isToday && !on ? 'inset 0 0 0 2px var(--chart-1)' : undefined,
                 opacity: off ? 0.3 : 1,
               }}>
               <span className="t" style={{ fontSize: 'var(--step-0)', lineHeight: 1, fontWeight: isToday || on ? 700 : 500 }}>{d}</span>
               <span style={{
                 fontSize: '0.62rem', lineHeight: 1, fontWeight: h.d === 1 ? 700 : 500,
-                color: on ? 'var(--c-on-primary)' : h.d === 1 ? 'var(--c-teal)' : 'var(--c-meta)',
+                color: on ? 'var(--primary-foreground)' : h.d === 1 ? 'var(--primary)' : 'var(--muted-foreground)',
                 opacity: on ? 0.85 : 1,
               }}>
                 {h.d === 1 ? HIJRI_MONTHS_SHORT[h.m - 1] : h.d}
@@ -178,8 +178,8 @@ export function DayOfMonth({ value, top, onPick, label = 'Day of the month' }: {
           <button key={d} type="button" role="radio" aria-checked={on} onClick={() => { haptic('select'); onPick(d); }}
             className="t" style={{
               minHeight: 44, borderRadius: 10, textAlign: 'center', fontSize: 'var(--step-0)', fontWeight: on ? 700 : 500,
-              background: on ? 'var(--c-primary-hi)' : 'var(--c-sunk2)',
-              color: on ? 'var(--c-on-primary)' : 'var(--c-ink)',
+              background: on ? 'var(--primary)' : 'var(--background)',
+              color: on ? 'var(--primary-foreground)' : 'var(--foreground)',
             }}>
             {d}
           </button>
@@ -201,8 +201,8 @@ export function MonthOfYear({ value, names, onPick, label = 'Month' }: {
           <button key={name} type="button" role="radio" aria-checked={on} onClick={() => { haptic('select'); onPick(i + 1); }} style={{
             minHeight: 44, borderRadius: 10, padding: '0 4px', textAlign: 'center', fontSize: 'var(--step--1)', fontWeight: on ? 700 : 600,
             lineHeight: 1.15, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-            background: on ? 'var(--c-primary-hi)' : 'var(--c-sunk2)',
-            color: on ? 'var(--c-on-primary)' : 'var(--c-ink)',
+            background: on ? 'var(--primary)' : 'var(--background)',
+            color: on ? 'var(--primary-foreground)' : 'var(--foreground)',
           }}>
             {name}
           </button>
@@ -219,7 +219,7 @@ export function Segmented<T extends string>({ name, value, options, onChange, la
 }) {
   return (
     <div role="radiogroup" aria-label={label} style={{
-      display: 'flex', gap: 3, padding: 3, background: 'var(--c-sunk)', borderRadius: 999, flex: 1, minWidth: 0,
+      display: 'flex', gap: 3, padding: 3, background: 'var(--muted)', borderRadius: 999, flex: 1, minWidth: 0,
     }}>
       {options.map(([id, text]) => {
         const on = value === id;
@@ -228,8 +228,8 @@ export function Segmented<T extends string>({ name, value, options, onChange, la
             position: 'relative', flex: 1, minHeight: 40, display: 'flex', alignItems: 'center',
             justifyContent: 'center', borderRadius: 999, cursor: 'pointer', padding: '0 6px',
             fontSize: 'var(--step--1)', fontWeight: 600, textAlign: 'center', lineHeight: 1.15,
-            background: on ? 'var(--c-card)' : 'transparent',
-            color: on ? 'var(--c-ink)' : 'var(--c-meta)',
+            background: on ? 'var(--card)' : 'transparent',
+            color: on ? 'var(--foreground)' : 'var(--muted-foreground)',
             boxShadow: on ? '0 1px 2px rgba(0,0,0,.08)' : undefined,
           }}>
             <input type="radio" name={name} value={id} checked={on} onChange={() => { haptic('select'); onChange(id); }}
@@ -257,5 +257,5 @@ const chip: React.CSSProperties = {
 
 const nav: React.CSSProperties = {
   width: 44, height: 44, flex: 'none', borderRadius: 999, display: 'flex',
-  alignItems: 'center', justifyContent: 'center', background: 'transparent', color: 'var(--c-ink)',
+  alignItems: 'center', justifyContent: 'center', background: 'transparent', color: 'var(--foreground)',
 };

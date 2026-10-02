@@ -827,13 +827,14 @@ export type MonthPoint = {
 
 /** The last N months, including ones with nothing in them — a gap in the bars
  *  is information, and dropping empty months would quietly close it up. */
-export async function monthlySeries(householdId: string, months = 6) {
+/** `end` (a month's first day) moves the window back; absent, it ends this month. */
+export async function monthlySeries(householdId: string, months = 6, end: string | null = null) {
   return withHousehold(householdId, async () => {
     return sql`
       with span as (
         select generate_series(
-          date_trunc('month', current_date) - make_interval(months => ${months - 1}),
-          date_trunc('month', current_date),
+          coalesce(${end}::date, date_trunc('month', current_date)::date) - make_interval(months => ${months - 1}),
+          coalesce(${end}::date, date_trunc('month', current_date)::date),
           interval '1 month')::date as month
       )
       select to_char(s.month, 'YYYY-MM-DD') as month,
@@ -859,7 +860,9 @@ export async function monthlySeries(householdId: string, months = 6) {
 
 /** What each category came to in a month, and what it came to the month
  *  before — the comparison is the point, so both are fetched together. */
-export async function categoryTrend(householdId: string, month: string) {
+/** `days`, when given, compares only the first N days of each month — "this month so far" against the same days
+ *  last month, so a month two days old is not set against a whole one. */
+export async function categoryTrend(householdId: string, month: string, days: number | null = null) {
   return withHousehold(householdId, async () => {
     return sql`
       with fam as (
@@ -875,11 +878,13 @@ export async function categoryTrend(householdId: string, month: string) {
              coalesce((select sum(s.amount) from spend_txn s
                        where s.category_id = any(f.ids)
                          and s.occurred_on >= ${month}::date
-                         and s.occurred_on <  (${month}::date + interval '1 month')), 0)::text as now,
+                         and s.occurred_on <  least(${month}::date + interval '1 month',
+                                                    ${month}::date + make_interval(days => coalesce(${days}::int, 31)))), 0)::text as now,
              coalesce((select sum(s.amount) from spend_txn s
                        where s.category_id = any(f.ids)
                          and s.occurred_on >= (${month}::date - interval '1 month')
-                         and s.occurred_on <  ${month}::date), 0)::text as before,
+                         and s.occurred_on <  least(${month}::date,
+                                                    (${month}::date - interval '1 month') + make_interval(days => coalesce(${days}::int, 31)))), 0)::text as before,
              coalesce((select sum(b.amount) from budget b
                        where b.category_id = any(f.ids) and b.month = ${month}::date), 0)::text as budget
       from fam f

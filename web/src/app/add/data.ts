@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { actorOrNull, categoriesFor, tabsForEntry, openClaimsFor } from '@/db/queries';
+import { actorOrNull, categoriesFor, tabsForEntry, openClaimsFor, scanningState } from '@/db/queries';
 import { withHousehold } from '@/db/client';
 import { waysToPay } from '@/db/payment';
 
@@ -14,11 +14,12 @@ export async function loadAdd(q: AddSearch) {
   if (!actor) redirect('/signin');
   if (!actor.household_id) redirect('/no-household');
   const household_id = actor.household_id;
-  const [categories, ways, tabs, claims] = await withHousehold(household_id, () => Promise.all([
+  const [categories, ways, tabs, claims, scanning] = await withHousehold(household_id, () => Promise.all([
     categoriesFor(household_id),
     waysToPay(household_id),
     tabsForEntry(household_id),
     openClaimsFor(household_id),
+    scanningState(household_id),
   ]));
   const today = new Date().toISOString().slice(0, 10);
 
@@ -44,6 +45,8 @@ export async function loadAdd(q: AddSearch) {
 
   return {
     draft, categories, ways, tabs, today, householdId: household_id,
+    // The camera in the header is offered only where a scan can work: a key set, and someone who may add.
+    canScan: scanning.has_key && actor.role !== 'viewer',
     claims: claims.map((c) => ({
       id: c.id, person: c.person, tint: c.tint, tab: c.tab, what: c.what,
       on: new Date(c.occurred_on).toISOString().slice(0, 10), outstanding: Number(c.outstanding),

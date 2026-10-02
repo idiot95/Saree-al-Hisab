@@ -37,12 +37,12 @@ export default function Snack({ snack, onClose, ttl = 6000 }: {
       bottom: 'calc(84px + env(safe-area-inset-bottom, 0px))',
       minHeight: 52, display: 'flex', alignItems: 'center', gap: 12,
       padding: '0 6px 0 16px', borderRadius: 14,
-      background: err ? 'var(--c-danger-fill)' : 'var(--c-ink)',
-      color: err ? 'var(--c-on-danger)' : 'var(--c-bg)',
+      background: err ? 'var(--destructive)' : 'var(--foreground)',
+      color: err ? 'var(--destructive-foreground)' : 'var(--background)',
       boxShadow: '0 8px 24px -8px rgba(35,61,77,.45)',
     }}>
       {snack.check && (
-        <svg className="check-draw" width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="var(--c-ok-fill)"
+        <svg className="check-draw" width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="var(--primary)"
           strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round" aria-hidden style={{ flex: 'none' }}>
           <path d="M5 12.5l4.5 4.5L19 7.5" />
         </svg>

@@ -53,8 +53,8 @@ export default function CategoryFinder({ open, onClose, categories, selected, on
         style={{
           minHeight: 52, display: 'flex', alignItems: 'center', gap: 12, width: '100%',
           padding: child ? '0 0 0 34px' : 0, textAlign: 'left',
-          borderBottom: '1px solid var(--c-rule)',
-          background: on ? 'var(--c-sunk)' : 'transparent', color: 'var(--c-ink)',
+          borderBottom: '1px solid var(--border)',
+          background: on ? 'var(--muted)' : 'transparent', color: 'var(--foreground)',
         }}>
         <Chip icon={c.icon} tint={c.tint} size={child ? 30 : 36} />
         <span style={{ flex: 1, minWidth: 0, fontSize: child ? 'var(--step--1)' : 'var(--step-0)', fontWeight: 600 }}>
@@ -77,11 +77,11 @@ export default function CategoryFinder({ open, onClose, categories, selected, on
         enterKeyHint="search"
         style={{
           width: '100%', minHeight: 50, borderRadius: 13, padding: '0 14px', marginBottom: 6,
-          border: '1px solid var(--c-border)', background: 'var(--c-sunk2)',
-          color: 'var(--c-ink)', fontSize: 'var(--field)',
+          border: '1px solid var(--border)', background: 'var(--background)',
+          color: 'var(--foreground)', fontSize: 'var(--field)',
         }} />
       {families.length === 0 && (
-        <p style={{ margin: '14px 0', fontSize: 'var(--step--1)', color: 'var(--c-meta)' }}>
+        <p style={{ margin: '14px 0', fontSize: 'var(--step--1)', color: 'var(--muted-foreground)' }}>
           Nothing called that. Categories are set up under Settings.
         </p>
       )}

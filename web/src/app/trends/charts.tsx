@@ -37,8 +37,9 @@ export function MonthBars({ points }: {
         style={{ display: 'block', overflow: 'visible' }}>
         {points.map((p, i) => {
           const spent = Number(p.spent), budget = Number(p.budget);
-          const x = PAD + i * bw + bw * 0.18;
-          const w = bw * 0.64;
+          // Capped, so two months of data are two bars, not two slabs.
+          const w = Math.min(bw * 0.64, 34);
+          const x = PAD + i * bw + (bw - w) / 2;
           const h = Math.max(spent > 0 ? 3 : 0, (spent / max) * (H - 42));
           const y = H - 22 - h;
           const over = budget > 0 && spent > budget;
@@ -62,7 +63,7 @@ export function MonthBars({ points }: {
       }}>
         <Key colour="var(--chart-1)">spent</Key>
         <Key dashed>budget</Key>
-        <Key colour="var(--destructive)">over</Key>
+        {points.some((p) => Number(p.budget) > 0 && Number(p.spent) > Number(p.budget)) && <Key colour="var(--destructive)">over</Key>}
       </figcaption>
     </figure>
   );
@@ -70,9 +71,9 @@ export function MonthBars({ points }: {
 
 /* ── this month, as a ring ──────────────────────────────────────────────── */
 
-export function CategoryDonut({ slices, total }: {
+export function CategoryDonut({ slices, total, caption = 'this month' }: {
   slices: { id: string; name: string; amount: number; tint: string; icon: string }[];
-  total: number;
+  total: number; caption?: string;
 }) {
   const S = 150, R = 62, T = 22, C = S / 2;
   /* Where each slice starts, worked out before drawing rather than carried in a variable the map reassigns. */
@@ -102,7 +103,7 @@ export function CategoryDonut({ slices, total }: {
         <text x={C} y={C - 3} textAnchor="middle" fontSize={16} fontWeight={600}
           fill="var(--foreground)" className="t">{format(total)}</text>
         <text x={C} y={C + 13} textAnchor="middle" fontSize={9.5} fill="var(--muted-foreground)">
-          this month
+          {caption}
         </text>
       </svg>
 

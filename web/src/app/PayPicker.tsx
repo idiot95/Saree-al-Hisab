@@ -66,8 +66,8 @@ export function WayTile({ icon, ink, title, sub, on, onClick, disabled }: {
       style={{ ...TILE, ...choice(on, ink) }}>
       <span aria-hidden style={{
         width: 34, height: 34, flex: 'none', borderRadius: 999, display: 'flex', alignItems: 'center',
-        justifyContent: 'center', background: on ? 'color-mix(in srgb, currentColor 16%, transparent)' : 'var(--c-card)',
-        color: on ? 'inherit' : 'var(--c-meta)',
+        justifyContent: 'center', background: on ? 'color-mix(in srgb, currentColor 16%, transparent)' : 'var(--card)',
+        color: on ? 'inherit' : 'var(--muted-foreground)',
       }}>
         <Icon name={icon} size={18} strokeWidth={1.9} />
       </span>
@@ -76,7 +76,7 @@ export function WayTile({ icon, ink, title, sub, on, onClick, disabled }: {
         {sub && (
           <span style={{
             fontSize: 'var(--step--2)', lineHeight: 1.2, fontWeight: 500,
-            color: on ? 'inherit' : 'var(--c-meta)', opacity: on ? 0.82 : 1, ...TWO_LINES,
+            color: on ? 'inherit' : 'var(--muted-foreground)', opacity: on ? 0.82 : 1, ...TWO_LINES,
           }}>{sub}</span>
         )}
       </span>
@@ -103,7 +103,7 @@ export default function PayPicker({ ways, value, onChange, name, defaultValue, d
   const hit = findRef(ways, cur);
   if (ways.length === 0) {
     return (
-      <p style={{ margin: 0, fontSize: 'var(--step--1)', color: 'var(--c-meta)' }}>
+      <p style={{ margin: 0, fontSize: 'var(--step--1)', color: 'var(--muted-foreground)' }}>
         No accounts yet — add one under Accounts first.
       </p>
     );

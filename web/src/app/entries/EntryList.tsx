@@ -92,10 +92,10 @@ export default function EntryList({ days, canEdit, tools = false, flat = false }
               aria-label="Search this month's entries" className="min-w-0 flex-1 bg-transparent py-2 text-foreground outline-none placeholder:text-muted-foreground" />
             {q && <button type="button" onClick={() => setQ('')} aria-label="Clear search" className="grid size-8 place-items-center rounded-full bg-muted"><IconX size={15} /></button>}
           </label>
-          <div role="group" aria-label="Show" className="flex flex-wrap gap-2">
+          <div role="group" aria-label="Show" className="flex flex-wrap gap-1.5">
             {FILTERS.map((f) => (
               <button key={f.key} type="button" aria-pressed={filter === f.key} onClick={() => setFilter(f.key)}
-                className={`min-h-11 rounded-full border px-3.5 text-sm font-semibold ${filter === f.key
+                className={`min-h-11 rounded-full border px-3 text-sm font-semibold ${filter === f.key
                   ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-card text-foreground'}`}>
                 {f.label}
               </button>

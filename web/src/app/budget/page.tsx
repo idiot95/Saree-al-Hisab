@@ -1,12 +1,12 @@
 import Link from '@/app/NavLink';
 import { redirect } from 'next/navigation';
-import { IconAlertTriangle, IconChevronRight, IconTag } from '@tabler/icons-react';
+import { IconAdjustments, IconAlertTriangle, IconChevronDown, IconChevronRight, IconTag } from '@tabler/icons-react';
 import {
   actorOrNull, budgetFor, budgetLinesFor, budgetSetsFor, categoriesFor, monthTotals, previousBudget,
 } from '@/db/queries';
 import { withHousehold } from '@/db/client';
 import { format, monthKey } from '@/lib/money';
-import { Chip, tintOf } from '../Icon';
+import { Chip } from '../Icon';
 import TabBar from '../TabBar';
 import { TAB_BAR_SPACE } from '../tabs';
 import MonthPill from '../MonthPill';
@@ -67,7 +67,7 @@ export default async function Budget({ searchParams }: {
               <p className="text-sm text-muted-foreground">
                 {empty ? 'Nothing budgeted yet' : (
                   <>
-                    <span className="whitespace-nowrap">{headings} {headings === 1 ? 'heading' : 'headings'}</span>
+                    <span className="whitespace-nowrap">{headings} {headings === 1 ? 'category' : 'categories'}</span>
                     {daysLeft !== null && <>{' · '}<span className="whitespace-nowrap">{daysLeft} {daysLeft === 1 ? 'day' : 'days'} left</span></>}
                   </>
                 )}
@@ -132,27 +132,33 @@ export default async function Budget({ searchParams }: {
               touching the budget behind it. Shut by default: it was the first
               thing on the screen and it asked forty questions to answer two.
               <details> rather than state, so it works with no JS. */}
-          {canEdit && sets.length > 0 && (
-            <details className="mx-[var(--gutter)] mt-5">
-              <summary className="flex min-h-12 cursor-pointer items-center rounded-2xl border border-border bg-card px-4 text-sm font-semibold">
-                Adjust {label(month)} only
-              </summary>
-              <div className="-mx-[var(--gutter)] mt-2.5">
-                <BudgetForm month={month} rows={rows} canEdit={canEdit} />
-                <p className="mx-[var(--gutter)] mt-3.5 text-sm leading-relaxed text-muted-foreground">
-                  Each month is its own set of figures. Changing {label(month)} leaves every
-                  earlier month exactly as it was — and leaves the budget above untouched.
-                </p>
-              </div>
-            </details>
-          )}
-
-          <Link transitionTypes={['nav-forward']} href="/categories"
-            className="mx-[var(--gutter)] mt-5 flex min-h-12 items-center gap-2.5 rounded-2xl border border-border bg-card px-4 text-sm font-semibold">
-            <IconTag size={17} className="text-muted-foreground" aria-hidden />
-            <span className="flex-1">Edit categories</span>
-            <IconChevronRight size={17} className="text-muted-foreground" aria-hidden />
-          </Link>
+          {/* Two ways to change things, in one list: this month alone (the full grid, every category including the
+              ones with nothing against them, without touching the budget behind it — a native <details>, so it works
+              with no JS), and the categories themselves. */}
+          <div className="mx-[var(--gutter)] mt-4 overflow-hidden rounded-2xl border border-border bg-card">
+            {canEdit && sets.length > 0 && (
+              <details className="border-b border-border">
+                <summary className="flex min-h-12 cursor-pointer items-center gap-2.5 px-4 text-sm font-semibold">
+                  <IconAdjustments size={17} className="text-muted-foreground" aria-hidden />
+                  <span className="flex-1">Adjust {label(month)} only</span>
+                  <IconChevronDown size={17} className="text-muted-foreground" aria-hidden />
+                </summary>
+                <div className="pb-3">
+                  <BudgetForm month={month} rows={rows} canEdit={canEdit} />
+                  <p className="mx-4 mt-1 text-xs leading-relaxed text-muted-foreground">
+                    Each month is its own set of figures. Changing {label(month)} leaves every
+                    earlier month exactly as it was, and leaves your budget untouched.
+                  </p>
+                </div>
+              </details>
+            )}
+            <Link transitionTypes={['nav-forward']} href="/categories"
+              className="flex min-h-12 items-center gap-2.5 px-4 text-sm font-semibold">
+              <IconTag size={17} className="text-muted-foreground" aria-hidden />
+              <span className="flex-1">Edit categories</span>
+              <IconChevronRight size={17} className="text-muted-foreground" aria-hidden />
+            </Link>
+          </div>
         </div>
         <TabBar current="/budget" />
       </main>
@@ -179,8 +185,8 @@ function Bar({ share, colour, label, className = '' }: { share: number; colour: 
 
 type Row = Awaited<ReturnType<typeof budgetFor>>[number];
 
-/* One heading's month: its own colour on the bar so the row about to go over is visible without reading figures,
-   red only once it has. The row opens that heading's entries; the "of which" children open their own. */
+/* One category's month. The bar is navy, red only once it is over (with an icon and the word): a category's own
+   colour on a bar read as a status — orange at 84% looked like a warning. The colour stays on the chip. The row opens that heading's entries; the "of which" children open their own. */
 function CategoryLine({ row, month, first }: { row: Row; month: string; first: boolean }) {
   const cap = Number(row.budget);
   const used = Number(row.spent);
@@ -205,7 +211,7 @@ function CategoryLine({ row, month, first }: { row: Row; month: string; first: b
             </span>
           </span>
           {cap > 0 && (
-            <Bar share={used / cap} colour={over ? 'var(--destructive)' : tintOf(row.tint)[1]}
+            <Bar share={used / cap} colour={over ? 'var(--destructive)' : 'var(--primary)'}
               label={`${row.name}: ${format(used)} of ${format(cap)}`} className="h-1.5" />
           )}
           <span className="text-xs text-muted-foreground tabular-nums">

@@ -57,6 +57,7 @@ export type Claim = {
 
 export default function AddEntry({
   categories, ways, tabs = [], claims = [], today, householdId, draft, offline = false, onQueued, children, sheet = false,
+  canScan = false,
 }: {
   categories: Category[];
   /** Every real account, each with the rails that draw on it. See src/lib/pay.ts. */
@@ -65,6 +66,8 @@ export default function AddEntry({
   householdId: string;
   /** Opened as a drawer over another screen: Close steps back to it instead of going Home. */
   sheet?: boolean;
+  /** The household has a scanning key and this person may add: show the camera. */
+  canScan?: boolean;
   draft?: {
     amountMinor: number | null; occurredOn: string | null; merchant: string | null;
     kind: Kind | null; categoryId: string | null; tabId?: string | null;
@@ -279,8 +282,8 @@ export default function AddEntry({
           <h1 className="font-display" style={{ margin: 0, fontSize: 26, fontWeight: 400, lineHeight: 1.1 }}>
             {step === 1 ? 'New entry' : kind === 'income' ? 'What for' : 'Category'}
           </h1>
-          {step === 1 && !offline ? (
-            <a href="/scan" aria-label="Scan a receipt" style={{
+          {step === 1 && !offline && canScan ? (
+            <Link href="/scan" transitionTypes={['nav-forward']} aria-label="Scan or upload a receipt" style={{
               width: 44, height: 44, borderRadius: 999, display: 'flex',
               alignItems: 'center', justifyContent: 'center', color: 'var(--foreground)',
             }}>
@@ -289,7 +292,7 @@ export default function AddEntry({
                 <path d="M4.5 8.5 6 6h4l1-1.5h2L14 6h4l1.5 2.5v9a1.5 1.5 0 0 1-1.5 1.5H6a1.5 1.5 0 0 1-1.5-1.5z" />
                 <circle cx="12" cy="12.5" r="3.4" />
               </svg>
-            </a>
+            </Link>
           ) : (
             <span aria-hidden style={{ width: 44, height: 44 }} />
           )}
@@ -309,7 +312,7 @@ export default function AddEntry({
                     style={{
                       flex: 1, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center',
                       borderRadius: 11, fontSize: 'var(--step--1)', fontWeight: 600,
-                      background: isOn ? 'var(--card)' : 'transparent',
+                      background: isOn ? 'var(--raised)' : 'transparent',
                       color: isOn ? 'var(--foreground)' : 'var(--muted-foreground)',
                       boxShadow: isOn ? '0 1px 3px rgba(29,42,46,.12)' : 'none',
                     }}

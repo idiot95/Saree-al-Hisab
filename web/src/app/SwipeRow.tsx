@@ -53,9 +53,9 @@ const FLICK = 0.5;       // px/ms — quicker than this and direction alone deci
    light theme's salmon and unreadable on the dark theme's deep red, so danger
    carries its own ink that flips with the scheme. */
 const TONE = {
-  neutral: ['var(--c-sunk2)', 'var(--c-ink)'],
-  primary: ['var(--c-primary-hi)', 'var(--c-on-primary)'],
-  danger: ['var(--c-danger-fill)', 'var(--c-on-danger)'],
+  neutral: ['var(--background)', 'var(--foreground)'],
+  primary: ['var(--primary)', 'var(--primary-foreground)'],
+  danger: ['var(--destructive)', 'var(--destructive-foreground)'],
 } as const;
 
 /* The one open row, so opening another closes it. Module state on purpose:
@@ -70,7 +70,7 @@ let peekedThisLoad = false;
 const PEEK_KEY = 'swipe-peeked';
 
 export default function SwipeRow({ actions, commit = true, grip = true, flush = false,
-  gripColor = 'var(--c-meta)', children }: {
+  gripColor = 'var(--muted-foreground)', children }: {
   actions: SwipeAction[];
   /** Whether a long swipe fires the last action outright. Off for anything
       that should always be a deliberate second tap. */
@@ -261,8 +261,8 @@ export default function SwipeRow({ actions, commit = true, grip = true, flush = 
         onPointerUp={up} onPointerCancel={(e) => up(e, true)}
         onClickCapture={click}
         style={{
-          position: 'relative', background: 'var(--c-card)',
-          padding: flush ? 0 : grip ? '0 calc(var(--pad) + 20px) 0 var(--pad)' : '0 var(--pad)',
+          position: 'relative', background: 'var(--card)',
+          padding: flush ? 0 : grip ? '0 calc(var(--pad) + 28px) 0 var(--pad)' : '0 var(--pad)',
           touchAction: 'pan-y',
           transform: `translateX(${x}px)`,
           transition: drag ? 'none' : 'transform .24s cubic-bezier(.2,.8,.2,1)',
@@ -273,14 +273,14 @@ export default function SwipeRow({ actions, commit = true, grip = true, flush = 
           <button type="button" aria-label={open ? 'Hide actions' : 'Show actions'} aria-expanded={open}
             onClick={() => { if (!s.current.moved) { haptic('tap'); show(); } }}
             style={{
-              position: 'absolute', top: 0, bottom: 0, right: 0, width: 36,
+              position: 'absolute', top: 0, bottom: 0, right: 0, width: 44,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               color: gripColor, opacity: 0.8,
             }}>
-            <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-              strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" aria-hidden
-              style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .2s ease' }}>
-              <path d="M15 6l-6 6 6 6" />
+            {/* "More": the one icon everybody reads as "this has actions". A left chevron read as Back. */}
+            <svg width={18} height={18} viewBox="0 0 24 24" fill="currentColor" aria-hidden
+              style={{ transform: open ? 'rotate(90deg)' : 'none', transition: 'transform .2s ease' }}>
+              <circle cx="12" cy="5.5" r="1.7" /><circle cx="12" cy="12" r="1.7" /><circle cx="12" cy="18.5" r="1.7" />
             </svg>
           </button>
         )}

@@ -27,7 +27,7 @@ export default function CategoryGrid({ categories, value, onChange, label }: {
 
   if (categories.length === 0) {
     return (
-      <p style={{ margin: 0, fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--c-meta)' }}>
+      <p style={{ margin: 0, fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--muted-foreground)' }}>
         No categories take this kind of entry yet — set them up under Categories.
       </p>
     );
@@ -56,7 +56,7 @@ export default function CategoryGrid({ categories, value, onChange, label }: {
       <label style={{ position: 'relative', display: 'block' }}>
         <span aria-hidden style={{
           position: 'absolute', left: 14, top: 0, bottom: 0, display: 'flex', alignItems: 'center',
-          color: 'var(--c-meta)', pointerEvents: 'none',
+          color: 'var(--muted-foreground)', pointerEvents: 'none',
         }}>
           <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor"
             strokeWidth={2} strokeLinecap="round" aria-hidden>
@@ -67,14 +67,14 @@ export default function CategoryGrid({ categories, value, onChange, label }: {
           placeholder="Search category or subcategory" aria-label={label} autoComplete="off"
           enterKeyHint="search" style={{
             width: '100%', minHeight: 50, borderRadius: 14, padding: '0 42px',
-            border: `1px solid ${needle ? 'var(--c-primary-hi)' : 'var(--c-border)'}`,
-            background: 'var(--c-card)', color: 'var(--c-ink)', fontSize: 'var(--field)',
+            border: `1px solid ${needle ? 'var(--primary)' : 'var(--border)'}`,
+            background: 'var(--card)', color: 'var(--foreground)', fontSize: 'var(--field)',
           }} />
         {needle && (
           <button type="button" aria-label="Clear category search" onClick={() => setQ('')} style={{
             position: 'absolute', right: 4, top: 3, width: 44, height: 44,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: 'var(--c-meta)', fontSize: 20,
+            color: 'var(--muted-foreground)', fontSize: 20,
           }}>×</button>
         )}
       </label>
@@ -83,12 +83,14 @@ export default function CategoryGrid({ categories, value, onChange, label }: {
         <SearchResults hits={hits} value={value} onPick={chooseResult} />
       ) : (
         <>
-          {favourites.length >= 2 && (
+          {/* Only the subcategories among the most used: a main category is already a tile right below, and listing
+              it twice was two ways to tap one thing. A child is a tap that would otherwise take two. */}
+          {favourites.some((c) => c.parent_id) && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
               <SmallHead>Most used</SmallHead>
               <div role="group" aria-label="Most used categories"
                 style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                {favourites.map((c) => {
+                {favourites.filter((c) => c.parent_id).map((c) => {
                   const isOn = c.id === value;
                   const ink = `var(--cat-${c.tint}-ink)`;
                   return (
@@ -123,23 +125,22 @@ export default function CategoryGrid({ categories, value, onChange, label }: {
                   }} style={{
                     minHeight: 68, padding: '10px 11px', borderRadius: 14,
                     display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left',
-                    ...(activeFamily
-                      ? { background: `var(--cat-${c.tint})`, color: ink, border: `1px solid ${ink}` }
-                      : OFF),
+                    ...(activeFamily ? on() : OFF),
                   }}>
                   <span style={{
                     width: 36, height: 36, borderRadius: 11, flex: 'none',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    background: activeFamily ? 'rgba(255,255,255,.42)' : 'var(--c-sunk2)',
+                    background: activeFamily ? 'rgba(255,255,255,.16)' : 'var(--background)',
+                    color: activeFamily ? 'inherit' : ink,
                   }}><Icon name={c.icon} size={19} strokeWidth={1.9} /></span>
                   <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
                     <span style={{
                       fontSize: 'var(--step--1)', fontWeight: 700, lineHeight: 1.15,
                       overflow: 'hidden', textOverflow: 'ellipsis',
                     }}>{c.name}</span>
-                    <span style={{ fontSize: 10, lineHeight: 1.1, opacity: .72 }}>
-                      {kids.length ? `${kids.length} subcategories` : 'Category'}
-                    </span>
+                    {kids.length > 0 && (
+                      <span style={{ fontSize: 11, lineHeight: 1.1, opacity: .72 }}>{kids.length} subcategories</span>
+                    )}
                   </span>
                   {kids.length > 0 && (
                     <span aria-hidden style={{
@@ -159,14 +160,14 @@ export default function CategoryGrid({ categories, value, onChange, label }: {
 
           {openFamily && openKids.length > 0 && (
             <section style={{
-              borderRadius: 16, background: 'var(--c-card)', border: '1px solid var(--c-border)',
+              borderRadius: 16, background: 'var(--card)', border: '1px solid var(--border)',
               padding: 10, display: 'flex', flexDirection: 'column', gap: 9,
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '2px 3px 0' }}>
                 <span style={{
                   flex: 1, minWidth: 0, fontSize: 'var(--step--1)', fontWeight: 700,
                 }}>Within {openFamily.name}</span>
-                <span style={{ fontSize: 'var(--step--2)', color: 'var(--c-meta)' }}>Choose one</span>
+                <span style={{ fontSize: 'var(--step--2)', color: 'var(--muted-foreground)' }}>Choose one</span>
               </div>
               <div role="group" aria-label={`Subcategories within ${openFamily.name}`} style={{
                 display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 7,
@@ -205,10 +206,10 @@ function SearchResults({ hits, value, onPick }: {
   return (
     <div role="group" aria-label="Matching categories and subcategories" style={{
       display: 'flex', flexDirection: 'column', borderRadius: 14,
-      background: 'var(--c-card)', border: '1px solid var(--c-border)', overflow: 'hidden',
+      background: 'var(--card)', border: '1px solid var(--border)', overflow: 'hidden',
     }}>
       {hits.length === 0 && (
-        <p style={{ margin: 0, padding: 14, fontSize: 'var(--step--1)', color: 'var(--c-meta)' }}>
+        <p style={{ margin: 0, padding: 14, fontSize: 'var(--step--1)', color: 'var(--muted-foreground)' }}>
           No category or subcategory matches that.
         </p>
       )}
@@ -219,14 +220,14 @@ function SearchResults({ hits, value, onPick }: {
           <button key={c.id} type="button" aria-pressed={isOn} onClick={() => onPick(c)} style={{
             minHeight: 62, display: 'flex', alignItems: 'center', gap: 11,
             padding: '7px 12px', textAlign: 'left',
-            borderTop: i === 0 ? undefined : '1px solid var(--c-rule)',
+            borderTop: i === 0 ? undefined : '1px solid var(--border)',
             background: isOn ? `var(--cat-${c.tint})` : 'transparent',
-            color: isOn ? `var(--cat-${c.tint}-ink)` : 'var(--c-ink)',
+            color: isOn ? `var(--cat-${c.tint}-ink)` : 'var(--foreground)',
           }}>
             <Chip icon={c.icon} tint={isOn ? c.tint : 'neutral'} size={36} />
             <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
               <span style={{ fontSize: 'var(--step--1)', fontWeight: 700 }}>{c.name}</span>
-              <span style={{ fontSize: 'var(--step--2)', color: 'var(--c-meta)' }}>{blurb}</span>
+              <span style={{ fontSize: 'var(--step--2)', color: 'var(--muted-foreground)' }}>{blurb}</span>
             </span>
             {isOn && <Icon name="check" size={18} strokeWidth={2.5} />}
           </button>
@@ -240,7 +241,7 @@ function SmallHead({ children }: { children: React.ReactNode }) {
   return (
     <span style={{
       fontSize: 'var(--step--2)', fontWeight: 700, letterSpacing: '.06em',
-      textTransform: 'uppercase', color: 'var(--c-meta)',
+      textTransform: 'uppercase', color: 'var(--muted-foreground)',
     }}>{children}</span>
   );
 }

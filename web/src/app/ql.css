@@ -10,6 +10,7 @@
   --background: #F6F4EF;          /* paper */
   --foreground: #1C2433;          /* ink */
   --card: #FFFFFF;
+  --raised: #FFFFFF;              /* the lit segment of a switch: above its track in both themes */
   --card-foreground: #1C2433;
   --popover: #FFFFFF;
   --popover-foreground: #1C2433;
@@ -38,9 +39,10 @@
   --attention-soft: #FDF2D6;
   --attention-soft-foreground: #6E4A00;
 
-  /* Money has a direction (see globals.css --c-in / --c-out); these are the Quiet Ledger values. */
+  /* Money has a direction. Arriving is green with a +; leaving is plain ink, because nearly every row is an
+     expense and a screen of red rows sat beside the orange categories and read as alarm. Red is for over budget. */
   --money-in: #2F6B3F;
-  --money-out: #A3341E;
+  --money-out: var(--foreground);
 
   --chart-1: #1F3A5F;
   --chart-2: #A86B00;
@@ -52,32 +54,32 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --background: #0F151D; --foreground: #E6ECF3;
-    --card: #17202B; --card-foreground: #E6ECF3;
+    --card: #17202B; --card-foreground: #E6ECF3; --raised: #2B3849;
     --popover: #1B2531; --popover-foreground: #E6ECF3;
-    --primary: #9DBBE6; --primary-foreground: #0D1726;
+    --primary: #B3C5DF; --primary-foreground: #0D1726;
     --secondary: #1F2A38; --secondary-foreground: #D5DEEA;
     --muted: #1C2633; --muted-foreground: #9AA8B8;
     --accent: #1D2D44; --accent-foreground: #C8D9F3;
     --destructive: #F2867A; --destructive-foreground: #2A0B07;
-    --border: #283444; --input: #324052; --ring: #9DBBE6;
-    --attention-ink: #F2B33D; --chart-1: #9DBBE6; --chart-2: #F2B33D;
+    --border: #283444; --input: #324052; --ring: #B3C5DF;
+    --attention-ink: #F2B33D; --chart-1: #B3C5DF; --chart-2: #F2B33D;
     --attention-soft: #3A2C10; --attention-soft-foreground: #F6D48A;
-    --money-in: #8FD19E; --money-out: #FF9A85;
+    --money-in: #8FD19E; --money-out: var(--foreground);
   }
 }
 :root[data-theme="dark"] {
   --background: #0F151D; --foreground: #E6ECF3;
-  --card: #17202B; --card-foreground: #E6ECF3;
+  --card: #17202B; --card-foreground: #E6ECF3; --raised: #2B3849;
   --popover: #1B2531; --popover-foreground: #E6ECF3;
-  --primary: #9DBBE6; --primary-foreground: #0D1726;
+  --primary: #B3C5DF; --primary-foreground: #0D1726;
   --secondary: #1F2A38; --secondary-foreground: #D5DEEA;
   --muted: #1C2633; --muted-foreground: #9AA8B8;
   --accent: #1D2D44; --accent-foreground: #C8D9F3;
   --destructive: #F2867A; --destructive-foreground: #2A0B07;
-  --border: #283444; --input: #324052; --ring: #9DBBE6;
-  --attention-ink: #F2B33D; --chart-1: #9DBBE6; --chart-2: #F2B33D;
+  --border: #283444; --input: #324052; --ring: #B3C5DF;
+  --attention-ink: #F2B33D; --chart-1: #B3C5DF; --chart-2: #F2B33D;
   --attention-soft: #3A2C10; --attention-soft-foreground: #F6D48A;
-  --money-in: #8FD19E; --money-out: #FF9A85;
+  --money-in: #8FD19E; --money-out: var(--foreground);
 }
 
 @theme inline {
@@ -89,6 +91,7 @@
   --color-foreground: var(--foreground);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
+  --color-raised: var(--raised);
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);

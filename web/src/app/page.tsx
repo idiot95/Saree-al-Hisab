@@ -116,7 +116,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ s
             <section aria-label={todays.length ? 'Today' : 'Latest'} className="flex flex-col gap-2">
               <div className="flex items-baseline justify-between px-1">
                 <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{todays.length ? 'Today' : 'Latest'}</h2>
-                <Link href="/entries" transitionTypes={['nav-lateral']} className="text-sm font-medium text-primary">See all</Link>
+                <Link href="/entries" transitionTypes={['nav-lateral']} className="-my-3 flex min-h-11 items-center px-1 text-sm font-medium text-primary">See all</Link>
               </div>
               <EntryList days={[{ on: todayIso, label: '', rows: latest.map(toRow) }]} canEdit={canAct} flat />
             </section>

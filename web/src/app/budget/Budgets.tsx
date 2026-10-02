@@ -49,7 +49,9 @@ export default function Budgets({ budgets, lines, categories, thisMonth, spentBy
   thisMonth: string; spentBy: Record<string, string>;
 }) {
   const [editing, setEditing] = useState<string | null>(null);
-  const [open, setOpen] = useState<string | null>(() => budgets.find((b) => b.current)?.id ?? null);
+  /* Shut by default: the screen above already shows this month by category, so opening the budget in use
+     straight away printed every figure twice. */
+  const [open, setOpen] = useState<string | null>(null);
   const linesOf = (id: string) => lines.filter((l) => l.set_id === id);
 
   if (editing === 'new' || (budgets.length === 0 && editing === null)) {
@@ -65,8 +67,8 @@ export default function Budgets({ budgets, lines, categories, thisMonth, spentBy
         <h2 className="px-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Your budgets</h2>
         <p className="px-1 text-sm leading-snug text-muted-foreground">
           {budgets.length === 1
-            ? 'Tap it to see what each heading gets. Swipe for delete.'
-            : 'Tap one to see what each heading gets. Swipe to make it current, or to delete it.'}
+            ? 'Tap it to see what each category gets.'
+            : 'Tap one to see what each category gets, or to make it current.'}
         </p>
       </div>
 
@@ -83,21 +85,11 @@ export default function Budgets({ budgets, lines, categories, thisMonth, spentBy
         </div>
       ))}
 
-      <button type="button" onClick={() => { haptic('select'); setEditing('new'); }} className="border border-border"
-        style={{
-          margin: '4px var(--gutter) 0', minHeight: 56, borderRadius: 16, display: 'flex',
-          alignItems: 'center', gap: 11, padding: '0 var(--pad)', background: 'var(--card)',
-          border: '1px dashed var(--input)', color: 'var(--foreground)',
-          fontSize: 'var(--step-0)', fontWeight: 600,
-        }}>
-        <span style={{
-          width: 32, height: 32, flex: 'none', borderRadius: 999, display: 'flex',
-          alignItems: 'center', justifyContent: 'center', background: 'var(--muted)', color: 'var(--muted-foreground)',
-        }}>
-          <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-            strokeWidth={2.2} strokeLinecap="round" aria-hidden><path d="M12 5v14M5 12h14" /></svg>
-        </span>
-        Create a budget
+      <button type="button" onClick={() => { haptic('select'); setEditing('new'); }}
+        className="mx-[var(--gutter)] flex min-h-11 items-center gap-1.5 self-start px-1 text-sm font-semibold text-primary">
+        <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          strokeWidth={2.2} strokeLinecap="round" aria-hidden><path d="M12 5v14M5 12h14" /></svg>
+        Create another budget
       </button>
     </div>
   );
@@ -144,7 +136,7 @@ function Row({ budget, lines, spentBy, open, onToggle, onEdit }: {
         <input type="hidden" name="id" value={budget.id} />
       </form>
 
-      <SwipeRow actions={actions} commit={false}>
+      <SwipeRow actions={actions} commit={false} grip={false}>
         <button type="button" onClick={() => { haptic('tap'); onToggle(); }} aria-expanded={open}
           style={{
             width: '100%', minHeight: 76, display: 'flex', alignItems: 'center', gap: 12,
@@ -165,8 +157,8 @@ function Row({ budget, lines, spentBy, open, onToggle, onEdit }: {
               )}
             </span>
             <span style={{ fontSize: 'var(--step--2)', color: 'var(--muted-foreground)' }}>
-              {budget.lines} {budget.lines === 1 ? 'heading' : 'headings'} ·{' '}
-              {monthName(budget.from_month)} — {monthName(budget.to_month)}
+              {budget.lines} {budget.lines === 1 ? 'category' : 'categories'} ·{' '}
+              {monthName(budget.from_month)} to {monthName(budget.to_month)}
             </span>
           </span>
           <span className="t n" style={{ fontSize: 'var(--step-1)', fontWeight: 700 }}>
@@ -307,7 +299,7 @@ function BudgetForm({ categories, budget, lines, thisMonth, onDone, showCancel }
         {!budget && (
           <p style={{ margin: 0, fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--muted-foreground)' }}>
             {step === 1
-              ? 'Pick the headings that matter. Everything filed underneath one of them counts towards it.'
+              ? 'Pick the categories that matter. Everything filed underneath one of them counts towards it.'
               : 'Give each a figure, name the budget, and say how long it runs.'}
           </p>
         )}
@@ -431,7 +423,7 @@ function BudgetForm({ categories, budget, lines, thisMonth, onDone, showCancel }
           {total > 0 && (
             <p style={{ margin: 0, fontSize: 'var(--step--1)', color: 'var(--muted-foreground)' }}>
               <b className="n" style={{ color: 'var(--foreground)' }}>{format(total)}</b> a month across{' '}
-              {filled} {filled === 1 ? 'heading' : 'headings'}.
+              {filled} {filled === 1 ? 'category' : 'categories'}.
             </p>
           )}
 
