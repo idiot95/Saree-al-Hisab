@@ -5,7 +5,8 @@ import { withHousehold } from '@/db/client';
 import { format, monthKey } from '@/lib/money';
 import { outstandingDues, ruleOf } from '@/lib/recur';
 import DueRow from './schedules/DueRow';
-import { Chip } from './Icon';
+import EntryList from './entries/EntryList';
+import { toRow } from './entries/rows';
 import GettingStarted from './GettingStarted';
 import MonthRing from './home/MonthRing';
 import TabBar from './TabBar';
@@ -117,9 +118,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ s
                 <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{todays.length ? 'Today' : 'Latest'}</h2>
                 <Link href="/entries" transitionTypes={['nav-lateral']} className="text-sm font-medium text-primary">See all</Link>
               </div>
-              <ul className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card">
-                {latest.map((e) => <EntryLine key={e.id} e={e} />)}
-              </ul>
+              <EntryList days={[{ on: todayIso, label: '', rows: latest.map(toRow) }]} canEdit={canAct} flat />
             </section>
           )}
 
@@ -131,31 +130,6 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ s
         <TabBar current="/" />
       </main>
     </Screen>
-  );
-}
-
-/* One entry, as every list in the app will draw it: its category chip, where the money went (or came from), what it
-   was filed under, and the figure in the colour of its direction. A move between your own accounts is neither. */
-function EntryLine({ e }: { e: Awaited<ReturnType<typeof entriesFor>>[number] }) {
-  const out = e.kind === 'expense';
-  const into = e.kind === 'income' || e.kind === 'claim_receipt' || e.kind === 'refund';
-  const title = e.merchant || e.category || (e.kind === 'card_payment' ? 'Card payment' : e.kind === 'transfer' ? 'Transfer' : 'Entry');
-  const sub = e.kind === 'card_payment' || e.kind === 'transfer'
-    ? [e.account, e.counter_account].filter(Boolean).join(' → ')
-    : [e.category, e.method ?? e.account].filter(Boolean).join(' · ');
-  return (
-    <li>
-      <Link href={`/entries/${e.id}`} transitionTypes={['nav-forward']} className="press flex min-h-[56px] items-center gap-3 px-3.5 py-2">
-        <Chip icon={e.icon ?? (e.kind === 'card_payment' ? 'card' : e.kind === 'transfer' ? 'transfer' : 'tag')} tint={e.tint ?? 'neutral'} size={34} radius={10} />
-        <span className="flex min-w-0 flex-1 flex-col">
-          <span className="truncate text-[15px] font-medium">{title}</span>
-          <span className="truncate text-xs text-muted-foreground">{sub}{e.is_shared ? ' · Shared' : ''}</span>
-        </span>
-        <span className={`flex-none text-[15px] font-semibold tabular-nums ${out ? 'text-money-out' : into ? 'text-money-in' : ''}`}>
-          {out ? '−' : into ? '+' : ''}{format(Number(e.amount))}
-        </span>
-      </Link>
-    </li>
   );
 }
 
