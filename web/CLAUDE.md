@@ -1263,9 +1263,15 @@ storage after it opens. The design, in the order the pieces matter:
 What is proven: idempotent delivery, the household check, the malformed
 reference refusal (invariants + a call-level test), and the queue's drain
 semantics (single flight, stop on network error, skip stuck) under a faked
-localStorage. What is *not*: the worker's install-and-serve path on a real
-phone with the radio off. Test that on a device before trusting it in a
-tunnel.
+localStorage. And, since 2 Oct 2026, the whole path in a production build in
+Chromium with the network cut: the worker installs and activates, a page
+asked for offline falls back to /offline, an entry typed there is queued,
+and on reconnecting it drains into the ledger as exactly one row carrying its
+client_ref; Chromium reports no installability errors. That run found the
+worker had **never installed** — `Cache.addAll` refuses a list naming the same
+request twice, and the offline page names `/icons/icon-192.png` itself — so
+the list is a Set now. Still not tried: a real phone with the radio off, and
+iOS Safari's own worker. Do that before trusting it in a tunnel.
 
 ## The icon set and the colour
 
