@@ -19,7 +19,7 @@
    for are the chunks that were cached beside it. Bump VERSION when the
    offline screen changes, so the snapshot is taken again. */
 
-const VERSION = 'v30';
+const VERSION = 'v31';
 const SHELL = `shell-${VERSION}`;
 const ASSETS = `assets-${VERSION}`;
 const OFFLINE = '/offline';
@@ -45,7 +45,9 @@ self.addEventListener('install', (event) => {
     if (!page.ok) throw new Error(`offline page: ${page.status}`);
     const html = await page.clone().text();
     await shell.put(OFFLINE, page);
-    await shell.addAll(['/icons/icon-192.png', ...assetsNamedIn(html)]);
+    // A Set: the page names the icon itself (its <link rel="icon">), and Cache.addAll refuses a list with the same
+    // request twice — which failed the whole install, so no phone ever had the offline screen.
+    await shell.addAll([...new Set(['/icons/icon-192.png', ...assetsNamedIn(html)])]);
     await self.skipWaiting();
   })());
 });
