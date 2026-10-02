@@ -132,11 +132,8 @@ export default function TabEntries({
 
       {months.map((m) => (
         <section key={m.key} aria-label={monthName(m.key)}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0 20px 11px' }}>
-            <h2 style={{ margin: 0, fontSize: 'var(--step-1)', fontWeight: 600, letterSpacing: '-.012em' }}>
-              {monthName(m.key)}
-            </h2>
-            <span style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+          <div className="mx-[var(--gutter)] mb-2 px-1">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{monthName(m.key)}</h2>
           </div>
           <div className="border border-border" style={{
             margin: '0 var(--gutter) 20px', background: 'var(--card)', borderRadius: 18,

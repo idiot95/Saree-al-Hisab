@@ -132,7 +132,7 @@ const SECTIONS = [
   },
   {
     title: 'Money you lend is not money you spent',
-    href: '/people', link: 'Money › Loans',
+    href: '/people', link: 'Loans',
     lines: [
       'Add anyone you lend to or borrow from, and every rupee between you is tracked.',
       'Lending moves money from your account into theirs. It never touches the monthly budget, because you have not spent it.',

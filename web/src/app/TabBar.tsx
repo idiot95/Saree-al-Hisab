@@ -2,7 +2,7 @@
 
 import Link from '@/app/NavLink';
 import { haptic } from './haptics';
-import { TABS, BAR_STYLE, tabLook, tabStyle } from './tabs';
+import { TABS, BAR_STYLE, ADD_FAB, PLUS, tabLook, tabStyle } from './tabs';
 import { TabGlyph } from './TabGlyph';
 
 /* Persistent navigation, in the thumb zone.
@@ -20,13 +20,18 @@ import { TabGlyph } from './TabGlyph';
 
 export default function TabBar({ current }: { current: string }) {
   /* The plus goes straight to a new entry — the drawer over this screen
-     (app/@modal/(.)add). It used to fan out three choices first (type, scan,
-     upload), which cost every entry a tap to save a rare one; scanning lives
-     behind the camera in the entry's own header. */
+     (app/@modal/(.)add). It floats above the bar rather than sitting in it, so
+     Loans could have the fifth tab. */
   /* Which way a tab switch moves: towards the tab chosen, measured from the
      one lit now. From a screen no tab owns, it is a plain lateral fade. */
   const litAt = TABS.findIndex((t) => tabLook(t, current).on);
   return (
+    <>
+    <Link href="/add" transitionTypes={['nav-lateral']} aria-label="Add an entry" className="press"
+      onClick={() => haptic('tap')} style={ADD_FAB}>
+      <svg width={26} height={26} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4}
+        strokeLinecap="round" aria-hidden><path d={PLUS} /></svg>
+    </Link>
     <nav aria-label="Main" style={BAR_STYLE}>
       {TABS.map((t) => {
         /* A screen inside a tab lights that tab, but not as brightly as the
@@ -42,8 +47,7 @@ export default function TabBar({ current }: { current: string }) {
             aria-current={here ? 'page' : on ? 'true' : undefined}
             /* A tick under the thumb as the tab is taken — the moment of the
                tap, not the moment the screen arrives. */
-            onClick={() => { if (!here || add) haptic('tap'); }}
-            aria-label={add ? 'Add an entry' : undefined}
+            onClick={() => { if (!here) haptic('tap'); }}
             className="press"
             style={tabStyle(on, add)}
           >
@@ -52,5 +56,6 @@ export default function TabBar({ current }: { current: string }) {
         );
       })}
     </nav>
+    </>
   );
 }

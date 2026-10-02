@@ -9,7 +9,7 @@ import NewTab from '../tab/NewTab';
 import { Chip, Icon } from '../Icon';
 import Screen from '../Screen';
 import PageHead, { Label } from '../PageHead';
-import MoneyNav from '../accounts/MoneyNav';
+import { owedToYou } from '@/lib/worth';
 import Swipeable from '../Swipeable';
 import { Face, Faces, tabTint } from '../tab/look';
 
@@ -43,13 +43,8 @@ export default async function LoanCentre() {
   ]));
   const canWrite = actor.role !== 'viewer';
 
-  const onClaims = claims
-    .filter((c) => c.status === 'open' || c.status === 'part_paid')
-    .reduce((n, c) => n + Number(c.outstanding), 0);
   const lent = people.filter((p) => Number(p.balance) !== 0);
-  const lentOut = lent.reduce((n, p) => n + Math.max(0, Number(p.balance)), 0);
-  const youOwe = lent.reduce((n, p) => n - Math.min(0, Number(p.balance)), 0);
-  const owed = onClaims + lentOut;
+  const { owed, youOwe } = owedToYou(claims, people);
   const backThisMonth = Number(receipts[0]?.back ?? 0);
 
   /* A tab stays in the open list while anything is owed on it, or while it is
@@ -61,9 +56,7 @@ export default async function LoanCentre() {
   return (
     <Screen>
       <main className="min-h-dvh bg-background text-foreground" style={{ paddingBottom: TAB_BAR_SPACE }}>
-        <PageHead title="Money" sub={actor.household_name}>
-          <MoneyNav current="people" />
-        </PageHead>
+        <PageHead title="Loans" sub="What you put down for others, and what comes back" />
 
         <section aria-label="What is owed" className="mx-[var(--gutter)] mb-5 flex flex-col gap-3 rounded-[22px] border border-border bg-card p-4">
           <dl className="grid grid-cols-2 gap-3">

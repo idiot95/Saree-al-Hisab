@@ -1,6 +1,8 @@
 import Link from '@/app/NavLink';
 import { redirect } from 'next/navigation';
-import { actorOrNull, entriesFor, inboxCount, monthTotals, schedulesFor, setupProgress } from '@/db/queries';
+import { actorOrNull, claimsFor, entriesFor, inboxCount, monthTotals, peopleFor, schedulesFor, setupProgress } from '@/db/queries';
+import { owedToYou } from '@/lib/worth';
+import { IconChevronRight, IconUsers } from '@tabler/icons-react';
 import { withHousehold } from '@/db/client';
 import { format, monthKey } from '@/lib/money';
 import { outstandingDues, ruleOf } from '@/lib/recur';
@@ -29,14 +31,18 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ s
   const name = actor.household_name;
   const month = monthKey(new Date());
   const hh = actor.household_id;
-  /* Home asks only what it shows. Net worth, loans and tabs moved to Money, and the per-category budget to Plan. */
-  const [progress, totals, inbox, schedules, recent] = await withHousehold(hh, () => Promise.all([
+  /* Home asks only what it shows: the month, what to review and what is coming, what is owed to you (one line,
+     the door to Loans), and today. Net worth is under Money, the per-category budget under Plan. */
+  const [progress, totals, inbox, schedules, recent, claims, people] = await withHousehold(hh, () => Promise.all([
     setupProgress(hh),
     monthTotals(hh, month),
     inboxCount(hh),
     schedulesFor(hh),
     entriesFor(hh, month),
+    claimsFor(hh),
+    peopleFor(hh),
   ]));
+  const { owed } = owedToYou(claims, people);
 
   const budget = Number(totals.budget);
   const spent = Number(totals.spent);
@@ -93,6 +99,16 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ s
               <span className="text-base font-semibold tabular-nums">{dueSoon.length ? format(dueSoonTotal) : 'Nothing'}</span>
             </Link>
           </div>
+
+          {owed > 0 && (
+            <Link href="/people" transitionTypes={['nav-lateral']}
+              className="press flex min-h-14 items-center gap-3 rounded-2xl border border-border bg-card px-3.5">
+              <IconUsers size={20} className="text-muted-foreground" aria-hidden />
+              <span className="flex-1 text-sm text-muted-foreground">Owed to you</span>
+              <span className="text-base font-semibold tabular-nums">{format(owed)}</span>
+              <IconChevronRight size={17} className="text-muted-foreground" aria-hidden />
+            </Link>
+          )}
 
           {dueNow.length > 0 && (
             <section aria-label="Due today" className="rounded-2xl border border-border bg-card px-[var(--pad)]">

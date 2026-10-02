@@ -37,13 +37,16 @@ Business logic, queries and invariants were left alone except where a
 paragraph below says otherwise. Where an older section disagrees, this wins:
 
 - **Five tabs, each one place**: Home · Activity (Entries · To review ·
-  Upcoming) · Add · Plan (Budget · Trends) · Money (Accounts · Loans · Net
-  worth). The views inside a tab are a `Segments` switch under one
+  Upcoming) · Plan (Budget · Trends) · Loans · Money (Accounts · Net worth).
+  Loans has its own tab because the owner uses it daily; Add is not a tab but
+  a marigold button floating over the bar's right end (`ADD_FAB` in tabs.ts),
+  and Home carries one "Owed to you" line into Loans (`owedToYou()` in
+  lib/worth.ts, the same sum the Loans screen shows). The views inside a tab are a `Segments` switch under one
   `PageHead`; a screen pushed on top (an entry, a tab, Categories) gets a back
   arrow instead. `OWNED_BY` in `tabs.ts` lights the owning tab.
 - **One name per thing**, the same on the tab, the switch, the page and the
   browser title: To review (was Inbox / Needs you), Upcoming (was Scheduled),
-  Loans (was Loan centre), Money (was Accounts), categories (never headings).
+  Loans (was Loan centre, then a Money view), Money (was Accounts), categories (never headings).
 - **To review is decisions only** — card bills and possible duplicates. Home's
   tile and Activity's badge count exactly those two (`inboxCount`). What is
   merely due lives under Upcoming.

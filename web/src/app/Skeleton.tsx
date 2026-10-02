@@ -1,4 +1,4 @@
-import { TABS, BAR_STYLE, TAB_BAR_SPACE, tabLook, tabStyle } from './tabs';
+import { TABS, BAR_STYLE, ADD_FAB, PLUS, TAB_BAR_SPACE, tabLook, tabStyle } from './tabs';
 import { TabGlyph } from './TabGlyph';
 
 /* What a screen looks like in the moment between the tap and the data.
@@ -212,7 +212,8 @@ export function frameFor(path: string): Frame | 'home' | null {
   if (is(path, `/entries/${ID}`)) return { title: 'Entry', current: null, back: true, rows: 0, form: true };
   if (is(path, '/budget') || is(path, '/trends')) return { title: 'Plan', current: '/budget', segments: 2, rows: 5, figure: true };
   if (is(path, '/categories')) return { title: 'Categories', current: '/budget', back: true, rows: 6 };
-  if (is(path, '/accounts') || is(path, '/people') || is(path, '/worth')) return { title: 'Money', current: '/accounts', segments: 3, rows: 4, figure: true };
+  if (is(path, '/accounts') || is(path, '/worth')) return { title: 'Money', current: '/accounts', segments: 2, rows: 4, figure: true };
+  if (is(path, '/people')) return { title: 'Loans', current: '/people', rows: 4, figure: true };
   if (is(path, '/accounts/reconcile')) return { title: 'Reconcile', current: '/accounts', back: true, rows: 4 };
   if (is(path, `/accounts/${ID}/reconcile`)) return { title: null, eyebrow: 'Reconcile', current: null, back: true, rows: 3, form: true };
   if (is(path, `/people/${ID}`)) return { title: null, current: null, back: true, rows: 4, figure: true };
@@ -242,6 +243,11 @@ export function SkeletonFor({ path, stillBar = true }: { path: string; stillBar?
    chunk to write. */
 function StillTabBar({ current }: { current: string }) {
   return (
+    <>
+    <span aria-hidden style={ADD_FAB}>
+      <svg width={26} height={26} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4}
+        strokeLinecap="round"><path d={PLUS} /></svg>
+    </span>
     <nav aria-hidden style={BAR_STYLE}>
       {TABS.map((t) => {
         const { on, here, add } = tabLook(t, current);
@@ -252,5 +258,6 @@ function StillTabBar({ current }: { current: string }) {
         );
       })}
     </nav>
+    </>
   );
 }

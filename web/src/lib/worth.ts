@@ -19,3 +19,15 @@ export function netWorth<T extends BalanceRow>(accounts: T[], claimed: number, h
   const savings = own.filter((a) => a.kind === 'savings').reduce((n, a) => n + Number(a.balance), 0);
   return { worth: assetTotal + receivable + debtTotal, assetTotal, debtTotal, receivable, claims, savings, assets, debts, lent, borrowed, own };
 }
+
+/* What people owe you, as Loans counts it — one definition for Loans and Home. Open claims only: a written-off
+   claim keeps an outstanding figure, but nobody is expected to pay it. Money lent counts while a person's balance
+   is positive; a negative balance is money you owe them, said apart. */
+export function owedToYou(claims: { status: string; outstanding: string }[], people: { balance: string }[]) {
+  const onClaims = claims
+    .filter((c) => c.status === 'open' || c.status === 'part_paid')
+    .reduce((n, c) => n + Number(c.outstanding), 0);
+  const lentOut = people.reduce((n, p) => n + Math.max(0, Number(p.balance)), 0);
+  const youOwe = people.reduce((n, p) => n - Math.min(0, Number(p.balance)), 0);
+  return { owed: onClaims + lentOut, onClaims, lentOut, youOwe };
+}
