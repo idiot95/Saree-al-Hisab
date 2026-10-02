@@ -24,15 +24,15 @@ function ChoiceSet({ legend, name, value, choices }: {
 }) {
   return (
     <fieldset style={{ border: 0, padding: 0, margin: 0 }}>
-      <legend style={{ marginBottom: 7, padding: 0, fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)' }}>
+      <legend style={{ marginBottom: 7, padding: 0, fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--muted-foreground)' }}>
         {legend}
       </legend>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8 }}>
         {choices.map((choice) => (
           <label key={choice.key} style={{
             minHeight: 54, padding: '7px 9px', borderRadius: 12, cursor: 'pointer',
-            display: 'flex', alignItems: 'center', gap: 8, background: 'var(--c-sunk2)',
-            border: '1px solid var(--c-border)', position: 'relative', overflow: 'hidden',
+            display: 'flex', alignItems: 'center', gap: 8, background: 'var(--background)',
+            border: '1px solid var(--border)', position: 'relative', overflow: 'hidden',
           }}>
             <input type="radio" name={name} value={choice.key} required
               defaultChecked={value === choice.key}
@@ -55,12 +55,12 @@ function ChoiceSet({ legend, name, value, choices }: {
       </div>
       <style>{`
         label:has(> input[name="${name}"]:checked) {
-          border-color: var(--c-seagrass) !important;
-          background: var(--c-teal-l) !important;
-          box-shadow: inset 0 0 0 1px var(--c-seagrass);
+          border-color: var(--chart-1) !important;
+          background: var(--accent) !important;
+          box-shadow: inset 0 0 0 1px var(--chart-1);
         }
         label:has(> input[name="${name}"]:focus-visible) {
-          outline: 2px solid var(--c-seagrass);
+          outline: 2px solid var(--chart-1);
           outline-offset: 2px;
         }
       `}</style>

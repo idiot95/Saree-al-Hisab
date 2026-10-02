@@ -38,7 +38,7 @@ export default function EditAccount({ account, canWrite, last, block = false, ch
   const shape: React.CSSProperties = block
     ? { display: 'flex', flexDirection: 'column', gap: 10, padding: '15px 0' }
     : { display: 'flex', alignItems: 'center', gap: 12, minHeight: 76 };
-  const rule = last ? undefined : '1px solid var(--c-rule)';
+  const rule = last ? undefined : '1px solid var(--border)';
 
   if (!canWrite) return <div style={{ ...shape, borderBottom: rule }}>{children}</div>;
 
@@ -87,7 +87,7 @@ export function AccountForm({ account: a, last = true, onDone }: {
   return (
     <div style={{
       padding: '16px 0', display: 'flex', flexDirection: 'column', gap: 13,
-      borderBottom: last ? undefined : '1px solid var(--c-rule)',
+      borderBottom: last ? undefined : '1px solid var(--border)',
     }}>
       <form action={act} style={{ display: 'flex', flexDirection: 'column', gap: 13 }}>
         <input type="hidden" name="id" value={a.id} />
@@ -116,8 +116,8 @@ export function AccountForm({ account: a, last = true, onDone }: {
               </span>
             </div>
             <p style={{
-              margin: 0, padding: '11px 13px', borderRadius: 12, background: 'var(--c-teal-l)',
-              color: 'var(--c-ink)', fontSize: 'var(--step--1)', lineHeight: 1.5,
+              margin: 0, padding: '11px 13px', borderRadius: 12, background: 'var(--accent)',
+              color: 'var(--foreground)', fontSize: 'var(--step--1)', lineHeight: 1.5,
             }}>
               Change the statement day and purchases on bills you have not paid yet are
               re-filed into the right cycle. Paid bills stay as they were.
@@ -144,16 +144,16 @@ export function AccountForm({ account: a, last = true, onDone }: {
         <input type="hidden" name="id" value={a.id} />
         <button className="cta" type="submit" disabled={retiring} style={{
           minHeight: 44, borderRadius: 11, fontSize: 'var(--step--1)', fontWeight: 600,
-          background: sure ? 'var(--c-danger-tint)' : 'transparent', color: 'var(--c-danger)',
+          background: sure ? 'color-mix(in srgb, var(--destructive) 12%, transparent)' : 'transparent', color: 'var(--destructive)',
         }}>
           {retiring ? 'Archiving…' : sure ? `Yes, archive ${a.name}` : 'Archive this account'}
         </button>
         {retireState && !retireState.ok && (
-          <span role="alert" style={{ fontSize: 'var(--step--1)', color: 'var(--c-danger)' }}>
+          <span role="alert" style={{ fontSize: 'var(--step--1)', color: 'var(--destructive)' }}>
             {retireState.error}
           </span>
         )}
-        <span style={{ fontSize: 'var(--step--2)', lineHeight: 1.45, color: 'var(--c-meta)' }}>
+        <span style={{ fontSize: 'var(--step--2)', lineHeight: 1.45, color: 'var(--muted-foreground)' }}>
           {a.methods > 0
             ? `${a.methods === 1 ? 'One way to pay is' : `${a.methods} ways to pay are`} linked to this — archive ${a.methods === 1 ? 'it' : 'them'} first.`
             : 'It leaves the pickers. Every entry already on it stays, and no month changes value.'}
@@ -165,9 +165,9 @@ export function AccountForm({ account: a, last = true, onDone }: {
 
 const ghost: React.CSSProperties = {
   minHeight: 50, padding: '0 16px', borderRadius: 13, fontSize: 'var(--step-0)', fontWeight: 600,
-  background: 'var(--c-sunk)', color: 'var(--c-meta)',
+  background: 'var(--muted)', color: 'var(--muted-foreground)',
 };
 const solid: React.CSSProperties = {
   flex: 1, minHeight: 50, borderRadius: 13, fontSize: 'var(--step-0)', fontWeight: 600,
-  background: 'var(--g-primary)', color: 'var(--c-on-primary)',
+  background: 'var(--primary)', color: 'var(--primary-foreground)',
 };

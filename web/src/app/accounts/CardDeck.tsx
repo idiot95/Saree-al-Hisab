@@ -82,7 +82,7 @@ export default function CardDeck({ cards, canWrite }: { cards: CardInfo[]; canWr
               }}>
               <span aria-hidden style={{
                 width: i === at ? 18 : 7, height: 7, borderRadius: 999,
-                background: i === at ? 'var(--c-ink)' : 'var(--c-track2)',
+                background: i === at ? 'var(--foreground)' : 'var(--input)',
                 transition: 'width .18s, background .18s',
               }} />
             </button>
@@ -100,13 +100,14 @@ function CardBlock({ card, canWrite }: { card: CardInfo; canWrite: boolean }) {
      everything owed when one is not. Either way it opens the transfer form
      with the figure in place: a payment here is a real movement between two
      accounts, never a flag, which is why the balance can be trusted. */
-  const payable = cycle?.charged || owed;
+  /* Never more than is owed: a cycle's charges can include what a part payment already cleared. */
+  const payable = Math.min(cycle?.charged || owed, owed);
   const available = limit === null ? null : limit - owed;
 
   if (editing) {
     return (
-      <section className="el card" style={{
-        background: 'var(--c-card)', borderRadius: 20, padding: '0 var(--pad)', overflow: 'hidden',
+      <section className="border border-border" style={{
+        background: 'var(--card)', borderRadius: 20, padding: '0 var(--pad)', overflow: 'hidden',
       }}>
         <AccountForm account={account} onDone={() => setEditing(false)} />
       </section>
@@ -118,10 +119,10 @@ function CardBlock({ card, canWrite }: { card: CardInfo; canWrite: boolean }) {
       <CardFace card={card} />
 
       {available !== null && (
-        <p style={{ margin: '0 2px', fontSize: 'var(--step--2)', color: 'var(--c-meta)' }}>
+        <p style={{ margin: '0 2px', fontSize: 'var(--step--2)', color: 'var(--muted-foreground)' }}>
           {available >= 0
-            ? <><b className="n" style={{ color: 'var(--c-ink)', fontWeight: 700 }}>{format(available)}</b> of {format(limit!)} still available</>
-            : <><b className="n" style={{ color: 'var(--c-danger)', fontWeight: 700 }}>{format(Math.abs(available))}</b> over the limit</>}
+            ? <><b className="n" style={{ color: 'var(--foreground)', fontWeight: 700 }}>{format(available)}</b> of {format(limit!)} still available</>
+            : <><b className="n" style={{ color: 'var(--destructive)', fontWeight: 700 }}>{format(Math.abs(available))}</b> over the limit</>}
         </p>
       )}
 
@@ -134,7 +135,7 @@ function CardBlock({ card, canWrite }: { card: CardInfo; canWrite: boolean }) {
               style={{
                 flex: 1, minWidth: 0, minHeight: 46, borderRadius: 13, display: 'flex',
                 alignItems: 'center', justifyContent: 'center', gap: 7, fontSize: 'var(--step--1)',
-                fontWeight: 700, background: 'var(--g-primary)', color: 'var(--c-on-primary)',
+                fontWeight: 700, background: 'var(--primary)', color: 'var(--primary-foreground)',
                 textDecoration: 'none',
               }}>
               <Icon name="move" size={17} strokeWidth={2} />
@@ -147,7 +148,7 @@ function CardBlock({ card, canWrite }: { card: CardInfo; canWrite: boolean }) {
               flex: payable > 0 ? 'none' : 1, minHeight: 46, padding: '0 16px', borderRadius: 13,
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
               fontSize: 'var(--step--1)', fontWeight: 600,
-              background: 'var(--c-sunk)', color: 'var(--c-ink)',
+              background: 'var(--muted)', color: 'var(--foreground)',
             }}>
             <Icon name="pencil" size={16} strokeWidth={2} />
             Edit
@@ -158,7 +159,7 @@ function CardBlock({ card, canWrite }: { card: CardInfo; canWrite: boolean }) {
               flex: 'none', minHeight: 46, padding: '0 14px', borderRadius: 13,
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
               fontSize: 'var(--step--1)', fontWeight: 600, textDecoration: 'none',
-              background: 'var(--c-sunk)', color: 'var(--c-ink)',
+              background: 'var(--muted)', color: 'var(--foreground)',
             }}>
             <Icon name="check" size={16} strokeWidth={2.2} />
             Match
@@ -185,7 +186,7 @@ function CardFace({ card }: { card: CardInfo }) {
          four things. */
       aspectRatio: '1.95 / 1', width: '100%', minWidth: 0, borderRadius: 18, padding: 16,
       display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
-      background: 'var(--card-face)', border: '1px solid var(--card-edge)', color: 'var(--c-ink)',
+      background: 'var(--card-face)', border: '1px solid var(--card-edge)', color: 'var(--foreground)',
     }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
         <span style={{
@@ -202,7 +203,7 @@ function CardFace({ card }: { card: CardInfo }) {
               ? <Image src={bank.logo} alt={bank.label} width={104} height={26} unoptimized
                   style={{ display: 'block', width: 'auto', height: '100%', objectFit: 'contain' }} />
               : <span style={{
-                  fontSize: 'var(--step--1)', fontWeight: 700, color: 'var(--c-meta)',
+                  fontSize: 'var(--step--1)', fontWeight: 700, color: 'var(--muted-foreground)',
                   overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                 }}>{account.name}</span>}
           </span>
@@ -215,7 +216,7 @@ function CardFace({ card }: { card: CardInfo }) {
         {account.last4 && (
           <span className="n" aria-label={`ending ${account.last4}`} style={{
             flex: 'none', fontSize: 10, fontWeight: 600, letterSpacing: '.08em',
-            color: 'var(--c-meta)', paddingTop: 4,
+            color: 'var(--muted-foreground)', paddingTop: 4,
           }}>••{account.last4}</span>
         )}
       </div>
@@ -224,7 +225,7 @@ function CardFace({ card }: { card: CardInfo }) {
         <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
           <span style={{
             fontSize: 9, fontWeight: 700, letterSpacing: '.11em', textTransform: 'uppercase',
-            color: 'var(--c-meta)',
+            color: 'var(--muted-foreground)',
           }}>{owed > 0 ? 'Outstanding' : 'Nothing owed'}</span>
           <span className="t n" style={{
             fontSize: 'clamp(23px, 7.2vw, 31px)', fontWeight: 700, letterSpacing: '-.025em',
@@ -237,7 +238,7 @@ function CardFace({ card }: { card: CardInfo }) {
           }}>
             <span style={{
               fontSize: 9, fontWeight: 700, letterSpacing: '.11em', textTransform: 'uppercase',
-              color: 'var(--c-meta)',
+              color: 'var(--muted-foreground)',
             }}>Due</span>
             <span className="n" style={{
               fontSize: 'var(--step-0)', fontWeight: 700, lineHeight: 1.1, whiteSpace: 'nowrap',

@@ -3,6 +3,7 @@ import { Chip, ACCOUNT_ICON, ACCOUNT_TINT } from '../Icon';
 import { redirect } from 'next/navigation';
 import { actorOrNull, allBalances, owedByPerson, tabHeldOwed, worthSeries } from '@/db/queries';
 import { withHousehold } from '@/db/client';
+import { netWorth } from '@/lib/worth';
 import { format } from '@/lib/money';
 import { headerBg } from '../auth-ui';
 import TabBar from '../TabBar';
@@ -39,21 +40,8 @@ export default async function Worth() {
      that has lent a lot should see that as a line, not have it folded in
      silently. */
   // Plus what the tabs are owed with nobody named — no person's row carries it.
-  const claims = owed.reduce((n, o) => n + Number(o.claimed), 0) + held;
-  const own = accounts.filter((a) => a.kind !== 'person');
-  const people = accounts.filter((a) => a.kind === 'person');
-  const lent = people.filter((a) => Number(a.balance) > 0);
-  const borrowed = people.filter((a) => Number(a.balance) < 0);
-
-  const assets = own.filter((a) => Number(a.balance) > 0);
-  const debts = [...own.filter((a) => Number(a.balance) < 0), ...borrowed];
-  const assetTotal = assets.reduce((n, a) => n + Number(a.balance), 0);
-  const debtTotal = debts.reduce((n, a) => n + Number(a.balance), 0);
-  const receivable = lent.reduce((n, a) => n + Number(a.balance), 0) + claims;
-  const worth = assetTotal + receivable + debtTotal;
-  const savings = own
-    .filter((a) => a.kind === 'savings')
-    .reduce((n, a) => n + Number(a.balance), 0);
+  const { worth, assets, debts, assetTotal, debtTotal, receivable, claims, savings, lent } =
+    netWorth(accounts, owed.reduce((n, o) => n + Number(o.claimed), 0), Number(held));
 
   const points = series.map((p) => Number(p.held));
   const lo = Math.min(...points, 0), hi = Math.max(...points, 1);

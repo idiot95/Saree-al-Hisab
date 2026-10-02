@@ -30,16 +30,16 @@ export default function AddMethod({ accounts, startOpen = false }: { accounts: A
 
   if (!open) {
     return (
-      <button type="button" onClick={() => setOpen(true)} className="el card" style={{
+      <button type="button" onClick={() => setOpen(true)} className="border border-border" style={{
         margin: '0 var(--gutter) 22px', width: 'calc(100% - 36px)', minHeight: 58, borderRadius: 16,
         display: 'flex', alignItems: 'center', gap: 11, padding: '0 var(--pad)',
-        background: 'var(--c-card)', border: '1px dashed var(--c-dash)',
-        color: 'var(--c-ink)', fontSize: 'var(--step-0)', fontWeight: 600,
+        background: 'var(--card)', border: '1px dashed var(--input)',
+        color: 'var(--foreground)', fontSize: 'var(--step-0)', fontWeight: 600,
       }}>
         <span style={{
           width: 32, height: 32, flex: 'none', borderRadius: 999, display: 'flex',
           alignItems: 'center', justifyContent: 'center',
-          background: 'var(--c-sunk)', color: 'var(--c-meta)',
+          background: 'var(--muted)', color: 'var(--muted-foreground)',
         }}>
           <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor"
             strokeWidth={2.2} strokeLinecap="round" aria-hidden><path d="M12 5v14M5 12h14" /></svg>
@@ -50,51 +50,51 @@ export default function AddMethod({ accounts, startOpen = false }: { accounts: A
   }
 
   return (
-    <form action={act} className="el card" style={{
-      margin: '0 var(--gutter) 22px', background: 'var(--c-card)', borderRadius: 18, padding: 16,
+    <form action={act} className="border border-border" style={{
+      margin: '0 var(--gutter) 22px', background: 'var(--card)', borderRadius: 18, padding: 16,
       display: 'flex', flexDirection: 'column', gap: 13,
     }}>
       <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-        <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)' }}>
+        <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--muted-foreground)' }}>
           Takes money from
         </span>
         <select name="funding_account_id" value={accountId}
           onChange={(e) => setAccountId(e.target.value)}
           style={{
-            minHeight: 52, borderRadius: 13, border: '1px solid var(--c-border)',
-            background: 'var(--c-card)', color: 'var(--c-ink)', fontSize: 'var(--field)',
+            minHeight: 52, borderRadius: 13, border: '1px solid var(--border)',
+            background: 'var(--card)', color: 'var(--foreground)', fontSize: 'var(--field)',
             fontWeight: 600, padding: '0 12px',
           }}>
           {accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
         </select>
-        <span style={{ fontSize: 'var(--step--2)', lineHeight: 1.45, color: 'var(--c-meta)' }}>
+        <span style={{ fontSize: 'var(--step--2)', lineHeight: 1.45, color: 'var(--muted-foreground)' }}>
           Spending on this method is recorded against this account.
         </span>
       </label>
 
       <fieldset style={{ border: 0, padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 7 }}>
-        <legend style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)', padding: 0 }}>
+        <legend style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--muted-foreground)', padding: 0 }}>
           Type
         </legend>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
           {allowed.map((r, i) => (
             <label key={r.id} style={{
               display: 'flex', alignItems: 'center', gap: 7, minHeight: 44, padding: '9px 13px',
-              borderRadius: 12, cursor: 'pointer', background: 'var(--c-sunk2)',
-              border: '1px solid var(--c-border)',
+              borderRadius: 12, cursor: 'pointer', background: 'var(--background)',
+              border: '1px solid var(--border)',
             }}>
               <input type="radio" name="kind" value={r.id} defaultChecked={i === 0}
-                style={{ width: 17, height: 17, accentColor: 'var(--c-seagrass)' }} />
+                style={{ width: 17, height: 17, accentColor: 'var(--chart-1)' }} />
               <Icon name={RAIL_ICON[r.id]} size={17} strokeWidth={1.8} />
               <span style={{ display: 'flex', flexDirection: 'column' }}>
                 <span style={{ fontSize: 'var(--step--1)', fontWeight: 600 }}>{r.label}</span>
-                <span style={{ fontSize: 'var(--step--2)', color: 'var(--c-meta)' }}>{r.hint}</span>
+                <span style={{ fontSize: 'var(--step--2)', color: 'var(--muted-foreground)' }}>{r.hint}</span>
               </span>
             </label>
           ))}
         </div>
         {allowed.length === 0 && (
-          <span style={{ fontSize: 'var(--step--1)', color: 'var(--c-meta)' }}>
+          <span style={{ fontSize: 'var(--step--1)', color: 'var(--muted-foreground)' }}>
             That account is a way to pay by itself — nothing else needs linking to it.
           </span>
         )}
@@ -109,11 +109,11 @@ export default function AddMethod({ accounts, startOpen = false }: { accounts: A
       <div style={{ display: 'flex', gap: 9 }}>
         <button className="cta" type="button" onClick={() => setOpen(false)} style={{
           minHeight: 50, padding: '0 16px', borderRadius: 13, fontSize: 'var(--step-0)', fontWeight: 600,
-          background: 'var(--c-sunk)', color: 'var(--c-meta)',
+          background: 'var(--muted)', color: 'var(--muted-foreground)',
         }}>Cancel</button>
         <button className="cta" type="submit" disabled={pending || allowed.length === 0} style={{
           flex: 1, minHeight: 50, borderRadius: 13, fontSize: 'var(--step-0)', fontWeight: 600,
-          background: 'var(--g-primary)', color: 'var(--c-on-primary)',
+          background: 'var(--primary)', color: 'var(--primary-foreground)',
           opacity: pending || allowed.length === 0 ? 0.65 : 1,
         }}>{pending ? 'Saving…' : 'Add way to pay'}</button>
       </div>

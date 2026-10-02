@@ -20,43 +20,43 @@ export default function AddAccount({ startOpen = false }: { startOpen?: boolean 
 
   if (!open) {
     return (
-      <button type="button" onClick={() => setOpen(true)} className="el card" style={{
+      <button type="button" onClick={() => setOpen(true)} className="border border-border" style={{
         margin: '0 var(--gutter) 22px', width: 'calc(100% - 36px)', minHeight: 58, borderRadius: 16,
         display: 'flex', alignItems: 'center', gap: 11, padding: '0 var(--pad)',
-        background: 'var(--c-card)', border: '1px dashed var(--c-dash)',
-        color: 'var(--c-ink)', fontSize: 'var(--step-0)', fontWeight: 600,
+        background: 'var(--card)', border: '1px dashed var(--input)',
+        color: 'var(--foreground)', fontSize: 'var(--step-0)', fontWeight: 600,
       }}>
         <Plus /> Add an account
         {state?.ok && state.message && (
-          <span style={{ marginLeft: 'auto', fontSize: 'var(--step--1)', color: 'var(--c-ok)' }}>added</span>
+          <span style={{ marginLeft: 'auto', fontSize: 'var(--step--1)', color: 'var(--primary)' }}>added</span>
         )}
       </button>
     );
   }
 
   return (
-    <form action={act} className="el card" style={{
-      margin: '0 var(--gutter) 22px', background: 'var(--c-card)', borderRadius: 18, padding: 16,
+    <form action={act} className="border border-border" style={{
+      margin: '0 var(--gutter) 22px', background: 'var(--card)', borderRadius: 18, padding: 16,
       display: 'flex', flexDirection: 'column', gap: 13,
     }}>
       <fieldset style={{ border: 0, padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
-        <legend style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)', padding: 0 }}>
+        <legend style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--muted-foreground)', padding: 0 }}>
           Type
         </legend>
         {KINDS.map((k) => (
           <label key={k.id} style={{
             display: 'flex', alignItems: 'flex-start', gap: 11, minHeight: 44, padding: '11px 13px',
             borderRadius: 13, cursor: 'pointer',
-            background: kind === k.id ? 'var(--c-teal-l)' : 'var(--c-sunk2)',
-            border: `1px solid ${kind === k.id ? 'var(--c-seagrass)' : 'var(--c-border)'}`,
+            background: kind === k.id ? 'var(--accent)' : 'var(--background)',
+            border: `1px solid ${kind === k.id ? 'var(--chart-1)' : 'var(--border)'}`,
           }}>
             <input type="radio" name="kind" value={k.id} checked={kind === k.id}
               onChange={() => setKind(k.id)}
-              style={{ width: 18, height: 18, marginTop: 1, accentColor: 'var(--c-seagrass)', flex: 'none' }} />
+              style={{ width: 18, height: 18, marginTop: 1, accentColor: 'var(--chart-1)', flex: 'none' }} />
             <Chip icon={ACCOUNT_ICON[k.id]} tint={ACCOUNT_TINT[k.id]} size={34} radius={9} iconSize={17} />
             <span style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
               <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>{k.label}</span>
-              <span style={{ fontSize: 'var(--step--1)', lineHeight: 1.45, color: 'var(--c-meta)' }}>{k.what}</span>
+              <span style={{ fontSize: 'var(--step--1)', lineHeight: 1.45, color: 'var(--muted-foreground)' }}>{k.what}</span>
             </span>
           </label>
         ))}
@@ -88,8 +88,8 @@ export default function AddAccount({ startOpen = false }: { startOpen?: boolean 
             </span>
           </div>
           <p style={{
-            margin: 0, padding: '11px 13px', borderRadius: 12, background: 'var(--c-teal-l)',
-            color: 'var(--c-ink)', fontSize: 'var(--step--1)', lineHeight: 1.5,
+            margin: 0, padding: '11px 13px', borderRadius: 12, background: 'var(--accent)',
+            color: 'var(--foreground)', fontSize: 'var(--step--1)', lineHeight: 1.5,
           }}>
             Purchases on this card are filed into the right billing cycle automatically.
             Use a day between 1 and 28 &mdash; every month has one.
@@ -104,11 +104,11 @@ export default function AddAccount({ startOpen = false }: { startOpen?: boolean 
       <div style={{ display: 'flex', gap: 9 }}>
         <button className="cta" type="button" onClick={() => setOpen(false)} style={{
           minHeight: 50, padding: '0 16px', borderRadius: 13, fontSize: 'var(--step-0)', fontWeight: 600,
-          background: 'var(--c-sunk)', color: 'var(--c-meta)',
+          background: 'var(--muted)', color: 'var(--muted-foreground)',
         }}>Cancel</button>
         <button className="cta" type="submit" disabled={pending} style={{
           flex: 1, minHeight: 50, borderRadius: 13, fontSize: 'var(--step-0)', fontWeight: 600,
-          background: 'var(--g-primary)', color: 'var(--c-on-primary)', opacity: pending ? 0.65 : 1,
+          background: 'var(--primary)', color: 'var(--primary-foreground)', opacity: pending ? 0.65 : 1,
         }}>{pending ? 'Saving…' : 'Add account'}</button>
       </div>
     </form>
@@ -120,7 +120,7 @@ function Plus() {
     <span style={{
       width: 32, height: 32, flex: 'none', borderRadius: 999, display: 'flex',
       alignItems: 'center', justifyContent: 'center',
-      background: 'var(--c-sunk)', color: 'var(--c-meta)',
+      background: 'var(--muted)', color: 'var(--muted-foreground)',
     }}>
       <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor"
         strokeWidth={2.2} strokeLinecap="round" aria-hidden><path d="M12 5v14M5 12h14" /></svg>
