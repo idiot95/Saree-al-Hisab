@@ -18,13 +18,13 @@ export default function SignUpForm() {
       <Field label="Confirm password" name="confirm" type="password"
         autoComplete="new-password" required />
       {state?.error && <ErrorNote>{state.error}</ErrorNote>}
-      <button type="submit" disabled={pending} className="el2"
+      <button type="submit" disabled={pending} 
         style={{ ...primaryBtn, opacity: pending ? 0.65 : 1, marginTop: 3 }}>
         {pending ? 'Creating…' : 'Continue'}
       </button>
-      <p style={{ margin: '2px 4px 0', fontSize: 'var(--step--2)', lineHeight: 1.5, color: 'var(--c-meta)' }}>
+      <p style={{ margin: '2px 4px 0', fontSize: 'var(--step--2)', lineHeight: 1.5, color: 'var(--muted-foreground)' }}>
         Continuing means agreeing to the{' '}
-        <a href="/terms" style={{ color: 'var(--c-teal)', fontWeight: 600, textDecoration: 'underline', textUnderlineOffset: 3 }}>
+        <a href="/terms" style={{ color: 'var(--primary)', fontWeight: 600, textDecoration: 'underline', textUnderlineOffset: 3 }}>
           terms, and how your data is kept
         </a>. Short, and every line of it can be checked.
       </p>

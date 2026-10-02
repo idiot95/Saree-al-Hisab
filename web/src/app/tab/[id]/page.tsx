@@ -6,10 +6,9 @@ import {
 import { withHousehold } from '@/db/client';
 import { waysToPay } from '@/db/payment';
 import { format } from '@/lib/money';
-import { headerBg } from '../../auth-ui';
 import { Icon } from '../../Icon';
+import PageHead from '../../PageHead';
 import Screen from '../../Screen';
-import Back from '../../Back';
 import TabEntries from './TabEntries';
 import TabMenu from './TabMenu';
 import TabContacts from './TabContacts';
@@ -80,59 +79,31 @@ export default async function Tab({ params, searchParams }: {
 
   return (
     <Screen>
-      <Back to="/people" />
       <main style={{
-        minHeight: '100dvh', background: 'var(--c-bg)',
+        minHeight: '100dvh', background: 'var(--background)',
         paddingBottom: canEdit ? 'calc(104px + env(safe-area-inset-bottom, 0px))' : 'calc(80px + env(safe-area-inset-bottom, 0px))',
       }}>
-        <header className="el2" style={{
-          background: headerBg('purple'), color: '#fff', borderRadius: '0 0 28px 28px',
-          padding: '18px var(--gutter) 22px', display: 'flex', flexDirection: 'column', gap: 10,
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Link href="/people" transitionTypes={['nav-back']} aria-label="Back" style={{
-              width: 44, height: 44, marginLeft: -11, borderRadius: 999, display: 'flex',
-              alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,.92)',
-            }}>
-              <svg width={21} height={21} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                <path d="M15 5l-7 7 7 7" />
-              </svg>
-            </Link>
-            {canEdit && (
-              <TabMenu tabId={tab.id} name={tab.name} note={tab.note} closed={closed} held={held} />
-            )}
+        <PageHead back="/people" eyebrow={<>Tab{closed && ' · closed'}</>} title={tab.name}
+          right={canEdit ? <TabMenu tabId={tab.id} name={tab.name} note={tab.note} closed={closed} held={held} /> : undefined}>
+          <div className="flex flex-col gap-3 rounded-[22px] border border-border bg-card p-4">
+            <span className="text-xs text-muted-foreground">{outstanding > 0 ? 'Still to come back' : 'On this tab'}</span>
+            <span className="font-display text-[36px] leading-none tabular-nums">
+              {outstanding > 0 ? format(outstanding) : tab.costs === 0 ? 'Nothing yet' : 'Settled up'}
+            </span>
+            <p className="text-sm text-muted-foreground">
+              {[
+                tab.costs > 0 ? `${format(Number(tab.put_on))} put on across ${tab.costs} ${tab.costs === 1 ? 'cost' : 'costs'}` : null,
+                back > 0 ? `${format(back)} back` : null,
+              ].filter(Boolean).join(' · ') || 'Add the first cost below.'}
+            </p>
+            {tab.note && <p className="text-sm text-muted-foreground">{tab.note}</p>}
           </div>
-          <span style={{
-            alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: 6,
-            fontSize: 'var(--step--2)', fontWeight: 700, letterSpacing: '.05em',
-            padding: '5px 10px', borderRadius: 7, background: 'rgba(255,255,255,.16)',
-          }}>
-            <Icon name="folder" size={14} strokeWidth={2.2} />
-            TAB{closed && ' · CLOSED'}
-          </span>
-          <h1 className="t" style={{ margin: 0, fontSize: 'var(--step-3)', letterSpacing: '-.018em' }}>
-            {tab.name}
-          </h1>
-          <span className="t" style={{ fontSize: 'var(--step-4)', letterSpacing: '-.022em' }}>
-            {outstanding > 0 ? format(outstanding) : tab.costs === 0 ? 'Nothing on it yet' : 'Settled up'}
-          </span>
-          <p style={{ margin: 0, fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'rgba(255,255,255,.82)' }}>
-            {[
-              outstanding > 0 ? 'still to come back' : null,
-              tab.costs > 0 ? `${format(Number(tab.put_on))} put on across ${tab.costs} ${tab.costs === 1 ? 'cost' : 'costs'}` : null,
-              back > 0 ? `${format(back)} back` : null,
-            ].filter(Boolean).join(' · ') || 'Add the first cost below.'}
-          </p>
-          {tab.note && (
-            <p style={{ margin: 0, fontSize: 'var(--step--1)', color: 'rgba(255,255,255,.7)' }}>{tab.note}</p>
-          )}
           <TabContacts tabId={tab.id} canEdit={canEdit && !closed}
             people={people.map((p) => ({
               id: p.id, name: p.name, tint: p.tint, onTab: p.on_tab,
               inAll: Number(p.owed_in_all), owed: Number(p.owed),
             }))} />
-        </header>
+        </PageHead>
 
         <div style={{ paddingTop: 20 }}>
           <TabEntries
@@ -152,7 +123,7 @@ export default async function Tab({ params, searchParams }: {
           />
 
           <p style={{
-            margin: '4px 20px 0', fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--c-meta)',
+            margin: '4px 20px 0', fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--muted-foreground)',
           }}>
             A cost on this tab is owed back in full, split equally between the people on it — or
             held by the tab itself while nobody is named. Whether it was <em>your</em> spending is
@@ -164,18 +135,18 @@ export default async function Tab({ params, searchParams }: {
           <div style={{
             position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 30,
             display: 'flex', gap: 9, padding: '12px var(--gutter) calc(14px + env(safe-area-inset-bottom, 0px))',
-            background: 'var(--c-bg)', borderTop: '1px solid var(--c-border)',
+            background: 'var(--background)', borderTop: '1px solid var(--border)',
           }}>
             <MoneyBack tabId={tab.id} ways={ways} today={today} owing={owing} />
             {closed ? (
               <span className="cta" style={{
                 flex: 1.3, minHeight: 54, borderRadius: 15, fontSize: 'var(--step-0)', fontWeight: 600,
-                background: 'var(--c-sunk)', color: 'var(--c-meta)',
+                background: 'var(--muted)', color: 'var(--muted-foreground)',
               }}>Closed</span>
             ) : (
-              <Link href={`/add?tab=${tab.id}`} transitionTypes={['nav-forward']} className="el cta" style={{
+              <Link href={`/add?tab=${tab.id}`} transitionTypes={['nav-forward']} className="cta" style={{
                 flex: 1.3, minHeight: 54, borderRadius: 15, fontSize: 'var(--step-0)', fontWeight: 600,
-                background: 'var(--g-primary)', color: 'var(--c-on-primary)', textDecoration: 'none',
+                background: 'var(--primary)', color: 'var(--primary-foreground)', textDecoration: 'none',
               }}>
                 <Icon name="plus" size={18} strokeWidth={2.2} />
                 Add cost

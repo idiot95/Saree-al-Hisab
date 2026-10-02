@@ -56,29 +56,29 @@ export default function Reconcile({ accountId, credit, today, lastOn, cleared, e
       <input type="hidden" name="balance" value={String(statement)} />
       {ticked.map((e) => <input key={e.id} type="hidden" name="txnId" value={e.id} />)}
 
-      <section className="el card" style={{
-        margin: '0 var(--gutter)', background: 'var(--c-card)', borderRadius: 18, padding: 16,
+      <section className="border border-border" style={{
+        margin: '0 var(--gutter)', background: 'var(--card)', borderRadius: 18, padding: 16,
         display: 'flex', flexDirection: 'column', gap: 14,
       }}>
         <DateChips value={on} onChange={(v) => { setOn(v); setUnticked(new Set()); }} today={today}
           dir="past" min={lastOn ?? undefined} max={today} label="Statement date" />
         <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)' }}>
+          <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--muted-foreground)' }}>
             {credit ? 'What the statement says you owe' : 'Closing balance on the statement'}
           </span>
           <span style={{
             display: 'flex', alignItems: 'center', gap: 6, minHeight: 58, padding: '0 14px',
-            borderRadius: 14, background: 'var(--c-sunk2)', border: '1px solid var(--c-border)',
+            borderRadius: 14, background: 'var(--background)', border: '1px solid var(--border)',
           }}>
             <input inputMode="decimal" value={keys} placeholder="0" autoComplete="off"
               aria-label={credit ? 'Amount owed on the statement' : 'Statement balance'}
               onChange={(e) => setKeys(e.target.value.replace(/[^0-9.]/g, ''))}
               className="t" style={{
                 flex: 1, minHeight: 54, border: 0, background: 'transparent', width: '100%',
-                color: 'var(--c-ink)', fontSize: 'var(--step-3)', letterSpacing: '-.02em',
+                color: 'var(--foreground)', fontSize: 'var(--step-3)', letterSpacing: '-.02em',
               }} />
           </span>
-          {typed && <span style={{ fontSize: 'var(--step--2)', color: 'var(--c-meta)' }}>{format(magnitude)}</span>}
+          {typed && <span style={{ fontSize: 'var(--step--2)', color: 'var(--muted-foreground)' }}>{format(magnitude)}</span>}
         </label>
       </section>
 
@@ -88,9 +88,9 @@ export default function Reconcile({ accountId, credit, today, lastOn, cleared, e
         <Line label="Statement" value={typed ? shown(statement) : '—'} />
         <Line label={`Ticked off${ticked.length ? ` (${ticked.length})` : ''}`} value={shown(reached)} />
         <div style={{
-          display: 'flex', alignItems: 'center', gap: 8, paddingTop: 8, borderTop: '1px solid var(--c-border)',
+          display: 'flex', alignItems: 'center', gap: 8, paddingTop: 8, borderTop: '1px solid var(--border)',
           fontSize: 'var(--step-0)', fontWeight: 600,
-          color: !typed ? 'var(--c-meta)' : matches ? 'var(--c-ok)' : 'var(--c-warn)',
+          color: !typed ? 'var(--muted-foreground)' : matches ? 'var(--primary)' : 'var(--attention-soft-foreground)',
         }}>
           {typed && <Icon name={matches ? 'check' : 'receivable'} size={17} strokeWidth={2.3} />}
           <span style={{ flex: 1 }}>{!typed ? 'Enter the statement balance' : matches ? 'It matches' : 'Difference'}</span>
@@ -103,31 +103,31 @@ export default function Reconcile({ accountId, credit, today, lastOn, cleared, e
           <h2 style={{ margin: 0, fontSize: 'var(--step-1)', fontWeight: 600, letterSpacing: '-.012em' }}>
             Not matched yet
           </h2>
-          <span style={{ flex: 1, height: 1, background: 'var(--c-border)' }} />
+          <span style={{ flex: 1, height: 1, background: 'var(--border)' }} />
           {upTo.length > 1 && (
             <button type="button" onClick={() => { haptic('select'); setUnticked(unticked.size ? new Set() : new Set(upTo.map((e) => e.id))); }}
-              style={{ minHeight: 44, padding: '0 4px', fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-teal)' }}>
+              style={{ minHeight: 44, padding: '0 4px', fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--primary)' }}>
               {unticked.size ? 'Tick all' : 'Untick all'}
             </button>
           )}
         </div>
-        <section className="el card" style={{
-          margin: '0 var(--gutter)', background: 'var(--c-card)', borderRadius: 18, padding: '0 var(--pad)',
+        <section className="border border-border" style={{
+          margin: '0 var(--gutter)', background: 'var(--card)', borderRadius: 18, padding: '0 var(--pad)',
         }}>
           {upTo.map((e, i) => {
             const isOn = !unticked.has(e.id);
             return (
               <label key={e.id} style={{
                 display: 'flex', alignItems: 'center', gap: 12, minHeight: 60, cursor: 'pointer',
-                borderBottom: i === upTo.length - 1 ? undefined : '1px solid var(--c-rule)',
+                borderBottom: i === upTo.length - 1 ? undefined : '1px solid var(--border)',
               }}>
                 <input type="checkbox" checked={isOn} onChange={() => toggle(e.id)}
-                  style={{ width: 20, height: 20, margin: 0, flex: 'none', accentColor: 'var(--c-seagrass)' }} />
+                  style={{ width: 20, height: 20, margin: 0, flex: 'none', accentColor: 'var(--chart-1)' }} />
                 <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2, opacity: isOn ? 1 : 0.6 }}>
                   <span style={{
                     fontSize: 'var(--step-0)', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                   }}>{e.what}</span>
-                  <span style={{ fontSize: 'var(--step--2)', color: 'var(--c-meta)' }}>
+                  <span style={{ fontSize: 'var(--step--2)', color: 'var(--muted-foreground)' }}>
                     {new Date(`${e.on}T00:00:00`).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
                     {e.via ? ` · ${e.via}` : ''}
                     {isOn ? '' : ' · not on the statement'}
@@ -135,19 +135,19 @@ export default function Reconcile({ accountId, credit, today, lastOn, cleared, e
                 </span>
                 <span className="t amt" style={{
                   fontSize: 'var(--step-0)', opacity: isOn ? 1 : 0.6,
-                  color: e.signed > 0 ? 'var(--c-in)' : 'var(--c-out)',
+                  color: e.signed > 0 ? 'var(--money-in)' : 'var(--money-out)',
                 }}>{signedText(e.signed)}</span>
               </label>
             );
           })}
           {upTo.length === 0 && (
-            <p style={{ margin: 0, padding: '20px 0', textAlign: 'center', fontSize: 'var(--step--1)', color: 'var(--c-meta)' }}>
+            <p style={{ margin: 0, padding: '20px 0', textAlign: 'center', fontSize: 'var(--step--1)', color: 'var(--muted-foreground)' }}>
               Nothing to match up to this date.
             </p>
           )}
         </section>
         {later > 0 && (
-          <p style={{ margin: '8px 20px 0', fontSize: 'var(--step--2)', color: 'var(--c-meta)' }}>
+          <p style={{ margin: '8px 20px 0', fontSize: 'var(--step--2)', color: 'var(--muted-foreground)' }}>
             {later} {later === 1 ? 'entry is' : 'entries are'} dated after the statement and {later === 1 ? 'waits' : 'wait'} for the next one.
           </p>
         )}
@@ -156,34 +156,34 @@ export default function Reconcile({ accountId, credit, today, lastOn, cleared, e
       <div style={{ margin: '0 var(--gutter)', display: 'flex', flexDirection: 'column', gap: 10 }}>
         {state && !state.ok && <ErrorNote>{state.error}</ErrorNote>}
         {matches || !typed ? (
-          <button type="submit" name="adjust" value="no" disabled={!matches || pending} className="el cta" style={{
+          <button type="submit" name="adjust" value="no" disabled={!matches || pending} className="cta" style={{
             minHeight: 54, borderRadius: 15, fontSize: 'var(--step-0)', fontWeight: 600,
-            background: 'var(--g-primary)', color: 'var(--c-on-primary)', opacity: !matches || pending ? 0.55 : 1,
+            background: 'var(--primary)', color: 'var(--primary-foreground)', opacity: !matches || pending ? 0.55 : 1,
           }}>
             <Icon name="check" size={18} strokeWidth={2.2} />
             {pending ? 'Saving…' : 'Finish — it matches'}
           </button>
         ) : (
           <>
-            <p style={{ margin: 0, fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--c-meta)' }}>
+            <p style={{ margin: 0, fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--muted-foreground)' }}>
               {difference > 0
                 ? `The statement has ${shown(difference)} more than the books. Something that came in may be missing here, or something going out here is not on the statement yet.`
                 : `The books have ${shown(difference)} more than the statement. Something that went out may be missing here, or something coming in here is not on the statement yet.`}
             </p>
-            <Link href="/add" transitionTypes={['nav-forward']} className="el cta" style={{
+            <Link href="/add" transitionTypes={['nav-forward']} className="cta" style={{
               minHeight: 52, borderRadius: 15, fontSize: 'var(--step-0)', fontWeight: 600, textDecoration: 'none',
-              background: 'var(--g-primary)', color: 'var(--c-on-primary)',
+              background: 'var(--primary)', color: 'var(--primary-foreground)',
             }}>
               <Icon name="plus" size={18} strokeWidth={2.2} />
               Add the missing entry
             </Link>
             <button type="submit" name="adjust" value="yes" disabled={pending} className="cta" style={{
               minHeight: 50, borderRadius: 13, fontSize: 'var(--step-0)', fontWeight: 600,
-              background: 'var(--c-sunk)', color: 'var(--c-ink)', opacity: pending ? 0.6 : 1,
+              background: 'var(--muted)', color: 'var(--foreground)', opacity: pending ? 0.6 : 1,
             }}>
               {pending ? 'Saving…' : `Record ${signedText(difference)} as an adjustment`}
             </button>
-            <p style={{ margin: 0, fontSize: 'var(--step--2)', lineHeight: 1.45, color: 'var(--c-meta)' }}>
+            <p style={{ margin: 0, fontSize: 'var(--step--2)', lineHeight: 1.45, color: 'var(--muted-foreground)' }}>
               An adjustment brings the balance in line on the statement date. It is not spending and not
               income, and undoing this match deletes it.
             </p>
@@ -197,7 +197,7 @@ export default function Reconcile({ accountId, credit, today, lastOn, cleared, e
 function Line({ label, value }: { label: string; value: string }) {
   return (
     <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, fontSize: 'var(--step--1)' }}>
-      <span style={{ flex: 1, color: 'var(--c-meta)' }}>{label}</span>
+      <span style={{ flex: 1, color: 'var(--muted-foreground)' }}>{label}</span>
       <span className="t">{value}</span>
     </div>
   );
@@ -213,9 +213,9 @@ export function UndoLatest({ id }: { id: string }) {
       <input type="hidden" name="id" value={id} />
       <button type="submit" disabled={pending} className="cta" style={{
         minHeight: 44, padding: '0 12px', borderRadius: 11, fontSize: 'var(--step--1)', fontWeight: 600,
-        background: sure ? 'var(--c-danger-tint)' : 'transparent', color: sure ? 'var(--c-danger)' : 'var(--c-meta)',
+        background: sure ? 'color-mix(in srgb, var(--destructive) 12%, transparent)' : 'transparent', color: sure ? 'var(--destructive)' : 'var(--muted-foreground)',
       }}>{pending ? 'Undoing…' : sure ? 'Yes, undo' : 'Undo'}</button>
-      {state && !state.ok && <span role="alert" style={{ fontSize: 'var(--step--2)', color: 'var(--c-danger)' }}>{state.error}</span>}
+      {state && !state.ok && <span role="alert" style={{ fontSize: 'var(--step--2)', color: 'var(--destructive)' }}>{state.error}</span>}
     </form>
   );
 }

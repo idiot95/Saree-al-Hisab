@@ -40,7 +40,7 @@ export default function MoveDue({ scheduleId, name, dueOn, on, rule, cal, today,
       <input type="hidden" name="scheduleId" value={scheduleId} />
       <input type="hidden" name="dueOn" value={dueOn} />
       <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
-        <span style={{ fontSize: 'var(--step--2)', fontWeight: 600, color: 'var(--c-meta)' }}>
+        <span style={{ fontSize: 'var(--step--2)', fontWeight: 600, color: 'var(--muted-foreground)' }}>
           Move {name} to
         </span>
         {/* The days after it, then any other; a move is a nudge, so the grid
@@ -48,7 +48,7 @@ export default function MoveDue({ scheduleId, name, dueOn, on, rule, cal, today,
         <DateChips value={to} onChange={setTo} today={today} from={on > today ? on : today} dir="future"
           min={shiftDay(dueOn, -30)} max={shiftDay(dueOn, 90)} label={`Move ${name} to`} />
         <input type="hidden" name="to" value={to} />
-        <span style={{ fontSize: 'var(--step--1)', color: 'var(--c-meta)' }}>
+        <span style={{ fontSize: 'var(--step--1)', color: 'var(--muted-foreground)' }}>
           {valid ? `${friendlyDay(to, today)} · ${hijri} · ${inWords(today, to)}` : 'Pick a day.'}
         </span>
       </div>
@@ -56,12 +56,12 @@ export default function MoveDue({ scheduleId, name, dueOn, on, rule, cal, today,
       <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, minHeight: 44, cursor: 'pointer' }}>
         <input type="checkbox" name="permanent" value="yes" checked={permanent} disabled={!next}
           onChange={(e) => setPermanent(e.target.checked)}
-          style={{ width: 22, height: 22, marginTop: 2, flex: 'none', accentColor: 'var(--c-seagrass)' }} />
+          style={{ width: 22, height: 22, marginTop: 2, flex: 'none', accentColor: 'var(--chart-1)' }} />
         <span style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           <span style={{ fontSize: 'var(--step--1)', fontWeight: 600 }}>
             Make this the day, every {yearly ? 'year' : cal === 'hijri' ? 'Hijri month' : 'month'}
           </span>
-          <span style={{ fontSize: 'var(--step--2)', lineHeight: 1.45, color: 'var(--c-meta)' }}>
+          <span style={{ fontSize: 'var(--step--2)', lineHeight: 1.45, color: 'var(--muted-foreground)' }}>
             {!valid ? ''
               : next
                 ? permanent
@@ -73,16 +73,16 @@ export default function MoveDue({ scheduleId, name, dueOn, on, rule, cal, today,
       </label>
 
       {state && !state.ok && (
-        <span role="alert" style={{ fontSize: 'var(--step--1)', color: 'var(--c-danger)' }}>{state.error}</span>
+        <span role="alert" style={{ fontSize: 'var(--step--1)', color: 'var(--destructive)' }}>{state.error}</span>
       )}
       <div style={{ display: 'flex', gap: 8 }}>
         <button className="cta" type="button" onClick={onCancel} style={{
           minHeight: 46, padding: '0 14px', borderRadius: 11, fontSize: 'var(--step--1)',
-          fontWeight: 600, background: 'var(--c-sunk)', color: 'var(--c-meta)',
+          fontWeight: 600, background: 'var(--muted)', color: 'var(--muted-foreground)',
         }}>Cancel</button>
         <button className="cta" type="submit" disabled={pending || !valid} style={{
           flex: 1, minHeight: 46, borderRadius: 11, fontSize: 'var(--step-0)', fontWeight: 600,
-          background: 'var(--g-primary)', color: 'var(--c-on-primary)',
+          background: 'var(--primary)', color: 'var(--primary-foreground)',
           opacity: pending || !valid ? 0.6 : 1,
         }}>{pending ? 'Moving…' : permanent ? 'Move it, from now on' : 'Move it, this once'}</button>
       </div>

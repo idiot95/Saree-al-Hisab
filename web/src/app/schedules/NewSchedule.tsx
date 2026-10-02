@@ -72,16 +72,16 @@ export default function NewSchedule({ ways, categories, tabs, startOpen = false 
 
   if (!open) {
     return (
-      <button type="button" onClick={() => setOpen(true)} className="el card" style={{
+      <button type="button" onClick={() => setOpen(true)} className="border border-border" style={{
         margin: '0 var(--gutter) 22px', width: 'calc(100% - 36px)', minHeight: 56, borderRadius: 16,
         display: 'flex', alignItems: 'center', gap: 11, padding: '0 var(--pad)',
-        background: 'var(--c-card)', border: '1px dashed var(--c-dash)',
-        color: 'var(--c-ink)', fontSize: 'var(--step-0)', fontWeight: 600,
+        background: 'var(--card)', border: '1px dashed var(--input)',
+        color: 'var(--foreground)', fontSize: 'var(--step-0)', fontWeight: 600,
       }}>
         <span style={{
           width: 32, height: 32, flex: 'none', borderRadius: 999, display: 'flex',
           alignItems: 'center', justifyContent: 'center',
-          background: 'var(--c-sunk)', color: 'var(--c-meta)',
+          background: 'var(--muted)', color: 'var(--muted-foreground)',
         }}>
           <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor"
             strokeWidth={2.2} strokeLinecap="round" aria-hidden><path d="M12 5v14M5 12h14" /></svg>
@@ -92,12 +92,12 @@ export default function NewSchedule({ ways, categories, tabs, startOpen = false 
   }
 
   return (
-    <form action={act} className="el card" style={{
-      margin: '0 var(--gutter) 22px', background: 'var(--c-card)', borderRadius: 18, padding: 16,
+    <form action={act} className="border border-border" style={{
+      margin: '0 var(--gutter) 22px', background: 'var(--card)', borderRadius: 18, padding: 16,
       display: 'flex', flexDirection: 'column', gap: 13,
     }}>
       <div role="tablist" aria-label="Expense or income" style={{
-        display: 'flex', gap: 3, padding: 3, background: 'var(--c-sunk)', borderRadius: 999,
+        display: 'flex', gap: 3, padding: 3, background: 'var(--muted)', borderRadius: 999,
       }}>
         {([['expense', 'Expense'], ['income', 'Income']] as const).map(([id, label]) => {
           const on = kind === id;
@@ -106,8 +106,8 @@ export default function NewSchedule({ ways, categories, tabs, startOpen = false 
               position: 'relative', flex: 1, minHeight: 44, display: 'flex', alignItems: 'center',
               justifyContent: 'center', borderRadius: 999, cursor: 'pointer',
               fontSize: 'var(--step--1)', fontWeight: 600,
-              background: on ? 'var(--c-card)' : 'transparent',
-              color: on ? 'var(--c-ink)' : 'var(--c-meta)',
+              background: on ? 'var(--card)' : 'transparent',
+              color: on ? 'var(--foreground)' : 'var(--muted-foreground)',
               boxShadow: on ? '0 1px 2px rgba(0,0,0,.08)' : undefined,
             }}>
               <input type="radio" name="kind" value={id} checked={on} onChange={() => setKind(id)}
@@ -144,7 +144,7 @@ export default function NewSchedule({ ways, categories, tabs, startOpen = false 
           <span style={{ fontSize: 'var(--step-0)', fontWeight: 600, lineHeight: 1.3 }}>
             {sentence.charAt(0).toUpperCase()}{sentence.slice(1)}
           </span>
-          <span style={{ fontSize: 'var(--step--2)', lineHeight: 1.45, color: 'var(--c-meta)' }}>
+          <span style={{ fontSize: 'var(--step--2)', lineHeight: 1.45, color: 'var(--muted-foreground)' }}>
             {first ? `First on ${friendlyDay(first, iso)}` : 'No date ahead'}
             {cal === 'hijri' && first && ` · ${formatHijri(toHijri(civil(first)), true)}`}
             {cal === 'hijri'
@@ -161,7 +161,7 @@ export default function NewSchedule({ ways, categories, tabs, startOpen = false 
             <input type="hidden" name="ends" value="never" />
             <button type="button" onClick={() => setEndsOpen(true)} style={{
               minHeight: 44, padding: '0 12px', borderRadius: 999, fontSize: 'var(--step--1)', fontWeight: 600,
-              background: 'var(--c-sunk)', color: 'var(--c-teal)',
+              background: 'var(--muted)', color: 'var(--primary)',
             }}>Change</button>
           </div>
         ) : (
@@ -179,7 +179,7 @@ export default function NewSchedule({ ways, categories, tabs, startOpen = false 
                   aria-label="How many times" className="t"
                   style={{ ...select, width: 76, textAlign: 'center', padding: 0 }} />
                 <button type="button" aria-label="One more" onClick={() => setTimes(Math.min(600, times + 1))} style={stepBtn}>+</button>
-                <span style={{ flex: 1, fontSize: 'var(--step--1)', lineHeight: 1.4, color: 'var(--c-meta)' }}>
+                <span style={{ flex: 1, fontSize: 'var(--step--1)', lineHeight: 1.4, color: 'var(--muted-foreground)' }}>
                   {times === 1 ? 'once' : `${times} times`}{last ? `, the last on ${friendlyDay(last, iso)}` : ''}
                 </span>
               </div>
@@ -190,7 +190,7 @@ export default function NewSchedule({ ways, categories, tabs, startOpen = false 
                   quick={later.map(([n, text]) => ({ iso: addMonths(iso, n), label: text }))}
                   onChange={setUntilDate} />
                 <input type="hidden" name="untilDate" value={untilDate || addMonths(iso, 12)} />
-                <span style={{ fontSize: 'var(--step--1)', lineHeight: 1.4, color: 'var(--c-meta)' }}>
+                <span style={{ fontSize: 'var(--step--1)', lineHeight: 1.4, color: 'var(--muted-foreground)' }}>
                   {last ? `The last is ${friendlyDay(last, iso)}.` : 'None before then.'}
                 </span>
               </>
@@ -200,7 +200,7 @@ export default function NewSchedule({ ways, categories, tabs, startOpen = false 
       </div>
 
       <div role="group" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-        <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)' }}>
+        <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--muted-foreground)' }}>
           {kind === 'income' ? 'How it comes in' : 'How it is paid'}
         </span>
         <PayPicker name="paidWith" ways={ways} defaultValue={defaultRef(ways)} />
@@ -213,7 +213,7 @@ export default function NewSchedule({ ways, categories, tabs, startOpen = false 
           there and claims the same shares a one-off would. */}
       {tabs.length > 0 && (
         <div role="group" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)' }}>
+          <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--muted-foreground)' }}>
             On a tab (optional)
           </span>
           <input type="hidden" name="bookId" value={bookId ?? ''} />
@@ -238,21 +238,21 @@ export default function NewSchedule({ ways, categories, tabs, startOpen = false 
           your spending however many times it goes out. */}
       {kind === 'expense' && (
         <div role="group" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)' }}>
+          <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--muted-foreground)' }}>
             Is this your own spending?
           </span>
           <input type="hidden" name="counts_as_spend" value={counts ? 'yes' : 'no'} />
           <div style={{ display: 'flex', gap: 8 }}>
             {([
-              [true, 'receivable', 'Reimbursed spend', 'Counts in your budget and charts'],
-              [false, 'person', 'Loan', 'Owed back, counted nowhere'],
+              [true, 'receivable', 'Yes, mine', 'Counts in the budget, even if paid back'],
+              [false, 'person', 'No, I covered it', 'Owed back, never counted as spending'],
             ] as const).map(([v, icon, label, what]) => (
               <button key={String(v)} type="button" aria-pressed={counts === v}
                 onClick={() => setCounts(v)}
                 style={{
                   flex: 1, minHeight: 56, padding: '8px 12px', borderRadius: 13, textAlign: 'left',
                   display: 'flex', alignItems: 'center', gap: 9,
-                  ...choice(counts === v, 'var(--cat-purple-ink)'),
+                  ...choice(counts === v),
                 }}>
                 <Icon name={icon} size={17} strokeWidth={1.9} />
                 <span style={{ display: 'flex', flexDirection: 'column', gap: 1, minWidth: 0 }}>
@@ -269,11 +269,11 @@ export default function NewSchedule({ ways, categories, tabs, startOpen = false 
       <div style={{ display: 'flex', gap: 9 }}>
         <button className="cta" type="button" onClick={() => setOpen(false)} style={{
           minHeight: 50, padding: '0 16px', borderRadius: 13, fontSize: 'var(--step-0)', fontWeight: 600,
-          background: 'var(--c-sunk)', color: 'var(--c-meta)',
+          background: 'var(--muted)', color: 'var(--muted-foreground)',
         }}>Cancel</button>
         <button className="cta" type="submit" disabled={pending} style={{
           flex: 1, minHeight: 50, borderRadius: 13, fontSize: 'var(--step-0)', fontWeight: 600,
-          background: 'var(--g-primary)', color: 'var(--c-on-primary)', opacity: pending ? 0.65 : 1,
+          background: 'var(--primary)', color: 'var(--primary-foreground)', opacity: pending ? 0.65 : 1,
         }}>{pending ? 'Saving…' : 'Add it'}</button>
       </div>
     </form>
@@ -282,11 +282,11 @@ export default function NewSchedule({ ways, categories, tabs, startOpen = false 
 
 const row: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 10, minHeight: 44 };
 const rowLabel: React.CSSProperties = {
-  width: 74, flex: 'none', fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)',
+  width: 74, flex: 'none', fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--muted-foreground)',
 };
 const stepBtn: React.CSSProperties = {
-  width: 44, height: 44, flex: 'none', borderRadius: 999, background: 'var(--c-sunk2)',
-  color: 'var(--c-ink)', fontSize: 'var(--step-1)', fontWeight: 600,
+  width: 44, height: 44, flex: 'none', borderRadius: 999, background: 'var(--background)',
+  color: 'var(--foreground)', fontSize: 'var(--step-1)', fontWeight: 600,
   display: 'flex', alignItems: 'center', justifyContent: 'center',
 };
 
@@ -299,7 +299,7 @@ function addMonths(iso: string, n: number) {
 }
 
 const select: React.CSSProperties = {
-  minHeight: 52, borderRadius: 13, border: '1px solid var(--c-border)',
-  background: 'var(--c-card)', color: 'var(--c-ink)', fontSize: 'var(--field)',
+  minHeight: 52, borderRadius: 13, border: '1px solid var(--border)',
+  background: 'var(--card)', color: 'var(--foreground)', fontSize: 'var(--field)',
   fontWeight: 600, padding: '0 12px',
 };

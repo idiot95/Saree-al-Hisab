@@ -427,7 +427,7 @@ export default function AddEntry({
                   style={{
                     minHeight: 52, padding: '9px 13px', borderRadius: 13, display: 'flex',
                     alignItems: 'center', gap: 10, textAlign: 'left',
-                    background: 'var(--c-teal-l)', border: '1px solid var(--c-teal)', color: 'var(--c-ink)',
+                    background: 'var(--accent)', border: '1px solid var(--primary)', color: 'var(--foreground)',
                   }}>
                   <Icon name="receivable" size={18} strokeWidth={1.9} />
                   <span style={{ flex: 1, minWidth: 0, fontSize: 'var(--step--1)', lineHeight: 1.35 }}>
@@ -439,7 +439,7 @@ export default function AddEntry({
               )}
               <div role="group" aria-label="Which entries this money clears" style={{
                 display: 'flex', flexDirection: 'column', borderRadius: 14,
-                background: 'var(--c-card)', border: '1px solid var(--c-border)', overflow: 'hidden',
+                background: 'var(--card)', border: '1px solid var(--border)', overflow: 'hidden',
               }}>
                 {ordered.map((c, i) => {
                   const isOn = settleIds.has(c.id);
@@ -452,38 +452,38 @@ export default function AddEntry({
                       }}
                       style={{
                         minHeight: 54, padding: '6px 12px', display: 'flex', alignItems: 'center', gap: 11,
-                        textAlign: 'left', background: isOn ? 'var(--c-teal-l)' : 'transparent',
-                        color: isOn ? 'var(--c-ink)' : 'var(--c-meta)',
-                        borderTop: i === 0 ? undefined : '1px solid var(--c-rule)',
+                        textAlign: 'left', background: isOn ? 'var(--accent)' : 'transparent',
+                        color: isOn ? 'var(--foreground)' : 'var(--muted-foreground)',
+                        borderTop: i === 0 ? undefined : '1px solid var(--border)',
                       }}>
                       <span aria-hidden style={{
                         width: 22, height: 22, flex: 'none', borderRadius: 7, display: 'flex',
                         alignItems: 'center', justifyContent: 'center',
-                        background: isOn ? 'var(--c-primary-hi)' : 'var(--c-sunk)',
-                        border: `1px solid ${isOn ? 'var(--c-primary-hi)' : 'var(--c-border)'}`,
-                        color: 'var(--c-on-primary)',
+                        background: isOn ? 'var(--primary)' : 'var(--muted)',
+                        border: `1px solid ${isOn ? 'var(--primary)' : 'var(--border)'}`,
+                        color: 'var(--primary-foreground)',
                       }}>
                         {isOn && <Icon name="check" size={15} strokeWidth={2.6} />}
                       </span>
                       <span style={{
                         width: 30, height: 30, flex: 'none', borderRadius: 999, display: 'flex',
                         alignItems: 'center', justifyContent: 'center', fontSize: 'var(--step--2)',
-                        fontWeight: 700, background: isOn ? bg : 'var(--c-sunk)', color: isOn ? ink : 'var(--c-meta)',
+                        fontWeight: 700, background: isOn ? bg : 'var(--muted)', color: isOn ? ink : 'var(--muted-foreground)',
                       }}>{c.person.slice(0, 2).toUpperCase()}</span>
                       <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1 }}>
                         <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, ...CHIP_TEXT }}>{c.person} · {c.what}</span>
-                        <span style={{ fontSize: 'var(--step--2)', color: 'var(--c-meta)' }}>
+                        <span style={{ fontSize: 'var(--step--2)', color: 'var(--muted-foreground)' }}>
                           {friendlyDay(c.on, today)}{c.tab ? ` · ${c.tab}` : ''}
                         </span>
                       </span>
                       <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}>
-                        <span className="t" style={{ fontSize: 'var(--step--1)', color: isOn ? 'var(--c-in)' : 'var(--c-meta)' }}>
+                        <span className="t" style={{ fontSize: 'var(--step--1)', color: isOn ? 'var(--money-in)' : 'var(--muted-foreground)' }}>
                           {format(c.outstanding)}
                         </span>
                         {exactIds.has(c.id) && (
                           <span style={{
                             fontSize: 9, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase',
-                            color: 'var(--c-teal)', whiteSpace: 'nowrap',
+                            color: 'var(--primary)', whiteSpace: 'nowrap',
                           }}>Exact match</span>
                         )}
                       </span>
@@ -493,7 +493,7 @@ export default function AddEntry({
               </div>
               {settling.length > 0 && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <p style={{ flex: 1, margin: 0, fontSize: 'var(--step--2)', lineHeight: 1.45, color: 'var(--c-meta)' }}>
+                  <p style={{ flex: 1, margin: 0, fontSize: 'var(--step--2)', lineHeight: 1.45, color: 'var(--muted-foreground)' }}>
                     {minor <= owedBack
                       ? `All ${format(minor)} is money back${minor < owedBack ? `, oldest first — ${format(owedBack - minor)} stays owed` : ''}. No category needed.`
                       : `${format(owedBack)} is money back · ${format(minor - owedBack)} is income and needs a category.`}
@@ -503,7 +503,7 @@ export default function AddEntry({
                       onClick={() => { haptic('select'); setKeys(settle(toKeys(owedBack))); }}
                       style={{
                         minHeight: 40, padding: '0 12px', borderRadius: 999, flex: 'none',
-                        fontSize: 'var(--step--2)', fontWeight: 600, ...on('var(--c-primary-hi)'),
+                        fontSize: 'var(--step--2)', fontWeight: 600, ...on('var(--primary)'),
                       }}>Use {format(owedBack)}</button>
                   )}
                 </div>
@@ -527,8 +527,8 @@ export default function AddEntry({
               placeholder={kind === 'income' ? 'Who paid it (optional)' : 'The shop or place (optional)'} maxLength={60}
               style={{
                 width: '100%', minHeight: 48, borderRadius: 13, padding: '0 14px',
-                border: '1px solid var(--c-border)', background: 'var(--c-card)',
-                color: 'var(--c-ink)', fontSize: 'var(--field)',
+                border: '1px solid var(--border)', background: 'var(--card)',
+                color: 'var(--foreground)', fontSize: 'var(--field)',
               }}
             />
           </section>
@@ -544,8 +544,8 @@ export default function AddEntry({
               placeholder="Anything worth remembering about this (optional)"
               style={{
                 width: '100%', minHeight: 62, borderRadius: 13, padding: '11px 14px',
-                border: '1px solid var(--c-border)', background: 'var(--c-card)',
-                color: 'var(--c-ink)', fontSize: 'var(--field)', lineHeight: 1.4,
+                border: '1px solid var(--border)', background: 'var(--card)',
+                color: 'var(--foreground)', fontSize: 'var(--field)', lineHeight: 1.4,
                 fontFamily: 'inherit', resize: 'none',
               }}
             />
@@ -563,11 +563,11 @@ export default function AddEntry({
                 {kind === 'income' ? 'On a tab' : 'Is someone paying this back?'}
               </Eyebrow>
               {tabs.length === 0 && (
-                <p style={{ margin: 0, fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--c-meta)' }}>
+                <p style={{ margin: 0, fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--muted-foreground)' }}>
                   {kind === 'income' ? 'Money that comes in against a trip, a person or the office rides on a tab. '
                     : 'Money someone owes you back rides on a tab — a cousin, the office, a trip. '}
                   <Link href="/people" transitionTypes={['nav-forward']}
-                    style={{ color: 'var(--c-teal)', fontWeight: 600 }}>Open one in the Loan centre</Link>
+                    style={{ color: 'var(--primary)', fontWeight: 600 }}>Open one in the Loan centre</Link>
                   {' '}and it will be offered here.
                 </p>
               )}
@@ -590,7 +590,7 @@ export default function AddEntry({
                 <>
                   {tab.people > 0 && (
                   <label style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-                    <span style={{ fontSize: 'var(--step--2)', fontWeight: 600, color: 'var(--c-meta)' }}>
+                    <span style={{ fontSize: 'var(--step--2)', fontWeight: 600, color: 'var(--muted-foreground)' }}>
                       Comes back
                     </span>
                     <input
@@ -603,8 +603,8 @@ export default function AddEntry({
                       className="n"
                       style={{
                         flex: 1, minWidth: 0, minHeight: 40, padding: '0 12px', borderRadius: 11,
-                        background: 'var(--c-card)', border: '1px solid var(--c-border)',
-                        color: 'var(--c-ink)', fontSize: 'var(--field)',
+                        background: 'var(--card)', border: '1px solid var(--border)',
+                        color: 'var(--foreground)', fontSize: 'var(--field)',
                       }}
                     />
                   </label>
@@ -614,8 +614,8 @@ export default function AddEntry({
                       the ticket you fronted that was never yours. */}
                   <div role="group" aria-label="Was this your spending?" style={{ display: 'flex', gap: 8 }}>
                     {([
-                      [true, 'receivable', 'Reimbursed spend', 'Counts in your budget and charts'],
-                      [false, 'person', 'Loan', 'Owed back, counted nowhere'],
+                      [true, 'receivable', 'Yes, mine', 'Counts in the budget, even if paid back'],
+                      [false, 'person', 'No, I covered it', 'Owed back, never counted as spending'],
                     ] as const).map(([v, icon, label, what]) => {
                       const isOn = mine === v;
                       return (
@@ -635,7 +635,7 @@ export default function AddEntry({
                       );
                     })}
                   </div>
-                  <p style={{ margin: 0, fontSize: 'var(--step--2)', lineHeight: 1.45, color: 'var(--c-meta)' }}>
+                  <p style={{ margin: 0, fontSize: 'var(--step--2)', lineHeight: 1.45, color: 'var(--muted-foreground)' }}>
                     {tabNote(tab, minor, coveredKeys ? fromKeys(coveredKeys) : minor, mine, format)}
                   </p>
                 </>
@@ -651,14 +651,14 @@ export default function AddEntry({
             onClick={() => { haptic('select'); setShared((s) => !s); }}
             style={{
               display: 'flex', alignItems: 'center', gap: 12, minHeight: 44, padding: '0 2px',
-              borderTop: '1px solid var(--c-rule)', color: 'var(--c-ink)',
+              borderTop: '1px solid var(--border)', color: 'var(--foreground)',
             }}
           >
             <span style={{ flex: 1, fontSize: 'var(--step--1)', fontWeight: 600 }}>Shared with the household</span>
             <span aria-hidden style={{
               width: 42, height: 26, borderRadius: 999, flex: 'none', padding: 3, display: 'flex',
               justifyContent: shared ? 'flex-end' : 'flex-start',
-              background: shared ? 'var(--c-seagrass)' : 'var(--c-off)', transition: 'background .15s',
+              background: shared ? 'var(--chart-1)' : 'var(--muted-foreground)', transition: 'background .15s',
             }}>
               <span style={{ width: 20, height: 20, borderRadius: 999, background: '#fff' }} />
             </span>
@@ -669,7 +669,7 @@ export default function AddEntry({
       {shownDupe && (
         <div style={{
           display: 'flex', alignItems: 'flex-start', gap: 10,
-          padding: '13px 15px', borderRadius: 14, background: 'var(--c-pollen)', color: 'var(--c-on-fill)',
+          padding: '13px 15px', borderRadius: 14, background: 'var(--attention-soft)', color: 'var(--attention-soft-foreground)',
         }}>
           <Glyph d="M12 7.5v5.5 M12 16.6v.1 M20.5 12a8.5 8.5 0 1 1-17 0 8.5 8.5 0 0 1 17 0" size={17} w={1.9} />
           <span style={{ flex: 1, fontSize: 'var(--step--1)', lineHeight: 1.45 }}>
@@ -683,7 +683,7 @@ export default function AddEntry({
       {kept && (
         <div role="status" style={{
           display: 'flex', alignItems: 'center', gap: 10,
-          padding: '13px 15px', borderRadius: 14, background: 'var(--c-teal-l)', color: 'var(--c-ink)',
+          padding: '13px 15px', borderRadius: 14, background: 'var(--accent)', color: 'var(--foreground)',
           fontSize: 'var(--step--1)', fontWeight: 600, lineHeight: 1.4,
         }}>
           <Glyph d="M12 3a9 9 0 1 0 9 9 M12 8v4l3 2" size={17} w={2} />
@@ -694,7 +694,7 @@ export default function AddEntry({
       {error && (
         <div role="alert" style={{
           display: 'flex', alignItems: 'center', gap: 10,
-          padding: '13px 15px', borderRadius: 14, background: 'var(--c-danger-tint)', color: 'var(--c-danger)',
+          padding: '13px 15px', borderRadius: 14, background: 'color-mix(in srgb, var(--destructive) 12%, transparent)', color: 'var(--destructive)',
           fontSize: 'var(--step--1)', fontWeight: 600,
         }}>
           <Glyph d="M12 7.5v5.5 M12 16.6v.1 M20.5 12a8.5 8.5 0 1 1-17 0 8.5 8.5 0 0 1 17 0" size={17} w={2} />

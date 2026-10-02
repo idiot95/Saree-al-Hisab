@@ -133,35 +133,35 @@ export default function Calendar({ schedules, canWrite, today }: {
   );
 
   return (
-    <section className="el card" style={{
-      margin: '0 var(--gutter) 22px', background: 'var(--c-card)', borderRadius: 18,
+    <section className="border border-border" style={{
+      margin: '0 var(--gutter) 22px', background: 'var(--card)', borderRadius: 18,
       padding: '6px var(--pad)', display: 'flex', flexDirection: 'column', gap: 8,
     }}>
       <button type="button" onClick={toggle} aria-expanded={open} aria-controls="cal-grid" style={{
         display: 'flex', alignItems: 'center', gap: 12, minHeight: 60, width: '100%',
-        color: 'var(--c-ink)', background: 'transparent',
+        color: 'var(--foreground)', background: 'transparent',
       }}>
         <span style={{
           width: 40, height: 40, flex: 'none', borderRadius: 11, display: 'flex',
           alignItems: 'center', justifyContent: 'center',
-          background: overdue ? 'var(--c-danger-tint)' : 'var(--c-sunk)',
-          color: overdue ? 'var(--c-danger)' : 'var(--c-teal)',
+          background: overdue ? 'color-mix(in srgb, var(--destructive) 12%, transparent)' : 'var(--muted)',
+          color: overdue ? 'var(--destructive)' : 'var(--primary)',
         }}>
           <Icon name="autodebit" size={19} strokeWidth={1.9} />
         </span>
         <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
           <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>
             {MONTHS[m - 1]} {y}
-            <span style={{ fontWeight: 400, color: 'var(--c-meta)' }}> · {hijriSpan}</span>
+            <span style={{ fontWeight: 400, color: 'var(--muted-foreground)' }}> · {hijriSpan}</span>
           </span>
-          <span style={{ fontSize: 'var(--step--1)', color: overdue ? 'var(--c-danger)' : 'var(--c-meta)' }}>
+          <span style={{ fontSize: 'var(--step--1)', color: overdue ? 'var(--destructive)' : 'var(--muted-foreground)' }}>
             {overdue ? `${overdue} overdue · ` : ''}{summary}
           </span>
         </span>
         <span aria-hidden style={{
           width: 28, height: 28, flex: 'none', borderRadius: 999, display: 'flex',
-          alignItems: 'center', justifyContent: 'center', color: 'var(--c-meta)',
-          background: 'var(--c-sunk)', transition: 'transform .2s',
+          alignItems: 'center', justifyContent: 'center', color: 'var(--muted-foreground)',
+          background: 'var(--muted)', transition: 'transform .2s',
           transform: open ? 'rotate(180deg)' : 'none',
         }}>
           <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -172,10 +172,10 @@ export default function Calendar({ schedules, canWrite, today }: {
       <div id="cal-grid" hidden={!open} style={{ display: open ? 'flex' : undefined, flexDirection: 'column', gap: 8, paddingBottom: 6 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
         <button type="button" onClick={() => step(-1)} aria-label="Previous month" style={nav}>{arrow('M15 5l-7 7 7 7')}</button>
-        <span style={{ flex: 1, minWidth: 0, textAlign: 'center', fontSize: 'var(--step--1)', color: 'var(--c-meta)' }}>
+        <span style={{ flex: 1, minWidth: 0, textAlign: 'center', fontSize: 'var(--step--1)', color: 'var(--muted-foreground)' }}>
           {isNow ? 'This month' : (
             <button type="button" onClick={() => { const c = civil(today); setYm({ y: c.y, m: c.m }); }}
-              style={{ ...nav, width: 'auto', padding: '0 12px', fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-teal)', margin: '0 auto' }}>
+              style={{ ...nav, width: 'auto', padding: '0 12px', fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--primary)', margin: '0 auto' }}>
               Back to today
             </button>
           )}
@@ -199,7 +199,7 @@ export default function Calendar({ schedules, canWrite, today }: {
         style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 2, touchAction: 'pan-y' }}>
         {DOW.map((d) => (
           <span key={d} role="columnheader" style={{
-            textAlign: 'center', fontSize: 'var(--step--2)', fontWeight: 600, color: 'var(--c-meta)',
+            textAlign: 'center', fontSize: 'var(--step--2)', fontWeight: 600, color: 'var(--muted-foreground)',
             letterSpacing: '.02em', paddingBottom: 2,
           }}>{d}</span>
         ))}
@@ -215,12 +215,12 @@ export default function Calendar({ schedules, canWrite, today }: {
             <button key={iso} type="button" role="gridcell" aria-label={label} onClick={() => setSel(iso)} style={{
               minHeight: 54, borderRadius: 10, padding: '5px 0 4px',
               display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
-              background: items.length ? 'var(--c-sunk)' : 'transparent',
-              boxShadow: isToday ? 'inset 0 0 0 2px var(--c-seagrass)' : undefined,
-              color: 'var(--c-ink)',
+              background: items.length ? 'var(--muted)' : 'transparent',
+              boxShadow: isToday ? 'inset 0 0 0 2px var(--chart-1)' : undefined,
+              color: 'var(--foreground)',
             }}>
               <span className="t" style={{ fontSize: 'var(--step-0)', lineHeight: 1, fontWeight: isToday ? 700 : 500 }}>{d}</span>
-              <span style={{ fontSize: '0.62rem', lineHeight: 1, color: h.d === 1 ? 'var(--c-teal)' : 'var(--c-meta)', fontWeight: h.d === 1 ? 700 : 500 }}>
+              <span style={{ fontSize: '0.62rem', lineHeight: 1, color: h.d === 1 ? 'var(--primary)' : 'var(--muted-foreground)', fontWeight: h.d === 1 ? 700 : 500 }}>
                 {h.d === 1 ? HIJRI_MONTHS_SHORT[h.m - 1] : h.d}
               </span>
               <span style={{ display: 'flex', gap: 3, minHeight: 6, alignItems: 'center' }}>
@@ -231,7 +231,7 @@ export default function Calendar({ schedules, canWrite, today }: {
         })}
       </div>
 
-      <p style={{ margin: '2px 0 0', fontSize: 'var(--step--2)', lineHeight: 1.45, color: 'var(--c-meta)', display: 'flex', flexWrap: 'wrap', gap: '4px 12px' }}>
+      <p style={{ margin: '2px 0 0', fontSize: 'var(--step--2)', lineHeight: 1.45, color: 'var(--muted-foreground)', display: 'flex', flexWrap: 'wrap', gap: '4px 12px' }}>
         <Key status="coming" kind="expense">goes out</Key>
         <Key status="coming" kind="income">comes in</Key>
         <Key status="overdue" kind="expense">overdue</Key>
@@ -247,13 +247,13 @@ export default function Calendar({ schedules, canWrite, today }: {
               <h3 style={{ margin: 0, fontSize: 'var(--step-1)', fontWeight: 600 }}>
                 {DAYS[new Date(selCivil.y, selCivil.m - 1, selCivil.d).getDay()]} {selCivil.d} {MONTHS[selCivil.m - 1]}
               </h3>
-              <span style={{ fontSize: 'var(--step--1)', color: 'var(--c-meta)' }}>
+              <span style={{ fontSize: 'var(--step--1)', color: 'var(--muted-foreground)' }}>
                 {formatHijri(toHijri(selCivil))}{sel === today ? ' · today' : ''}
               </span>
             </header>
 
             {selected.length === 0 ? (
-              <p style={{ margin: '0 0 12px', fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--c-meta)' }}>
+              <p style={{ margin: '0 0 12px', fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--muted-foreground)' }}>
                 Nothing is scheduled for this day.
               </p>
             ) : selected.map((it) => {
@@ -271,35 +271,35 @@ export default function Calendar({ schedules, canWrite, today }: {
               return (
                 <div key={`${it.s.id}:${it.dueOn}`} style={{
                   display: 'flex', alignItems: 'center', gap: 12, minHeight: 66, padding: '10px 0',
-                  borderBottom: '1px solid var(--c-rule)',
+                  borderBottom: '1px solid var(--border)',
                 }}>
                   <span style={{
                     width: 40, height: 40, flex: 'none', borderRadius: 11, display: 'flex',
                     alignItems: 'center', justifyContent: 'center',
-                    background: settled ? 'var(--c-sunk)' : 'var(--c-warn-tint)',
-                    color: settled ? 'var(--c-meta)' : 'var(--c-warn)',
+                    background: settled ? 'var(--muted)' : 'var(--attention-soft)',
+                    color: settled ? 'var(--muted-foreground)' : 'var(--attention-soft-foreground)',
                   }}>
                     <Icon name={it.s.icon ?? 'autodebit'} size={19} strokeWidth={1.9} />
                   </span>
                   <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
                     <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>{it.s.name}</span>
-                    <span style={{ fontSize: 'var(--step--1)', color: 'var(--c-meta)' }}>
+                    <span style={{ fontSize: 'var(--step--1)', color: 'var(--muted-foreground)' }}>
                       {cap(describeRule(it.s.rule, it.s.cal))}
                       {it.movedFrom && ` · moved from the ${civil(it.movedFrom).d}${suffix(civil(it.movedFrom).d)}`}
                     </span>
                     <span style={{ fontSize: 'var(--step--1)', display: 'flex', alignItems: 'center', gap: 5,
-                      color: it.status === 'paid' ? 'var(--c-in)' : it.status === 'overdue' ? 'var(--c-danger)' : 'var(--c-meta)' }}>
+                      color: it.status === 'paid' ? 'var(--money-in)' : it.status === 'overdue' ? 'var(--destructive)' : 'var(--muted-foreground)' }}>
                       <Icon name={it.status === 'paid' ? 'check' : it.status === 'skipped' ? 'skip' : 'autodebit'} size={14} strokeWidth={2.2} />
                       {it.status === 'paid' ? (income ? 'Came in' : 'Paid') : it.status === 'skipped' ? 'Skipped'
                         : it.status === 'overdue' ? 'Overdue' : it.status === 'today' ? 'Due today' : 'Coming'}
                       {it.status === 'paid' && it.txn && (
-                        <Link href={`/entries/${it.txn}`} transitionTypes={['nav-forward']} style={{ color: 'var(--c-teal)', fontWeight: 600, minHeight: 44, display: 'inline-flex', alignItems: 'center', marginLeft: 6 }}>
+                        <Link href={`/entries/${it.txn}`} transitionTypes={['nav-forward']} style={{ color: 'var(--primary)', fontWeight: 600, minHeight: 44, display: 'inline-flex', alignItems: 'center', marginLeft: 6 }}>
                           See the entry
                         </Link>
                       )}
                     </span>
                   </span>
-                  <span className="t" style={{ fontSize: 'var(--step-1)', color: income ? 'var(--c-in)' : 'var(--c-out)', opacity: settled ? 0.7 : 1 }}>
+                  <span className="t" style={{ fontSize: 'var(--step-1)', color: income ? 'var(--money-in)' : 'var(--money-out)', opacity: settled ? 0.7 : 1 }}>
                     {income ? '+' : ''}{format(it.s.amount)}
                   </span>
                 </div>
@@ -322,8 +322,8 @@ function statusOf(s: 'pending' | 'paid' | 'skipped' | undefined, on: string, tod
    settled one fades; an overdue one is a ring — hollow, still open. */
 function Dot({ status, kind }: { status: Status; kind: 'expense' | 'income' }) {
   const settled = status === 'paid' || status === 'skipped';
-  const colour = status === 'overdue' ? 'var(--c-danger)'
-    : settled ? 'var(--c-meta)' : kind === 'income' ? 'var(--c-in)' : 'var(--c-out)';
+  const colour = status === 'overdue' ? 'var(--destructive)'
+    : settled ? 'var(--muted-foreground)' : kind === 'income' ? 'var(--money-in)' : 'var(--money-out)';
   return (
     <span aria-hidden style={{
       width: 7, height: 7, borderRadius: 999, boxSizing: 'border-box',
@@ -351,5 +351,5 @@ function Key({ status, kind, children }: { status: Status; kind: 'expense' | 'in
 
 const nav: React.CSSProperties = {
   width: 44, height: 44, flex: 'none', borderRadius: 999, display: 'flex',
-  alignItems: 'center', justifyContent: 'center', background: 'transparent', color: 'var(--c-ink)',
+  alignItems: 'center', justifyContent: 'center', background: 'transparent', color: 'var(--foreground)',
 };

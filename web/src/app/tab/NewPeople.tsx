@@ -108,18 +108,18 @@ export default function NewPeople() {
           autoComplete="off"
           style={{
             flex: 1, minWidth: 0, minHeight: 48, padding: '0 14px', borderRadius: 13,
-            background: 'var(--c-card)', border: '1px solid var(--c-border)',
-            color: 'var(--c-ink)', fontSize: 'var(--field)',
+            background: 'var(--card)', border: '1px solid var(--border)',
+            color: 'var(--foreground)', fontSize: 'var(--field)',
           }}
         />
         <button type="button" onClick={addTyped} disabled={typed.trim().length < 2} className="cta" style={{
           minHeight: 48, padding: '0 16px', borderRadius: 13, fontSize: 'var(--step--1)', fontWeight: 600,
-          background: 'var(--c-sunk)', color: 'var(--c-ink)', opacity: typed.trim().length < 2 ? 0.5 : 1,
+          background: 'var(--muted)', color: 'var(--foreground)', opacity: typed.trim().length < 2 ? 0.5 : 1,
         }}>Add</button>
         {book && (
           <button type="button" onClick={fromBook} className="cta" aria-label="Pick from contacts" style={{
             minHeight: 48, padding: '0 14px', borderRadius: 13, fontSize: 'var(--step--1)', fontWeight: 600,
-            background: 'var(--c-sunk)', color: 'var(--c-ink)',
+            background: 'var(--muted)', color: 'var(--foreground)',
           }}>
             <Icon name="phone" size={17} strokeWidth={1.9} />
             Contacts
@@ -127,7 +127,7 @@ export default function NewPeople() {
         )}
       </div>
       {note && (
-        <p role="status" style={{ margin: 0, fontSize: 'var(--step--2)', lineHeight: 1.45, color: 'var(--c-meta)' }}>
+        <p role="status" style={{ margin: 0, fontSize: 'var(--step--2)', lineHeight: 1.45, color: 'var(--muted-foreground)' }}>
           {note}
         </p>
       )}

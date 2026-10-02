@@ -47,7 +47,7 @@ export default function MoneyBack({ tabId, ways, today, owing }: {
       <button type="button" className="cta" disabled={owing.length === 0}
         onClick={() => { haptic('select'); setWho(0); setTicked(new Set()); setOpen(true); }} style={{
           flex: 1, minHeight: 54, borderRadius: 15, fontSize: 'var(--step-0)', fontWeight: 600,
-          background: 'var(--c-card)', border: '1px solid var(--c-border)', color: 'var(--c-ink)',
+          background: 'var(--card)', border: '1px solid var(--border)', color: 'var(--foreground)',
           opacity: owing.length === 0 ? 0.5 : 1,
         }}>
         <Icon name="receivable" size={18} strokeWidth={2} />
@@ -64,7 +64,7 @@ export default function MoneyBack({ tabId, ways, today, owing }: {
 
             {owing.length > 1 && (
               <div role="group" aria-label="From" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)' }}>From</span>
+                <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--muted-foreground)' }}>From</span>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                   {owing.map((o, i) => (
                     <button key={o.id ?? 'tab'} type="button" aria-pressed={i === who}
@@ -83,7 +83,7 @@ export default function MoneyBack({ tabId, ways, today, owing }: {
 
             {from.claims.length > 1 && (
               <fieldset style={{ border: 0, padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
-                <legend style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)', padding: 0, marginBottom: 6 }}>
+                <legend style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--muted-foreground)', padding: 0, marginBottom: 6 }}>
                   For which costs — none ticked means all of them
                 </legend>
                 {from.claims.map((c) => (
@@ -94,9 +94,9 @@ export default function MoneyBack({ tabId, ways, today, owing }: {
                       onChange={(e) => setTicked((s) => {
                         const n = new Set(s); if (e.target.checked) n.add(c.id); else n.delete(c.id); return n;
                       })}
-                      style={{ width: 18, height: 18, margin: 0, flex: 'none', accentColor: 'var(--c-seagrass)' }} />
+                      style={{ width: 18, height: 18, margin: 0, flex: 'none', accentColor: 'var(--chart-1)' }} />
                     <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {c.what} <span style={{ color: 'var(--c-meta)' }}>· {new Date(`${c.on}T00:00:00`).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</span>
+                      {c.what} <span style={{ color: 'var(--muted-foreground)' }}>· {new Date(`${c.on}T00:00:00`).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</span>
                     </span>
                     <span className="t">{format(c.outstanding)}</span>
                   </label>
@@ -107,7 +107,7 @@ export default function MoneyBack({ tabId, ways, today, owing }: {
             <Field label={`Amount — blank is all ${format(target)}`} name="amount"
               inputMode="decimal" placeholder={format(target)} />
             <div role="group" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)' }}>Where it arrived</span>
+              <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--muted-foreground)' }}>Where it arrived</span>
               <PayPicker name="paidWith" ways={ways} defaultValue={defaultRef(ways)} />
             </div>
             <DateChips value={on} onChange={setOn} today={today} dir="past" label="When did it come back" />
@@ -115,12 +115,12 @@ export default function MoneyBack({ tabId, ways, today, owing }: {
             {state && !state.ok && <ErrorNote>{state.error}</ErrorNote>}
             <button className="cta" type="submit" disabled={pending} style={{
               minHeight: 52, borderRadius: 13, fontSize: 'var(--step-0)', fontWeight: 600,
-              background: 'var(--g-primary)', color: 'var(--c-on-primary)', opacity: pending ? 0.65 : 1,
+              background: 'var(--primary)', color: 'var(--primary-foreground)', opacity: pending ? 0.65 : 1,
             }}>
               <Icon name="check" size={18} strokeWidth={2.2} />
               {pending ? 'Recording…' : 'Record what came back'}
             </button>
-            <p style={{ margin: 0, fontSize: 'var(--step--2)', lineHeight: 1.45, color: 'var(--c-meta)' }}>
+            <p style={{ margin: 0, fontSize: 'var(--step--2)', lineHeight: 1.45, color: 'var(--muted-foreground)' }}>
               {chosen.length ? 'Goes against the costs ticked, oldest first.' : 'Goes against the oldest costs first.'}
               {' '}Recorded as money coming back, not income — the spending stays in the month it happened.
             </p>

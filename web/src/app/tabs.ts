@@ -24,7 +24,7 @@ export const TABS = [
    with "nowhere". Every one of them is opened from a tile on Home, so Home is
    the tab they belong to and the tab that should be lit while you are in one. */
 export const OWNED_BY: Record<string, string> = {
-  '/inbox': '/entries', '/schedules': '/entries',
+  '/inbox': '/entries', '/schedules': '/entries', '/entry': '/entries',
   '/trends': '/budget', '/categories': '/budget',
   '/worth': '/accounts', '/people': '/accounts', '/tab': '/accounts',
   '/household': '/', '/guide': '/',

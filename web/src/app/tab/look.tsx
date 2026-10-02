@@ -40,9 +40,9 @@ export function Faces({ people, size = 22, max = 4 }: {
 }) {
   if (people.length === 0) {
     return (
-      <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 'var(--step--2)', color: 'var(--c-meta)' }}>
+      <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 'var(--step--2)', color: 'var(--muted-foreground)' }}>
         <span aria-hidden style={{
-          width: size, height: size, flex: 'none', borderRadius: 999, border: '1.5px dashed var(--c-dash)',
+          width: size, height: size, flex: 'none', borderRadius: 999, border: '1.5px dashed var(--input)',
         }} />
         No one named
       </span>
@@ -53,11 +53,11 @@ export function Faces({ people, size = 22, max = 4 }: {
     <span aria-label={people.map((p) => p.name).join(', ')} style={{ display: 'flex', alignItems: 'center' }}>
       {shown.map((p, i) => (
         <span key={p.id} style={{ display: 'flex', marginLeft: i ? -6 : 0 }}>
-          <Face name={p.name} tint={p.tint} size={size} ring="var(--c-card)" />
+          <Face name={p.name} tint={p.tint} size={size} ring="var(--card)" />
         </span>
       ))}
       {people.length > max && (
-        <span style={{ marginLeft: 5, fontSize: 'var(--step--2)', color: 'var(--c-meta)' }}>
+        <span style={{ marginLeft: 5, fontSize: 'var(--step--2)', color: 'var(--muted-foreground)' }}>
           +{people.length - max}
         </span>
       )}

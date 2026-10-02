@@ -14,7 +14,7 @@ export default function SetupForm() {
       <CurrencyField
         hint="Every entry is recorded in this. You can change it until the first one." />
       {state?.error && <ErrorNote>{state.error}</ErrorNote>}
-      <button type="submit" disabled={pending} className="el2"
+      <button type="submit" disabled={pending}
         style={{ ...primaryBtn, opacity: pending ? 0.65 : 1, marginTop: 3 }}>
         {pending ? 'Opening the books…' : 'Open the books'}
       </button>

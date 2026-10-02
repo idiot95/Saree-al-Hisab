@@ -129,7 +129,7 @@ function CardBlock({ card, canWrite }: { card: CardInfo; canWrite: boolean }) {
       {canWrite && (
         <div style={{ display: 'flex', gap: 8, minWidth: 0 }}>
           {payable > 0 && (
-            <Link className="el cta" href={`/add?kind=transfer&to=${account.id}&amount=${payable}`}
+            <Link className="cta" href={`/add?kind=transfer&to=${account.id}&amount=${payable}`}
               transitionTypes={['nav-forward']} onClick={() => haptic('select')}
               aria-label={`Pay ${format(payable)} to ${account.name}`}
               style={{
@@ -179,7 +179,7 @@ function CardFace({ card }: { card: CardInfo }) {
     : account.due_day ? `the ${nth(account.due_day)}` : null;
 
   return (
-    <section aria-label={`${account.name}, ${format(owed)} outstanding`} className="el" style={{
+    <section aria-label={`${account.name}, ${format(owed)} outstanding`} style={{
       /* Not the 1.586 of real plastic. That proportion is drawn around an
          embossed number and a chip; with those gone it is mostly empty
          middle, and a card that says four things should be the height of

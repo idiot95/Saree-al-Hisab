@@ -42,7 +42,7 @@ function Picker({ icon, tint, onIcon, onTint }: {
       <input type="hidden" name="tint" value={tint} />
 
       <fieldset style={{ border: 0, padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 7 }}>
-        <legend style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)', padding: 0 }}>
+        <legend style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--muted-foreground)', padding: 0 }}>
           Colour
         </legend>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -70,21 +70,21 @@ function Picker({ icon, tint, onIcon, onTint }: {
       </fieldset>
 
       <fieldset style={{ border: 0, padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 7 }}>
-        <legend style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)', padding: 0 }}>
+        <legend style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--muted-foreground)', padding: 0 }}>
           Icon
         </legend>
         <input type="search" value={find} onChange={(e) => setFind(e.target.value)}
           placeholder="Find an icon" aria-label="Find an icon" autoComplete="off"
           style={{
-            minHeight: 44, borderRadius: 12, border: '1px solid var(--c-border)',
-            background: 'var(--c-card)', color: 'var(--c-ink)', fontSize: 'var(--field)', padding: '0 12px',
+            minHeight: 44, borderRadius: 12, border: '1px solid var(--border)',
+            background: 'var(--card)', color: 'var(--foreground)', fontSize: 'var(--field)', padding: '0 12px',
           }} />
         <div style={{
           display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(46px, 1fr))', gap: 7,
           maxHeight: 200, overflowY: 'auto',
         }}>
           {shown.length === 0 && (
-            <span style={{ gridColumn: '1 / -1', fontSize: 'var(--step--1)', color: 'var(--c-meta)', padding: '8px 0' }}>
+            <span style={{ gridColumn: '1 / -1', fontSize: 'var(--step--1)', color: 'var(--muted-foreground)', padding: '8px 0' }}>
               Nothing called that. Try another word.
             </span>
           )}
@@ -97,9 +97,9 @@ function Picker({ icon, tint, onIcon, onTint }: {
                 style={{
                   minHeight: 46, borderRadius: 12,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  background: on ? bg : 'var(--c-sunk2)',
-                  color: on ? ink : 'var(--c-meta)',
-                  border: `1px solid ${on ? ink : 'var(--c-border)'}`,
+                  background: on ? bg : 'var(--background)',
+                  color: on ? ink : 'var(--muted-foreground)',
+                  border: `1px solid ${on ? ink : 'var(--border)'}`,
                 }}>
                 <Icon name={n} size={20} />
               </button>
@@ -121,15 +121,15 @@ function UnderField({ parents, value, onChange, locked }: {
   if (parents.length === 0 && !locked) return null;
   return (
     <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-      <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)' }}>Under</span>
+      <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--muted-foreground)' }}>Under</span>
       {locked ? (
-        <span style={{ fontSize: 'var(--step--1)', lineHeight: 1.45, color: 'var(--c-meta)', padding: '4px 0' }}>
+        <span style={{ fontSize: 'var(--step--1)', lineHeight: 1.45, color: 'var(--muted-foreground)', padding: '4px 0' }}>
           It has categories under it, so it stays at the top level.
         </span>
       ) : (
         <select name="parentId" value={value} onChange={(e) => onChange(e.target.value)} style={{
-          minHeight: 52, borderRadius: 13, border: '1px solid var(--c-border)',
-          background: 'var(--c-card)', color: 'var(--c-ink)', fontSize: 'var(--field)', padding: '0 14px',
+          minHeight: 52, borderRadius: 13, border: '1px solid var(--border)',
+          background: 'var(--card)', color: 'var(--foreground)', fontSize: 'var(--field)', padding: '0 14px',
         }}>
           <option value="">On its own</option>
           {parents.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
@@ -150,9 +150,9 @@ function ScopeField({ value, onChange, parent }: {
 }) {
   return (
     <div role="group" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-      <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)' }}>Files</span>
+      <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--muted-foreground)' }}>Files</span>
       {parent ? (
-        <span style={{ fontSize: 'var(--step--1)', lineHeight: 1.45, color: 'var(--c-meta)', padding: '4px 0' }}>
+        <span style={{ fontSize: 'var(--step--1)', lineHeight: 1.45, color: 'var(--muted-foreground)', padding: '4px 0' }}>
           {SCOPE_LABEL[parent.scope].toLowerCase()}, the same as {parent.name}.
         </span>
       ) : (
@@ -165,11 +165,11 @@ function ScopeField({ value, onChange, parent }: {
 function NameField({ defaultValue }: { defaultValue?: string }) {
   return (
     <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-      <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)' }}>Name</span>
+      <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--muted-foreground)' }}>Name</span>
       <input name="name" defaultValue={defaultValue} required maxLength={40}
         placeholder="Groceries" style={{
-          minHeight: 52, borderRadius: 13, border: '1px solid var(--c-border)',
-          background: 'var(--c-card)', color: 'var(--c-ink)', fontSize: 'var(--field)', padding: '0 14px',
+          minHeight: 52, borderRadius: 13, border: '1px solid var(--border)',
+          background: 'var(--card)', color: 'var(--foreground)', fontSize: 'var(--field)', padding: '0 14px',
         }} />
     </label>
   );
@@ -340,12 +340,12 @@ export default function CategoryEditor({ categories, canEdit }: {
   return (
     <>
       <Head>In use</Head>
-      <section className="el card" style={{ ...card, overflow: 'hidden' }}>
+      <section className="border border-border" style={{ ...card, overflow: 'hidden' }}>
         {live.map((c, i) => {
           const kids = kidsOf(c.id);
           const lastFamily = i === live.length - 1;
           return (
-            <div key={c.id} ref={reorder.bind(c.id)} style={{ background: 'var(--c-card)', ...reorder.shift(c.id) }}>
+            <div key={c.id} ref={reorder.bind(c.id)} style={{ background: 'var(--card)', ...reorder.shift(c.id) }}>
               {rows(c, live, i, lastFamily && kids.length === 0)}
               {kids.map((k, j) => rows(k, kids, j, lastFamily && j === kids.length - 1))}
             </div>
@@ -353,7 +353,7 @@ export default function CategoryEditor({ categories, canEdit }: {
         })}
       </section>
       {canEdit && (
-        <p style={{ margin: '-12px var(--gutter) 22px', fontSize: 'var(--step--2)', lineHeight: 1.5, color: 'var(--c-meta)' }}>
+        <p style={{ margin: '-12px var(--gutter) 22px', fontSize: 'var(--step--2)', lineHeight: 1.5, color: 'var(--muted-foreground)' }}>
           Tap a row to edit it, swipe it left to retire it, and drag by the grip to change the order.
           A category can sit under another — Milk under Groceries — and counts towards its line.
         </p>
@@ -362,16 +362,16 @@ export default function CategoryEditor({ categories, canEdit }: {
       {canEdit && (adding
         ? <AddRow parents={parents} takes={takes} onDone={() => setAdding(false)} />
         : (
-          <button type="button" onClick={() => setAdding(true)} className="el press" style={{
+          <button type="button" onClick={() => setAdding(true)} className="press" style={{
             margin: '0 var(--gutter) 22px', width: 'calc(100% - 36px)', minHeight: 56, borderRadius: 16,
             display: 'flex', alignItems: 'center', gap: 11, padding: '0 var(--pad)',
-            background: 'var(--c-card)', border: '1px dashed var(--c-dash)',
-            color: 'var(--c-ink)', fontSize: 'var(--step-0)', fontWeight: 600,
+            background: 'var(--card)', border: '1px dashed var(--input)',
+            color: 'var(--foreground)', fontSize: 'var(--step-0)', fontWeight: 600,
           }}>
             <span style={{
               width: 32, height: 32, flex: 'none', borderRadius: 999, display: 'flex',
               alignItems: 'center', justifyContent: 'center',
-              background: 'var(--c-sunk)', color: 'var(--c-meta)',
+              background: 'var(--muted)', color: 'var(--muted-foreground)',
             }}>
               <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor"
                 strokeWidth={2.2} strokeLinecap="round" aria-hidden><path d="M12 5v14M5 12h14" /></svg>
@@ -389,11 +389,11 @@ export default function CategoryEditor({ categories, canEdit }: {
       {retired.length > 0 && (
         <>
           <Head>Retired</Head>
-          <p style={{ margin: '-4px var(--gutter) 12px', fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--c-meta)' }}>
+          <p style={{ margin: '-4px var(--gutter) 12px', fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--muted-foreground)' }}>
             Not offered for new entries. Everything already filed under them is untouched, and
             they still appear in the months they were used.
           </p>
-          <section className="el card" style={card}>
+          <section className="border border-border" style={card}>
             {retired.map((c, i) => (
               <RetiredRow key={c.id} cat={c} under={nameOf(c.parent_id)} last={i === retired.length - 1} canEdit={canEdit}
                 onBack={() => setHidden((h) => {
@@ -430,14 +430,14 @@ function Row({ cat, last, canEdit, lifted, onEdit, grip }: {
       {child && (
         <span aria-hidden style={{
           width: 14, height: 22, flex: 'none', marginLeft: 12,
-          borderLeft: '1.5px solid var(--c-border)', borderBottom: '1.5px solid var(--c-border)',
+          borderLeft: '1.5px solid var(--border)', borderBottom: '1.5px solid var(--border)',
           borderBottomLeftRadius: 8, marginBottom: 14,
         }} />
       )}
       <Chip icon={cat.icon} tint={cat.tint} size={child ? 32 : 40} />
       <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
         <span style={{ fontSize: child ? 'var(--step--1)' : 'var(--step-0)', fontWeight: 600 }}>{cat.name}</span>
-        <span style={{ fontSize: 'var(--step--2)', color: 'var(--c-meta)' }}>
+        <span style={{ fontSize: 'var(--step--2)', color: 'var(--muted-foreground)' }}>
           {cat.entries === 0 ? 'nothing filed here yet'
             : `${cat.entries} ${cat.entries === 1 ? 'entry' : 'entries'}`}
           {cat.budgeted_months > 0 && ` · budgeted in ${cat.budgeted_months} ${cat.budgeted_months === 1 ? 'month' : 'months'}`}
@@ -450,7 +450,7 @@ function Row({ cat, last, canEdit, lifted, onEdit, grip }: {
   return (
     <div style={{
       display: 'flex', alignItems: 'center', minHeight: h,
-      borderBottom: last || lifted ? undefined : '1px solid var(--c-rule)',
+      borderBottom: last || lifted ? undefined : '1px solid var(--border)',
     }}>
       {canEdit ? (
         <button type="button" onClick={onEdit} style={{
@@ -465,7 +465,7 @@ function Row({ cat, last, canEdit, lifted, onEdit, grip }: {
         <span aria-hidden {...grip} style={{
           ...grip.style, width: 44, minHeight: 72, marginRight: -8, flex: 'none',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          color: lifted ? 'var(--c-teal)' : 'var(--c-off)',
+          color: lifted ? 'var(--primary)' : 'var(--muted-foreground)',
         }}>
           <svg width={16} height={20} viewBox="0 0 16 20" fill="currentColor" aria-hidden>
             <circle cx="5" cy="4" r="1.7" /><circle cx="11" cy="4" r="1.7" />
@@ -531,14 +531,14 @@ function EditRow({ cat, first, last, parents, onDone }: {
         <input type="hidden" name="id" value={cat.id} />
         <button className="cta" type="submit" disabled={retiring} style={{
           minHeight: 44, borderRadius: 11, fontSize: 'var(--step--1)', fontWeight: 600,
-          background: 'transparent', color: 'var(--c-danger)',
+          background: 'transparent', color: 'var(--destructive)',
         }}>{retiring ? 'Retiring…' : 'Retire this category'}</button>
         {retireState && !retireState.ok && (
-          <span role="alert" style={{ fontSize: 'var(--step--1)', color: 'var(--c-danger)' }}>
+          <span role="alert" style={{ fontSize: 'var(--step--1)', color: 'var(--destructive)' }}>
             {retireState.error}
           </span>
         )}
-        <span style={{ fontSize: 'var(--step--2)', lineHeight: 1.45, color: 'var(--c-meta)' }}>
+        <span style={{ fontSize: 'var(--step--2)', lineHeight: 1.45, color: 'var(--muted-foreground)' }}>
           It stops being offered for new entries{cat.children > 0 && ', and so do the ones under it'}.
           Nothing already filed under it moves, and no month changes value.
         </span>
@@ -558,8 +558,8 @@ function AddRow({ parents, takes, onDone }: {
   const parent = parents.find((p) => p.id === parentId) ?? null;
 
   return (
-    <form action={act} className="el card" style={{
-      margin: '0 var(--gutter) 22px', background: 'var(--c-card)', borderRadius: 18, padding: 16,
+    <form action={act} className="border border-border" style={{
+      margin: '0 var(--gutter) 22px', background: 'var(--card)', borderRadius: 18, padding: 16,
       display: 'flex', flexDirection: 'column', gap: 13,
     }}>
       <NameField />
@@ -589,12 +589,12 @@ function RetiredRow({ cat, under, last, canEdit, onBack }: {
   return (
     <div style={{
       display: 'flex', alignItems: 'center', gap: 12, minHeight: 68, opacity: 0.7,
-      borderBottom: last ? undefined : '1px solid var(--c-rule)',
+      borderBottom: last ? undefined : '1px solid var(--border)',
     }}>
       <Chip icon={cat.icon} tint={cat.tint} size={36} />
       <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
         <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>{cat.name}</span>
-        <span style={{ fontSize: 'var(--step--2)', color: 'var(--c-meta)' }}>
+        <span style={{ fontSize: 'var(--step--2)', color: 'var(--muted-foreground)' }}>
           {cat.entries} {cat.entries === 1 ? 'entry' : 'entries'} kept{under && ` · under ${under}`}
         </span>
       </span>
@@ -603,7 +603,7 @@ function RetiredRow({ cat, under, last, canEdit, onBack }: {
           <input type="hidden" name="id" value={cat.id} />
           <button className="cta" type="submit" style={{
             minHeight: 44, padding: '0 12px', borderRadius: 11, fontSize: 'var(--step--1)',
-            fontWeight: 600, background: 'var(--c-sunk)', color: 'var(--c-ink)',
+            fontWeight: 600, background: 'var(--muted)', color: 'var(--foreground)',
           }}>Bring back</button>
         </form>
       )}
@@ -613,9 +613,8 @@ function RetiredRow({ cat, under, last, canEdit, onBack }: {
 
 function Head({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0 var(--gutter) 11px' }}>
-      <h2 style={{ margin: 0, fontSize: 'var(--step-1)', fontWeight: 600 }}>{children}</h2>
-      <span style={{ flex: 1, height: 1, background: 'var(--c-border)' }} />
+    <div className="mx-[var(--gutter)] mb-2 px-1">
+      <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{children}</h2>
     </div>
   );
 }
@@ -638,13 +637,13 @@ function Box() {
 }
 
 const card: React.CSSProperties = {
-  margin: '0 var(--gutter) 22px', background: 'var(--c-card)', borderRadius: 18, padding: '0 var(--pad)',
+  margin: '0 var(--gutter) 22px', background: 'var(--card)', borderRadius: 18, padding: '0 var(--pad)',
 };
 const ghost: React.CSSProperties = {
   minHeight: 50, padding: '0 16px', borderRadius: 13, fontSize: 'var(--step-0)', fontWeight: 600,
-  background: 'var(--c-sunk)', color: 'var(--c-meta)',
+  background: 'var(--muted)', color: 'var(--muted-foreground)',
 };
 const solid: React.CSSProperties = {
   flex: 1, minHeight: 50, borderRadius: 13, fontSize: 'var(--step-0)', fontWeight: 600,
-  textAlign: 'center', background: 'var(--g-primary)', color: 'var(--c-on-primary)',
+  textAlign: 'center', background: 'var(--primary)', color: 'var(--primary-foreground)',
 };

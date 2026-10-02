@@ -15,7 +15,7 @@ export default function ResetForm({ token }: { token: string }) {
       <Field label="Confirm password" name="confirm" type="password"
         autoComplete="new-password" required />
       {state?.error && <ErrorNote>{state.error}</ErrorNote>}
-      <button type="submit" disabled={pending} className="el2"
+      <button type="submit" disabled={pending}
         style={{ ...primaryBtn, opacity: pending ? 0.65 : 1, marginTop: 3 }}>
         {pending ? 'Saving…' : 'Set password'}
       </button>

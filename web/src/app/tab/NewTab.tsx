@@ -21,16 +21,16 @@ export default function NewTab() {
 
   return (
     <>
-      <button type="button" onClick={() => { haptic('select'); setOpen(true); }} className="el card" style={{
+      <button type="button" onClick={() => { haptic('select'); setOpen(true); }} className="border border-border" style={{
         margin: '0 var(--gutter) 22px', width: 'calc(100% - 36px)', minHeight: 56, borderRadius: 16,
         display: 'flex', alignItems: 'center', gap: 11, padding: '0 var(--pad)',
-        background: 'var(--c-card)', border: '1px dashed var(--c-dash)',
-        color: 'var(--c-ink)', fontSize: 'var(--step-0)', fontWeight: 600,
+        background: 'var(--card)', border: '1px dashed var(--input)',
+        color: 'var(--foreground)', fontSize: 'var(--step-0)', fontWeight: 600,
       }}>
         <span style={{
           width: 32, height: 32, flex: 'none', borderRadius: 999, display: 'flex',
           alignItems: 'center', justifyContent: 'center',
-          background: 'var(--c-sunk)', color: 'var(--c-meta)',
+          background: 'var(--muted)', color: 'var(--muted-foreground)',
         }}>
           <Icon name="plus" size={16} strokeWidth={2.2} />
         </span>
@@ -44,11 +44,11 @@ export default function NewTab() {
             placeholder="Goa weekend, Office petrol…" autoComplete="off" />
 
           <div role="group" aria-label="Who owes on it" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)' }}>
+            <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--muted-foreground)' }}>
               Who owes on it · optional
             </span>
             <NewPeople />
-            <p style={{ margin: 0, fontSize: 'var(--step--2)', lineHeight: 1.45, color: 'var(--c-meta)' }}>
+            <p style={{ margin: 0, fontSize: 'var(--step--2)', lineHeight: 1.45, color: 'var(--muted-foreground)' }}>
               A cost on this tab splits equally between the people on it. Leave it empty and the
               tab still counts in what you are owed.
             </p>
@@ -58,11 +58,11 @@ export default function NewTab() {
           <div style={{ display: 'flex', gap: 9 }}>
             <button className="cta" type="button" onClick={close} style={{
               minHeight: 50, padding: '0 16px', borderRadius: 13, fontSize: 'var(--step-0)', fontWeight: 600,
-              background: 'var(--c-sunk)', color: 'var(--c-meta)',
+              background: 'var(--muted)', color: 'var(--muted-foreground)',
             }}>Cancel</button>
             <button className="cta" type="submit" disabled={pending} style={{
               flex: 1, minHeight: 50, borderRadius: 13, fontSize: 'var(--step-0)', fontWeight: 600,
-              background: 'var(--g-primary)', color: 'var(--c-on-primary)', opacity: pending ? 0.65 : 1,
+              background: 'var(--primary)', color: 'var(--primary-foreground)', opacity: pending ? 0.65 : 1,
             }}>
               <Icon name="folder" size={18} strokeWidth={2} />
               {pending ? 'Opening…' : 'Open the tab'}

@@ -1,4 +1,3 @@
-import Link from '@/app/NavLink';
 import { Icon } from '../../Icon';
 import { notFound, redirect } from 'next/navigation';
 import {
@@ -6,9 +5,11 @@ import {
 } from '@/db/queries';
 import { withHousehold } from '@/db/client';
 import { waysToPay } from '@/db/payment';
-import { headerBg } from '../../auth-ui';
 import EditEntry from './EditEntry';
 import OwedFor from './OwedFor';
+import PageHead from '../../PageHead';
+import { TAB_BAR_SPACE } from '../../tabs';
+import TabBar from '../../TabBar';
 import Screen from '../../Screen';
 
 export const metadata = { title: 'Entry · Saree al-Hisab' };
@@ -54,28 +55,9 @@ export default async function Entry({ params, searchParams }: {
 
   return (
     <Screen>
-      <main style={{ minHeight: '100dvh', background: 'var(--c-bg)', paddingBottom: 44 }}>
-        <header className="el2" style={{
-          background: headerBg('indigo'), color: '#fff', borderRadius: '0 0 26px 26px',
-          padding: '18px var(--gutter) 22px', display: 'flex', flexDirection: 'column', gap: 10,
-        }}>
-          <Link transitionTypes={['nav-back']} href={back} aria-label="Back" style={{
-            width: 44, height: 44, marginLeft: -11, borderRadius: 999, display: 'flex',
-            alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,.92)',
-          }}>
-            <svg width={21} height={21} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-              strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-              <path d="M15 5l-7 7 7 7" />
-            </svg>
-          </Link>
-          <h1 className="t" style={{ margin: 0, fontSize: 'var(--step-3)', letterSpacing: '-.018em' }}>
-            {KIND[entry.kind] ?? 'Entry'}
-          </h1>
-          <p style={{ margin: 0, fontSize: 'var(--step--1)', color: 'rgba(255,255,255,.76)' }}>
-            {entry.who} recorded this on {recorded}
-            {entry.account && ` · ${entry.account}`}
-          </p>
-        </header>
+      <main style={{ minHeight: '100dvh', background: 'var(--background)', paddingBottom: TAB_BAR_SPACE }}>
+        <PageHead back={back} eyebrow="Activity" title={KIND[entry.kind] ?? 'Entry'}
+          sub={<>{entry.who} recorded this on {recorded}{entry.account && ` · ${entry.account}`}</>} />
 
         <div style={{ padding: '18px 0 0' }}>
           <EditEntry
@@ -109,21 +91,21 @@ export default async function Entry({ params, searchParams }: {
             }}>
               <span style={{
                 fontSize: 'var(--step--2)', fontWeight: 700, letterSpacing: '.06em',
-                textTransform: 'uppercase', color: 'var(--c-meta)',
+                textTransform: 'uppercase', color: 'var(--muted-foreground)',
               }}>Bills</span>
               {bills.map((b) => (
                 <a key={b.id} href={`/attachment/${b.id}`} target="_blank" rel="noopener noreferrer"
-                  className="el card" style={{
+                  className="border border-border" style={{
                     minHeight: 52, padding: '8px 12px', borderRadius: 13, display: 'flex',
-                    alignItems: 'center', gap: 10, background: 'var(--c-card)',
-                    color: 'var(--c-ink)', textDecoration: 'none',
+                    alignItems: 'center', gap: 10, background: 'var(--card)',
+                    color: 'var(--foreground)', textDecoration: 'none',
                   }}>
                   <Icon name={b.mime === 'application/pdf' ? 'invoice' : 'camera'} size={17} strokeWidth={1.9} />
                   <span style={{
                     flex: 1, minWidth: 0, fontSize: 'var(--step--1)', fontWeight: 600,
                     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                   }}>{b.name}</span>
-                  <span style={{ fontSize: 'var(--step--2)', color: 'var(--c-meta)' }}>
+                  <span style={{ fontSize: 'var(--step--2)', color: 'var(--muted-foreground)' }}>
                     {Math.max(1, Math.round(b.bytes / 1024))} KB
                   </span>
                 </a>
@@ -134,13 +116,14 @@ export default async function Entry({ params, searchParams }: {
           {/* Tesler: the shape rules are real and cannot be wished away, so the
               app says which change it will not make rather than pretending. */}
           <p style={{
-            margin: '18px 20px 0', fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--c-meta)',
+            margin: '18px 20px 0', fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--muted-foreground)',
           }}>
             To change what kind of entry this is, delete it and add it again — an expense and a
             transfer follow different rules, and quietly rewriting one into the other is how a
             ledger starts disagreeing with itself.
           </p>
         </div>
+        <TabBar current="/entry" />
       </main>
     </Screen>
   );

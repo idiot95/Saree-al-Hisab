@@ -20,7 +20,7 @@ export default async function NoHousehold() {
       <main style={{
         minHeight: '100dvh', display: 'flex', flexDirection: 'column',
         alignItems: 'center', justifyContent: 'center', gap: 15, padding: '40px 30px',
-        textAlign: 'center', background: 'var(--c-bg)', color: 'var(--c-ink)',
+        textAlign: 'center', background: 'var(--background)', color: 'var(--foreground)',
       }}>
         <span style={{
           width: 74, height: 74, borderRadius: 999, background: 'var(--cat-blue)',
@@ -37,7 +37,7 @@ export default async function NoHousehold() {
           You are not in a household
         </h1>
         <p style={{
-          margin: 0, fontSize: 'var(--step-0)', lineHeight: 1.55, color: 'var(--c-meta)', maxWidth: '34ch',
+          margin: 0, fontSize: 'var(--step-0)', lineHeight: 1.55, color: 'var(--muted-foreground)', maxWidth: '34ch',
         }}>
           Signed in as {actor.user_name || 'you'}. Ask someone to invite you to theirs, or
           start your own.
@@ -46,14 +46,14 @@ export default async function NoHousehold() {
         {actor.email && (
           <p style={{
             margin: 0, display: 'flex', flexDirection: 'column', gap: 5, padding: '13px 16px',
-            borderRadius: 14, background: 'var(--c-card)', border: '1px solid var(--c-border)',
+            borderRadius: 14, background: 'var(--card)', border: '1px solid var(--border)',
             maxWidth: '34ch',
           }}>
-            <span style={{ fontSize: 'var(--step--2)', fontWeight: 600, color: 'var(--c-meta)' }}>
+            <span style={{ fontSize: 'var(--step--2)', fontWeight: 600, color: 'var(--muted-foreground)' }}>
               Ask them to invite this email
             </span>
             <span style={{ fontSize: 'var(--step-0)', fontWeight: 600, wordBreak: 'break-all' }}>{actor.email}</span>
-            <span style={{ fontSize: 'var(--step--2)', lineHeight: 1.45, color: 'var(--c-meta)', marginTop: 3 }}>
+            <span style={{ fontSize: 'var(--step--2)', lineHeight: 1.45, color: 'var(--muted-foreground)', marginTop: 3 }}>
               An invitation is tied to the email it is sent to.
             </span>
           </p>
@@ -64,7 +64,7 @@ export default async function NoHousehold() {
         <form action={async () => { 'use server'; await signOut({ redirectTo: '/signin' }); }}>
           <button type="submit" style={{
             minHeight: 48, padding: '0 20px', display: 'flex', alignItems: 'center',
-            borderRadius: 13, background: 'transparent', color: 'var(--c-meta)',
+            borderRadius: 13, background: 'transparent', color: 'var(--muted-foreground)',
             fontSize: 'var(--step--1)', fontWeight: 600, marginTop: 2,
           }}>
             Sign out

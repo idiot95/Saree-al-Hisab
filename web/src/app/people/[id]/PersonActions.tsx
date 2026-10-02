@@ -42,8 +42,8 @@ export default function PersonActions({ personId, name, balance, ways, categorie
   );
 
   return (
-    <div className="el card" style={{
-      margin: '0 var(--gutter) 20px', background: 'var(--c-card)', borderRadius: 18, padding: 16,
+    <div className="border border-border" style={{
+      margin: '0 var(--gutter) 20px', background: 'var(--card)', borderRadius: 18, padding: 16,
     }}>
       {mode === 'lend' && (
         <form action={lendAct} style={{ display: 'flex', flexDirection: 'column', gap: 13 }}>
@@ -92,7 +92,7 @@ export default function PersonActions({ personId, name, balance, ways, categorie
       {mode !== 'off' && balance > 0 && (
         <button type="button" onClick={() => setMode('off')} style={{
           marginTop: 12, minHeight: 44, width: '100%', fontSize: 'var(--step--1)', fontWeight: 600,
-          color: 'var(--c-meta)', background: 'transparent',
+          color: 'var(--muted-foreground)', background: 'transparent',
         }}>
           Or write off the {format(balance)} they owe
         </button>
@@ -106,13 +106,13 @@ function Title({ children }: { children: React.ReactNode }) {
 }
 function Explain({ children }: { children: React.ReactNode }) {
   return (
-    <p style={{ margin: 0, fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--c-meta)' }}>{children}</p>
+    <p style={{ margin: 0, fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--muted-foreground)' }}>{children}</p>
   );
 }
 function PayField({ label, ways }: { label: string; ways: Way[] }) {
   return (
     <div role="group" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-      <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)' }}>{label}</span>
+      <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--muted-foreground)' }}>{label}</span>
       <PayPicker name="paidWith" ways={ways} defaultValue={defaultRef(ways)} />
     </div>
   );
@@ -124,13 +124,13 @@ function Row({ onCancel, pending, label, danger }: {
     <div style={{ display: 'flex', gap: 9 }}>
       <button className="cta" type="button" onClick={onCancel} style={{
         minHeight: 50, padding: '0 16px', borderRadius: 13, fontSize: 'var(--step-0)', fontWeight: 600,
-        background: 'var(--c-sunk)', color: 'var(--c-meta)',
+        background: 'var(--muted)', color: 'var(--muted-foreground)',
       }}>Cancel</button>
       <button className="cta" type="submit" disabled={pending} style={{
         flex: 1, minHeight: 50, borderRadius: 13, fontSize: 'var(--step-0)', fontWeight: 600,
         opacity: pending ? 0.65 : 1,
-        background: danger ? 'var(--c-danger-tint)' : 'var(--c-seagrass)',
-        color: danger ? 'var(--c-danger)' : 'var(--c-on-fill)',
+        background: danger ? 'color-mix(in srgb, var(--destructive) 12%, transparent)' : 'var(--chart-1)',
+        color: danger ? 'var(--destructive)' : 'var(--attention-soft-foreground)',
       }}>{pending ? 'Saving…' : label}</button>
     </div>
   );
@@ -142,11 +142,10 @@ function Btn({ children, onClick, primary }: {
     <button type="button" onClick={onClick} className={`${primary ? 'el2' : 'el'} cta`} style={{
       flex: 1, minHeight: 54, borderRadius: 14, fontSize: 'var(--step-0)', fontWeight: 600,
       background: primary
-        ? 'radial-gradient(120% 100% at 25% 0%, rgba(255,255,255,.18) 0%, rgba(255,255,255,0) 60%),'
-          + 'linear-gradient(145deg,#2C5063 0%,#1C3541 100%)'
-        : 'var(--c-card)',
-      color: primary ? '#fff' : 'var(--c-ink)',
-      border: primary ? 0 : '1px solid var(--c-border)',
+        ? 'var(--primary)'
+        : 'var(--card)',
+      color: primary ? 'var(--primary-foreground)' : 'var(--foreground)',
+      border: primary ? 0 : '1px solid var(--border)',
     }}>{children}</button>
   );
 }

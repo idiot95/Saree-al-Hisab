@@ -85,19 +85,19 @@ export default function Bills({ staged, onChange }: {
           {staged.map((s, i) => (
             <li key={`${s.name}-${i}`} style={{
               minHeight: 46, padding: '6px 6px 6px 12px', borderRadius: 12, display: 'flex',
-              alignItems: 'center', gap: 10, background: 'var(--c-sunk2)',
+              alignItems: 'center', gap: 10, background: 'var(--background)',
             }}>
               <Icon name={s.mime === 'application/pdf' ? 'invoice' : 'camera'} size={17} strokeWidth={1.9} />
               <span style={{
                 flex: 1, minWidth: 0, fontSize: 'var(--step--1)', fontWeight: 600,
                 overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
               }}>{s.name}</span>
-              <span style={{ fontSize: 'var(--step--2)', color: 'var(--c-meta)' }}>{kb(s.bytes)}</span>
+              <span style={{ fontSize: 'var(--step--2)', color: 'var(--muted-foreground)' }}>{kb(s.bytes)}</span>
               <button type="button" aria-label={`Remove ${s.name}`}
                 onClick={() => { haptic('select'); onChange(staged.filter((_, n) => n !== i)); }}
                 style={{
                   width: 34, height: 34, flex: 'none', borderRadius: 999, display: 'flex',
-                  alignItems: 'center', justifyContent: 'center', color: 'var(--c-meta)',
+                  alignItems: 'center', justifyContent: 'center', color: 'var(--muted-foreground)',
                 }}>×</button>
             </li>
           ))}
@@ -108,8 +108,8 @@ export default function Bills({ staged, onChange }: {
         <button type="button" onClick={() => { haptic('select'); input.current?.click(); }} disabled={busy}
           style={{
             minHeight: 48, borderRadius: 13, display: 'flex', alignItems: 'center', gap: 9,
-            padding: '0 14px', border: '1px dashed var(--c-dash)', background: 'var(--c-card)',
-            color: 'var(--c-ink)', fontSize: 'var(--step--1)', fontWeight: 600,
+            padding: '0 14px', border: '1px dashed var(--input)', background: 'var(--card)',
+            color: 'var(--foreground)', fontSize: 'var(--step--1)', fontWeight: 600,
           }}>
           <Icon name="camera" size={17} strokeWidth={1.9} />
           {busy ? 'Adding…' : staged.length ? 'Add another bill' : 'Attach a bill or photo'}
@@ -118,7 +118,7 @@ export default function Bills({ staged, onChange }: {
       <input ref={input} type="file" accept="image/*,application/pdf" multiple
         onChange={(e) => take(e.target.files)} style={{ display: 'none' }} />
       {problem && (
-        <span role="alert" style={{ fontSize: 'var(--step--2)', color: 'var(--c-danger)' }}>{problem}</span>
+        <span role="alert" style={{ fontSize: 'var(--step--2)', color: 'var(--destructive)' }}>{problem}</span>
       )}
     </div>
   );

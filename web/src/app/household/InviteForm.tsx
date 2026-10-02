@@ -20,19 +20,16 @@ export default function InviteForm({ origin, household, inviter }: {
 
   return (
     <>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '4px var(--gutter) 12px' }}>
-        <h2 style={{ margin: 0, fontSize: 'var(--step-1)', fontWeight: 600, letterSpacing: '-.012em' }}>
-          Invite someone
-        </h2>
-        <span style={{ flex: 1, height: 1, background: 'var(--c-border)' }} />
+      <div className="mx-[var(--gutter)] mb-2 px-1">
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Invite someone</h2>
       </div>
 
-      <section className="el card" style={{
-        margin: '0 var(--gutter) 22px', background: 'var(--c-card)', borderRadius: 18, padding: 16,
+      <section className="border border-border" style={{
+        margin: '0 var(--gutter) 22px', background: 'var(--card)', borderRadius: 18, padding: 16,
       }}>
         <form action={act} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)' }}>
+            <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--muted-foreground)' }}>
               Email address
             </span>
             <input
@@ -40,15 +37,15 @@ export default function InviteForm({ origin, household, inviter }: {
               placeholder="name@example.com" required
               value={email} onChange={(e) => setEmail(e.target.value)}
               style={{
-                minHeight: 50, borderRadius: 13, border: '1px solid var(--c-border)',
-                background: 'var(--c-sunk2)', color: 'var(--c-ink)', fontSize: 'var(--field)',
+                minHeight: 50, borderRadius: 13, border: '1px solid var(--border)',
+                background: 'var(--background)', color: 'var(--foreground)', fontSize: 'var(--field)',
                 padding: '0 14px', width: '100%',
               }}
             />
           </label>
 
           <fieldset style={{ border: 0, padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <legend style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)', padding: 0 }}>
+            <legend style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--muted-foreground)', padding: 0 }}>
               What they can do
             </legend>
             <Choice
@@ -64,11 +61,10 @@ export default function InviteForm({ origin, household, inviter }: {
           </fieldset>
 
           <button className="cta" type="submit" disabled={pending} style={{
-            minHeight: 52, borderRadius: 14, fontSize: 'var(--step-0)', fontWeight: 600, color: '#fff',
+            minHeight: 52, borderRadius: 14, fontSize: 'var(--step-0)', fontWeight: 600, color: 'var(--primary-foreground)',
             opacity: pending ? 0.6 : 1,
             background:
-              'radial-gradient(120% 100% at 25% 0%, rgba(255,255,255,.18) 0%, rgba(255,255,255,0) 60%),'
-              + 'linear-gradient(145deg,#2C5063 0%,#1C3541 100%)',
+              'var(--primary)',
           }}>
             {pending ? 'Creating…' : 'Create invitation'}
           </button>
@@ -76,7 +72,7 @@ export default function InviteForm({ origin, household, inviter }: {
           {state && !state.ok && (
             <p role="alert" style={{
               margin: 0, display: 'flex', alignItems: 'center', gap: 8, padding: '11px 13px',
-              borderRadius: 12, background: 'var(--c-danger-tint)', color: 'var(--c-danger)',
+              borderRadius: 12, background: 'color-mix(in srgb, var(--destructive) 12%, transparent)', color: 'var(--destructive)',
               fontSize: 'var(--step--1)', fontWeight: 600,
             }}>
               <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -103,14 +99,14 @@ function Choice({ name, value, title, what, checked, onPick }: {
   return (
     <label style={{
       display: 'flex', alignItems: 'flex-start', gap: 11, minHeight: 44, padding: '12px 13px',
-      borderRadius: 13, background: 'var(--c-sunk2)', border: '1px solid var(--c-border)',
+      borderRadius: 13, background: 'var(--background)', border: '1px solid var(--border)',
       cursor: 'pointer',
     }}>
       <input type="radio" name={name} value={value} checked={checked} onChange={onPick}
-        style={{ width: 19, height: 19, marginTop: 1, accentColor: 'var(--c-seagrass)', flex: 'none' }} />
+        style={{ width: 19, height: 19, marginTop: 1, accentColor: 'var(--chart-1)', flex: 'none' }} />
       <span style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
         <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>{title}</span>
-        <span style={{ fontSize: 'var(--step--1)', lineHeight: 1.45, color: 'var(--c-meta)' }}>{what}</span>
+        <span style={{ fontSize: 'var(--step--1)', lineHeight: 1.45, color: 'var(--muted-foreground)' }}>{what}</span>
       </span>
     </label>
   );
@@ -160,12 +156,12 @@ function InviteMessage({ url, email, role, household, inviter, until }: {
 
   return (
     <div style={{
-      marginTop: 16, padding: 14, borderRadius: 14, background: 'var(--c-ok-tint)',
+      marginTop: 16, padding: 14, borderRadius: 14, background: 'var(--accent)',
       display: 'flex', flexDirection: 'column', gap: 10,
     }}>
       <span style={{
         display: 'flex', alignItems: 'center', gap: 7, fontSize: 'var(--step--1)', fontWeight: 700,
-        color: 'var(--c-ok)',
+        color: 'var(--primary)',
       }}>
         <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor"
           strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
@@ -173,36 +169,36 @@ function InviteMessage({ url, email, role, household, inviter, until }: {
         </svg>
         Invitation ready
       </span>
-      <p style={{ margin: 0, fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--c-ink)' }}>
+      <p style={{ margin: 0, fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--foreground)' }}>
         Send this to {email || 'them'} privately — it says what to do. <b>Anyone who opens the
         link can take that place in the household.</b>
       </p>
       <pre style={{
-        margin: 0, padding: '12px 13px', borderRadius: 10, background: 'var(--c-card)',
-        border: '1px solid var(--c-border)', fontFamily: 'inherit', fontSize: 'var(--step--1)',
-        lineHeight: 1.5, whiteSpace: 'pre-wrap', wordBreak: 'break-word', color: 'var(--c-ink)',
+        margin: 0, padding: '12px 13px', borderRadius: 10, background: 'var(--card)',
+        border: '1px solid var(--border)', fontFamily: 'inherit', fontSize: 'var(--step--1)',
+        lineHeight: 1.5, whiteSpace: 'pre-wrap', wordBreak: 'break-word', color: 'var(--foreground)',
         userSelect: 'all',
       }}>{message}</pre>
       <div style={{ display: 'flex', gap: 8 }}>
         {share && (
           <button className="cta el" type="button" onClick={shareIt} style={{
-            ...btn, background: 'var(--g-primary)', color: 'var(--c-on-primary)',
+            ...btn, background: 'var(--primary)', color: 'var(--primary-foreground)',
           }}>Share…</button>
         )}
         <button className="cta" type="button" onClick={() => copy(message, 'message')} style={{
-          ...btn, background: 'var(--c-card)', border: '1px solid var(--c-border)', color: 'var(--c-ink)',
+          ...btn, background: 'var(--card)', border: '1px solid var(--border)', color: 'var(--foreground)',
         }}>
           {copied === 'message' ? 'Copied' : copied === 'failed' ? 'Select the text to copy' : 'Copy message'}
         </button>
       </div>
       <button type="button" onClick={() => copy(url, 'link')} style={{
         alignSelf: 'flex-start', minHeight: 44, padding: 0, background: 'none', border: 0,
-        fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-teal)', textDecoration: 'underline',
+        fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--primary)', textDecoration: 'underline',
         textUnderlineOffset: 3,
       }}>
         {copied === 'link' ? 'Link copied' : 'Copy just the link'}
       </button>
-      <p style={{ margin: 0, fontSize: 'var(--step--2)', lineHeight: 1.5, color: 'var(--c-meta)' }}>
+      <p style={{ margin: 0, fontSize: 'var(--step--2)', lineHeight: 1.5, color: 'var(--muted-foreground)' }}>
         Shown only once. If you lose it, withdraw the invitation and create a new one.
       </p>
     </div>

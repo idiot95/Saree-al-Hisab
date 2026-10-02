@@ -22,15 +22,15 @@ export default async function SignUp() {
         <SignUpForm />
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '2px 0' }}>
-          <span style={{ flex: 1, height: 1, background: 'var(--c-border)' }} />
-          <span style={{ fontSize: 'var(--step--2)', fontWeight: 600, color: 'var(--c-meta)', letterSpacing: '.04em' }}>
+          <span style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+          <span style={{ fontSize: 'var(--step--2)', fontWeight: 600, color: 'var(--muted-foreground)', letterSpacing: '.04em' }}>
             ALREADY HAVE AN ACCOUNT
           </span>
-          <span style={{ flex: 1, height: 1, background: 'var(--c-border)' }} />
+          <span style={{ flex: 1, height: 1, background: 'var(--border)' }} />
         </div>
         <a href="/signin" style={quietBtn}>Sign in</a>
 
-        <p style={{ margin: '4px 4px 0', fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--c-meta)' }}>
+        <p style={{ margin: '4px 4px 0', fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--muted-foreground)' }}>
           Signing up gets you your own household. To join someone else&rsquo;s, you need an
           invitation from them.
         </p>

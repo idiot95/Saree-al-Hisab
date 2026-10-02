@@ -13,16 +13,16 @@ export default function ScanKey({ hasKey, setOn }: { hasKey: boolean; setOn: str
   const [open, setOpen] = useState(false);
 
   return (
-    <section className="el card" style={{
-      margin: '0 var(--gutter) 22px', background: 'var(--c-card)', borderRadius: 18, padding: 16,
+    <section className="border border-border" style={{
+      margin: '0 var(--gutter) 22px', background: 'var(--card)', borderRadius: 18, padding: 16,
       display: 'flex', flexDirection: 'column', gap: 12,
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
         <span style={{
           width: 38, height: 38, flex: 'none', borderRadius: 999, display: 'flex',
           alignItems: 'center', justifyContent: 'center',
-          background: hasKey ? 'var(--c-ok-tint)' : 'var(--c-sunk)',
-          color: hasKey ? 'var(--c-ok)' : 'var(--c-meta)',
+          background: hasKey ? 'var(--accent)' : 'var(--muted)',
+          color: hasKey ? 'var(--primary)' : 'var(--muted-foreground)',
         }}>
           <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="currentColor"
             strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
@@ -33,7 +33,7 @@ export default function ScanKey({ hasKey, setOn }: { hasKey: boolean; setOn: str
         </span>
         <span style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
           <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>Receipt scanning</span>
-          <span style={{ fontSize: 'var(--step--1)', color: hasKey ? 'var(--c-ok)' : 'var(--c-meta)' }}>
+          <span style={{ fontSize: 'var(--step--1)', color: hasKey ? 'var(--primary)' : 'var(--muted-foreground)' }}>
             {hasKey ? `On since ${setOn}` : 'Off — needs a Google AI key'}
           </span>
         </span>
@@ -42,11 +42,11 @@ export default function ScanKey({ hasKey, setOn }: { hasKey: boolean; setOn: str
       {!open ? (
         <button className="cta" type="button" onClick={() => setOpen(true)} style={{
           minHeight: 48, borderRadius: 12, fontSize: 'var(--step-0)', fontWeight: 600,
-          background: 'var(--c-sunk)', color: 'var(--c-ink)',
+          background: 'var(--muted)', color: 'var(--foreground)',
         }}>{hasKey ? 'Replace or remove the key' : 'Add a key'}</button>
       ) : (
         <>
-          <p style={{ margin: 0, fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--c-meta)' }}>
+          <p style={{ margin: 0, fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--muted-foreground)' }}>
             Get one free at <b>aistudio.google.com/apikey</b>. It is yours, not ours: it is
             stored encrypted, only this household can use it, and every scan is billed to your
             own free quota rather than shared with strangers.
@@ -58,21 +58,21 @@ export default function ScanKey({ hasKey, setOn }: { hasKey: boolean; setOn: str
             {saveState?.ok && (
               <p role="status" style={{
                 margin: 0, padding: '11px 13px', borderRadius: 12, fontSize: 'var(--step--1)', fontWeight: 600,
-                background: 'var(--c-ok-tint)', color: 'var(--c-ok)',
+                background: 'var(--accent)', color: 'var(--primary)',
               }}>{saveState.message}</p>
             )}
             <div style={{ display: 'flex', gap: 9 }}>
               <button className="cta" type="button" onClick={() => setOpen(false)} style={{
                 minHeight: 48, padding: '0 16px', borderRadius: 12, fontSize: 'var(--step-0)',
-                fontWeight: 600, background: 'var(--c-sunk)', color: 'var(--c-meta)',
+                fontWeight: 600, background: 'var(--muted)', color: 'var(--muted-foreground)',
               }}>Cancel</button>
               <button className="cta" type="submit" disabled={saving} style={{
                 flex: 1, minHeight: 48, borderRadius: 12, fontSize: 'var(--step-0)', fontWeight: 600,
-                background: 'var(--g-primary)', color: 'var(--c-on-primary)',
+                background: 'var(--primary)', color: 'var(--primary-foreground)',
                 opacity: saving ? 0.6 : 1,
               }}>{saving ? 'Checking with Google…' : 'Check and save'}</button>
             </div>
-            <span style={{ fontSize: 'var(--step--2)', color: 'var(--c-meta)' }}>
+            <span style={{ fontSize: 'var(--step--2)', color: 'var(--muted-foreground)' }}>
               The key is tried against Google before it is stored, so a typo is caught now
               rather than the first time you photograph a receipt.
             </span>
@@ -82,7 +82,7 @@ export default function ScanKey({ hasKey, setOn }: { hasKey: boolean; setOn: str
             <form action={remove}>
               <button className="cta" type="submit" disabled={removing} style={{
                 width: '100%', minHeight: 46, borderRadius: 12, fontSize: 'var(--step--1)', fontWeight: 600,
-                background: 'transparent', color: 'var(--c-danger)',
+                background: 'transparent', color: 'var(--destructive)',
               }}>{removing ? 'Removing…' : 'Remove the key and turn scanning off'}</button>
               {rmState && !rmState.ok && <ErrorNote>{rmState.error}</ErrorNote>}
             </form>

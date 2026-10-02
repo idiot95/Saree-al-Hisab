@@ -12,7 +12,7 @@ export default function RevokeButton({ id }: { id: string }) {
       <button className="cta" type="submit" disabled={pending} title={state && !state.ok ? state.error : undefined}
         style={{
           minHeight: 44, padding: '0 13px', borderRadius: 11, fontSize: 'var(--step--1)', fontWeight: 600,
-          background: 'var(--c-sunk)', color: 'var(--c-danger)',
+          background: 'var(--muted)', color: 'var(--destructive)',
         }}>
         {pending ? 'Withdrawing…' : 'Withdraw'}
       </button>

@@ -55,51 +55,40 @@ export function headerBg(accent: Accent = 'teal'): string {
 /** The default, kept so screens that have not chosen an accent still work. */
 export const HEADER_BG = headerBg('teal');
 
+/* Quiet Ledger: the one filled button is flat navy. The gradients went with the coloured headers. */
 export const primaryBtn: React.CSSProperties = {
-  width: '100%', minHeight: 56, borderRadius: 15, fontSize: 'var(--step-1)', fontWeight: 600, color: '#fff',
+  width: '100%', minHeight: 54, borderRadius: 14, fontSize: 'var(--step-0)', fontWeight: 600,
   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 9,
-  background:
-    'radial-gradient(120% 100% at 25% 0%, rgba(255,255,255,.18) 0%, rgba(255,255,255,0) 60%),'
-    + 'linear-gradient(145deg,#2C5063 0%,#1C3541 100%)',
+  background: 'var(--primary)', color: 'var(--primary-foreground)',
 };
 
 export const quietBtn: React.CSSProperties = {
   width: '100%', minHeight: 52, borderRadius: 15, fontSize: 'var(--step-0)', fontWeight: 600,
   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-  background: 'var(--c-card)', color: 'var(--c-ink)', border: '1px solid var(--c-border)',
+  background: 'var(--card)', color: 'var(--foreground)', border: '1px solid var(--border)',
   textDecoration: 'none',
 };
 
 export function AuthShell({ kicker, title, blurb, children }: {
   kicker?: string; title: React.ReactNode; blurb?: React.ReactNode; children: React.ReactNode;
 }) {
+  /* Paper, the app's mark, and the serif title: the same first impression the screens behind it make. */
   return (
     <main style={{
       minHeight: '100dvh', display: 'flex', flexDirection: 'column',
-      background: 'var(--c-bg)', color: 'var(--c-ink)',
+      background: 'var(--background)', color: 'var(--foreground)',
     }}>
-      <div className="el2" style={{
-        background: HEADER_BG, color: '#fff', borderRadius: '0 0 30px 30px',
-        padding: '52px 24px 38px', display: 'flex', flexDirection: 'column', gap: 13,
-      }}>
-        <span style={{
-          width: 50, height: 50, borderRadius: 15, background: 'rgba(255,255,255,.16)',
-          border: '1px solid rgba(255,255,255,.24)', display: 'flex',
-          alignItems: 'center', justifyContent: 'center',
-        }}>
-          <svg width={25} height={25} viewBox="0 0 24 24" fill="none" stroke="#fff"
-            strokeWidth={1.8} strokeLinecap="round" aria-hidden>
-            <path d="M4 6.5h16" /><path d="M7 12h10" /><path d="M10 17.5h4" />
-          </svg>
-        </span>
-        {kicker && (
-          <p style={{ margin: 0, fontSize: 'var(--step--1)', color: 'rgba(255,255,255,.78)' }}>{kicker}</p>
-        )}
-        <h1 className="t" style={{
-          margin: 0, fontSize: 'var(--step-4)', lineHeight: 1.08, letterSpacing: '-.02em', textWrap: 'balance',
+      <div style={{ padding: '48px 24px 22px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {/* The app's own icon — the letter ح traced once from Noto Naskh (scripts/make-icons.mjs) — not a font
+            fallback's guess at it. */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/icons/icon-192.png" alt="" width={48} height={48} style={{ borderRadius: 14 }} />
+        {kicker && <p style={{ margin: 0, fontSize: 'var(--step--1)', color: 'var(--muted-foreground)' }}>{kicker}</p>}
+        <h1 className="font-display" style={{
+          margin: 0, fontSize: 36, fontWeight: 400, lineHeight: 1.08, textWrap: 'balance',
         }}>{title}</h1>
         {blurb && (
-          <p style={{ margin: 0, fontSize: 'var(--step-0)', lineHeight: 1.5, color: 'rgba(255,255,255,.82)' }}>
+          <p style={{ margin: 0, fontSize: 'var(--step-0)', lineHeight: 1.5, color: 'var(--muted-foreground)' }}>
             {blurb}
           </p>
         )}
@@ -114,18 +103,18 @@ export function Field({ label, name, type = 'text', hint, ...rest }: {
 } & React.InputHTMLAttributes<HTMLInputElement>) {
   return (
     <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-      <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)' }}>{label}</span>
+      <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--muted-foreground)' }}>{label}</span>
       <input
         name={name} type={type}
         style={{
-          minHeight: 52, borderRadius: 13, border: '1px solid var(--c-border)',
-          background: 'var(--c-card)', color: 'var(--c-ink)', fontSize: 'var(--field)',
+          minHeight: 52, borderRadius: 13, border: '1px solid var(--border)',
+          background: 'var(--card)', color: 'var(--foreground)', fontSize: 'var(--field)',
           padding: '0 14px', width: '100%',
         }}
         {...rest}
       />
       {hint && (
-        <span style={{ fontSize: 'var(--step--2)', lineHeight: 1.45, color: 'var(--c-meta)' }}>{hint}</span>
+        <span style={{ fontSize: 'var(--step--2)', lineHeight: 1.45, color: 'var(--muted-foreground)' }}>{hint}</span>
       )}
     </label>
   );
@@ -139,10 +128,10 @@ export function CurrencyField({ defaultValue = 'INR', hint, ...rest }: {
 } & React.SelectHTMLAttributes<HTMLSelectElement>) {
   return (
     <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-      <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)' }}>Currency</span>
+      <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--muted-foreground)' }}>Currency</span>
       <select name="currency" defaultValue={defaultValue} style={{
-        minHeight: 52, borderRadius: 13, border: '1px solid var(--c-border)',
-        background: 'var(--c-card)', color: 'var(--c-ink)', fontSize: 'var(--field)',
+        minHeight: 52, borderRadius: 13, border: '1px solid var(--border)',
+        background: 'var(--card)', color: 'var(--foreground)', fontSize: 'var(--field)',
         padding: '0 14px', width: '100%', appearance: 'auto',
       }} {...rest}>
         {CURRENCIES.map((c) => (
@@ -150,7 +139,7 @@ export function CurrencyField({ defaultValue = 'INR', hint, ...rest }: {
         ))}
       </select>
       {hint && (
-        <span style={{ fontSize: 'var(--step--2)', lineHeight: 1.45, color: 'var(--c-meta)' }}>{hint}</span>
+        <span style={{ fontSize: 'var(--step--2)', lineHeight: 1.45, color: 'var(--muted-foreground)' }}>{hint}</span>
       )}
     </label>
   );
@@ -160,7 +149,7 @@ export function ErrorNote({ children }: { children: React.ReactNode }) {
   return (
     <p role="alert" style={{
       margin: 0, display: 'flex', alignItems: 'flex-start', gap: 8, padding: '12px 14px',
-      borderRadius: 13, background: 'var(--c-danger-tint)', color: 'var(--c-danger)',
+      borderRadius: 13, background: 'color-mix(in srgb, var(--destructive) 12%, transparent)', color: 'var(--destructive)',
       fontSize: 'var(--step--1)', lineHeight: 1.5, fontWeight: 600,
     }}>
       <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -180,20 +169,20 @@ export function DeadEnd({ title, body, cta }: {
     <main style={{
       minHeight: '100dvh', display: 'flex', flexDirection: 'column', alignItems: 'center',
       justifyContent: 'center', gap: 14, padding: '40px 34px', textAlign: 'center',
-      background: 'var(--c-bg)', color: 'var(--c-ink)',
+      background: 'var(--background)', color: 'var(--foreground)',
     }}>
       <span style={{
-        width: 68, height: 68, borderRadius: 999, background: 'var(--c-sunk)',
-        color: 'var(--c-meta)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+        width: 68, height: 68, borderRadius: 999, background: 'var(--muted)',
+        color: 'var(--muted-foreground)', display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>
         <svg width={32} height={32} viewBox="0 0 24 24" fill="none" stroke="currentColor"
           strokeWidth={1.6} strokeLinecap="round" aria-hidden>
           <circle cx="12" cy="12" r="8.6" /><path d="M12 7.6V13" /><path d="M12 16.4v.1" />
         </svg>
       </span>
-      <h1 className="t" style={{ margin: 0, fontSize: 'var(--step-3)', letterSpacing: '-.016em' }}>{title}</h1>
+      <h1 className="font-display" style={{ margin: 0, fontSize: 32, fontWeight: 400 }}>{title}</h1>
       <p style={{
-        margin: 0, fontSize: 'var(--step-0)', lineHeight: 1.55, color: 'var(--c-meta)', maxWidth: '32ch',
+        margin: 0, fontSize: 'var(--step-0)', lineHeight: 1.55, color: 'var(--muted-foreground)', maxWidth: '32ch',
       }}>{body}</p>
       {cta && (
         <a href={cta.href} style={{ ...quietBtn, width: 'auto', padding: '0 22px', marginTop: 8 }}>

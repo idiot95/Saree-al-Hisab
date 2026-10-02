@@ -60,7 +60,7 @@ function Banner() {
   return (
     <div style={{
       display: 'flex', alignItems: 'center', gap: 10, margin: '0 var(--gutter) 12px',
-      padding: '12px 15px', borderRadius: 14, background: 'var(--c-sunk2)', color: 'var(--c-meta)',
+      padding: '12px 15px', borderRadius: 14, background: 'var(--background)', color: 'var(--muted-foreground)',
       fontSize: 'var(--step--1)', fontWeight: 600, lineHeight: 1.4,
     }}>
       <NoSignal size={18} />
@@ -74,7 +74,7 @@ function Banner() {
       {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
       <a href="/" style={{
         minHeight: 44, padding: '0 10px', display: 'flex', alignItems: 'center', flex: 'none',
-        textDecoration: 'none', color: 'var(--c-teal)', fontWeight: 700,
+        textDecoration: 'none', color: 'var(--primary)', fontWeight: 700,
       }}>Retry</a>
     </div>
   );
@@ -84,34 +84,34 @@ function Pending({ queue }: { queue: Queued[] }) {
   const { format } = useMoney();
   if (queue.length === 0) return null;
   return (
-    <section aria-label="Waiting to be sent" className="el card" style={{
-      margin: '0 var(--gutter) 12px', background: 'var(--c-card)', borderRadius: 16, padding: '0 16px',
+    <section aria-label="Waiting to be sent" className="border border-border" style={{
+      margin: '0 var(--gutter) 12px', background: 'var(--card)', borderRadius: 16, padding: '0 16px',
     }}>
       <p style={{
         margin: 0, padding: '12px 0 4px', fontSize: 'var(--step--2)', fontWeight: 700,
-        letterSpacing: '.04em', color: 'var(--c-meta)',
+        letterSpacing: '.04em', color: 'var(--muted-foreground)',
       }}>
         WAITING FOR SIGNAL · {queue.length}
       </p>
       {queue.map((q, i) => (
         <div key={q.clientRef} style={{
           display: 'flex', alignItems: 'center', gap: 10, minHeight: 52,
-          borderBottom: i === queue.length - 1 ? undefined : '1px solid var(--c-rule)',
+          borderBottom: i === queue.length - 1 ? undefined : '1px solid var(--border)',
         }}>
           <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
             <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {q.kind === 'income' ? 'Income' : q.kind === 'transfer' ? 'Transfer' : (q.merchant || 'Expense')}
-              <span style={{ color: 'var(--c-meta)', fontWeight: 500 }}> · {q.occurredOn}</span>
+              <span style={{ color: 'var(--muted-foreground)', fontWeight: 500 }}> · {q.occurredOn}</span>
             </span>
             {q.stuck && (
-              <span style={{ fontSize: 'var(--step--2)', color: 'var(--c-danger)' }}>Not accepted: {q.stuck}</span>
+              <span style={{ fontSize: 'var(--step--2)', color: 'var(--destructive)' }}>Not accepted: {q.stuck}</span>
             )}
           </span>
           <span className="t n" style={{ fontSize: 'var(--step-0)' }}>{format(q.amountMinor)}</span>
           <button type="button" aria-label={`Discard ${format(q.amountMinor)}`}
             onClick={() => { haptic('select'); dequeue(q.clientRef); }} style={{
               width: 44, height: 44, marginRight: -10, borderRadius: 999, display: 'flex',
-              alignItems: 'center', justifyContent: 'center', color: 'var(--c-meta)',
+              alignItems: 'center', justifyContent: 'center', color: 'var(--muted-foreground)',
             }}>
             <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="currentColor"
               strokeWidth={2} strokeLinecap="round" aria-hidden><path d="M6 6l12 12M18 6L6 18" /></svg>
@@ -129,11 +129,11 @@ function Bare({ queue }: { queue: Queued[] }) {
     <main style={{
       minHeight: '100dvh', display: 'flex', flexDirection: 'column', alignItems: 'center',
       justifyContent: 'center', gap: 15, padding: '40px 32px', textAlign: 'center',
-      background: 'var(--c-bg)', color: 'var(--c-ink)',
+      background: 'var(--background)', color: 'var(--foreground)',
     }}>
       <span style={{
         width: 70, height: 70, borderRadius: 999, display: 'flex', alignItems: 'center',
-        justifyContent: 'center', background: 'var(--c-sunk)', color: 'var(--c-meta)',
+        justifyContent: 'center', background: 'var(--muted)', color: 'var(--muted-foreground)',
       }}>
         <NoSignal size={32} />
       </span>
@@ -141,14 +141,14 @@ function Bare({ queue }: { queue: Queued[] }) {
         No connection
       </h1>
       <p style={{
-        margin: 0, fontSize: 'var(--step-0)', lineHeight: 1.55, color: 'var(--c-meta)', maxWidth: '31ch',
+        margin: 0, fontSize: 'var(--step-0)', lineHeight: 1.55, color: 'var(--muted-foreground)', maxWidth: '31ch',
       }}>
         Your books live on the server, so they need a signal to open. Nothing has been lost.
         Open Add Entry once while online, and from then on entries can be written here
         without a signal and sent when it returns.
       </p>
       {queue.length > 0 && (
-        <p style={{ margin: 0, fontSize: 'var(--step--1)', color: 'var(--c-meta)' }}>
+        <p style={{ margin: 0, fontSize: 'var(--step--1)', color: 'var(--muted-foreground)' }}>
           {queue.length === 1 ? 'One entry is' : `${queue.length} entries are`} waiting on this phone to be sent.
         </p>
       )}
@@ -156,7 +156,7 @@ function Bare({ queue }: { queue: Queued[] }) {
       <a href="/" style={{
         minHeight: 50, padding: '0 22px', display: 'flex', alignItems: 'center',
         borderRadius: 14, textDecoration: 'none', fontSize: 'var(--step-0)', fontWeight: 600,
-        background: 'var(--c-card)', border: '1px solid var(--c-border)', color: 'var(--c-ink)',
+        background: 'var(--card)', border: '1px solid var(--border)', color: 'var(--foreground)',
       }}>Try again</a>
     </main>
   );

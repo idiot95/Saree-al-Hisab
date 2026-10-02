@@ -31,13 +31,13 @@ export default function RemindShare({ person, what, amount, on, bills }: {
         minHeight: 44, padding: '0 13px', borderRadius: 11, display: 'flex',
         alignItems: 'center', justifyContent: 'center', gap: 7,
         fontSize: 'var(--step--2)', fontWeight: 700,
-        background: 'var(--c-sunk)', color: 'var(--c-ink)',
+        background: 'var(--muted)', color: 'var(--foreground)',
       }}>
         <Icon name="bell" size={15} strokeWidth={2} />
         {busy ? 'Preparing…' : bills.length > 0 ? `Remind · ${bills.length} bill${bills.length === 1 ? '' : 's'}` : 'Remind'}
       </button>
       {said && (
-        <span role="status" style={{ fontSize: 'var(--step--2)', lineHeight: 1.4, color: 'var(--c-meta)' }}>
+        <span role="status" style={{ fontSize: 'var(--step--2)', lineHeight: 1.4, color: 'var(--muted-foreground)' }}>
           {said}
         </span>
       )}

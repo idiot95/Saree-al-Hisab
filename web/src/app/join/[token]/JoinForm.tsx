@@ -13,8 +13,8 @@ export default function JoinForm({ token, email }: { token: string; email: strin
       {/* Fixed, not chosen: this is the address the invitation was written to. */}
       <Field label="Email" name="shown" type="email" value={email} readOnly disabled
         style={{
-          minHeight: 52, borderRadius: 13, border: '1px solid var(--c-border)',
-          background: 'var(--c-sunk)', color: 'var(--c-meta)', fontSize: 'var(--step-0)',
+          minHeight: 52, borderRadius: 13, border: '1px solid var(--border)',
+          background: 'var(--muted)', color: 'var(--muted-foreground)', fontSize: 'var(--step-0)',
           padding: '0 14px', width: '100%',
         }} />
       <Field label="Your name" name="name" autoComplete="name"
@@ -25,7 +25,7 @@ export default function JoinForm({ token, email }: { token: string; email: strin
       <Field label="Confirm password" name="confirm" type="password"
         autoComplete="new-password" required />
       {state?.error && <ErrorNote>{state.error}</ErrorNote>}
-      <button type="submit" disabled={pending} className="el2"
+      <button type="submit" disabled={pending} 
         style={{ ...primaryBtn, opacity: pending ? 0.65 : 1, marginTop: 3 }}>
         {pending ? 'Joining…' : 'Join household'}
       </button>

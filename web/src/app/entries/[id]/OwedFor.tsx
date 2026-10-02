@@ -12,10 +12,10 @@ type Claim = {
 };
 
 const WORD: Record<string, [string, string]> = {
-  open: ['owes you', 'var(--c-ink)'],
-  part_paid: ['part paid', 'var(--c-warn)'],
-  settled: ['settled up', 'var(--c-ok)'],
-  written_off: ['written off', 'var(--c-meta)'],
+  open: ['owes you', 'var(--foreground)'],
+  part_paid: ['part paid', 'var(--attention-soft-foreground)'],
+  settled: ['settled up', 'var(--primary)'],
+  written_off: ['written off', 'var(--muted-foreground)'],
 };
 
 /* Marking an expense as owed does not change the expense. You paid for it, it
@@ -32,8 +32,8 @@ export default function OwedFor({ txnId, entryAmount, people, claims, canEdit }:
   if (people.length === 0 && claims.length === 0) return null;
 
   return (
-    <section className="el card" style={{
-      margin: '0 var(--gutter) 16px', background: 'var(--c-card)', borderRadius: 18, padding: 16,
+    <section className="border border-border" style={{
+      margin: '0 var(--gutter) 16px', background: 'var(--card)', borderRadius: 18, padding: 16,
       display: 'flex', flexDirection: 'column', gap: 12,
     }}>
       <h2 style={{ margin: 0, fontSize: 'var(--step-0)', fontWeight: 600 }}>Owed back to you</h2>
@@ -45,7 +45,7 @@ export default function OwedFor({ txnId, entryAmount, people, claims, canEdit }:
             return (
               <li key={c.id} style={{
                 display: 'flex', alignItems: 'center', gap: 10, minHeight: 56,
-                borderBottom: i === claims.length - 1 ? undefined : '1px solid var(--c-rule)',
+                borderBottom: i === claims.length - 1 ? undefined : '1px solid var(--border)',
               }}>
                 <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
                   <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>{c.person}</span>
@@ -62,7 +62,7 @@ export default function OwedFor({ txnId, entryAmount, people, claims, canEdit }:
                     <input type="hidden" name="claimId" value={c.id} />
                     <button type="submit" style={{
                       minHeight: 44, padding: '0 8px', fontSize: 'var(--step--2)', fontWeight: 600,
-                      color: 'var(--c-meta)', background: 'transparent',
+                      color: 'var(--muted-foreground)', background: 'transparent',
                     }}>Drop</button>
                   </form>
                 )}
@@ -75,15 +75,15 @@ export default function OwedFor({ txnId, entryAmount, people, claims, canEdit }:
       {canEdit && (open ? (
         <form action={act} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <input type="hidden" name="txnId" value={txnId} />
-          <p style={{ margin: 0, fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--c-meta)' }}>
+          <p style={{ margin: 0, fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--muted-foreground)' }}>
             This does not change the entry. You paid for it, so it stays in the month&rsquo;s
             spending — what you are recording is that some of it is coming back.
           </p>
           <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)' }}>Who owes you</span>
+            <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--muted-foreground)' }}>Who owes you</span>
             <select name="counterpartyId" required style={{
-              minHeight: 52, borderRadius: 13, border: '1px solid var(--c-border)',
-              background: 'var(--c-card)', color: 'var(--c-ink)', fontSize: 'var(--field)',
+              minHeight: 52, borderRadius: 13, border: '1px solid var(--border)',
+              background: 'var(--card)', color: 'var(--foreground)', fontSize: 'var(--field)',
               fontWeight: 600, padding: '0 12px',
             }}>
               {people.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
@@ -97,25 +97,25 @@ export default function OwedFor({ txnId, entryAmount, people, claims, canEdit }:
           <div style={{ display: 'flex', gap: 9 }}>
             <button className="cta" type="button" onClick={() => setOpen(false)} style={{
               minHeight: 48, padding: '0 16px', borderRadius: 12, fontSize: 'var(--step-0)', fontWeight: 600,
-              background: 'var(--c-sunk)', color: 'var(--c-meta)',
+              background: 'var(--muted)', color: 'var(--muted-foreground)',
             }}>Cancel</button>
             <button className="cta" type="submit" disabled={pending} style={{
               flex: 1, minHeight: 48, borderRadius: 12, fontSize: 'var(--step-0)', fontWeight: 600,
-              background: 'var(--g-primary)', color: 'var(--c-on-primary)', opacity: pending ? 0.6 : 1,
+              background: 'var(--primary)', color: 'var(--primary-foreground)', opacity: pending ? 0.6 : 1,
             }}>{pending ? 'Saving…' : 'Someone owes me'}</button>
           </div>
         </form>
       ) : (
         <button className="cta" type="button" onClick={() => setOpen(true)} style={{
           minHeight: 48, borderRadius: 12, fontSize: 'var(--step-0)', fontWeight: 600,
-          background: 'var(--c-sunk)', color: 'var(--c-ink)',
+          background: 'var(--muted)', color: 'var(--foreground)',
         }}>
           {claims.length ? 'Add someone else' : 'Someone owes me for this'}
         </button>
       ))}
 
       {people.length === 0 && (
-        <p style={{ margin: 0, fontSize: 'var(--step--1)', color: 'var(--c-meta)' }}>
+        <p style={{ margin: 0, fontSize: 'var(--step--1)', color: 'var(--muted-foreground)' }}>
           Add someone to a tab in the Loan centre first.
         </p>
       )}

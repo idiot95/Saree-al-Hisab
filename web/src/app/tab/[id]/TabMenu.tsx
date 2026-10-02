@@ -35,15 +35,15 @@ export default function TabMenu({ tabId, name, note, closed, held }: {
   const row = (icon: string, label: string, sub: string, onClick?: () => void, tone?: string) => (
     <button type={onClick ? 'button' : 'submit'} onClick={onClick} style={{
       width: '100%', minHeight: 60, display: 'flex', alignItems: 'center', gap: 12,
-      color: tone ?? 'var(--c-ink)', borderBottom: '1px solid var(--c-rule)',
+      color: tone ?? 'var(--foreground)', borderBottom: '1px solid var(--border)',
     }}>
       <span style={{
         width: 36, height: 36, flex: 'none', borderRadius: 10, display: 'flex', alignItems: 'center',
-        justifyContent: 'center', background: 'var(--c-sunk)',
+        justifyContent: 'center', background: 'var(--muted)',
       }}><Icon name={icon} size={18} strokeWidth={2} /></span>
       <span style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
         <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>{label}</span>
-        <span style={{ fontSize: 'var(--step--2)', color: 'var(--c-meta)' }}>{sub}</span>
+        <span style={{ fontSize: 'var(--step--2)', color: 'var(--muted-foreground)' }}>{sub}</span>
       </span>
     </button>
   );
@@ -52,7 +52,7 @@ export default function TabMenu({ tabId, name, note, closed, held }: {
     <>
       <button type="button" aria-label="Tab settings" onClick={() => { haptic('tap'); setOpen(true); }} style={{
         width: 44, height: 44, marginRight: -11, borderRadius: 999, display: 'flex',
-        alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,.92)',
+        alignItems: 'center', justifyContent: 'center', color: 'var(--foreground)',
       }}>
         <Icon name="dots" size={22} strokeWidth={2} />
       </button>
@@ -67,7 +67,7 @@ export default function TabMenu({ tabId, name, note, closed, held }: {
               {row(closed ? 'folder' : 'check', toggling ? 'Saving…' : closed ? 'Reopen this tab' : 'Close this tab',
                 closed ? 'Offer it again when adding a cost' : 'Files it away. Nothing anyone owes changes.')}
             </form>
-            {row('trash', 'Delete this tab', 'Asks first', () => setView('delete'), 'var(--c-danger)')}
+            {row('trash', 'Delete this tab', 'Asks first', () => setView('delete'), 'var(--destructive)')}
             {toggled && !toggled.ok && <ErrorNote>{toggled.error}</ErrorNote>}
           </div>
         )}
@@ -82,11 +82,11 @@ export default function TabMenu({ tabId, name, note, closed, held }: {
             <div style={{ display: 'flex', gap: 9 }}>
               <button className="cta" type="button" onClick={() => setView('menu')} style={{
                 minHeight: 50, padding: '0 16px', borderRadius: 13, fontSize: 'var(--step-0)',
-                fontWeight: 600, background: 'var(--c-sunk)', color: 'var(--c-meta)',
+                fontWeight: 600, background: 'var(--muted)', color: 'var(--muted-foreground)',
               }}>Back</button>
               <button className="cta" type="submit" disabled={renaming} style={{
                 flex: 1, minHeight: 50, borderRadius: 13, fontSize: 'var(--step-0)', fontWeight: 600,
-                background: 'var(--g-primary)', color: 'var(--c-on-primary)', opacity: renaming ? 0.65 : 1,
+                background: 'var(--primary)', color: 'var(--primary-foreground)', opacity: renaming ? 0.65 : 1,
               }}>{renaming ? 'Saving…' : 'Save'}</button>
             </div>
           </form>
@@ -96,7 +96,7 @@ export default function TabMenu({ tabId, name, note, closed, held }: {
           <form action={remove} style={{ display: 'flex', flexDirection: 'column', gap: 12, paddingTop: 2 }}>
             <h2 style={{ fontSize: 'var(--step-2)', fontWeight: 600 }}>Delete {name}?</h2>
             <input type="hidden" name="tabId" value={tabId} />
-            <p style={{ margin: 0, fontSize: 'var(--step-0)', lineHeight: 1.5, color: 'var(--c-meta)' }}>
+            <p style={{ margin: 0, fontSize: 'var(--step-0)', lineHeight: 1.5, color: 'var(--muted-foreground)' }}>
               Only the tab goes. Its entries stay in the books, and what each person owes for them stays owed.
               {held > 0 && <> What the tab itself is owed — <b>{format(held)}</b>, with nobody named — is written off.</>}
             </p>
@@ -104,11 +104,11 @@ export default function TabMenu({ tabId, name, note, closed, held }: {
             <div style={{ display: 'flex', gap: 9 }}>
               <button className="cta" type="button" onClick={() => setView('menu')} style={{
                 minHeight: 50, padding: '0 16px', borderRadius: 13, fontSize: 'var(--step-0)',
-                fontWeight: 600, background: 'var(--c-sunk)', color: 'var(--c-meta)',
+                fontWeight: 600, background: 'var(--muted)', color: 'var(--muted-foreground)',
               }}>Keep it</button>
               <button className="cta" type="submit" disabled={removing} style={{
                 flex: 1, minHeight: 50, borderRadius: 13, fontSize: 'var(--step-0)', fontWeight: 600,
-                background: 'var(--c-danger-tint)', color: 'var(--c-danger)', opacity: removing ? 0.65 : 1,
+                background: 'color-mix(in srgb, var(--destructive) 12%, transparent)', color: 'var(--destructive)', opacity: removing ? 0.65 : 1,
               }}>{removing ? 'Deleting…' : 'Delete the tab'}</button>
             </div>
           </form>

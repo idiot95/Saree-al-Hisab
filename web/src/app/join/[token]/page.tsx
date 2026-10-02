@@ -60,17 +60,17 @@ export default async function Join({ params, searchParams }: {
       title={invite.household}
     >
       <div style={{ padding: '22px var(--gutter) 30px', display: 'flex', flexDirection: 'column', gap: 14 }}>
-        <div className="el card" style={{
-          background: 'var(--c-card)', borderRadius: 16, padding: 16,
+        <div className="border border-border" style={{
+          background: 'var(--card)', borderRadius: 16, padding: 16,
           display: 'flex', flexDirection: 'column', gap: 9,
         }}>
-          <span style={{ fontSize: 'var(--step--2)', fontWeight: 600, color: 'var(--c-meta)' }}>
+          <span style={{ fontSize: 'var(--step--2)', fontWeight: 600, color: 'var(--muted-foreground)' }}>
             Your role
           </span>
           <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>
             {invite.role === 'adult' ? 'Contributing member' : 'Viewer'}
           </span>
-          <span style={{ fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--c-meta)' }}>
+          <span style={{ fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--muted-foreground)' }}>
             {invite.role === 'adult'
               ? 'Add and edit entries, and set budgets. You will see everything the household records.'
               : 'Read every entry, budget and chart. You cannot change them.'}
@@ -92,7 +92,7 @@ export default async function Join({ params, searchParams }: {
         )}
 
         {rightAccount && actor?.household_id && (
-          <p style={{ margin: 0, fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--c-meta)' }}>
+          <p style={{ margin: 0, fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--muted-foreground)' }}>
             You keep your own household too. Joining adds a second one — you can switch
             between them any time.
           </p>
@@ -101,7 +101,7 @@ export default async function Join({ params, searchParams }: {
         {rightAccount && (
           <form action={acceptInvitation}>
             <input type="hidden" name="token" value={token} />
-            <button type="submit" className="el2" style={primaryBtn}>
+            <button type="submit"  style={primaryBtn}>
               Join {invite.household}
             </button>
           </form>
@@ -109,7 +109,7 @@ export default async function Join({ params, searchParams }: {
 
         {!signedInAs && invite.has_account && (
           <>
-            <p style={{ margin: 0, fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--c-meta)' }}>
+            <p style={{ margin: 0, fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--muted-foreground)' }}>
               That email already has an account. Sign in, then open this link again.
             </p>
             <a href="/signin" style={quietBtn}>Sign in</a>
@@ -118,7 +118,7 @@ export default async function Join({ params, searchParams }: {
 
         {!signedInAs && !invite.has_account && <JoinForm token={token} email={invite.email} />}
 
-        <p style={{ margin: '2px 4px 0', fontSize: 'var(--step--2)', lineHeight: 1.5, color: 'var(--c-meta)' }}>
+        <p style={{ margin: '2px 4px 0', fontSize: 'var(--step--2)', lineHeight: 1.5, color: 'var(--muted-foreground)' }}>
           <b>Anyone who opens this link can take this place.</b> Do not forward it. It works
           once and expires on {new Date(invite.expires_at).toLocaleDateString('en-IN',
             { day: 'numeric', month: 'long' })}.

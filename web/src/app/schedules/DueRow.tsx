@@ -47,7 +47,7 @@ export default function DueRow({
   return (
     <div style={{
       display: 'flex', flexDirection: 'column', gap: 10, padding: '14px 0',
-      borderBottom: '1px solid var(--c-rule)',
+      borderBottom: '1px solid var(--border)',
     }}>
       <SwipeRow actions={open ? [] : [
         { label: 'Skip', icon: <Icon name="skip" size={20} strokeWidth={2} />, act: skipNow },
@@ -60,20 +60,20 @@ export default function DueRow({
         <span style={{
           width: 40, height: 40, flex: 'none', borderRadius: 11, display: 'flex',
           alignItems: 'center', justifyContent: 'center',
-          background: overdue ? 'var(--c-danger-tint)' : 'var(--c-warn-tint)',
-          color: overdue ? 'var(--c-danger)' : 'var(--c-warn)',
+          background: overdue ? 'color-mix(in srgb, var(--destructive) 12%, transparent)' : 'var(--attention-soft)',
+          color: overdue ? 'var(--destructive)' : 'var(--attention-soft-foreground)',
         }}>
           <Icon name={icon ?? 'autodebit'} size={19} strokeWidth={1.9} />
         </span>
         <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
           <span style={{ fontSize: 'var(--step-0)', fontWeight: 600, overflowWrap: 'anywhere' }}>{name}</span>
-          <span style={{ fontSize: 'var(--step--1)', color: overdue ? 'var(--c-danger)' : 'var(--c-meta)', overflowWrap: 'anywhere' }}>
+          <span style={{ fontSize: 'var(--step--1)', color: overdue ? 'var(--destructive)' : 'var(--muted-foreground)', overflowWrap: 'anywhere' }}>
             {whenLine(income, on, daysAway, today)}
             {movedFrom && ` · moved from ${friendlyDay(movedFrom, today)}`}
             {category && ` · ${category}`}
           </span>
         </span>
-        <span className="t" style={{ flex: 'none', fontSize: 'var(--step-1)', color: income ? 'var(--c-in)' : 'var(--c-out)' }}>
+        <span className="t" style={{ flex: 'none', fontSize: 'var(--step-1)', color: income ? 'var(--money-in)' : 'var(--money-out)' }}>
           {income ? '+' : ''}{format(amount)}
         </span>
       </div>
@@ -87,29 +87,29 @@ export default function DueRow({
           <input type="hidden" name="scheduleId" value={scheduleId} />
           <input type="hidden" name="dueOn" value={dueOn} />
           <label style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-            <span style={{ fontSize: 'var(--step--2)', fontWeight: 600, color: 'var(--c-meta)' }}>
+            <span style={{ fontSize: 'var(--step--2)', fontWeight: 600, color: 'var(--muted-foreground)' }}>
               Amount — change it if this month differed
             </span>
             <input name="amount" inputMode="decimal" defaultValue={toKeys(amount)}
               style={{
-                minHeight: 48, borderRadius: 12, border: '1px solid var(--c-border)',
-                background: 'var(--c-card)', color: 'var(--c-ink)', fontSize: 'var(--field)',
+                minHeight: 48, borderRadius: 12, border: '1px solid var(--border)',
+                background: 'var(--card)', color: 'var(--foreground)', fontSize: 'var(--field)',
                 fontWeight: 600, padding: '0 12px',
               }} />
           </label>
           {recState && !recState.ok && (
-            <span role="alert" style={{ fontSize: 'var(--step--1)', color: 'var(--c-danger)' }}>
+            <span role="alert" style={{ fontSize: 'var(--step--1)', color: 'var(--destructive)' }}>
               {recState.error}
             </span>
           )}
           <div style={{ display: 'flex', gap: 8 }}>
             <button className="cta" type="button" onClick={idle} style={{
               minHeight: 46, padding: '0 14px', borderRadius: 11, fontSize: 'var(--step--1)',
-              fontWeight: 600, background: 'var(--c-sunk)', color: 'var(--c-meta)',
+              fontWeight: 600, background: 'var(--muted)', color: 'var(--muted-foreground)',
             }}>Cancel</button>
             <button className="cta" type="submit" disabled={recording} style={{
               flex: 1, minHeight: 46, borderRadius: 11, fontSize: 'var(--step-0)', fontWeight: 600,
-              background: 'var(--g-primary)', color: 'var(--c-on-primary)',
+              background: 'var(--primary)', color: 'var(--primary-foreground)',
               opacity: recording ? 0.6 : 1,
             }}>{recording ? 'Saving…' : 'Record the payment'}</button>
           </div>

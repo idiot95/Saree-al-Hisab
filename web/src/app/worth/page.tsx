@@ -1,15 +1,14 @@
-import Link from '@/app/NavLink';
 import { Chip, ACCOUNT_ICON, ACCOUNT_TINT } from '../Icon';
 import { redirect } from 'next/navigation';
-import { actorOrNull, allBalances, owedByPerson, tabHeldOwed, worthSeries } from '@/db/queries';
+import { actorOrNull, allBalances, monthlySeries, owedByPerson, tabHeldOwed, worthSeries } from '@/db/queries';
 import { withHousehold } from '@/db/client';
 import { netWorth } from '@/lib/worth';
 import { format } from '@/lib/money';
-import { headerBg } from '../auth-ui';
 import TabBar from '../TabBar';
 import { TAB_BAR_SPACE } from '../tabs';
 import Screen from '../Screen';
-import Back from '../Back';
+import PageHead, { Label } from '../PageHead';
+import MoneyNav from '../accounts/MoneyNav';
 
 export const metadata = { title: 'Net worth · Saree al-Hisab' };
 export const dynamic = 'force-dynamic';
@@ -24,12 +23,17 @@ export default async function Worth() {
   if (!actor.household_id) redirect('/no-household');
 
   const hh = actor.household_id;
-  const [accounts, owed, series, held] = await withHousehold(hh, () => Promise.all([
+  const [accounts, owed, allSeries, held, months] = await withHousehold(hh, () => Promise.all([
     allBalances(hh),
     owedByPerson(hh),
     worthSeries(hh, 6),
     tabHeldOwed(hh),
+    monthlySeries(hh, 6),
   ]));
+  /* The line starts at the first month anything was recorded: before that the figure is only the opening
+     balances, and "more than six months ago" would be measuring against months the books were not kept. */
+  const startAt = Math.max(0, months.findIndex((m) => m.entries > 0));
+  const series = allSeries.slice(startAt);
 
   /* Three figures, and the headline is their sum.
 
@@ -46,56 +50,38 @@ export default async function Worth() {
   const points = series.map((p) => Number(p.held));
   const lo = Math.min(...points, 0), hi = Math.max(...points, 1);
   const first = points[0], last = points[points.length - 1];
+  const since = series.length ? new Date(series[0].month).toLocaleDateString('en-IN', { month: 'long' }) : 'the start';
 
   return (
     <Screen>
-      <Back to="/" />
-      <main style={{ minHeight: '100dvh', background: 'var(--c-bg)', paddingBottom: TAB_BAR_SPACE }}>
-        <header className="el2" style={{
-          background: headerBg('green'), color: '#fff', borderRadius: '0 0 28px 28px',
-          padding: '18px var(--gutter) 26px', display: 'flex', flexDirection: 'column', gap: 10,
-        }}>
-          <Link href="/" transitionTypes={['nav-back']} aria-label="Back" style={{
-            width: 44, height: 44, marginLeft: -11, borderRadius: 999, display: 'flex',
-            alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,.92)',
-          }}>
-            <svg width={21} height={21} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-              strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-              <path d="M15 5l-7 7 7 7" />
-            </svg>
-          </Link>
-          <h1 style={{ margin: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <span style={{
-              fontSize: 'var(--step--2)', fontWeight: 600, letterSpacing: '.05em',
-              color: 'rgba(255,255,255,.66)',
-            }}>NET WORTH</span>
-            <span className="t" style={{
-              fontSize: 'var(--step-4)', letterSpacing: '-.024em', lineHeight: 1,
-              color: worth < 0 ? 'var(--c-danger-fill)' : '#fff',
-            }}>{format(worth)}</span>
-          </h1>
-          <p style={{ margin: 0, fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'rgba(255,255,255,.82)' }}>
-            What you hold, plus what people owe you, less what you owe.
-          </p>
-          <dl style={{
-            margin: '4px 0 0', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8,
-          }}>
+      <main className="min-h-dvh bg-background text-foreground" style={{ paddingBottom: TAB_BAR_SPACE }}>
+        <PageHead title="Money" sub={actor.household_name}>
+          <MoneyNav current="worth" />
+        </PageHead>
+
+        <section aria-label="Net worth" className="mx-[var(--gutter)] flex flex-col gap-3 rounded-[22px] border border-border bg-card p-4">
+          <span className="text-xs text-muted-foreground">Net worth</span>
+          <span className="font-display text-[40px] leading-none tabular-nums" style={worth < 0 ? { color: 'var(--destructive)' } : undefined}>
+            {format(worth)}
+          </span>
+          <p className="text-sm text-muted-foreground">What you hold, plus what people owe you, less what you owe.</p>
+          <dl className="grid grid-cols-3 gap-2 border-t border-border pt-3">
             <Figure label="Held" value={assetTotal} />
             <Figure label="Owed to you" value={receivable} />
             <Figure label="You owe" value={debtTotal} negative />
           </dl>
-        </header>
+        </section>
 
-        <div style={{ paddingTop: 20, display: 'flex', flexDirection: 'column', gap: 22 }}>
+        <div style={{ paddingTop: 20, display: 'flex', flexDirection: 'column', gap: 20 }}>
           {savings !== 0 && (
-            <section className="el card" style={{
-              margin: '0 var(--gutter)', background: 'var(--c-card)', borderRadius: 18, padding: 16,
+            <section className="border border-border" style={{
+              margin: '0 var(--gutter)', background: 'var(--card)', borderRadius: 18, padding: 16,
               display: 'flex', alignItems: 'center', gap: 14,
             }}>
               <Chip icon={ACCOUNT_ICON.savings} tint={ACCOUNT_TINT.savings} size={44} radius={12} />
               <span style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 3 }}>
                 <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>In savings</span>
-                <span style={{ fontSize: 'var(--step--1)', lineHeight: 1.45, color: 'var(--c-meta)' }}>
+                <span style={{ fontSize: 'var(--step--1)', lineHeight: 1.45, color: 'var(--muted-foreground)' }}>
                   Outside the monthly budget. Moving money here is not spending it.
                 </span>
               </span>
@@ -106,13 +92,13 @@ export default async function Worth() {
           <Section title="Held in accounts, month by month">
             <Sparkline points={points} lo={lo} hi={hi} months={series.map((p) => p.month)} />
             <p style={{
-              margin: '12px 0 0', fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--c-meta)',
+              margin: '12px 0 0', fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--muted-foreground)',
             }}>
               {first === last
-                ? 'Level over the last six months.'
+                ? `Level since ${since}.`
                 : last > first
-                  ? `${format(last - first)} more than six months ago.`
-                  : `${format(first - last)} less than six months ago.`}
+                  ? `${format(last - first)} more than in ${since}.`
+                  : `${format(first - last)} less than in ${since}.`}
               {receivable !== 0 && ' Your own accounts only — what people owe you is in the figure above but not in this line.'}
             </p>
           </Section>
@@ -143,7 +129,7 @@ export default async function Worth() {
                 }] : []),
               ]} total={receivable} />
               <p style={{
-                margin: '12px 0 0', fontSize: 'var(--step--2)', lineHeight: 1.5, color: 'var(--c-meta)',
+                margin: '12px 0 0', fontSize: 'var(--step--2)', lineHeight: 1.5, color: 'var(--muted-foreground)',
               }}>
                 Counted in your net worth: it is your money, in someone else&apos;s pocket for now.
                 Settle up in the Loan centre.
@@ -174,18 +160,11 @@ export default async function Worth() {
    label so a glance separates cash in hand from cash in a cousin's pocket. */
 function Figure({ label, value, negative }: { label: string; value: number; negative?: boolean }) {
   return (
-    <div style={{
-      display: 'flex', flexDirection: 'column', gap: 3, padding: '9px 11px', borderRadius: 12,
-      background: 'rgba(255,255,255,.12)', minWidth: 0,
-    }}>
-      <dt style={{
-        fontSize: 'var(--step--2)', fontWeight: 600, letterSpacing: '.03em',
-        color: 'rgba(255,255,255,.72)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-      }}>{label}</dt>
-      <dd className="t" style={{
-        margin: 0, fontSize: 'var(--step-0)', letterSpacing: '-.01em',
-        color: negative && value !== 0 ? 'var(--c-danger-fill)' : '#fff',
-      }}>{format(Math.abs(value))}</dd>
+    <div className="flex min-w-0 flex-col gap-0.5">
+      <dt className="truncate text-[11px] text-muted-foreground">{label}</dt>
+      <dd className="truncate text-sm font-semibold tabular-nums" style={negative && value !== 0 ? { color: 'var(--destructive)' } : undefined}>
+        {format(Math.abs(value))}
+      </dd>
     </div>
   );
 }
@@ -209,20 +188,20 @@ function Sparkline({ points, lo, hi, months }: {
           `${new Date(m).toLocaleDateString('en-IN', { month: 'short' })} ${format(points[i])}`).join(', ')}`}
         style={{ display: 'block', overflow: 'visible' }}>
         {zero !== null && (
-          <line x1={0} x2={W} y1={zero} y2={zero} stroke="var(--c-dash)"
+          <line x1={0} x2={W} y1={zero} y2={zero} stroke="var(--input)"
             strokeWidth={1} strokeDasharray="3 3" />
         )}
-        <path d={d} fill="none" stroke="var(--c-seagrass)" strokeWidth={2.4}
+        <path d={d} fill="none" stroke="var(--chart-1)" strokeWidth={2.4}
           strokeLinecap="round" strokeLinejoin="round" />
         {points.map((v, i) => (
           <circle key={i} cx={x(i)} cy={y(v)} r={i === points.length - 1 ? 4 : 2.5}
-            fill={i === points.length - 1 ? 'var(--c-seagrass)' : 'var(--c-card)'}
-            stroke="var(--c-seagrass)" strokeWidth={1.6} />
+            fill={i === points.length - 1 ? 'var(--chart-1)' : 'var(--card)'}
+            stroke="var(--chart-1)" strokeWidth={1.6} />
         ))}
       </svg>
       <ul style={{
         display: 'flex', justifyContent: 'space-between', margin: '8px 0 0', padding: 0,
-        listStyle: 'none', fontSize: 'var(--step--2)', color: 'var(--c-meta)',
+        listStyle: 'none', fontSize: 'var(--step--2)', color: 'var(--muted-foreground)',
       }}>
         {months.map((m) => (
           <li key={m}>{new Date(m).toLocaleDateString('en-IN', { month: 'short' })}</li>
@@ -234,16 +213,9 @@ function Sparkline({ points, lo, hi, months }: {
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0 var(--gutter) 11px' }}>
-        <h2 style={{ margin: 0, fontSize: 'var(--step-1)', fontWeight: 600, letterSpacing: '-.012em' }}>
-          {title}
-        </h2>
-        <span style={{ flex: 1, height: 1, background: 'var(--c-border)' }} />
-      </div>
-      <div className="el card" style={{
-        margin: '0 var(--gutter)', background: 'var(--c-card)', borderRadius: 18, padding: 16,
-      }}>{children}</div>
+    <section className="mx-[var(--gutter)] flex flex-col gap-2">
+      <Label>{title}</Label>
+      <div className="rounded-2xl border border-border bg-card p-4">{children}</div>
     </section>
   );
 }
@@ -258,25 +230,25 @@ function Rows({ rows, total, negative }: {
       {rows.map((r, i) => (
         <li key={r.key} style={{
           display: 'flex', alignItems: 'center', gap: 12, minHeight: 54,
-          borderBottom: i === rows.length - 1 ? undefined : '1px solid var(--c-rule)',
+          borderBottom: i === rows.length - 1 ? undefined : '1px solid var(--border)',
         }}>
           <Chip icon={r.icon} tint={r.tint} size={34} radius={9} iconSize={17} />
           <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
             <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>{r.label}</span>
-            <span style={{ fontSize: 'var(--step--2)', color: 'var(--c-meta)' }}>{r.note}</span>
+            <span style={{ fontSize: 'var(--step--2)', color: 'var(--muted-foreground)' }}>{r.note}</span>
           </span>
           <span className="t amt" style={{
-            fontSize: 'var(--step-0)', color: negative ? 'var(--c-danger)' : 'var(--c-ink)',
+            fontSize: 'var(--step-0)', color: negative ? 'var(--destructive)' : 'var(--foreground)',
           }}>{format(Math.abs(r.value))}</span>
         </li>
       ))}
       <li style={{
         display: 'flex', alignItems: 'center', gap: 12, minHeight: 50,
-        borderTop: '1px solid var(--c-border)', marginTop: 6, paddingTop: 6,
+        borderTop: '1px solid var(--border)', marginTop: 6, paddingTop: 6,
       }}>
-        <span style={{ flex: 1, fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)' }}>Total</span>
+        <span style={{ flex: 1, fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--muted-foreground)' }}>Total</span>
         <span className="t" style={{
-          fontSize: 'var(--step-2)', color: negative ? 'var(--c-danger)' : 'var(--c-ink)',
+          fontSize: 'var(--step-2)', color: negative ? 'var(--destructive)' : 'var(--foreground)',
         }}>{format(Math.abs(total))}</span>
       </li>
     </ul>

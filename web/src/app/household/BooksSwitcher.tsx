@@ -28,40 +28,40 @@ export default function BooksSwitcher({ books, canRename, currency, currencyFixe
   const ccyLabel = ccy ? `${ccy.name} · ${ccy.symbol.trim()}` : currency;
 
   return (
-    <section className="el card" style={{
-      margin: '0 var(--gutter) 22px', background: 'var(--c-card)', borderRadius: 18, padding: '0 var(--pad)',
+    <section className="border border-border" style={{
+      margin: '0 var(--gutter) 22px', background: 'var(--card)', borderRadius: 18, padding: '0 var(--pad)',
     }}>
       {books.map((b, i) => (
         <div key={b.id} style={{
           display: 'flex', alignItems: 'center', gap: 12, minHeight: 68,
-          borderBottom: '1px solid var(--c-rule)',
+          borderBottom: '1px solid var(--border)',
         }}>
           <span style={{
             width: 36, height: 36, flex: 'none', borderRadius: 10, display: 'flex',
             alignItems: 'center', justifyContent: 'center', fontSize: 'var(--step--1)', fontWeight: 700,
-            background: b.active ? 'var(--c-seagrass)' : 'var(--c-sunk)',
-            color: b.active ? 'var(--c-on-fill)' : 'var(--c-meta)',
+            background: b.active ? 'var(--chart-1)' : 'var(--muted)',
+            color: b.active ? 'var(--attention-soft-foreground)' : 'var(--muted-foreground)',
           }}>{b.name.slice(0, 2).toUpperCase()}</span>
           <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
             <span style={{
               fontSize: 'var(--step-0)', fontWeight: 600, overflow: 'hidden',
               textOverflow: 'ellipsis', whiteSpace: 'nowrap',
             }}>{b.name}</span>
-            <span style={{ fontSize: 'var(--step--2)', color: 'var(--c-meta)' }}>
+            <span style={{ fontSize: 'var(--step--2)', color: 'var(--muted-foreground)' }}>
               {ROLE[b.role]} · {b.people} {b.people === 1 ? 'person' : 'people'}
             </span>
           </span>
           {b.active ? (
             <span style={{
               flex: 'none', fontSize: 'var(--step--2)', fontWeight: 700, padding: '6px 10px', borderRadius: 8,
-              background: 'var(--c-ok-tint)', color: 'var(--c-ok)', letterSpacing: '.03em',
+              background: 'var(--accent)', color: 'var(--primary)', letterSpacing: '.03em',
             }}>CURRENT</span>
           ) : (
             <form action={switchAct}>
               <input type="hidden" name="householdId" value={b.id} />
               <button className="cta" type="submit" style={{
                 minHeight: 44, padding: '0 13px', borderRadius: 10, fontSize: 'var(--step--1)',
-                fontWeight: 600, background: 'var(--c-sunk)', color: 'var(--c-ink)',
+                fontWeight: 600, background: 'var(--muted)', color: 'var(--foreground)',
               }}>Open</button>
             </form>
           )}
@@ -71,7 +71,7 @@ export default function BooksSwitcher({ books, canRename, currency, currencyFixe
       {canRename && (editing ? (
         <form action={renameAct} style={{
           display: 'flex', flexDirection: 'column', gap: 10, padding: '14px 0',
-          borderBottom: '1px solid var(--c-rule)',
+          borderBottom: '1px solid var(--border)',
         }}>
           <Field label="Household name" name="name"
             defaultValue={books.find((b) => b.active)?.name} required maxLength={60} autoFocus />
@@ -85,12 +85,12 @@ export default function BooksSwitcher({ books, canRename, currency, currencyFixe
         </form>
       ) : (
         <button type="button" onClick={() => setEditing(true)} style={{
-          ...row, borderBottom: '1px solid var(--c-rule)',
+          ...row, borderBottom: '1px solid var(--border)',
         }}>
           <Pencil />
           <span style={{ flex: 1 }}>Rename this household</span>
           {renameState?.ok && (
-            <span style={{ fontSize: 'var(--step--2)', color: 'var(--c-ok)', fontWeight: 600 }}>done</span>
+            <span style={{ fontSize: 'var(--step--2)', color: 'var(--primary)', fontWeight: 600 }}>done</span>
           )}
         </button>
       ))}
@@ -101,7 +101,7 @@ export default function BooksSwitcher({ books, canRename, currency, currencyFixe
       {canRename && !currencyFixed && choosing ? (
         <form action={ccyAct} style={{
           display: 'flex', flexDirection: 'column', gap: 10, padding: '14px 0',
-          borderBottom: '1px solid var(--c-rule)',
+          borderBottom: '1px solid var(--border)',
         }}>
           <CurrencyField defaultValue={currency} autoFocus
             hint="Every entry is recorded in this. It is fixed the moment the books hold one." />
@@ -115,23 +115,23 @@ export default function BooksSwitcher({ books, canRename, currency, currencyFixe
         </form>
       ) : canRename && !currencyFixed ? (
         <button type="button" onClick={() => setChoosing(true)} style={{
-          ...row, borderBottom: '1px solid var(--c-rule)',
+          ...row, borderBottom: '1px solid var(--border)',
         }}>
           <Coin />
           <span style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
             <span>Currency</span>
-            <span style={{ fontSize: 'var(--step--2)', fontWeight: 500, color: 'var(--c-meta)' }}>{ccyLabel}</span>
+            <span style={{ fontSize: 'var(--step--2)', fontWeight: 500, color: 'var(--muted-foreground)' }}>{ccyLabel}</span>
           </span>
           {ccyState?.ok && (
-            <span style={{ fontSize: 'var(--step--2)', color: 'var(--c-ok)', fontWeight: 600 }}>done</span>
+            <span style={{ fontSize: 'var(--step--2)', color: 'var(--primary)', fontWeight: 600 }}>done</span>
           )}
         </button>
       ) : (
-        <div style={{ ...row, borderBottom: '1px solid var(--c-rule)', cursor: 'default' }}>
+        <div style={{ ...row, borderBottom: '1px solid var(--border)', cursor: 'default' }}>
           <Coin />
           <span style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
             <span>Currency</span>
-            <span style={{ fontSize: 'var(--step--2)', fontWeight: 500, color: 'var(--c-meta)' }}>
+            <span style={{ fontSize: 'var(--step--2)', fontWeight: 500, color: 'var(--muted-foreground)' }}>
               {ccyLabel}{currencyFixed ? ' · fixed, the books hold entries' : ''}
             </span>
           </span>
@@ -164,20 +164,20 @@ export default function BooksSwitcher({ books, canRename, currency, currencyFixe
 
 const row: React.CSSProperties = {
   width: '100%', minHeight: 60, display: 'flex', alignItems: 'center', gap: 11,
-  textAlign: 'left', fontSize: 'var(--step-0)', fontWeight: 600, color: 'var(--c-ink)',
+  textAlign: 'left', fontSize: 'var(--step-0)', fontWeight: 600, color: 'var(--foreground)',
 };
 const ghost: React.CSSProperties = {
   minHeight: 46, padding: '0 var(--pad)', borderRadius: 11, fontSize: 'var(--step--1)',
-  fontWeight: 600, background: 'var(--c-sunk)', color: 'var(--c-meta)',
+  fontWeight: 600, background: 'var(--muted)', color: 'var(--muted-foreground)',
 };
 const solid: React.CSSProperties = {
   minHeight: 46, borderRadius: 11, fontSize: 'var(--step-0)', fontWeight: 600,
-  background: 'var(--g-primary)', color: 'var(--c-on-primary)',
+  background: 'var(--primary)', color: 'var(--primary-foreground)',
 };
 
 const icon = { width: 34, height: 34, flex: 'none', borderRadius: 999, display: 'flex',
   alignItems: 'center', justifyContent: 'center',
-  background: 'var(--c-sunk)', color: 'var(--c-meta)' } as React.CSSProperties;
+  background: 'var(--muted)', color: 'var(--muted-foreground)' } as React.CSSProperties;
 
 const Plus = () => (
   <span style={icon}>

@@ -29,12 +29,12 @@ export default function ThemePicker({ current }: { current: Theme }) {
   }
 
   return (
-    <form action={act} className="el card" style={{
-      margin: '0 var(--gutter) 22px', background: 'var(--c-card)', borderRadius: 18, padding: 16,
+    <form action={act} className="border border-border" style={{
+      margin: '0 var(--gutter) 22px', background: 'var(--card)', borderRadius: 18, padding: 16,
       display: 'flex', flexDirection: 'column', gap: 12,
     }}>
       <div role="group" aria-label="Appearance" style={{
-        display: 'flex', gap: 5, padding: 5, borderRadius: 14, background: 'var(--c-sunk)',
+        display: 'flex', gap: 5, padding: 5, borderRadius: 14, background: 'var(--muted)',
       }}>
         {OPTIONS.map((o) => {
           const on = chosen === o.id;
@@ -42,9 +42,9 @@ export default function ThemePicker({ current }: { current: Theme }) {
             <button key={o.id} type="submit" name="theme" value={o.id} aria-pressed={on}
               onClick={() => pick(o.id)} disabled={pending && on} className="cta" style={{
                 flex: 1, minHeight: 46, borderRadius: 10, fontSize: 'var(--step--1)', fontWeight: 600,
-                background: on ? 'var(--c-card)' : 'transparent',
-                color: on ? 'var(--c-ink)' : 'var(--c-meta)',
-                boxShadow: on ? '0 1px 2px rgba(0,0,0,.10), 0 0 0 1px var(--c-border)' : 'none',
+                background: on ? 'var(--card)' : 'transparent',
+                color: on ? 'var(--foreground)' : 'var(--muted-foreground)',
+                boxShadow: on ? '0 1px 2px rgba(0,0,0,.10), 0 0 0 1px var(--border)' : 'none',
                 transition: 'background .18s, color .18s, box-shadow .18s',
               }}>
               <Icon name={o.icon} size={17} strokeWidth={2} />
@@ -53,13 +53,13 @@ export default function ThemePicker({ current }: { current: Theme }) {
           );
         })}
       </div>
-      <p style={{ margin: 0, fontSize: 'var(--step--2)', lineHeight: 1.45, color: 'var(--c-meta)' }}>
+      <p style={{ margin: 0, fontSize: 'var(--step--2)', lineHeight: 1.45, color: 'var(--muted-foreground)' }}>
         {chosen === 'system'
           ? 'Follows the phone: light by day, dark when it is.'
           : 'Set for this device only. Other phones keep their own choice.'}
       </p>
       {state && !state.ok && (
-        <p role="alert" style={{ margin: 0, fontSize: 'var(--step--1)', color: 'var(--c-danger)' }}>{state.error}</p>
+        <p role="alert" style={{ margin: 0, fontSize: 'var(--step--1)', color: 'var(--destructive)' }}>{state.error}</p>
       )}
     </form>
   );

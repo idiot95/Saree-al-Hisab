@@ -33,31 +33,31 @@ export default function Claims({ claims, ways, canEdit, person, bills = [] }: {
     <>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0 20px 11px' }}>
         <h2 style={{ margin: 0, fontSize: 'var(--step-1)', fontWeight: 600 }}>Owed for shared costs</h2>
-        <span style={{ flex: 1, height: 1, background: 'var(--c-border)' }} />
+        <span style={{ flex: 1, height: 1, background: 'var(--border)' }} />
       </div>
-      <p style={{ margin: '-4px 20px 12px', fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--c-meta)' }}>
+      <p style={{ margin: '-4px 20px 12px', fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--muted-foreground)' }}>
         Things you paid for that they owe part of. Already counted in the month you bought
         them — this is only what is coming back.
       </p>
 
-      <section className="el card" style={{
-        margin: '0 var(--gutter) 22px', background: 'var(--c-card)', borderRadius: 18, padding: '0 var(--pad)',
+      <section className="border border-border" style={{
+        margin: '0 var(--gutter) 22px', background: 'var(--card)', borderRadius: 18, padding: '0 var(--pad)',
       }}>
         {claims.map((c, i) => (
           <div key={c.id} style={{
             padding: '14px 0', display: 'flex', flexDirection: 'column', gap: 10,
-            borderBottom: i === claims.length - 1 ? undefined : '1px solid var(--c-rule)',
+            borderBottom: i === claims.length - 1 ? undefined : '1px solid var(--border)',
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               <Link transitionTypes={['nav-forward']} href={`/entries/${c.txn_id}`} style={{
                 flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3,
-                textDecoration: 'none', color: 'var(--c-ink)',
+                textDecoration: 'none', color: 'var(--foreground)',
               }}>
                 <span style={{
                   fontSize: 'var(--step-0)', fontWeight: 600, overflow: 'hidden',
                   textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                 }}>{c.merchant || c.category || 'Entry'}</span>
-                <span style={{ fontSize: 'var(--step--2)', color: 'var(--c-meta)' }}>
+                <span style={{ fontSize: 'var(--step--2)', color: 'var(--muted-foreground)' }}>
                   {new Date(c.occurred_on).toLocaleDateString('en-IN',
                     { day: 'numeric', month: 'short' })}
                   {c.status === 'part_paid' && ` · ${format(Number(c.received))} in`}
@@ -68,9 +68,9 @@ export default function Claims({ claims, ways, canEdit, person, bills = [] }: {
               </Link>
               <span className="t amt" style={{
                 fontSize: 'var(--step-0)',
-                color: c.status === 'settled' ? 'var(--c-ok)'
-                  : c.status === 'written_off' ? 'var(--c-meta)'
-                  : c.status === 'part_paid' ? 'var(--c-warn)' : 'var(--c-ink)',
+                color: c.status === 'settled' ? 'var(--primary)'
+                  : c.status === 'written_off' ? 'var(--muted-foreground)'
+                  : c.status === 'part_paid' ? 'var(--attention-soft-foreground)' : 'var(--foreground)',
               }}>
                 {format(Number(c.status === 'open' || c.status === 'part_paid'
                   ? c.outstanding : c.expected_amount))}
@@ -85,18 +85,18 @@ export default function Claims({ claims, ways, canEdit, person, bills = [] }: {
                     autoFocus defaultValue={toKeys(Number(c.outstanding))} />
                   <Field label="Date" name="occurred_on" type="date" defaultValue={today} required />
                   <div role="group" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)' }}>How it came back</span>
+                    <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--muted-foreground)' }}>How it came back</span>
                     <PayPicker name="paidWith" ways={ways} defaultValue={defaultRef(ways)} />
                   </div>
                   {state && !state.ok && <ErrorNote>{state.error}</ErrorNote>}
                   <div style={{ display: 'flex', gap: 9 }}>
                     <button className="cta" type="button" onClick={() => setSettling(null)} style={{
                       minHeight: 46, padding: '0 14px', borderRadius: 11, fontSize: 'var(--step--1)',
-                      fontWeight: 600, background: 'var(--c-sunk)', color: 'var(--c-meta)',
+                      fontWeight: 600, background: 'var(--muted)', color: 'var(--muted-foreground)',
                     }}>Cancel</button>
                     <button className="cta" type="submit" disabled={pending} style={{
                       flex: 1, minHeight: 46, borderRadius: 11, fontSize: 'var(--step-0)', fontWeight: 600,
-                      background: 'var(--g-primary)', color: 'var(--c-on-primary)',
+                      background: 'var(--primary)', color: 'var(--primary-foreground)',
                       opacity: pending ? 0.6 : 1,
                     }}>{pending ? 'Saving…' : 'Record it'}</button>
                   </div>
@@ -106,13 +106,13 @@ export default function Claims({ claims, ways, canEdit, person, bills = [] }: {
                   <div style={{ display: 'flex', gap: 8 }}>
                     <button className="cta" type="button" onClick={() => setSettling(c.id)} style={{
                       flex: 1, minHeight: 44, borderRadius: 11, fontSize: 'var(--step--1)', fontWeight: 600,
-                      background: 'var(--c-sunk)', color: 'var(--c-ink)',
+                      background: 'var(--muted)', color: 'var(--foreground)',
                     }}>They paid me</button>
                     <form action={drop}>
                       <input type="hidden" name="claimId" value={c.id} />
                       <button className="cta" type="submit" style={{
                         minHeight: 44, padding: '0 14px', borderRadius: 11, fontSize: 'var(--step--1)',
-                        fontWeight: 600, background: 'transparent', color: 'var(--c-meta)',
+                        fontWeight: 600, background: 'transparent', color: 'var(--muted-foreground)',
                       }}>Write off</button>
                     </form>
                   </div>
@@ -131,7 +131,7 @@ export default function Claims({ claims, ways, canEdit, person, bills = [] }: {
         ))}
       </section>
       {live.length === 0 && (
-        <p style={{ margin: '-14px 20px 22px', fontSize: 'var(--step--1)', color: 'var(--c-meta)' }}>
+        <p style={{ margin: '-14px 20px 22px', fontSize: 'var(--step--1)', color: 'var(--muted-foreground)' }}>
           Nothing outstanding on shared costs.
         </p>
       )}

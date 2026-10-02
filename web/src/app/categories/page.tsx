@@ -1,11 +1,10 @@
-import Link from '@/app/NavLink';
 import { redirect } from 'next/navigation';
 import { actorOrNull, allCategories } from '@/db/queries';
-import { headerBg } from '../auth-ui';
 import CategoryEditor from './CategoryEditor';
+import PageHead from '../PageHead';
+import TabBar from '../TabBar';
 import Screen from '../Screen';
-import Back from '../Back';
-import { BACK_SPACE } from '../tabs';
+import { TAB_BAR_SPACE } from '../tabs';
 
 export const metadata = { title: 'Categories · Saree al-Hisab' };
 export const dynamic = 'force-dynamic';
@@ -20,37 +19,18 @@ export default async function Categories() {
 
   return (
     <Screen>
-      <Back to="/budget" />
-      <main style={{ minHeight: '100dvh', background: 'var(--c-bg)', paddingBottom: BACK_SPACE }}>
-        <header className="el2" style={{
-          background: headerBg('gold'), color: '#fff', borderRadius: '0 0 28px 28px',
-          padding: '18px var(--gutter) 26px', display: 'flex', flexDirection: 'column', gap: 10,
-        }}>
-          <Link href="/budget" transitionTypes={['nav-back']} aria-label="Back" style={{
-            width: 44, height: 44, marginLeft: -11, borderRadius: 999, display: 'flex',
-            alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,.92)',
-          }}>
-            <svg width={21} height={21} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-              strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-              <path d="M15 5l-7 7 7 7" />
-            </svg>
-          </Link>
-          <h1 className="t" style={{ margin: 0, fontSize: 'var(--step-3)', letterSpacing: '-.018em' }}>
-            Categories
-          </h1>
-          <p style={{ margin: 0, fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'rgba(255,255,255,.84)' }}>
-            {live} in use. The order here is the order Add Entry offers them in, so the three you
-            use daily are worth putting first.
-          </p>
-        </header>
+      <main style={{ minHeight: '100dvh', background: 'var(--background)', paddingBottom: TAB_BAR_SPACE }}>
+        <PageHead back="/budget" eyebrow="Plan" title="Categories"
+          sub={`${live} in use. Add Entry offers them in this order, so put the everyday ones first.`} />
 
         <div style={{ paddingTop: 20 }}>
           <CategoryEditor categories={categories} canEdit={actor.role !== 'viewer'} />
-          <p style={{ margin: '0 var(--gutter)', fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--c-meta)' }}>
+          <p style={{ margin: '0 var(--gutter)', fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--muted-foreground)' }}>
             Renaming is safe: every entry points at the category itself, so they all follow the
             new name and no month changes value.
           </p>
         </div>
+        <TabBar current="/categories" />
       </main>
     </Screen>
   );

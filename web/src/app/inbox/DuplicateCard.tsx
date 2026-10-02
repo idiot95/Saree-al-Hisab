@@ -24,15 +24,15 @@ export default function DuplicateCard({ low, high, reason }: {
     || (dropState && !dropState.ok && dropState.error);
 
   return (
-    <section className="el card" style={{
-      margin: '0 var(--gutter) 14px', background: 'var(--c-card)', borderRadius: 18, padding: 16,
+    <section className="border border-border" style={{
+      margin: '0 var(--gutter) 14px', background: 'var(--card)', borderRadius: 18, padding: 16,
       display: 'flex', flexDirection: 'column', gap: 12,
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
         <span style={{
           display: 'flex', alignItems: 'center', gap: 6, fontSize: 'var(--step--2)', fontWeight: 700,
           letterSpacing: '.03em', padding: '5px 9px', borderRadius: 7,
-          background: 'var(--c-warn-tint)', color: 'var(--c-warn)',
+          background: 'var(--attention-soft)', color: 'var(--attention-soft-foreground)',
         }}>
           <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor"
             strokeWidth={2.4} strokeLinecap="round" aria-hidden>
@@ -42,7 +42,7 @@ export default function DuplicateCard({ low, high, reason }: {
         </span>
       </div>
 
-      <p style={{ margin: 0, fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--c-meta)' }}>
+      <p style={{ margin: 0, fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--muted-foreground)' }}>
         {reason === 'two_people'
           ? `${low.who} and ${high.who} each recorded this. The accounts differ, which is usually the sign of one purchase entered twice rather than two purchases.`
           : 'The same amount, on the same account, within three days.'}
@@ -52,16 +52,16 @@ export default function DuplicateCard({ low, high, reason }: {
         {[low, high].map((s, i) => (
           <div key={s.id} style={{
             display: 'flex', alignItems: 'center', gap: 11, padding: '11px 12px',
-            borderRadius: 13, background: 'var(--c-sunk2)', border: '1px solid var(--c-border)',
+            borderRadius: 13, background: 'var(--background)', border: '1px solid var(--border)',
           }}>
             <Link transitionTypes={['nav-forward']} href={`/entries/${s.id}`} style={{
               flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3,
-              textDecoration: 'none', color: 'var(--c-ink)',
+              textDecoration: 'none', color: 'var(--foreground)',
             }}>
               <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>
                 {s.merchant || s.category || 'Entry'}
               </span>
-              <span style={{ fontSize: 'var(--step--2)', color: 'var(--c-meta)' }}>
+              <span style={{ fontSize: 'var(--step--2)', color: 'var(--muted-foreground)' }}>
                 {new Date(s.on).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
                 {' · '}{s.account}{' · '}{s.who}
               </span>
@@ -71,7 +71,7 @@ export default function DuplicateCard({ low, high, reason }: {
               <input type="hidden" name="txnId" value={s.id} />
               <button className="cta" type="submit" disabled={dropping} style={{
                 minHeight: 44, padding: '0 11px', borderRadius: 10, fontSize: 'var(--step--1)',
-                fontWeight: 600, background: 'var(--c-danger-tint)', color: 'var(--c-danger)',
+                fontWeight: 600, background: 'color-mix(in srgb, var(--destructive) 12%, transparent)', color: 'var(--destructive)',
                 opacity: dropping ? 0.6 : 1,
               }}>{i === 0 ? 'Delete this' : 'Delete this'}</button>
             </form>
@@ -80,7 +80,7 @@ export default function DuplicateCard({ low, high, reason }: {
       </div>
 
       {err && (
-        <p role="alert" style={{ margin: 0, fontSize: 'var(--step--1)', color: 'var(--c-danger)' }}>{err}</p>
+        <p role="alert" style={{ margin: 0, fontSize: 'var(--step--1)', color: 'var(--destructive)' }}>{err}</p>
       )}
 
       <form action={keep}>
@@ -88,7 +88,7 @@ export default function DuplicateCard({ low, high, reason }: {
         <input type="hidden" name="highId" value={high.id} />
         <button className="cta" type="submit" disabled={keeping} style={{
           width: '100%', minHeight: 48, borderRadius: 12, fontSize: 'var(--step-0)', fontWeight: 600,
-          background: 'var(--c-sunk)', color: 'var(--c-ink)', opacity: keeping ? 0.6 : 1,
+          background: 'var(--muted)', color: 'var(--foreground)', opacity: keeping ? 0.6 : 1,
         }}>{keeping ? 'Saving…' : 'They are both real — keep them'}</button>
       </form>
     </section>

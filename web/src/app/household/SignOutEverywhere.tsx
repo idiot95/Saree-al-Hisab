@@ -16,7 +16,7 @@ export default function SignOutEverywhere() {
           <span style={{
             width: 38, height: 38, flex: 'none', borderRadius: 999, display: 'flex',
             alignItems: 'center', justifyContent: 'center',
-            background: 'var(--c-sunk)', color: 'var(--c-meta)',
+            background: 'var(--muted)', color: 'var(--muted-foreground)',
           }}>
             <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="currentColor"
               strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
@@ -25,26 +25,26 @@ export default function SignOutEverywhere() {
             </svg>
           </span>
           <span style={{ flex: 1, fontSize: 'var(--step-0)', fontWeight: 600 }}>Sign out everywhere</span>
-          <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="var(--c-meta)"
+          <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="var(--muted-foreground)"
             strokeWidth={2} strokeLinecap="round" aria-hidden><path d="M9 5l7 7-7 7" /></svg>
         </button>
       ) : (
         <form action={act} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <p style={{ margin: 0, fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--c-meta)' }}>
+          <p style={{ margin: 0, fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--muted-foreground)' }}>
             Ends every signed-in session on every device, including this one. Use this if a
             phone has been lost or you think someone else has your password.
           </p>
           {state && !state.ok && (
-            <p role="alert" style={{ margin: 0, fontSize: 'var(--step--1)', color: 'var(--c-danger)' }}>{state.error}</p>
+            <p role="alert" style={{ margin: 0, fontSize: 'var(--step--1)', color: 'var(--destructive)' }}>{state.error}</p>
           )}
           <div style={{ display: 'flex', gap: 9 }}>
             <button className="cta" type="button" onClick={() => setSure(false)} style={{
               minHeight: 48, padding: '0 16px', borderRadius: 12, fontSize: 'var(--step-0)', fontWeight: 600,
-              background: 'var(--c-sunk)', color: 'var(--c-meta)',
+              background: 'var(--muted)', color: 'var(--muted-foreground)',
             }}>Cancel</button>
             <button className="cta" type="submit" disabled={pending} style={{
               flex: 1, minHeight: 48, borderRadius: 12, fontSize: 'var(--step-0)', fontWeight: 600,
-              background: 'var(--c-danger-tint)', color: 'var(--c-danger)',
+              background: 'color-mix(in srgb, var(--destructive) 12%, transparent)', color: 'var(--destructive)',
               opacity: pending ? 0.65 : 1,
             }}>{pending ? 'Signing out…' : 'Sign out everywhere'}</button>
           </div>

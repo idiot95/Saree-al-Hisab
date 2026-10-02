@@ -1,8 +1,6 @@
-import Link from '@/app/NavLink';
 import { actorOrNull } from '@/db/queries';
-import { headerBg } from '../auth-ui';
+import PageHead from '../PageHead';
 import Screen from '../Screen';
-import Back from '../Back';
 import { BACK_SPACE } from '../tabs';
 
 export const metadata = { title: 'Terms · Saree al-Hisab' };
@@ -18,7 +16,7 @@ export const dynamic = 'force-dynamic';
 const REPO = 'https://github.com/idiot95/Saree-al-Hisab';
 const DATED = 'September 2026';
 const link: React.CSSProperties = {
-  color: 'var(--c-teal)', fontWeight: 600, textDecoration: 'underline', textUnderlineOffset: 3,
+  color: 'var(--primary)', fontWeight: 600, textDecoration: 'underline', textUnderlineOffset: 3,
 };
 
 const SECTIONS: { title: string; lines: React.ReactNode[] }[] = [
@@ -83,33 +81,14 @@ export default async function Terms() {
 
   return (
     <Screen>
-      <Back to={back} />
-      <main style={{ minHeight: '100dvh', background: 'var(--c-bg)', paddingBottom: BACK_SPACE }}>
-        <header className="el2" style={{
-          background: headerBg('slate'), color: '#fff', borderRadius: '0 0 28px 28px',
-          padding: '18px var(--gutter) 28px', display: 'flex', flexDirection: 'column', gap: 11,
-        }}>
-          <Link href={back} transitionTypes={['nav-back']} aria-label="Back" style={{
-            width: 44, height: 44, marginLeft: -11, borderRadius: 999, display: 'flex',
-            alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,.92)',
-          }}>
-            <svg width={21} height={21} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-              strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-              <path d="M15 5l-7 7 7 7" />
-            </svg>
-          </Link>
-          <h1 className="t" style={{ margin: 0, fontSize: 'var(--step-3)', letterSpacing: '-.018em' }}>
-            Terms, and how your data is kept
-          </h1>
-          <p style={{ margin: 0, fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'rgba(255,255,255,.82)' }}>
-            Seven things, each one you can check. Dated {DATED}; if they change, the date does.
-          </p>
-        </header>
+      <main style={{ minHeight: '100dvh', background: 'var(--background)', paddingBottom: BACK_SPACE }}>
+        <PageHead back={back} title="Terms, and how your data is kept"
+          sub={`Seven things, each one you can check. Dated ${DATED}; if they change, the date does.`} />
 
         <ol style={{ margin: 0, padding: '20px var(--gutter) 0', listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 14 }}>
           {SECTIONS.map((s) => (
-            <li key={s.title} className="el card" style={{
-              background: 'var(--c-card)', borderRadius: 18, padding: 16,
+            <li key={s.title} className="border border-border" style={{
+              background: 'var(--card)', borderRadius: 18, padding: 16,
               display: 'flex', flexDirection: 'column', gap: 10,
             }}>
               <h2 style={{ margin: 0, fontSize: 'var(--step-0)', fontWeight: 600, letterSpacing: '-.01em' }}>
@@ -118,10 +97,10 @@ export default async function Terms() {
               <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {s.lines.map((line, i) => (
                   <li key={i} style={{
-                    display: 'flex', gap: 10, fontSize: 'var(--step--1)', lineHeight: 1.55, color: 'var(--c-ink)',
+                    display: 'flex', gap: 10, fontSize: 'var(--step--1)', lineHeight: 1.55, color: 'var(--foreground)',
                   }}>
                     <span aria-hidden style={{
-                      width: 5, height: 5, flex: 'none', borderRadius: 999, marginTop: 8, background: 'var(--c-off)',
+                      width: 5, height: 5, flex: 'none', borderRadius: 999, marginTop: 8, background: 'var(--muted-foreground)',
                     }} />
                     <span style={{ minWidth: 0 }}>{line}</span>
                   </li>
@@ -132,7 +111,7 @@ export default async function Terms() {
         </ol>
 
         <p style={{
-          margin: '18px var(--gutter) 0', fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--c-meta)',
+          margin: '18px var(--gutter) 0', fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--muted-foreground)',
         }}>
           Using the app means agreeing to these. Questions go to whoever sent you the link.
         </p>

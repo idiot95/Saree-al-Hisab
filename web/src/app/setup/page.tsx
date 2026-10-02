@@ -24,7 +24,7 @@ export default async function Setup() {
       <div style={{ padding: '26px var(--gutter) 30px', display: 'flex', flexDirection: 'column', gap: 14 }}>
         <SetupForm />
 
-        <p style={{ margin: '4px 4px 0', fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--c-meta)' }}>
+        <p style={{ margin: '4px 4px 0', fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--muted-foreground)' }}>
           Been invited to someone else&rsquo;s household instead? Open the link they sent you
           {actor.email ? <> — it is addressed to <strong>{actor.email}</strong></> : ''}.
         </p>
@@ -32,7 +32,7 @@ export default async function Setup() {
         <form action={async () => { 'use server'; await signOut({ redirectTo: '/signin' }); }}>
           <button type="submit" style={{
             minHeight: 44, padding: '0 6px', display: 'flex', alignItems: 'center',
-            color: 'var(--c-meta)', fontSize: 'var(--step--1)', fontWeight: 600,
+            color: 'var(--muted-foreground)', fontSize: 'var(--step--1)', fontWeight: 600,
           }}>
             Sign out
           </button>

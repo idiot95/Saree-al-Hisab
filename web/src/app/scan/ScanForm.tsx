@@ -12,15 +12,15 @@ export default function ScanForm({ canScan }: { canScan: boolean }) {
 
   if (!canScan) {
     return (
-      <div className="el card" style={card}>
-        <p style={{ margin: 0, fontSize: 'var(--step--1)', lineHeight: 1.55, color: 'var(--c-meta)' }}>
+      <div className="border border-border" style={card}>
+        <p style={{ margin: 0, fontSize: 'var(--step--1)', lineHeight: 1.55, color: 'var(--muted-foreground)' }}>
           Scanning needs a Google AI key, which is free and takes a minute to get. An owner
           adds it once under Household.
         </p>
         <Link transitionTypes={['nav-forward']} href="/household" style={{
           minHeight: 48, borderRadius: 12, display: 'flex', alignItems: 'center',
           justifyContent: 'center', textDecoration: 'none', fontSize: 'var(--step-0)', fontWeight: 600,
-          background: 'var(--g-primary)', color: 'var(--c-on-primary)',
+          background: 'var(--primary)', color: 'var(--primary-foreground)',
         }}>Go to Household</Link>
       </div>
     );
@@ -28,18 +28,18 @@ export default function ScanForm({ canScan }: { canScan: boolean }) {
 
   return (
     <>
-      <form action={act} className="el card" style={card}>
+      <form action={act} className="border border-border" style={card}>
         <label style={{
           minHeight: 130, borderRadius: 15, display: 'flex', flexDirection: 'column',
           alignItems: 'center', justifyContent: 'center', gap: 8, cursor: 'pointer',
-          background: 'var(--c-sunk2)', border: '1.5px dashed var(--c-dash)', padding: 16,
+          background: 'var(--background)', border: '1.5px dashed var(--input)', padding: 16,
         }}>
           <input
             type="file" name="receipt" accept="image/png,image/jpeg,image/webp,application/pdf"
             capture="environment" required style={{ display: 'none' }}
             onChange={(e) => setPicked(e.target.files?.[0]?.name ?? null)}
           />
-          <svg width={30} height={30} viewBox="0 0 24 24" fill="none" stroke="var(--c-meta)"
+          <svg width={30} height={30} viewBox="0 0 24 24" fill="none" stroke="var(--muted-foreground)"
             strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
             <path d="M4.5 8.5 6 6h4l1-1.5h2L14 6h4l1.5 2.5v9a1.5 1.5 0 0 1-1.5 1.5H6a1.5 1.5 0 0 1-1.5-1.5z" />
             <circle cx="12" cy="12.5" r="3.4" />
@@ -47,18 +47,17 @@ export default function ScanForm({ canScan }: { canScan: boolean }) {
           <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>
             {picked ?? 'Photograph the receipt'}
           </span>
-          <span style={{ fontSize: 'var(--step--1)', color: 'var(--c-meta)', textAlign: 'center' }}>
+          <span style={{ fontSize: 'var(--step--1)', color: 'var(--muted-foreground)', textAlign: 'center' }}>
             Or pick a screenshot or PDF. Up to 6 MB.
           </span>
         </label>
 
         {state && !state.ok && <ErrorNote>{state.error}</ErrorNote>}
 
-        <button type="submit" disabled={pending} className="el2 cta" style={{
-          minHeight: 54, borderRadius: 15, fontSize: 'var(--step-0)', fontWeight: 600, color: '#fff',
+        <button type="submit" disabled={pending} className="cta" style={{
+          minHeight: 54, borderRadius: 15, fontSize: 'var(--step-0)', fontWeight: 600, color: 'var(--primary-foreground)',
           opacity: pending ? 0.6 : 1,
-          background: 'radial-gradient(120% 100% at 25% 0%, rgba(255,255,255,.18) 0%, rgba(255,255,255,0) 60%),'
-            + 'linear-gradient(145deg,#2C5063 0%,#1C3541 100%)',
+          background: 'var(--primary)',
         }}>{pending ? 'Reading it…' : 'Read the receipt'}</button>
       </form>
 
@@ -85,17 +84,17 @@ function Draft({ result }: {
   const blocked = result.missing.length > 0;
 
   return (
-    <section className="el card" style={{ ...card, marginTop: 16 }}>
+    <section className="border border-border" style={{ ...card, marginTop: 16 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
         <span style={{
           fontSize: 'var(--step--2)', fontWeight: 700, letterSpacing: '.04em', padding: '5px 9px',
           borderRadius: 7,
-          background: s.confidence === 'high' ? 'var(--c-ok-tint)'
-            : s.confidence === 'medium' ? 'var(--c-warn-tint)' : 'var(--c-danger-tint)',
-          color: s.confidence === 'high' ? 'var(--c-ok)'
-            : s.confidence === 'medium' ? 'var(--c-warn)' : 'var(--c-danger)',
+          background: s.confidence === 'high' ? 'var(--accent)'
+            : s.confidence === 'medium' ? 'var(--attention-soft)' : 'color-mix(in srgb, var(--destructive) 12%, transparent)',
+          color: s.confidence === 'high' ? 'var(--primary)'
+            : s.confidence === 'medium' ? 'var(--attention-soft-foreground)' : 'var(--destructive)',
         }}>{s.confidence.toUpperCase()} CONFIDENCE</span>
-        <span style={{ fontSize: 'var(--step--1)', color: 'var(--c-meta)' }}>Nothing saved yet</span>
+        <span style={{ fontSize: 'var(--step--1)', color: 'var(--muted-foreground)' }}>Nothing saved yet</span>
       </div>
 
       <dl style={{ margin: 0, display: 'flex', flexDirection: 'column', gap: 0 }}>
@@ -110,19 +109,18 @@ function Draft({ result }: {
       {blocked ? (
         <p style={{
           margin: 0, padding: '12px 14px', borderRadius: 13, fontSize: 'var(--step--1)', lineHeight: 1.5,
-          background: 'var(--c-warn-tint)', color: 'var(--c-warn)', fontWeight: 600,
+          background: 'var(--attention-soft)', color: 'var(--attention-soft-foreground)', fontWeight: 600,
         }}>
           Could not read {result.missing.join(', ')}. Open a blank entry and fill it in — a
           figure guessed from a blurred receipt is worse than one you typed.
         </p>
       ) : null}
 
-      <Link href={blocked ? '/add' : `/add?${params.toString()}`} className="el2" style={{
+      <Link href={blocked ? '/add' : `/add?${params.toString()}`}  style={{
         minHeight: 52, borderRadius: 14, display: 'flex', alignItems: 'center',
         justifyContent: 'center', textDecoration: 'none', fontSize: 'var(--step-0)', fontWeight: 600,
-        color: '#fff',
-        background: 'radial-gradient(120% 100% at 25% 0%, rgba(255,255,255,.18) 0%, rgba(255,255,255,0) 60%),'
-          + 'linear-gradient(145deg,#2C5063 0%,#1C3541 100%)',
+        color: 'var(--primary-foreground)',
+        background: 'var(--primary)',
       }}>{blocked ? 'Enter it myself' : 'Check it and save'}</Link>
     </section>
   );
@@ -132,18 +130,18 @@ function Line({ label, value }: { label: string; value: string | null }) {
   return (
     <div style={{
       display: 'flex', alignItems: 'center', gap: 12, minHeight: 46,
-      borderBottom: '1px solid var(--c-rule)',
+      borderBottom: '1px solid var(--border)',
     }}>
-      <dt style={{ flex: 1, fontSize: 'var(--step--1)', color: 'var(--c-meta)' }}>{label}</dt>
+      <dt style={{ flex: 1, fontSize: 'var(--step--1)', color: 'var(--muted-foreground)' }}>{label}</dt>
       <dd style={{
         margin: 0, fontSize: 'var(--step-0)', fontWeight: 600,
-        color: value ? 'var(--c-ink)' : 'var(--c-danger)',
+        color: value ? 'var(--foreground)' : 'var(--destructive)',
       }}>{value ?? 'not readable'}</dd>
     </div>
   );
 }
 
 const card: React.CSSProperties = {
-  margin: '0 var(--gutter)', background: 'var(--c-card)', borderRadius: 18, padding: 16,
+  margin: '0 var(--gutter)', background: 'var(--card)', borderRadius: 18, padding: 16,
   display: 'flex', flexDirection: 'column', gap: 14,
 };

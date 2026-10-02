@@ -1,11 +1,9 @@
-import Link from '@/app/NavLink';
 import { redirect } from 'next/navigation';
-import { actorOrNull, categoriesFor, schedulesFor, tabsForEntry, type ScheduleRow } from '@/db/queries';
+import { actorOrNull, categoriesFor, inboxCount, schedulesFor, tabsForEntry, type ScheduleRow } from '@/db/queries';
 import { withHousehold } from '@/db/client';
 import { waysToPay } from '@/db/payment';
 import { format } from '@/lib/money';
 import { daysBetween, describeRule, isFinished, nextUnsettled, outstandingDues, parseRule, ruleOf } from '@/lib/recur';
-import { headerBg } from '../auth-ui';
 import TabBar from '../TabBar';
 import { TAB_BAR_SPACE } from '../tabs';
 import NewSchedule from './NewSchedule';
@@ -13,10 +11,12 @@ import Calendar, { type CalSchedule } from './Calendar';
 import DueRow from './DueRow';
 import { archiveSchedule } from './actions';
 import Screen from '../Screen';
-import Back from '../Back';
+import PageHead, { Label } from '../PageHead';
+import ActivityNav from '../entries/ActivityNav';
+import { IconCalendarRepeat } from '@tabler/icons-react';
 import Swipeable from '../Swipeable';
 
-export const metadata = { title: 'Scheduled · Saree al-Hisab' };
+export const metadata = { title: 'Upcoming · Saree al-Hisab' };
 export const dynamic = 'force-dynamic';
 
 export default async function Schedules() {
@@ -25,11 +25,12 @@ export default async function Schedules() {
   if (!actor.household_id) redirect('/no-household');
 
   const hh = actor.household_id;
-  const [schedules, ways, cats, tabs] = await withHousehold(hh, () => Promise.all([
+  const [schedules, ways, cats, tabs, inbox] = await withHousehold(hh, () => Promise.all([
     schedulesFor(hh),
     waysToPay(hh),
     categoriesFor(hh),
     tabsForEntry(hh),
+    inboxCount(hh),
   ]));
   const canWrite = actor.role !== 'viewer';
   const today = new Date();
@@ -59,41 +60,29 @@ export default async function Schedules() {
 
   return (
     <Screen>
-      <Back to="/" />
-      <main style={{ minHeight: '100dvh', background: 'var(--c-bg)', paddingBottom: TAB_BAR_SPACE }}>
-        <header className="el2" style={{
-          background: headerBg('cyan'), color: '#fff', borderRadius: '0 0 28px 28px',
-          padding: '18px var(--gutter) 26px', display: 'flex', flexDirection: 'column', gap: 10,
-        }}>
-          <Link href="/" transitionTypes={['nav-back']} aria-label="Back" style={{
-            width: 44, height: 44, marginLeft: -11, borderRadius: 999, display: 'flex',
-            alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,.92)',
-          }}>
-            <svg width={21} height={21} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-              strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-              <path d="M15 5l-7 7 7 7" />
-            </svg>
-          </Link>
-          <h1 className="t" style={{ margin: 0, fontSize: 'var(--step-3)', letterSpacing: '-.018em' }}>
-            Scheduled
-          </h1>
-          <p style={{ margin: 0, fontSize: 'var(--step--1)', color: 'rgba(255,255,255,.84)' }}>
-            {schedules.length === 0
-              ? 'Rent, fees, an EMI, a salary — the things that come round whether you look or not.'
-              : [out > 0 ? `${format(out)} a month goes out` : null,
-                 income > 0 ? `${format(income)} comes in` : null]
-                  .filter(Boolean).join(' · ')
-                || `${schedules.length} ${schedules.length === 1 ? 'schedule' : 'schedules'}`}
-          </p>
-        </header>
+      <main className="min-h-dvh bg-background text-foreground" style={{ paddingBottom: TAB_BAR_SPACE }}>
+        <PageHead title="Activity" sub={schedules.length === 0
+          ? 'Nothing scheduled yet'
+          : [out > 0 ? `${format(out)} a month goes out` : null, income > 0 ? `${format(income)} comes in` : null]
+              .filter(Boolean).join(' · ') || `${schedules.length} scheduled`}>
+          <ActivityNav current="schedules" review={inbox.duplicates + inbox.bills} />
+        </PageHead>
 
-        <div style={{ paddingTop: 20 }}>
+        <div className="flex flex-col">
+          {schedules.length === 0 && (
+            <div className="mx-[var(--gutter)] mb-4 flex flex-col items-start gap-2 rounded-2xl border border-border bg-card p-4">
+              <IconCalendarRepeat size={24} className="text-primary" aria-hidden />
+              <p className="text-[15px] font-semibold">Rent, fees, an EMI, a salary</p>
+              <p className="text-sm leading-relaxed text-muted-foreground">
+                The things that come round whether you look or not. Add one and it shows up here, on the calendar,
+                and on Home the day it is due. Nothing is recorded until you say it was paid.
+              </p>
+            </div>
+          )}
           {dues.length > 0 && (
             <>
               <Head>Due now</Head>
-              <section className="el card" style={{
-                margin: '0 var(--gutter) 22px', background: 'var(--c-card)', borderRadius: 18, padding: '0 var(--pad)', overflow: 'hidden',
-              }}>
+              <section className="mx-[var(--gutter)] mb-5 overflow-hidden rounded-2xl border border-border bg-card px-4">
                 {dues.map((d) => {
                   const s = byId.get(d.scheduleId)!;
                   return (
@@ -131,18 +120,19 @@ export default async function Schedules() {
 
           {canWrite && (
             <NewSchedule
-              startOpen={schedules.length === 0}
+              startOpen={false}
               ways={ways}
               categories={cats}
               tabs={tabs.map((t) => ({ id: t.id, name: t.name }))}
             />
           )}
 
-          <p style={{ margin: '0 var(--gutter)', fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--c-meta)' }}>
-            Nothing is recorded until you say so. A schedule is a reminder with the details
-            already filled in, not a standing instruction that writes entries behind your back.
-            Income scheduled here is recorded as income when you say it came in.
-          </p>
+          {schedules.length > 0 && (
+            <p className="mx-[var(--gutter)] mt-3 px-1 text-xs leading-relaxed text-muted-foreground">
+              Nothing is recorded until you say so. A schedule is a reminder with the details
+              already filled in, not a standing instruction that writes entries behind your back.
+            </p>
+          )}
         </div>
         <TabBar current="/schedules" />
       </main>
@@ -154,10 +144,8 @@ function Rows({ schedules, canWrite, today, todayIso, done = false }: {
   schedules: ScheduleRow[]; canWrite: boolean; today: Date; todayIso: string; done?: boolean;
 }) {
   return (
-    <section className="el card" style={{
-      margin: '0 var(--gutter) 22px', background: 'var(--c-card)', borderRadius: 18,
-      padding: '0 var(--pad)', overflow: 'hidden', opacity: done ? 0.72 : 1,
-    }}>
+    <section className="mx-[var(--gutter)] mb-5 overflow-hidden rounded-2xl border border-border bg-card px-4"
+      style={{ opacity: done ? 0.72 : 1 }}>
       {schedules.map((s, i) => {
         const r = ruleOf(s);
         const next = done ? null : nextUnsettled(s, s.settled, today);
@@ -169,25 +157,25 @@ function Rows({ schedules, canWrite, today, todayIso, done = false }: {
           ] : []}>
           <div style={{
             display: 'flex', alignItems: 'center', gap: 12, minHeight: 74, padding: '10px 0',
-            borderBottom: i === schedules.length - 1 ? undefined : '1px solid var(--c-rule)',
+            borderBottom: i === schedules.length - 1 ? undefined : '1px solid var(--border)',
           }}>
             <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
               <span style={{ fontSize: 'var(--step-0)', fontWeight: 600, overflowWrap: 'anywhere' }}>{s.name}</span>
-              <span style={{ fontSize: 'var(--step--1)', color: 'var(--c-meta)', overflowWrap: 'anywhere' }}>
+              <span style={{ fontSize: 'var(--step--1)', color: 'var(--muted-foreground)', overflowWrap: 'anywhere' }}>
                 {r ? cap(describeRule(r.rule, r.cal)) : 'No schedule'}
                 {s.category ? ` · ${s.category}` : ''}
               </span>
               {r && !done && (
                 <span style={{
                   fontSize: 'var(--step--1)', fontWeight: next ? 600 : 400,
-                  color: next ? (daysBetween(todayIso, next) < 0 ? 'var(--c-out)' : 'var(--c-ink)') : 'var(--c-meta)',
+                  color: next ? (daysBetween(todayIso, next) < 0 ? 'var(--money-out)' : 'var(--foreground)') : 'var(--muted-foreground)',
                 }}>
                   {next ? nextIn(todayIso, next) : 'Nothing more to come'}
                 </span>
               )}
             </span>
             <span className="t amt" style={{
-              flex: 'none', fontSize: 'var(--step-0)', color: s.kind === 'income' ? 'var(--c-in)' : 'var(--c-out)',
+              flex: 'none', fontSize: 'var(--step-0)', color: s.kind === 'income' ? 'var(--money-in)' : 'var(--money-out)',
             }}>{s.kind === 'income' ? '+' : ''}{format(Number(s.amount ?? 0))}</span>
           </div>
           </Swipeable>
@@ -216,10 +204,5 @@ function isoOf(d: Date) {
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 function Head({ children }: { children: React.ReactNode }) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0 20px 11px' }}>
-      <h2 style={{ margin: 0, fontSize: 'var(--step-1)', fontWeight: 600 }}>{children}</h2>
-      <span style={{ flex: 1, height: 1, background: 'var(--c-border)' }} />
-    </div>
-  );
+  return <div className="mx-[var(--gutter)] mb-2"><Label>{children}</Label></div>;
 }

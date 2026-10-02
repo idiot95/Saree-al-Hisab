@@ -2,18 +2,18 @@ import Link from '@/app/NavLink';
 import { redirect } from 'next/navigation';
 import { actorOrNull, billsDue, duplicatesFor, schedulesFor } from '@/db/queries';
 import { withHousehold } from '@/db/client';
-import { outstandingDues, ruleOf } from '@/lib/recur';
+import { outstandingDues } from '@/lib/recur';
 import { format } from '@/lib/money';
-import { headerBg } from '../auth-ui';
 import TabBar from '../TabBar';
 import { TAB_BAR_SPACE } from '../tabs';
 import DuplicateCard from './DuplicateCard';
-import DueRow from '../schedules/DueRow';
 import Screen from '../Screen';
-import Back from '../Back';
+import PageHead, { Label } from '../PageHead';
+import ActivityNav from '../entries/ActivityNav';
+import { IconCalendarDue, IconChevronRight, IconCircleCheck } from '@tabler/icons-react';
 import Swipeable from '../Swipeable';
 
-export const metadata = { title: 'Inbox · Saree al-Hisab' };
+export const metadata = { title: 'To review · Saree al-Hisab' };
 export const dynamic = 'force-dynamic';
 
 /* Things that want a decision, and nothing that does not. An inbox which
@@ -33,80 +33,31 @@ export default async function Inbox() {
   const canWrite = actor.role !== 'viewer';
   const now = new Date();
   const dues = outstandingDues(schedules, now, 7);
-  const today = [now.getFullYear(), String(now.getMonth() + 1).padStart(2, '0'), String(now.getDate()).padStart(2, '0')].join('-');
-  const byId = new Map(schedules.map((x) => [x.id, x]));
-  const count = dupes.length + bills.length + dues.length;
+  /* The same two things Activity's badge and Home's tile count: decisions. What is merely due lives under
+     Upcoming, and is pointed at from here rather than listed twice. */
+  const count = dupes.length + bills.length;
 
   return (
     <Screen>
-      <Back to="/" />
-      <main style={{ minHeight: '100dvh', background: 'var(--c-bg)', paddingBottom: TAB_BAR_SPACE }}>
-        <header className="el2" style={{
-          background: headerBg('pumpkin'), color: '#fff', borderRadius: '0 0 28px 28px',
-          padding: '18px var(--gutter) 26px', display: 'flex', flexDirection: 'column', gap: 10,
-        }}>
-          <Link href="/" transitionTypes={['nav-back']} aria-label="Back" style={{
-            width: 44, height: 44, marginLeft: -11, borderRadius: 999, display: 'flex',
-            alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,.92)',
-          }}>
-            <svg width={21} height={21} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-              strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-              <path d="M15 5l-7 7 7 7" />
-            </svg>
-          </Link>
-          <h1 className="t" style={{ margin: 0, fontSize: 'var(--step-3)', letterSpacing: '-.018em' }}>Inbox</h1>
-          <p style={{ margin: 0, fontSize: 'var(--step--1)', color: 'rgba(255,255,255,.84)' }}>
-            {count === 0 ? 'Nothing needs you' : `${count} ${count === 1 ? 'thing' : 'things'} to look at`}
-          </p>
-        </header>
+      <main className="min-h-dvh bg-background text-foreground" style={{ paddingBottom: TAB_BAR_SPACE }}>
+        <PageHead title="Activity" sub={count === 0 ? 'Nothing to review' : `${count} to review`}>
+          <ActivityNav current="inbox" review={count} />
+        </PageHead>
 
         {count === 0 ? (
-          <div style={{
-            margin: '46px 34px', textAlign: 'center', display: 'flex',
-            flexDirection: 'column', alignItems: 'center', gap: 14,
-          }}>
-            <span style={{
-              width: 66, height: 66, borderRadius: 999, display: 'flex', alignItems: 'center',
-              justifyContent: 'center', background: 'var(--c-ok-tint)', color: 'var(--c-ok)',
-            }}>
-              <svg width={30} height={30} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                <path d="M4.5 12.5l5 5 10-11" />
-              </svg>
-            </span>
-            <p style={{ margin: 0, fontSize: 'var(--step-0)', lineHeight: 1.55, color: 'var(--c-meta)', maxWidth: '30ch' }}>
-              Nothing due, no bills coming up and no possible duplicates. This fills
-              itself when something wants deciding.
+          <div className="mx-[var(--gutter)] flex flex-col items-center gap-3 rounded-2xl border border-border bg-card px-6 py-8 text-center">
+            <IconCircleCheck size={34} className="text-money-in" aria-hidden />
+            <p className="max-w-[30ch] text-sm leading-relaxed text-muted-foreground">
+              No card bills waiting and no possible duplicates. This fills itself when something wants deciding.
             </p>
           </div>
         ) : (
-          <div style={{ paddingTop: 20 }}>
-            {dues.length > 0 && (
-              <>
-                <Head>Due now</Head>
-                <section className="el card" style={{
-                  margin: '0 var(--gutter) 22px', background: 'var(--c-card)', borderRadius: 18, padding: '0 var(--pad)', overflow: 'hidden',
-                }}>
-                  {dues.map((d) => {
-                    const s = byId.get(d.scheduleId)!;
-                    return (
-                      <DueRow key={`${d.scheduleId}:${d.dueOn}`}
-                        scheduleId={d.scheduleId} name={s.name} kind={s.kind} dueOn={d.dueOn}
-                        on={d.on} movedFrom={d.movedFrom}
-                        daysAway={d.daysAway} amount={Number(s.amount ?? 0)} category={s.category}
-                        icon={s.icon} tint={s.tint} rule={ruleOf(s)?.rule} cal={ruleOf(s)?.cal} today={today} />
-                    );
-                  })}
-                </section>
-              </>
-            )}
-
+          <div className="flex flex-col gap-5">
             {bills.length > 0 && (
               <>
-                <Head>Card bills</Head>
-                <section className="el card" style={{
-                  margin: '0 var(--gutter) 22px', background: 'var(--c-card)', borderRadius: 18, padding: '0 var(--pad)', overflow: 'hidden',
-                }}>
+                <section aria-label="Card bills" className="mx-[var(--gutter)] flex flex-col gap-2">
+                <Label>Card bills</Label>
+                <div className="overflow-hidden rounded-2xl border border-border bg-card px-4">
                   {bills.map((b, i) => {
                     const soon = b.days_away <= 5;
                     return (
@@ -116,13 +67,13 @@ export default async function Inbox() {
                       ] : []}>
                       <div style={{
                         display: 'flex', alignItems: 'center', gap: 12, minHeight: 78,
-                        borderBottom: i === bills.length - 1 ? undefined : '1px solid var(--c-rule)',
+                        borderBottom: i === bills.length - 1 ? undefined : '1px solid var(--border)',
                       }}>
                         <span style={{
                           width: 40, height: 40, flex: 'none', borderRadius: 11, display: 'flex',
                           alignItems: 'center', justifyContent: 'center',
-                          background: soon ? 'var(--c-danger-tint)' : 'var(--c-warn-tint)',
-                          color: soon ? 'var(--c-danger)' : 'var(--c-warn)',
+                          background: soon ? 'color-mix(in srgb, var(--destructive) 12%, transparent)' : 'var(--attention-soft)',
+                          color: soon ? 'var(--destructive)' : 'var(--attention-soft-foreground)',
                         }}>
                           <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor"
                             strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
@@ -134,7 +85,7 @@ export default async function Inbox() {
                             {b.account}{b.last4 && ` · ${b.last4}`}
                           </span>
                           <span style={{
-                            fontSize: 'var(--step--1)', color: soon ? 'var(--c-danger)' : 'var(--c-meta)',
+                            fontSize: 'var(--step--1)', color: soon ? 'var(--destructive)' : 'var(--muted-foreground)',
                           }}>
                             {b.days_away < 0 ? `overdue by ${-b.days_away} days`
                               : b.days_away === 0 ? 'due today'
@@ -147,19 +98,18 @@ export default async function Inbox() {
                       </Swipeable>
                     );
                   })}
-                </section>
-                <p style={{
-                  margin: '-14px 20px 22px', fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--c-meta)',
-                }}>
-                  Record the payment as a transfer from the bank to the card. It is a move, not
-                  spending — the purchases were counted on the days they happened.
+                </div>
+                <p className="px-1 text-xs leading-relaxed text-muted-foreground">
+                  Swipe a bill to pay it: a transfer from the bank to the card. It is a move, not
+                  spending; the purchases were counted on the days they happened.
                 </p>
+                </section>
               </>
             )}
 
             {dupes.length > 0 && (
               <>
-                <Head>Possibly recorded twice</Head>
+                <div className="mx-[var(--gutter)]"><Label>Possibly recorded twice</Label></div>
                 {dupes.map((d) => (
                   <DuplicateCard
                     key={`${d.low_id}:${d.high_id}`}
@@ -180,7 +130,7 @@ export default async function Inbox() {
                 ))}
                 {!canWrite && (
                   <p style={{
-                    margin: '0 var(--gutter)', fontSize: 'var(--step--1)', color: 'var(--c-meta)', textAlign: 'center',
+                    margin: '0 var(--gutter)', fontSize: 'var(--step--1)', color: 'var(--muted-foreground)', textAlign: 'center',
                   }}>
                     Only owners and contributing members can act on these.
                   </p>
@@ -189,19 +139,17 @@ export default async function Inbox() {
             )}
           </div>
         )}
+        {dues.length > 0 && (
+          <Link href="/schedules" transitionTypes={['nav-lateral']}
+            className="mx-[var(--gutter)] mt-5 flex min-h-14 items-center gap-3 rounded-2xl border border-border bg-card px-4">
+            <IconCalendarDue size={20} className="text-muted-foreground" aria-hidden />
+            <span className="flex-1 text-sm"><b className="font-semibold">{dues.length} due this week</b>
+              <span className="text-muted-foreground"> · under Upcoming</span></span>
+            <IconChevronRight size={17} className="text-muted-foreground" aria-hidden />
+          </Link>
+        )}
         <TabBar current="/inbox" />
       </main>
     </Screen>
-  );
-}
-
-function Head({ children }: { children: React.ReactNode }) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0 20px 11px' }}>
-      <h2 style={{ margin: 0, fontSize: 'var(--step-1)', fontWeight: 600, letterSpacing: '-.012em' }}>
-        {children}
-      </h2>
-      <span style={{ flex: 1, height: 1, background: 'var(--c-border)' }} />
-    </div>
   );
 }

@@ -55,36 +55,36 @@ export default function GettingStarted({ progress }: {
   const next = remaining[0];
 
   return (
-    <Link href={next.href} className="el card" style={{
+    <Link href={next.href} className="border border-border" style={{
       display: 'flex', alignItems: 'center', gap: 12, minHeight: 62, padding: '0 var(--pad)',
-      borderRadius: 15, textDecoration: 'none', background: 'var(--c-card)',
-      border: '1px solid var(--c-border)', color: 'var(--c-ink)',
+      borderRadius: 15, textDecoration: 'none', background: 'var(--card)',
+      border: '1px solid var(--border)', color: 'var(--foreground)',
     }}>
       {/* A ring rather than a bar: it takes a quarter of the width and reads
           as progress at a glance. */}
       <span style={{ position: 'relative', width: 36, height: 36, flex: 'none' }}>
         <svg width={36} height={36} viewBox="0 0 36 36" aria-hidden>
-          <circle cx="18" cy="18" r="15" fill="none" stroke="var(--c-track)" strokeWidth="3.5" />
-          <circle cx="18" cy="18" r="15" fill="none" stroke="var(--c-seagrass)" strokeWidth="3.5"
+          <circle cx="18" cy="18" r="15" fill="none" stroke="var(--muted)" strokeWidth="3.5" />
+          <circle cx="18" cy="18" r="15" fill="none" stroke="var(--chart-1)" strokeWidth="3.5"
             strokeLinecap="round" transform="rotate(-90 18 18)"
             strokeDasharray={`${(done / steps.length) * 94.2} 94.2`} />
         </svg>
         <span className="n" style={{
           position: 'absolute', inset: 0, display: 'flex', alignItems: 'center',
           justifyContent: 'center', fontSize: 'var(--step--2)', fontWeight: 700,
-          color: 'var(--c-meta)',
+          color: 'var(--muted-foreground)',
         }}>{done}/{steps.length}</span>
       </span>
 
       <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
         <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>{next.title}</span>
         <span style={{
-          fontSize: 'var(--step--1)', color: 'var(--c-meta)',
+          fontSize: 'var(--step--1)', color: 'var(--muted-foreground)',
           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         }}>{next.blurb} Setting up · {done} of {steps.length} done</span>
       </span>
 
-      <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="var(--c-off)"
+      <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="var(--muted-foreground)"
         strokeWidth={2} strokeLinecap="round" aria-hidden><path d="M9 5l7 7-7 7" /></svg>
     </Link>
   );

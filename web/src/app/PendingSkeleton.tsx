@@ -35,7 +35,7 @@ export default function PendingSkeleton() {
 
   if (!target || shown !== target || !frameFor(target)) return null;
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 39, overflow: 'hidden', background: 'var(--c-bg)' }}>
+    <div style={{ position: 'fixed', inset: 0, zIndex: 39, overflow: 'hidden', background: 'var(--background)' }}>
       {/* The real tab bar sits above at z 40, so the frame draws none of its own. */}
       <SkeletonFor path={target} stillBar={false} />
     </div>

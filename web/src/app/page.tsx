@@ -139,12 +139,12 @@ function NoBudgetYet({ monthName, spent, entries }: {
   monthName: string; spent: number; entries: number;
 }) {
   return (
-    <section className="el2 hero" style={{
+    <section className="border border-border bg-card" style={{
       borderRadius: 22, padding: '18px 17px', display: 'flex', flexDirection: 'column', gap: 10,
     }}>
       <h2 style={{ fontSize: 'var(--step-2)', fontWeight: 600 }}>{monthName} so far</h2>
-      <span className="t" style={{ fontSize: 'var(--step-4)', lineHeight: 1 }}>{format(spent)}</span>
-      <p style={{ margin: 0, fontSize: 'var(--step--1)', color: 'var(--c-meta)' }}>
+      <span className="font-display tabular-nums" style={{ fontSize: 40, lineHeight: 1 }}>{format(spent)}</span>
+      <p style={{ margin: 0, fontSize: 'var(--step--1)', color: 'var(--muted-foreground)' }}>
         {entries === 0
           ? 'Nothing recorded yet.'
           : `Across ${entries} ${entries === 1 ? 'entry' : 'entries'}. Set a budget and this gets something to measure against.`}
@@ -153,7 +153,7 @@ function NoBudgetYet({ monthName, spent, entries }: {
         minHeight: 48, borderRadius: 13, display: 'flex', alignItems: 'center',
         justifyContent: 'center', textDecoration: 'none',
         fontSize: 'var(--step-0)', fontWeight: 600,
-        background: 'var(--g-primary)', color: 'var(--c-on-primary)',
+        background: 'var(--primary)', color: 'var(--primary-foreground)',
       }}>Create a budget</Link>
     </section>
   );

@@ -42,12 +42,12 @@ export default function TabContacts({ tabId, people, canEdit }: {
         {people.map((p) => (
           <button key={p.id} type="button" onClick={() => { haptic('tap'); setOpen(true); }} style={{
             minHeight: 44, padding: '0 12px 0 6px', borderRadius: 999, display: 'flex', alignItems: 'center', gap: 8,
-            background: 'rgba(255,255,255,.13)', border: '1px solid rgba(255,255,255,.2)', color: '#fff',
+            background: 'var(--card)', border: '1px solid var(--border)', color: 'var(--foreground)',
             fontSize: 'var(--step--1)', fontWeight: 600,
           }}>
             <Face name={p.name} tint={p.tint} size={30} />
             {first(p.name)}
-            <span style={{ fontWeight: 500, color: 'rgba(255,255,255,.8)', display: 'flex', alignItems: 'center', gap: 3 }}>
+            <span style={{ fontWeight: 500, color: 'var(--muted-foreground)', display: 'flex', alignItems: 'center', gap: 3 }}>
               {p.owed > 0 ? format(p.owed) : p.inAll > 0 ? <><Icon name="check" size={13} strokeWidth={2.6} />settled</> : null}
             </span>
           </button>
@@ -55,7 +55,7 @@ export default function TabContacts({ tabId, people, canEdit }: {
         {canEdit && (
           <button type="button" onClick={() => { haptic('select'); setOpen(true); }} style={{
             minHeight: 44, padding: '0 14px 0 11px', borderRadius: 999, display: 'flex', alignItems: 'center', gap: 6,
-            border: '1px dashed rgba(255,255,255,.42)', color: 'rgba(255,255,255,.92)',
+            border: '1px dashed var(--input)', color: 'var(--muted-foreground)',
             fontSize: 'var(--step--1)', fontWeight: 600,
           }}>
             <Icon name="plus" size={15} strokeWidth={2.2} />
@@ -73,17 +73,17 @@ export default function TabContacts({ tabId, people, canEdit }: {
               {people.map((p, i) => (
                 <li key={p.id} style={{
                   display: 'flex', alignItems: 'center', gap: 12, minHeight: 62,
-                  borderBottom: i === people.length - 1 ? undefined : '1px solid var(--c-rule)',
+                  borderBottom: i === people.length - 1 ? undefined : '1px solid var(--border)',
                 }}>
                   <Face name={p.name} tint={p.tint} />
                   <Link href={`/people/${p.id}`} transitionTypes={['nav-forward']} style={{
                     flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2,
-                    textDecoration: 'none', color: 'var(--c-ink)',
+                    textDecoration: 'none', color: 'var(--foreground)',
                   }}>
                     <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>
-                      {p.name}{!p.onTab && <span style={{ fontWeight: 500, color: 'var(--c-meta)' }}> · left the tab</span>}
+                      {p.name}{!p.onTab && <span style={{ fontWeight: 500, color: 'var(--muted-foreground)' }}> · left the tab</span>}
                     </span>
-                    <span style={{ fontSize: 'var(--step--2)', color: 'var(--c-meta)' }}>
+                    <span style={{ fontSize: 'var(--step--2)', color: 'var(--muted-foreground)' }}>
                       {p.inAll === 0 ? 'nothing on the tab yet'
                         : p.owed === 0 ? `settled · ${format(p.inAll)} in all`
                         : `owes ${format(p.owed)} of ${format(p.inAll)}`}
@@ -94,7 +94,7 @@ export default function TabContacts({ tabId, people, canEdit }: {
                       <input type="hidden" name="tabId" value={tabId} />
                       <input type="hidden" name="counterpartyId" value={p.id} />
                       <button type="submit" className="cta" style={{
-                        minHeight: 44, padding: '0 12px', fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)',
+                        minHeight: 44, padding: '0 12px', fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--muted-foreground)',
                       }}>Remove</button>
                     </form>
                   )}
@@ -107,14 +107,14 @@ export default function TabContacts({ tabId, people, canEdit }: {
           {canEdit && (
             <form key={round} action={add} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               <input type="hidden" name="tabId" value={tabId} />
-              <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)' }}>Add someone</span>
+              <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--muted-foreground)' }}>Add someone</span>
               <NewPeople />
               {added && !added.ok && <ErrorNote>{added.error}</ErrorNote>}
               <button className="cta" type="submit" disabled={adding} style={{
                 minHeight: 50, borderRadius: 13, fontSize: 'var(--step-0)', fontWeight: 600,
-                background: 'var(--g-primary)', color: 'var(--c-on-primary)', opacity: adding ? 0.65 : 1,
+                background: 'var(--primary)', color: 'var(--primary-foreground)', opacity: adding ? 0.65 : 1,
               }}>{adding ? 'Adding…' : 'Add to this tab'}</button>
-              <p style={{ margin: 0, fontSize: 'var(--step--2)', lineHeight: 1.45, color: 'var(--c-meta)' }}>
+              <p style={{ margin: 0, fontSize: 'var(--step--2)', lineHeight: 1.45, color: 'var(--muted-foreground)' }}>
                 Costs from now on split between everyone on the tab. What is already on it stays as it was.
               </p>
             </form>

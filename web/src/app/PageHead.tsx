@@ -1,0 +1,44 @@
+import Link from '@/app/NavLink';
+import { IconChevronLeft } from '@tabler/icons-react';
+import Back from './Back';
+
+/* The Quiet Ledger header every screen shares: paper, the serif title, a line under it, and either the tab's
+   segmented switch (children) or — on a screen pushed on top of a tab — a back arrow to where it came from.
+   `back` also arms the edge swipe and the floating Back pill (Back.tsx), so a screen is never left with no way out. */
+export default function PageHead({ title, sub, right, back, eyebrow, children }: {
+  title: React.ReactNode; sub?: React.ReactNode; right?: React.ReactNode; back?: string; eyebrow?: React.ReactNode;
+  children?: React.ReactNode;
+}) {
+  return (
+    <>
+      {back && <Back to={back} />}
+      <header className="flex flex-col gap-3 px-[var(--gutter)] pb-4 pt-4">
+        {back && (
+          <Link href={back} transitionTypes={['nav-back']} aria-label="Back"
+            className="-mb-1 -ml-3 grid size-11 place-items-center rounded-full text-foreground">
+            <IconChevronLeft size={22} aria-hidden />
+          </Link>
+        )}
+        <div className="flex items-end justify-between gap-3">
+          <div className="min-w-0">
+            {eyebrow && <p className="text-xs text-muted-foreground">{eyebrow}</p>}
+            <h1 className="font-display text-[30px] leading-tight [overflow-wrap:anywhere]">{title}</h1>
+            {sub && <p className="text-sm text-muted-foreground">{sub}</p>}
+          </div>
+          {right}
+        </div>
+        {children}
+      </header>
+    </>
+  );
+}
+
+/** A section's small capital label, the one every Quiet Ledger list sits under. */
+export function Label({ children, action }: { children: React.ReactNode; action?: React.ReactNode }) {
+  return (
+    <div className="flex min-h-6 items-baseline justify-between px-1">
+      <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{children}</h2>
+      {action}
+    </div>
+  );
+}

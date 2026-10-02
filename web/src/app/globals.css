@@ -211,8 +211,8 @@
 
   body {
     margin: 0;
-    background: var(--c-bg);
-    color: var(--c-ink);
+    background: var(--background);
+    color: var(--foreground);
     font-family: var(--font-ui-loaded), var(--font-ui);
     font-optical-sizing: auto;
     font-size: var(--step-0);
@@ -396,7 +396,7 @@
   /* The shimmer on a loading block. Deliberately slow and low-contrast: a
      placeholder that flashes is more distracting than the wait it covers. */
   .shim {
-    background: linear-gradient(90deg, var(--c-track) 25%, var(--c-sunk) 37%, var(--c-track) 63%);
+    background: linear-gradient(90deg, var(--muted) 25%, var(--background) 37%, var(--muted) 63%);
     background-size: 400% 100%;
     animation: shim 1.4s ease-in-out infinite;
   }
@@ -409,7 +409,7 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .shim { animation: none; background: var(--c-track); }
+    .shim { animation: none; background: var(--muted); }
   }
 
   .el  { box-shadow: inset 0 1px 0 var(--edge), var(--el); }
@@ -556,7 +556,7 @@
   /* Focus has to be visible for anyone on a keyboard, and must not be a ring
      that vanishes against a dark header. */
   :focus-visible {
-    outline: 2px solid var(--c-seagrass);
+    outline: 2px solid var(--ring);
     outline-offset: 2px;
     border-radius: 4px;
   }

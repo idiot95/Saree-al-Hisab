@@ -14,10 +14,9 @@ import PasswordCard from './PasswordCard';
 import ScanKey from './ScanKey';
 import ThemePicker from './ThemePicker';
 import { forcedTheme, THEME_COOKIE } from '@/lib/theme';
-import { headerBg } from '../auth-ui';
 import BooksSwitcher from './BooksSwitcher';
+import PageHead from '../PageHead';
 import Screen from '../Screen';
-import Back from '../Back';
 
 export const metadata = { title: 'Household · Saree al-Hisab' };
 export const dynamic = 'force-dynamic';
@@ -51,28 +50,10 @@ export default async function Household() {
 
   return (
     <Screen>
-      <Back to="/" />
-      <main style={{ minHeight: '100dvh', background: 'var(--c-bg)', paddingBottom: TAB_BAR_SPACE }}>
-        <header className="el2" style={{
-          background: headerBg('slate'),
-          color: '#fff', borderRadius: '0 0 28px 28px', padding: '18px var(--gutter) 26px',
-          display: 'flex', flexDirection: 'column', gap: 12,
-        }}>
-          <Link href="/" transitionTypes={['nav-back']} aria-label="Back" style={{
-            width: 44, height: 44, marginLeft: -11, borderRadius: 999, display: 'flex',
-            alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,.92)',
-          }}>
-            <svg width={21} height={21} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-              strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-              <path d="M15 5l-7 7 7 7" />
-            </svg>
-          </Link>
-          <h1 className="t" style={{ margin: 0, fontSize: 'var(--step-3)', letterSpacing: '-.018em' }}>{name}</h1>
-          <p style={{ margin: 0, fontSize: 'var(--step--1)', color: 'rgba(255,255,255,.84)' }}>
-            Household &amp; settings · {members.length} {members.length === 1 ? 'member' : 'members'}
-            {live.length > 0 && ` · ${live.length} invited`}
-          </p>
-        </header>
+      <main style={{ minHeight: '100dvh', background: 'var(--background)', paddingBottom: TAB_BAR_SPACE }}>
+        <PageHead back="/" title={name}
+          sub={<>Household and settings · {members.length} {members.length === 1 ? 'member' : 'members'}
+            {live.length > 0 && ` · ${live.length} invited`}</>} />
 
         <p style={{
           display: 'flex', alignItems: 'flex-start', gap: 10, margin: '18px 18px 22px',
@@ -116,13 +97,13 @@ export default async function Household() {
               {invites.map((iv, i) => (
                 <div key={iv.id} style={{
                   display: 'flex', alignItems: 'center', gap: 12, minHeight: 74,
-                  borderBottom: i === invites.length - 1 ? undefined : '1px solid var(--c-rule)',
+                  borderBottom: i === invites.length - 1 ? undefined : '1px solid var(--border)',
                 }}>
                   <span style={{
                     width: 42, height: 42, flex: 'none', borderRadius: 999, display: 'flex',
                     alignItems: 'center', justifyContent: 'center',
-                    background: iv.expired ? 'var(--c-danger-tint)' : 'var(--c-warn-tint)',
-                    color: iv.expired ? 'var(--c-danger)' : 'var(--c-warn)',
+                    background: iv.expired ? 'color-mix(in srgb, var(--destructive) 12%, transparent)' : 'var(--attention-soft)',
+                    color: iv.expired ? 'var(--destructive)' : 'var(--attention-soft-foreground)',
                   }}>
                     <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor"
                       strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
@@ -135,7 +116,7 @@ export default async function Household() {
                       textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                     }}>{iv.email}</span>
                     <span style={{
-                      fontSize: 'var(--step--1)', color: iv.expired ? 'var(--c-danger)' : 'var(--c-meta)',
+                      fontSize: 'var(--step--1)', color: iv.expired ? 'var(--destructive)' : 'var(--muted-foreground)',
                     }}>
                       {LABEL[iv.role]} · {iv.expired ? 'expired' : `expires ${when(iv.expires_at)}`}
                     </span>
@@ -163,15 +144,15 @@ export default async function Household() {
             Home header, where it was the only button and the wrong one to
             press by accident with a thumb. */}
         <form action={async () => { 'use server'; await signOut({ redirectTo: '/signin' }); }}
-          className="el card" style={{ margin: '-8px var(--gutter) 22px', borderRadius: 18 }}>
+          className="border border-border" style={{ margin: '-8px var(--gutter) 22px', borderRadius: 18 }}>
           <button type="submit" className="press" style={{
             width: '100%', minHeight: 56, padding: '0 var(--pad)', borderRadius: 18,
-            display: 'flex', alignItems: 'center', gap: 11, background: 'var(--c-card)',
+            display: 'flex', alignItems: 'center', gap: 11, background: 'var(--card)',
           }}>
             <span style={{
               width: 38, height: 38, flex: 'none', borderRadius: 999, display: 'flex',
               alignItems: 'center', justifyContent: 'center',
-              background: 'var(--c-sunk)', color: 'var(--c-meta)',
+              background: 'var(--muted)', color: 'var(--muted-foreground)',
             }}>
               <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="currentColor"
                 strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
@@ -181,9 +162,9 @@ export default async function Household() {
             </span>
             <span style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
               <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>Sign out</span>
-              <span style={{ fontSize: 'var(--step--2)', color: 'var(--c-meta)' }}>On this phone only</span>
+              <span style={{ fontSize: 'var(--step--2)', color: 'var(--muted-foreground)' }}>On this phone only</span>
             </span>
-            <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="var(--c-meta)"
+            <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="var(--muted-foreground)"
               strokeWidth={2} strokeLinecap="round" aria-hidden><path d="M9 5l7 7-7 7" /></svg>
           </button>
         </form>
@@ -191,15 +172,15 @@ export default async function Household() {
         {/* The same page that sign-up points at, from inside: the terms are
             also the record of how the books are kept, and that is a question
             people ask months later, when the household has grown. */}
-        <Link href="/terms" transitionTypes={['nav-forward']} className="el card press" style={{
+        <Link href="/terms" transitionTypes={['nav-forward']} className="press border border-border" style={{
           margin: '-8px var(--gutter) 22px', minHeight: 56, padding: '0 var(--pad)', borderRadius: 18,
-          display: 'flex', alignItems: 'center', gap: 11, background: 'var(--c-card)',
-          textDecoration: 'none', color: 'var(--c-ink)',
+          display: 'flex', alignItems: 'center', gap: 11, background: 'var(--card)',
+          textDecoration: 'none', color: 'var(--foreground)',
         }}>
           <span style={{
             width: 38, height: 38, flex: 'none', borderRadius: 999, display: 'flex',
             alignItems: 'center', justifyContent: 'center',
-            background: 'var(--c-sunk)', color: 'var(--c-meta)',
+            background: 'var(--muted)', color: 'var(--muted-foreground)',
           }}>
             <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="currentColor"
               strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
@@ -209,9 +190,9 @@ export default async function Household() {
           </span>
           <span style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
             <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>Terms, and how your data is kept</span>
-            <span style={{ fontSize: 'var(--step--2)', color: 'var(--c-meta)' }}>Encrypted, checked on every request, source public</span>
+            <span style={{ fontSize: 'var(--step--2)', color: 'var(--muted-foreground)' }}>Encrypted, checked on every request, source public</span>
           </span>
-          <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="var(--c-meta)"
+          <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="var(--muted-foreground)"
             strokeWidth={2} strokeLinecap="round" aria-hidden><path d="M9 5l7 7-7 7" /></svg>
         </Link>
 
@@ -220,17 +201,17 @@ export default async function Household() {
           {(['owner', 'adult', 'viewer'] as const).map((r, i) => (
             <div key={r} style={{
               display: 'flex', flexDirection: 'column', gap: 4, padding: '14px 0',
-              borderBottom: i === 2 ? undefined : '1px solid var(--c-rule)',
+              borderBottom: i === 2 ? undefined : '1px solid var(--border)',
             }}>
               <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>{LABEL[r]}</span>
-              <span style={{ fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--c-meta)' }}>{WHAT[r]}</span>
+              <span style={{ fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--muted-foreground)' }}>{WHAT[r]}</span>
             </div>
           ))}
         </Card>
 
         {!canManage && (
           <p style={{
-            margin: '0 var(--gutter)', fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--c-meta)',
+            margin: '0 var(--gutter)', fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--muted-foreground)',
             textAlign: 'center',
           }}>
             Only an owner can invite or remove people.
@@ -248,19 +229,16 @@ function when(d: Date) {
 
 function Head({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '2px var(--gutter) 11px' }}>
-      <h2 style={{ margin: 0, fontSize: 'var(--step-1)', fontWeight: 600, letterSpacing: '-.012em' }}>
-        {children}
-      </h2>
-      <span style={{ flex: 1, height: 1, background: 'var(--c-border)' }} />
+    <div className="mx-[var(--gutter)] mb-2 px-1">
+      <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{children}</h2>
     </div>
   );
 }
 
 function Card({ children, pad }: { children: React.ReactNode; pad: string }) {
   return (
-    <section className="el card" style={{
-      margin: '0 var(--gutter) 22px', background: 'var(--c-card)', borderRadius: 18, padding: pad,
+    <section className="border border-border" style={{
+      margin: '0 var(--gutter) 22px', background: 'var(--card)', borderRadius: 18, padding: pad,
     }}>{children}</section>
   );
 }
