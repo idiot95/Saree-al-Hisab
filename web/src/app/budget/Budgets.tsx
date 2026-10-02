@@ -210,7 +210,7 @@ function Row({ budget, lines, spentBy, open, onToggle, onEdit }: {
                         <span style={{
                           display: 'block', height: '100%', borderRadius: 999, width: `${share * 100}%`,
                           background: used > cap ? 'var(--destructive)'
-                            : share > 0.85 ? 'var(--attention)' : 'var(--primary)',
+                            : share > 0.85 ? 'var(--attention-ink)' : 'var(--primary)',
                         }} />
                       </span>
                       <span style={{ fontSize: 'var(--step--2)', color: 'var(--muted-foreground)' }}>

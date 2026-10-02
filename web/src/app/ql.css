@@ -1,5 +1,5 @@
 /* Quiet Ledger — the redesign's palette, in the names shadcn/ui components read (bg-background, text-muted-foreground,
-   bg-primary …). Paper tones, teal ink, pumpkin kept for Add and attention only. It sits beside the generated
+   bg-primary …). Paper tones, navy ink, marigold kept for Add and attention only. It sits beside the generated
    tokens.css rather than replacing it, so screens not yet rebuilt keep their look until their turn comes.
 
    Dark follows the same switch as tokens.css: the system setting, unless the household picked a theme
@@ -8,39 +8,42 @@
   --radius: 14px;
 
   --background: #F6F4EF;          /* paper */
-  --foreground: #1D2A2E;          /* ink */
+  --foreground: #1C2433;          /* ink */
   --card: #FFFFFF;
-  --card-foreground: #1D2A2E;
+  --card-foreground: #1C2433;
   --popover: #FFFFFF;
-  --popover-foreground: #1D2A2E;
+  --popover-foreground: #1C2433;
 
-  --primary: #2E6E5E;             /* teal ink: the one filled button, selected states */
+  --primary: #1F3A5F;             /* navy ink: the one filled button, selected states */
   --primary-foreground: #FFFFFF;
   --secondary: #EDEAE3;
-  --secondary-foreground: #26332F;
+  --secondary-foreground: #263142;
   --muted: #EDEAE3;
-  --muted-foreground: #5F6B67;
-  --accent: #E1F3EE;
-  --accent-foreground: #1C5547;
+  --muted-foreground: #5E6673;
+  --accent: #E3EAF4;
+  --accent-foreground: #1F3A5F;
   --destructive: #B42318;
   --destructive-foreground: #FFFFFF;
 
   --border: #E3DED4;
   --input: #DCD6CA;
-  --ring: #2E6E5E;
+  --ring: #1F3A5F;
 
-  /* Pumpkin is attention, never alarm: the Add button and what needs you. */
-  --attention: #FE7F2D;
+  /* Marigold is attention, never alarm: the Add button and what needs you. Gold is the one hue no category
+     wears, so it never reads as a heading. As a shape on white it is faint (1.9:1), so what sits ON it is dark
+     ink, and a mark drawn IN it (a ring, a bar) uses --attention-ink. */
+  --attention: #F2B33D;
+  --attention-ink: #A86B00;
   --attention-foreground: #1B1B1B;
-  --attention-soft: #FFF1E4;
-  --attention-soft-foreground: #8A3D0A;
+  --attention-soft: #FDF2D6;
+  --attention-soft-foreground: #6E4A00;
 
   /* Money has a direction (see globals.css --c-in / --c-out); these are the Quiet Ledger values. */
   --money-in: #2F6B3F;
   --money-out: #A3341E;
 
-  --chart-1: #2E6E5E;
-  --chart-2: #FE7F2D;
+  --chart-1: #1F3A5F;
+  --chart-2: #A86B00;
   --chart-3: #4C78A8;
   --chart-4: #C9A227;
   --chart-5: #8C6BB1;
@@ -48,30 +51,32 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --background: #11181A; --foreground: #E7EEEC;
-    --card: #182226; --card-foreground: #E7EEEC;
-    --popover: #1C272B; --popover-foreground: #E7EEEC;
-    --primary: #7FC2AF; --primary-foreground: #0D1A16;
-    --secondary: #223035; --secondary-foreground: #D9E4E1;
-    --muted: #1F2B2F; --muted-foreground: #9AAEAA;
-    --accent: #163A32; --accent-foreground: #A8E2D2;
+    --background: #0F151D; --foreground: #E6ECF3;
+    --card: #17202B; --card-foreground: #E6ECF3;
+    --popover: #1B2531; --popover-foreground: #E6ECF3;
+    --primary: #9DBBE6; --primary-foreground: #0D1726;
+    --secondary: #1F2A38; --secondary-foreground: #D5DEEA;
+    --muted: #1C2633; --muted-foreground: #9AA8B8;
+    --accent: #1D2D44; --accent-foreground: #C8D9F3;
     --destructive: #F2867A; --destructive-foreground: #2A0B07;
-    --border: #2A3A3E; --input: #33464B; --ring: #7FC2AF;
-    --attention-soft: #3A2414; --attention-soft-foreground: #FFC79F;
+    --border: #283444; --input: #324052; --ring: #9DBBE6;
+    --attention-ink: #F2B33D; --chart-1: #9DBBE6; --chart-2: #F2B33D;
+    --attention-soft: #3A2C10; --attention-soft-foreground: #F6D48A;
     --money-in: #8FD19E; --money-out: #FF9A85;
   }
 }
 :root[data-theme="dark"] {
-  --background: #11181A; --foreground: #E7EEEC;
-  --card: #182226; --card-foreground: #E7EEEC;
-  --popover: #1C272B; --popover-foreground: #E7EEEC;
-  --primary: #7FC2AF; --primary-foreground: #0D1A16;
-  --secondary: #223035; --secondary-foreground: #D9E4E1;
-  --muted: #1F2B2F; --muted-foreground: #9AAEAA;
-  --accent: #163A32; --accent-foreground: #A8E2D2;
+  --background: #0F151D; --foreground: #E6ECF3;
+  --card: #17202B; --card-foreground: #E6ECF3;
+  --popover: #1B2531; --popover-foreground: #E6ECF3;
+  --primary: #9DBBE6; --primary-foreground: #0D1726;
+  --secondary: #1F2A38; --secondary-foreground: #D5DEEA;
+  --muted: #1C2633; --muted-foreground: #9AA8B8;
+  --accent: #1D2D44; --accent-foreground: #C8D9F3;
   --destructive: #F2867A; --destructive-foreground: #2A0B07;
-  --border: #2A3A3E; --input: #33464B; --ring: #7FC2AF;
-  --attention-soft: #3A2414; --attention-soft-foreground: #FFC79F;
+  --border: #283444; --input: #324052; --ring: #9DBBE6;
+  --attention-ink: #F2B33D; --chart-1: #9DBBE6; --chart-2: #F2B33D;
+  --attention-soft: #3A2C10; --attention-soft-foreground: #F6D48A;
   --money-in: #8FD19E; --money-out: #FF9A85;
 }
 
@@ -101,6 +106,7 @@
   --color-ring: var(--ring);
   --color-attention: var(--attention);
   --color-attention-foreground: var(--attention-foreground);
+  --color-attention-ink: var(--attention-ink);
   --color-attention-soft: var(--attention-soft);
   --color-attention-soft-foreground: var(--attention-soft-foreground);
   --color-money-in: var(--money-in);

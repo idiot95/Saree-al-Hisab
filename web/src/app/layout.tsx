@@ -58,7 +58,7 @@ export const metadata: Metadata = {
 
 /* The header colour in each scheme: what the iOS status bar and the Android
    task-switcher paint behind the app. */
-const HEADER = { light: '#233D4D', dark: '#0D171E' } as const;
+const HEADER = { light: '#F6F4EF', dark: '#0F151D' } as const;
 
 async function chosenTheme() {
   return forcedTheme((await cookies()).get(THEME_COOKIE)?.value);

@@ -1,4 +1,3 @@
-import { headerBg, type Accent } from './auth-ui';
 import { TABS, BAR_STYLE, TAB_BAR_SPACE, tabLook, tabStyle } from './tabs';
 import { TabGlyph } from './TabGlyph';
 
@@ -11,8 +10,8 @@ import { TabGlyph } from './TabGlyph';
    400ms attention wanders, and an interface that has not responded AT ALL is
    worse than one that responded with very little.
 
-   So the header arrives instantly, complete and correct — its real colour,
-   its real title where the title is known before the data — and the body is
+   So the header arrives instantly, complete and correct — paper, its real
+   title where the title is known before the data, the tab's switch — and the body is
    drawn in the shape the screen will have: a list is rows, a form is fields,
    a tab is its figure, its people and its two buttons. You know where you are
    before you know what it says, which is the right order.
@@ -26,13 +25,7 @@ function Bar({ w, h = 13, r = 6, o = 1 }: { w: string | number; h?: number; r?: 
   return <span className="shim" style={{ display: 'block', width: w, height: h, borderRadius: r, opacity: o, flex: 'none' }} />;
 }
 
-/** A placeholder on a coloured header, where the grey shimmer would read as a hole. */
-function Light({ w, h = 14, r = 7 }: { w: string | number; h?: number; r?: number }) {
-  return <span style={{ display: 'block', width: w, height: h, borderRadius: r, background: 'rgba(255,255,255,.2)', flex: 'none' }} />;
-}
-
 export type Frame = {
-  accent: Accent;
   /** The screen's name when it is known before the data; null draws where a name will be. */
   title: string | null;
   /** The tab that owns the screen, for the still tab bar; null on screens without the bar. */
@@ -40,6 +33,10 @@ export type Frame = {
   rows?: number;
   /** A small line above the title — "Reconcile" over the account's name. */
   eyebrow?: string;
+  /** How many views the tab's segmented switch has (Activity 3, Plan 2, Money 3); 0 for none. */
+  segments?: number;
+  /** A screen pushed on top of a tab: it gets a back arrow, not a switch. */
+  back?: boolean;
   /** The big figure a tab, a person or a balance leads with. */
   figure?: boolean;
   /** Chips in the header — the people on a tab. */
@@ -50,50 +47,68 @@ export type Frame = {
   footer?: boolean;
 };
 
-export default function Skeleton({
-  accent, title, current, rows = 4, eyebrow, figure = false, chips = 0, form = false, footer = false,
-  stillBar = true,
-}: Frame & { stillBar?: boolean }) {
+/* The Quiet Ledger header, drawn: paper, the serif title, and the switch or the back arrow the screen will have. */
+function Head({ title, eyebrow, segments = 0, back = false, chips = 0 }: Frame) {
   return (
-    <main style={{
-      minHeight: '100dvh', background: 'var(--c-bg)',
-      paddingBottom: current ? TAB_BAR_SPACE : footer ? 104 : 44,
-    }}>
-      <header className="el2" style={{
-        background: headerBg(accent), color: '#fff', borderRadius: '0 0 28px 28px',
-        padding: '18px var(--gutter) 26px', display: 'flex', flexDirection: 'column', gap: 11,
-      }}>
-        <span style={{ width: 44, height: 44, marginLeft: -11, display: 'flex', alignItems: 'center' }}>
-          <svg width={21} height={21} viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.92)"
+    <header style={{ padding: '16px var(--gutter) 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+      {back && (
+        <span style={{ width: 44, height: 44, marginLeft: -11, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <svg width={21} height={21} viewBox="0 0 24 24" fill="none" stroke="var(--foreground)"
             strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
             <path d="M15 5l-7 7 7 7" />
           </svg>
         </span>
-        {eyebrow && <span style={{ fontSize: 'var(--step--1)', color: 'rgba(255,255,255,.72)' }}>{eyebrow}</span>}
+      )}
+      <span style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        {eyebrow && <span style={{ fontSize: 13, color: 'var(--muted-foreground)' }}>{eyebrow}</span>}
         {/* The title is real where it can be. It is the whole point: the
             question "did my tap register, and where am I going" is answered
             before any data has moved. */}
         {title
-          ? <h1 className="t" style={{ margin: 0, fontSize: 'var(--step-3)', letterSpacing: '-.018em' }}>{title}</h1>
-          : <Light w="52%" h={24} r={8} />}
-        {figure && <Light w="38%" h={32} r={9} />}
-        {figure && <Light w="72%" h={11} />}
-        {chips > 0 && (
-          <span style={{ display: 'flex', gap: 8, marginTop: 2 }}>
-            {Array.from({ length: chips }, (_, i) => (
-              <span key={i} style={{ width: 92 - i * 8, height: 44, borderRadius: 999, background: 'rgba(255,255,255,.13)' }} />
-            ))}
-          </span>
-        )}
-      </header>
+          ? <h1 className="font-display" style={{ margin: 0, fontSize: 30, lineHeight: 1.15, fontWeight: 400 }}>{title}</h1>
+          : <Bar w="52%" h={28} r={8} />}
+        <Bar w="38%" h={11} o={.6} />
+      </span>
+      {segments > 0 && (
+        <span style={{ display: 'grid', gridTemplateColumns: `repeat(${segments}, 1fr)`, gap: 4, padding: 4, borderRadius: 14, background: 'var(--muted)' }}>
+          {Array.from({ length: segments }, (_, i) => (
+            <span key={i} style={{ height: 44, borderRadius: 11, background: i === 0 ? 'var(--card)' : 'transparent' }} />
+          ))}
+        </span>
+      )}
+      {chips > 0 && (
+        <span style={{ display: 'flex', gap: 8 }}>
+          {Array.from({ length: chips }, (_, i) => <span key={i} className="shim" style={{ width: 92 - i * 8, height: 44, borderRadius: 999 }} />)}
+        </span>
+      )}
+    </header>
+  );
+}
 
-      <div style={{ padding: '16px var(--gutter) 0', display: 'flex', flexDirection: 'column', gap: 12 }}
+const CARD: React.CSSProperties = { borderRadius: 16, background: 'var(--card)', border: '1px solid var(--border)' };
+
+export default function Skeleton({
+  title, current, rows = 4, eyebrow, segments = 0, back = false, figure = false, chips = 0, form = false, footer = false,
+  stillBar = true,
+}: Frame & { stillBar?: boolean }) {
+  return (
+    <main style={{
+      minHeight: '100dvh', background: 'var(--background)', color: 'var(--foreground)',
+      paddingBottom: current ? TAB_BAR_SPACE : footer ? 104 : 44,
+    }}>
+      <Head title={title} current={current} eyebrow={eyebrow} segments={segments} back={back} chips={chips} />
+      <div style={{ padding: '0 var(--gutter)', display: 'flex', flexDirection: 'column', gap: 14 }}
         aria-busy="true" aria-live="polite">
         <span className="sr-only">Loading {title ?? 'the screen'}</span>
+        {figure && (
+          <div style={{ ...CARD, borderRadius: 22, padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <Bar w="26%" h={10} o={.7} />
+            <Bar w="52%" h={36} r={9} />
+            <Bar w="72%" h={10} o={.6} />
+          </div>
+        )}
         {form && (
-          <div className="el card" style={{
-            borderRadius: 18, background: 'var(--c-card)', padding: 16, display: 'flex', flexDirection: 'column', gap: 14,
-          }}>
+          <div style={{ ...CARD, padding: 16, display: 'flex', flexDirection: 'column', gap: 14 }}>
             <Bar w="28%" h={10} o={.7} />
             <span className="shim" style={{ height: 58, borderRadius: 14 }} />
             {[0, 1, 2].map((i) => (
@@ -106,15 +121,13 @@ export default function Skeleton({
           </div>
         )}
         {rows > 0 && (
-          <div className="el card" style={{
-            borderRadius: 18, background: 'var(--c-card)', padding: '0 var(--pad)',
-          }}>
+          <div style={{ ...CARD, padding: '0 16px' }}>
             {Array.from({ length: rows }, (_, i) => (
               <div key={i} style={{
                 display: 'flex', alignItems: 'center', gap: 12, minHeight: 68,
-                borderBottom: i === rows - 1 ? undefined : '1px solid var(--c-rule)',
+                borderBottom: i === rows - 1 ? undefined : '1px solid var(--border)',
               }}>
-                <span className="shim" style={{ width: 40, height: 40, borderRadius: 11, flex: 'none' }} />
+                <span className="shim" style={{ width: 36, height: 36, borderRadius: 10, flex: 'none' }} />
                 <span style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 7 }}>
                   <Bar w={`${62 - i * 7}%`} />
                   <Bar w={`${40 - i * 4}%`} h={10} o={.6} />
@@ -130,7 +143,7 @@ export default function Skeleton({
         <div aria-hidden style={{
           position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 30, display: 'flex', gap: 9,
           padding: '12px var(--gutter) calc(14px + env(safe-area-inset-bottom, 0px))',
-          background: 'var(--c-bg)', borderTop: '1px solid var(--c-border)',
+          background: 'var(--background)', borderTop: '1px solid var(--border)',
         }}>
           <span className="shim" style={{ flex: 1, height: 54, borderRadius: 15 }} />
           <span className="shim" style={{ flex: 1.3, height: 54, borderRadius: 15 }} />
@@ -141,58 +154,46 @@ export default function Skeleton({
   );
 }
 
-/** Home: the household header, the deck's card, its dots, and the tiles. */
+/** Home: the month and household, the ring card, the two tiles, today's list. */
 export function HomeSkeleton({ stillBar = true }: { stillBar?: boolean }) {
   return (
-    <main style={{ minHeight: '100dvh', background: 'var(--c-bg)', paddingBottom: TAB_BAR_SPACE }}>
-      <header className="el2" style={{
-        background: headerBg('teal'), color: '#fff', borderRadius: '0 0 26px 26px',
-        padding: '12px var(--gutter) 16px', display: 'flex', flexDirection: 'column', gap: 12,
-      }}>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 12, minHeight: 50 }}>
-          <span style={{ width: 38, height: 38, borderRadius: 999, background: 'rgba(255,255,255,.16)', flex: 'none' }} />
-          <span style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 7 }}>
-            <Light w="48%" h={15} />
-            <Light w="32%" h={10} />
-          </span>
-          <span style={{ width: 44, height: 44, borderRadius: 999, background: 'rgba(255,255,255,.12)', flex: 'none' }} />
+    <main style={{ minHeight: '100dvh', background: 'var(--background)', paddingBottom: TAB_BAR_SPACE }}>
+      <header style={{ padding: '16px var(--gutter)', display: 'flex', alignItems: 'center', gap: 12 }}>
+        <span style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <Bar w="30%" h={11} o={.6} />
+          <Bar w="64%" h={28} r={8} />
         </span>
-        <span style={{ height: 22 }} />
+        <span className="shim" style={{ width: 44, height: 44, borderRadius: 999, flex: 'none' }} />
       </header>
-      <div style={{ padding: '18px var(--gutter) 0', display: 'flex', flexDirection: 'column', gap: 14 }}
+      <div style={{ padding: '0 var(--gutter)', display: 'flex', flexDirection: 'column', gap: 14 }}
         aria-busy="true" aria-live="polite">
         <span className="sr-only">Loading home</span>
-        <div className="el2" style={{
-          borderRadius: 22, background: 'var(--c-card)', border: '1px solid var(--c-border)',
-          padding: '18px 17px', display: 'flex', flexDirection: 'column', gap: 13, minHeight: 232,
-        }}>
-          <Bar w="38%" h={17} />
-          <Bar w="54%" h={32} r={9} />
-          <Bar w="66%" h={10} o={.6} />
-          <span className="shim" style={{ height: 10, borderRadius: 999, marginTop: 6 }} />
-          {[0, 1, 2].map((i) => (
-            <span key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span className="shim" style={{ width: 26, height: 26, borderRadius: 7, flex: 'none' }} />
-              <span style={{ flex: 1 }}><Bar w={`${58 - i * 8}%`} h={11} /></span>
-              <Bar w={54} h={11} />
+        <div style={{ ...CARD, borderRadius: 22, padding: 16, display: 'flex', alignItems: 'center', gap: 16, minHeight: 150 }}>
+          <span className="shim" style={{ width: 96, height: 96, borderRadius: 999, flex: 'none' }} />
+          <span style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 9 }}>
+            <Bar w="44%" h={10} o={.7} />
+            <Bar w="78%" h={36} r={9} />
+            <Bar w="64%" h={10} o={.6} />
+          </span>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 10 }}>
+          {[0, 1].map((i) => (
+            <span key={i} style={{ ...CARD, minHeight: 72, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <Bar w="54%" h={10} o={.6} />
+              <Bar w="70%" h={16} />
             </span>
           ))}
         </div>
-        <span style={{ display: 'flex', justifyContent: 'center', gap: 16 }}>
-          {[18, 7, 7].map((w, i) => <span key={i} className="shim" style={{ width: w, height: 7, borderRadius: 999 }} />)}
-        </span>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 10 }}>
-          {[0, 1, 2, 3].map((i) => (
-            <span key={i} className="el" style={{
-              minHeight: 92, borderRadius: 16, background: 'var(--c-card)', border: '1px solid var(--c-border)',
-              padding: '12px 13px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: 8,
-            }}>
-              <span className="shim" style={{ width: 32, height: 32, borderRadius: 9 }} />
-              <span style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <Bar w="62%" h={12} />
-                <Bar w="44%" h={9} o={.6} />
+        <div style={{ ...CARD, padding: '0 16px' }}>
+          {[0, 1, 2].map((i) => (
+            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, minHeight: 68, borderBottom: i === 2 ? undefined : '1px solid var(--border)' }}>
+              <span className="shim" style={{ width: 36, height: 36, borderRadius: 10, flex: 'none' }} />
+              <span style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 7 }}>
+                <Bar w={`${58 - i * 8}%`} />
+                <Bar w={`${38 - i * 4}%`} h={10} o={.6} />
               </span>
-            </span>
+              <Bar w={56} h={15} />
+            </div>
           ))}
         </div>
       </div>
@@ -207,24 +208,19 @@ const is = (path: string, pattern: string) => new RegExp(`^${pattern}/?$`).test(
 /** Which frame a path gets, or null for a screen that draws none (sign-in and friends). */
 export function frameFor(path: string): Frame | 'home' | null {
   if (path === '/') return 'home';
-  if (is(path, '/entries')) return { accent: 'indigo', title: 'Entries', current: '/entries', rows: 6 };
-  if (is(path, `/entries/${ID}`)) return { accent: 'indigo', title: 'Entry', current: null, rows: 0, form: true };
-  if (is(path, '/budget')) return { accent: 'gold', title: 'Budget', current: '/budget', rows: 5 };
-  if (is(path, '/categories')) return { accent: 'gold', title: 'Categories', current: '/categories', rows: 6 };
-  if (is(path, '/accounts')) return { accent: 'blue', title: 'Accounts', current: '/accounts', rows: 4 };
-  if (is(path, '/accounts/reconcile')) return { accent: 'blue', title: 'Reconcile', current: '/accounts', rows: 4 };
-  if (is(path, `/accounts/${ID}/reconcile`)) return { accent: 'blue', title: null, eyebrow: 'Reconcile', current: null, rows: 3, form: true };
-  if (is(path, '/people')) return { accent: 'purple', title: 'Loan centre', current: '/people', rows: 4, figure: true };
-  if (is(path, `/people/${ID}`)) return { accent: 'purple', title: null, current: null, rows: 4, figure: true };
-  if (is(path, `/tab/${ID}`)) return { accent: 'purple', title: null, current: null, rows: 4, figure: true, chips: 3, footer: true };
-  if (is(path, '/trends')) return { accent: 'green', title: 'Trends', current: '/trends', rows: 3 };
-  if (is(path, '/worth')) return { accent: 'green', title: 'Net worth', current: '/worth', rows: 4, figure: true };
-  if (is(path, '/inbox')) return { accent: 'pumpkin', title: 'Inbox', current: '/inbox', rows: 3 };
-  if (is(path, '/schedules')) return { accent: 'cyan', title: 'Scheduled', current: '/schedules', rows: 4 };
-  if (is(path, '/household')) return { accent: 'slate', title: 'Household', current: '/household', rows: 3 };
-  if (is(path, '/guide')) return { accent: 'teal', title: 'How it works', current: '/guide', rows: 4 };
-  if (is(path, '/add')) return { accent: 'teal', title: 'Add', current: null, rows: 0, form: true };
-  if (is(path, '/scan')) return { accent: 'teal', title: 'Scan a receipt', current: null, rows: 0, form: true };
+  if (is(path, '/entries') || is(path, '/inbox') || is(path, '/schedules')) return { title: 'Activity', current: '/entries', segments: 3, rows: 6 };
+  if (is(path, `/entries/${ID}`)) return { title: 'Entry', current: null, back: true, rows: 0, form: true };
+  if (is(path, '/budget') || is(path, '/trends')) return { title: 'Plan', current: '/budget', segments: 2, rows: 5, figure: true };
+  if (is(path, '/categories')) return { title: 'Categories', current: '/budget', back: true, rows: 6 };
+  if (is(path, '/accounts') || is(path, '/people') || is(path, '/worth')) return { title: 'Money', current: '/accounts', segments: 3, rows: 4, figure: true };
+  if (is(path, '/accounts/reconcile')) return { title: 'Reconcile', current: '/accounts', back: true, rows: 4 };
+  if (is(path, `/accounts/${ID}/reconcile`)) return { title: null, eyebrow: 'Reconcile', current: null, back: true, rows: 3, form: true };
+  if (is(path, `/people/${ID}`)) return { title: null, current: null, back: true, rows: 4, figure: true };
+  if (is(path, `/tab/${ID}`)) return { title: null, current: null, back: true, rows: 4, figure: true, chips: 3, footer: true };
+  if (is(path, '/household')) return { title: 'Household', current: '/', back: true, rows: 3 };
+  if (is(path, '/guide')) return { title: 'How it works', current: '/', back: true, rows: 4 };
+  if (is(path, '/add')) return { title: 'New entry', current: null, rows: 0, form: true };
+  if (is(path, '/scan')) return { title: 'Scan a receipt', current: null, back: true, rows: 0, form: true };
   return null;
 }
 

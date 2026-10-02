@@ -21,7 +21,7 @@ export default function MonthRing({ month, budget, spent }: { month: string; bud
   const r = 40, c = 2 * Math.PI * r;
   const used = Math.min(1, throughMoney);
   const tick = throughMonth * 2 * Math.PI - Math.PI / 2;
-  const tone = over ? 'var(--destructive)' : ahead ? 'var(--attention)' : 'var(--primary)';
+  const tone = over ? 'var(--destructive)' : ahead ? 'var(--attention-ink)' : 'var(--primary)';
 
   return (
     <section aria-label="This month" className="rounded-[22px] border border-border bg-card p-4 text-card-foreground">

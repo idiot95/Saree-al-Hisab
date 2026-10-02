@@ -1,5 +1,5 @@
-import Skeleton from '../Skeleton';
+import { SkeletonFor } from '../Skeleton';
 
 export default function Loading() {
-  return <Skeleton accent="indigo" title="Entries" current="/entries" rows={6} />;
+  return <SkeletonFor path="/entries" />;
 }

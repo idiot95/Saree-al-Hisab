@@ -20,9 +20,12 @@ the single source of truth for the palette.
   `is_shared` flag. A household sees everything — Setup says so explicitly.
 - **Monthly budgets, carried forward.** September starts as a copy of August.
   Editing September must never rewrite what August was.
-- **Brand colour and status colour are separate systems.** Pumpkin Spice is the
-  add button and attention, never alarm. Status is a reserved triad (ok / warn /
-  danger) and always ships with an icon and a word, never colour alone.
+- **Brand colour and status colour are separate systems.** Marigold is the
+  add button and attention, never alarm (it was Pumpkin Spice until the owner
+  asked for a new palette in the Quiet Ledger redesign, 2 Oct 2026; gold is the
+  one hue no category wears). Navy ink is the primary. Status is a reserved triad
+  (ok / warn / danger) and always ships with an icon and a word, never colour alone.
+  The redesign's palette lives in `src/app/ql.css`, beside the generated tokens.
 
 ## The four invariants — enforced in Postgres, not in components
 
