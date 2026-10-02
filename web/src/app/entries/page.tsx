@@ -9,7 +9,8 @@ import Screen from '../Screen';
 import EntryList from './EntryList';
 import ActivityNav from './ActivityNav';
 import { byDay } from './rows';
-import { IconChevronLeft, IconChevronRight, IconX } from '@tabler/icons-react';
+import { IconX } from '@tabler/icons-react';
+import MonthPill from '../MonthPill';
 
 export const metadata = { title: 'Entries · Saree al-Hisab' };
 export const dynamic = 'force-dynamic';
@@ -17,10 +18,6 @@ export const dynamic = 'force-dynamic';
 const MONTH = /^\d{4}-\d{2}-01$/;
 const monthLabel = (m: string) =>
   new Date(m).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
-const shift = (m: string, by: number) => {
-  const d = new Date(m);
-  return monthKey(new Date(d.getFullYear(), d.getMonth() + by, 1));
-};
 
 
 export default async function Entries({ searchParams }: {
@@ -63,15 +60,7 @@ export default async function Entries({ searchParams }: {
                 {' · '}<span className="whitespace-nowrap">{format(spent)} spent</span>
               </p>
             </div>
-            <div className="flex flex-none items-center rounded-full border border-border bg-card">
-              <Link href={`/entries?m=${shift(month, -1)}${keep}`} aria-label="Previous month" className="grid size-11 place-items-center">
-                <IconChevronLeft size={18} aria-hidden />
-              </Link>
-              <span className="min-w-[76px] text-center text-sm font-semibold">{monthShort(month)}</span>
-              <Link href={`/entries?m=${shift(month, 1)}${keep}`} aria-label="Next month" className="grid size-11 place-items-center">
-                <IconChevronRight size={18} aria-hidden />
-              </Link>
-            </div>
+            <MonthPill month={month} path="/entries" keep={keep} />
           </div>
           {!filtered && <ActivityNav current="entries" review={inbox.duplicates + inbox.bills} />}
           {filtered && (
@@ -92,5 +81,3 @@ export default async function Entries({ searchParams }: {
     </Screen>
   );
 }
-
-const monthShort = (m: string) => new Date(m).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' });

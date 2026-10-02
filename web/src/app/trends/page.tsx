@@ -5,12 +5,11 @@ import { actorOrNull, categoryTrend, monthlySeries, receiptsByMonth, tabList } f
 import { withHousehold } from '@/db/client';
 import { tabTint } from '../tab/look';
 import { format, monthKey } from '@/lib/money';
-import { headerBg } from '../auth-ui';
 import TabBar from '../TabBar';
 import { TAB_BAR_SPACE } from '../tabs';
 import { MonthBars, CategoryDonut } from './charts';
 import Screen from '../Screen';
-import Back from '../Back';
+import PlanNav from '../budget/PlanNav';
 
 export const metadata = { title: 'Trends · Saree al-Hisab' };
 export const dynamic = 'force-dynamic';
@@ -63,43 +62,33 @@ export default async function Trends() {
 
   return (
     <Screen>
-      <Back to="/" />
-      <main style={{ minHeight: '100dvh', background: 'var(--c-bg)', paddingBottom: TAB_BAR_SPACE }}>
-        <header className="el2" style={{
-          background: headerBg('green'), color: '#fff', borderRadius: '0 0 28px 28px',
-          padding: '18px var(--gutter) 26px', display: 'flex', flexDirection: 'column', gap: 11,
-        }}>
-          <Link href="/" transitionTypes={['nav-back']} aria-label="Back" style={{
-            width: 44, height: 44, marginLeft: -11, borderRadius: 999, display: 'flex',
-            alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,.92)',
-          }}>
-            <svg width={21} height={21} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-              strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-              <path d="M15 5l-7 7 7 7" />
-            </svg>
-          </Link>
-          <h1 className="t" style={{ margin: 0, fontSize: 'var(--step-3)', letterSpacing: '-.018em' }}>Trends</h1>
-          {!nothing && (
-            <p style={{ margin: 0, fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'rgba(255,255,255,.84)' }}>
-              {average > 0 && `${format(average)} a month on average`}
-              {lastMonth > 0 && thisMonth > 0 && (
-                thisMonth > lastMonth
-                  ? ` · ${format(thisMonth - lastMonth)} more than last month`
-                  : ` · ${format(lastMonth - thisMonth)} less than last month`
-              )}
-            </p>
-          )}
+      <main className="min-h-dvh bg-background text-foreground" style={{ paddingBottom: TAB_BAR_SPACE }}>
+        <header className="flex flex-col gap-3 px-[var(--gutter)] pb-4 pt-4">
+          <div className="min-w-0">
+            <h1 className="font-display text-[30px] leading-tight">Plan</h1>
+            {!nothing && average > 0 && (
+              <p className="text-sm text-muted-foreground">
+                <span className="whitespace-nowrap">{format(average)} a month on average</span>
+                {lastMonth > 0 && thisMonth > 0 && (
+                  <>{' · '}<span className="whitespace-nowrap">{thisMonth > lastMonth
+                    ? `${format(thisMonth - lastMonth)} more than last month`
+                    : `${format(lastMonth - thisMonth)} less than last month`}</span></>
+                )}
+              </p>
+            )}
+          </div>
+          <PlanNav current="trends" />
         </header>
 
         {nothing ? (
           <p style={{
             margin: '40px 34px', textAlign: 'center', fontSize: 'var(--step-0)', lineHeight: 1.55,
-            color: 'var(--c-meta)',
+            color: 'var(--muted-foreground)',
           }}>
             Nothing to chart yet. Record a few entries and this fills in.
           </p>
         ) : (
-          <div style={{ padding: '20px 0 0', display: 'flex', flexDirection: 'column', gap: 22 }}>
+          <div style={{ padding: '4px 0 0', display: 'flex', flexDirection: 'column', gap: 20 }}>
             <Card title="Six months">
               <MonthBars points={series} />
               <Table rows={series.map((p) => ({
@@ -135,21 +124,21 @@ export default async function Trends() {
                   {movers.map((m, i) => (
                     <li key={m.id} style={{
                       display: 'flex', alignItems: 'center', gap: 12, minHeight: 56,
-                      borderBottom: i === movers.length - 1 ? undefined : '1px solid var(--c-rule)',
+                      borderBottom: i === movers.length - 1 ? undefined : '1px solid var(--border)',
                     }}>
                       <Chip icon={m.icon} tint={m.tint} size={34} radius={9} iconSize={17} />
                       <Link transitionTypes={['nav-forward']} href={`/entries?c=${m.id}`} style={{
                         flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2,
-                        textDecoration: 'none', color: 'var(--c-ink)',
+                        textDecoration: 'none', color: 'var(--foreground)',
                       }}>
                         <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>{m.name}</span>
-                        <span style={{ fontSize: 'var(--step--2)', color: 'var(--c-meta)' }}>
+                        <span style={{ fontSize: 'var(--step--2)', color: 'var(--muted-foreground)' }}>
                           {format(Number(m.before))} → {format(Number(m.now))}
                         </span>
                       </Link>
                       <span className="amt" style={{
                         display: 'flex', alignItems: 'center', gap: 5, fontSize: 'var(--step--1)', fontWeight: 600,
-                        color: m.delta > 0 ? 'var(--c-out)' : 'var(--c-in)',
+                        color: m.delta > 0 ? 'var(--money-out)' : 'var(--money-in)',
                       }}>
                         <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor"
                           strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
@@ -173,7 +162,7 @@ export default async function Trends() {
                       <li key={t.id} style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
                         <Link transitionTypes={['nav-forward']} href={`/tab/${t.id}`} style={{
                           display: 'flex', alignItems: 'center', gap: 8, minHeight: 28,
-                          textDecoration: 'none', color: 'var(--c-ink)', fontSize: 'var(--step--1)',
+                          textDecoration: 'none', color: 'var(--foreground)', fontSize: 'var(--step--1)',
                         }}>
                           <Chip icon="folder" tint={tint} size={22} radius={6} iconSize={12} />
                           <span style={{
@@ -183,14 +172,14 @@ export default async function Trends() {
                           <span style={{ fontWeight: 600, minWidth: 62, textAlign: 'right' }}>{format(owed)}</span>
                         </Link>
                         <span role="img" aria-label={`${t.name}: ${format(owed)} owed`} style={{
-                          display: 'block', height: 10, borderRadius: 4, background: 'var(--c-track)', overflow: 'hidden',
+                          display: 'block', height: 10, borderRadius: 4, background: 'var(--muted)', overflow: 'hidden',
                         }}>
                           <span style={{
                             display: 'block', height: 10, borderRadius: '0 4px 4px 0',
                             width: `${((owed / owingMax) * 100).toFixed(1)}%`, background: `var(--cat-${tint}-ink)`,
                           }} />
                         </span>
-                        <span style={{ fontSize: 'var(--step--2)', color: 'var(--c-meta)' }}>
+                        <span style={{ fontSize: 'var(--step--2)', color: 'var(--muted-foreground)' }}>
                           {Number(t.back) > 0
                             ? `${format(Number(t.back))} of ${format(Number(t.owed_in_all))} back`
                             : 'none back yet'}
@@ -202,9 +191,9 @@ export default async function Trends() {
                 </ul>
                 <div style={{
                   display: 'flex', alignItems: 'baseline', gap: 10, marginTop: 14, paddingTop: 12,
-                  borderTop: '1px solid var(--c-rule)', fontSize: 'var(--step--1)',
+                  borderTop: '1px solid var(--border)', fontSize: 'var(--step--1)',
                 }}>
-                  <span style={{ flex: 1, color: 'var(--c-meta)' }}>All open tabs</span>
+                  <span style={{ flex: 1, color: 'var(--muted-foreground)' }}>All open tabs</span>
                   <span style={{ fontWeight: 600 }}>{format(owingTotal)}</span>
                 </div>
               </Card>
@@ -230,16 +219,9 @@ export default async function Trends() {
 
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0 var(--gutter) 11px' }}>
-        <h2 style={{ margin: 0, fontSize: 'var(--step-1)', fontWeight: 600, letterSpacing: '-.012em' }}>
-          {title}
-        </h2>
-        <span style={{ flex: 1, height: 1, background: 'var(--c-border)' }} />
-      </div>
-      <div className="el card" style={{
-        margin: '0 var(--gutter)', background: 'var(--c-card)', borderRadius: 18, padding: 16,
-      }}>{children}</div>
+    <section className="flex flex-col gap-2 px-[var(--gutter)]">
+      <h2 className="px-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">{title}</h2>
+      <div className="rounded-2xl border border-border bg-card p-4">{children}</div>
     </section>
   );
 }
@@ -261,9 +243,9 @@ function BackBars({ points }: { points: { month: string; back: string }[] }) {
           }}>
             <span style={{
               width: '100%', height: v ? Math.max(4, Math.round((v / max) * 80)) : 0, borderRadius: '4px 4px 0 0',
-              background: i === points.length - 1 ? 'var(--c-seagrass)' : 'var(--c-dash)',
+              background: i === points.length - 1 ? 'var(--chart-1)' : 'var(--input)',
             }} />
-            <span style={{ fontSize: 9.5, color: 'var(--c-meta)' }}>
+            <span style={{ fontSize: 9.5, color: 'var(--muted-foreground)' }}>
               {new Date(p.month).toLocaleDateString('en-IN', { month: 'short' })}
             </span>
           </span>
@@ -279,16 +261,16 @@ function Table({ rows }: {
   return (
     <ul style={{
       margin: '14px 0 0', padding: '14px 0 0', listStyle: 'none',
-      borderTop: '1px solid var(--c-rule)', display: 'flex', flexDirection: 'column', gap: 9,
+      borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 9,
     }}>
       {rows.map((r) => (
         <li key={r.key} style={{ display: 'flex', alignItems: 'baseline', gap: 10, fontSize: 'var(--step--1)' }}>
-          <span style={{ flex: 1, color: 'var(--c-meta)' }}>{r.left}</span>
+          <span style={{ flex: 1, color: 'var(--muted-foreground)' }}>{r.left}</span>
           {r.note && (
             <span style={{
               fontSize: 'var(--step--2)',
-              color: r.bad ? 'var(--c-danger)'
-                : r.note === 'nothing recorded' ? 'var(--c-meta)' : 'var(--c-ok)',
+              color: r.bad ? 'var(--destructive)'
+                : r.note === 'nothing recorded' ? 'var(--muted-foreground)' : 'var(--money-in)',
             }}>{r.note}</span>
           )}
           <span style={{ fontWeight: 600, minWidth: 70, textAlign: 'right' }}>{r.right}</span>

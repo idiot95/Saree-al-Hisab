@@ -11,21 +11,21 @@ export default function CopyPrevious({ month, from, total, categories }: {
   const [state, act, pending] = useActionState(copyPreviousMonth, null);
 
   return (
-    <form action={act} className="el card" style={{
-      margin: '0 var(--gutter) 16px', background: 'var(--c-card)', borderRadius: 16, padding: 15,
+    <form action={act} className="border border-border" style={{
+      margin: '0 var(--gutter) 16px', background: 'var(--card)', borderRadius: 16, padding: 15,
       display: 'flex', flexDirection: 'column', gap: 10,
     }}>
       <input type="hidden" name="month" value={month} />
-      <span style={{ fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--c-meta)' }}>
-        Nothing budgeted for this month yet. {from} came to <b style={{ color: 'var(--c-ink)' }}>
+      <span style={{ fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--muted-foreground)' }}>
+        Nothing budgeted for this month yet. {from} came to <b style={{ color: 'var(--foreground)' }}>
         {format(Number(total))}</b> across {categories} {categories === 1 ? 'category' : 'categories'}.
       </span>
       {state && !state.ok && (
-        <span role="alert" style={{ fontSize: 'var(--step--1)', color: 'var(--c-danger)' }}>{state.error}</span>
+        <span role="alert" style={{ fontSize: 'var(--step--1)', color: 'var(--destructive)' }}>{state.error}</span>
       )}
       <button className="cta" type="submit" disabled={pending} style={{
         minHeight: 48, borderRadius: 12, fontSize: 'var(--step-0)', fontWeight: 600,
-        background: 'var(--g-primary)', color: 'var(--c-on-primary)', opacity: pending ? 0.65 : 1,
+        background: 'var(--primary)', color: 'var(--primary-foreground)', opacity: pending ? 0.65 : 1,
       }}>{pending ? 'Copying…' : `Start from ${from}`}</button>
     </form>
   );

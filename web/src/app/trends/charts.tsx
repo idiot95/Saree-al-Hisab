@@ -47,22 +47,22 @@ export function MonthBars({ points }: {
             <g key={p.month}>
               {by !== null && (
                 <line x1={x - 3} x2={x + w + 3} y1={by} y2={by}
-                  stroke="var(--c-dash)" strokeWidth={1.5} strokeDasharray="3 2" />
+                  stroke="var(--muted-foreground)" strokeWidth={1.5} strokeDasharray="3 2" />
               )}
               <rect x={x} y={y} width={w} height={h} rx={4}
-                fill={over ? 'var(--c-danger-fill)' : 'var(--c-seagrass)'} />
+                fill={over ? 'var(--destructive)' : 'var(--chart-1)'} />
               <text x={x + w / 2} y={H - 8} textAnchor="middle"
-                fontSize={9.5} fill="var(--c-meta)">{label(p.month)}</text>
+                fontSize={9.5} fill="var(--muted-foreground)">{label(p.month)}</text>
             </g>
           );
         })}
       </svg>
       <figcaption style={{
-        display: 'flex', gap: 14, marginTop: 8, fontSize: 'var(--step--2)', color: 'var(--c-meta)',
+        display: 'flex', gap: 14, marginTop: 8, fontSize: 'var(--step--2)', color: 'var(--muted-foreground)',
       }}>
-        <Key colour="var(--c-seagrass)">spent</Key>
+        <Key colour="var(--chart-1)">spent</Key>
         <Key dashed>budget</Key>
-        <Key colour="var(--c-danger-fill)">over</Key>
+        <Key colour="var(--destructive)">over</Key>
       </figcaption>
     </figure>
   );
@@ -75,19 +75,20 @@ export function CategoryDonut({ slices, total }: {
   total: number;
 }) {
   const S = 150, R = 62, T = 22, C = S / 2;
-  let angle = -Math.PI / 2;
+  /* Where each slice starts, worked out before drawing rather than carried in a variable the map reassigns. */
+  const starts = slices.reduce<number[]>(
+    (a, s, i) => [...a, i === 0 ? -Math.PI / 2 : a[i - 1] + (slices[i - 1].amount / total) * Math.PI * 2], []);
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, flexWrap: 'wrap' }}>
       <svg viewBox={`0 0 ${S} ${S}`} width={S} height={S} role="img"
         aria-label={`Spending by category. ${slices.map((s) =>
           `${s.name} ${format(s.amount)}`).join(', ')}`}
         style={{ flex: 'none' }}>
         {slices.map((s, i) => {
           const frac = s.amount / total;
-          const start = angle;
-          const end = angle + frac * Math.PI * 2;
-          angle = end;
+          const start = starts[i];
+          const end = start + frac * Math.PI * 2;
           // A single slice is a full circle, which an arc path cannot draw.
           if (frac >= 0.9999) {
             return <circle key={s.id} cx={C} cy={C} r={R - T / 2} fill="none"
@@ -99,23 +100,23 @@ export function CategoryDonut({ slices, total }: {
           );
         })}
         <text x={C} y={C - 3} textAnchor="middle" fontSize={16} fontWeight={600}
-          fill="var(--c-ink)" className="t">{format(total)}</text>
-        <text x={C} y={C + 13} textAnchor="middle" fontSize={9.5} fill="var(--c-meta)">
+          fill="var(--foreground)" className="t">{format(total)}</text>
+        <text x={C} y={C + 13} textAnchor="middle" fontSize={9.5} fill="var(--muted-foreground)">
           this month
         </text>
       </svg>
 
       <ul style={{
-        flex: 1, minWidth: 150, margin: 0, padding: 0, listStyle: 'none',
+        flex: '1 1 200px', minWidth: 0, margin: 0, padding: 0, listStyle: 'none',
         display: 'flex', flexDirection: 'column', gap: 7,
       }}>
-        {slices.map((s, i) => (
+        {slices.map((s) => (
           <li key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 'var(--step--1)' }}>
             <Chip icon={s.icon} tint={s.tint} size={22} radius={6} iconSize={12} />
             <span style={{
               flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
             }}>{s.name}</span>
-            <span style={{ color: 'var(--c-meta)' }}>
+            <span style={{ color: 'var(--muted-foreground)' }}>
               {Math.round((s.amount / total) * 100)}%
             </span>
             <span style={{ fontWeight: 600, minWidth: 62, textAlign: 'right' }}>
@@ -143,7 +144,7 @@ function Key({ children, colour, dashed }: {
       <span style={{
         width: 12, height: dashed ? 0 : 8, borderRadius: 2, flex: 'none',
         background: dashed ? undefined : colour,
-        borderTop: dashed ? '1.5px dashed var(--c-dash)' : undefined,
+        borderTop: dashed ? '1.5px dashed var(--muted-foreground)' : undefined,
       }} />
       {children}
     </span>

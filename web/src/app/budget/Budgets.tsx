@@ -61,11 +61,9 @@ export default function Budgets({ budgets, lines, categories, thisMonth, spentBy
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-      <div style={{ padding: '0 var(--gutter)', display: 'flex', flexDirection: 'column', gap: 4 }}>
-        <h2 style={{ margin: 0, fontSize: 'var(--step-1)', fontWeight: 600, letterSpacing: '-.012em' }}>
-          Your budgets
-        </h2>
-        <p style={{ margin: 0, fontSize: 'var(--step--1)', lineHeight: 1.45, color: 'var(--c-meta)' }}>
+      <div className="flex flex-col gap-1 px-[var(--gutter)]">
+        <h2 className="px-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Your budgets</h2>
+        <p className="px-1 text-sm leading-snug text-muted-foreground">
           {budgets.length === 1
             ? 'Tap it to see what each heading gets. Swipe for delete.'
             : 'Tap one to see what each heading gets. Swipe to make it current, or to delete it.'}
@@ -85,16 +83,16 @@ export default function Budgets({ budgets, lines, categories, thisMonth, spentBy
         </div>
       ))}
 
-      <button type="button" onClick={() => { haptic('select'); setEditing('new'); }} className="el card"
+      <button type="button" onClick={() => { haptic('select'); setEditing('new'); }} className="border border-border"
         style={{
           margin: '4px var(--gutter) 0', minHeight: 56, borderRadius: 16, display: 'flex',
-          alignItems: 'center', gap: 11, padding: '0 var(--pad)', background: 'var(--c-card)',
-          border: '1px dashed var(--c-dash)', color: 'var(--c-ink)',
+          alignItems: 'center', gap: 11, padding: '0 var(--pad)', background: 'var(--card)',
+          border: '1px dashed var(--input)', color: 'var(--foreground)',
           fontSize: 'var(--step-0)', fontWeight: 600,
         }}>
         <span style={{
           width: 32, height: 32, flex: 'none', borderRadius: 999, display: 'flex',
-          alignItems: 'center', justifyContent: 'center', background: 'var(--c-sunk)', color: 'var(--c-meta)',
+          alignItems: 'center', justifyContent: 'center', background: 'var(--muted)', color: 'var(--muted-foreground)',
         }}>
           <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor"
             strokeWidth={2.2} strokeLinecap="round" aria-hidden><path d="M12 5v14M5 12h14" /></svg>
@@ -133,9 +131,9 @@ function Row({ budget, lines, spentBy, open, onToggle, onEdit }: {
   ];
 
   return (
-    <div className="el card" style={{
-      background: 'var(--c-card)', borderRadius: 18, overflow: 'hidden',
-      border: budget.current ? '1px solid var(--c-ok)' : '1px solid var(--c-border)',
+    <div className="border border-border" style={{
+      background: 'var(--card)', borderRadius: 18, overflow: 'hidden',
+      border: budget.current ? '1px solid var(--primary)' : '1px solid var(--border)',
     }}>
       {/* The forms the swipe fires. Kept out of the button so a tap on the row
           can never submit one by accident. */}
@@ -150,7 +148,7 @@ function Row({ budget, lines, spentBy, open, onToggle, onEdit }: {
         <button type="button" onClick={() => { haptic('tap'); onToggle(); }} aria-expanded={open}
           style={{
             width: '100%', minHeight: 76, display: 'flex', alignItems: 'center', gap: 12,
-            padding: '10px var(--pad)', textAlign: 'left', color: 'var(--c-ink)',
+            padding: '10px var(--pad)', textAlign: 'left', color: 'var(--foreground)',
           }}>
           <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
             <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -160,13 +158,13 @@ function Row({ budget, lines, spentBy, open, onToggle, onEdit }: {
               }}>{budget.name}</span>
               {budget.current && (
                 <span style={{
-                  flex: 'none', fontSize: 9, fontWeight: 700, letterSpacing: '.08em',
+                  flex: 'none', fontSize: 10, fontWeight: 700, letterSpacing: '.08em',
                   textTransform: 'uppercase', padding: '3px 8px', borderRadius: 999,
-                  background: 'var(--c-ok-tint)', color: 'var(--c-ok)',
+                  background: 'var(--accent)', color: 'var(--accent-foreground)',
                 }}>In use</span>
               )}
             </span>
-            <span style={{ fontSize: 'var(--step--2)', color: 'var(--c-meta)' }}>
+            <span style={{ fontSize: 'var(--step--2)', color: 'var(--muted-foreground)' }}>
               {budget.lines} {budget.lines === 1 ? 'heading' : 'headings'} ·{' '}
               {monthName(budget.from_month)} — {monthName(budget.to_month)}
             </span>
@@ -175,7 +173,7 @@ function Row({ budget, lines, spentBy, open, onToggle, onEdit }: {
             {format(Number(budget.total))}
           </span>
           <span aria-hidden style={{
-            display: 'flex', color: 'var(--c-off)',
+            display: 'flex', color: 'var(--muted-foreground)',
             transform: open ? 'rotate(180deg)' : undefined, transition: 'transform .15s',
           }}>
             <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -188,7 +186,7 @@ function Row({ budget, lines, spentBy, open, onToggle, onEdit }: {
         <div style={{
           padding: '0 var(--pad) 14px', display: 'flex', flexDirection: 'column', gap: 10,
         }}>
-          <div style={{ borderTop: '1px solid var(--c-rule)' }} />
+          <div style={{ borderTop: '1px solid var(--border)' }} />
           {lines.map((l) => {
             const cap = Number(l.amount);
             const used = Number(spentBy[l.category_id] ?? 0);
@@ -207,15 +205,15 @@ function Row({ budget, lines, spentBy, open, onToggle, onEdit }: {
                   {budget.current && (
                     <>
                       <span aria-hidden style={{
-                        height: 4, borderRadius: 999, background: 'var(--c-track)', overflow: 'hidden',
+                        height: 4, borderRadius: 999, background: 'var(--muted)', overflow: 'hidden',
                       }}>
                         <span style={{
                           display: 'block', height: '100%', borderRadius: 999, width: `${share * 100}%`,
-                          background: used > cap ? 'var(--c-danger-fill)'
-                            : share > 0.85 ? 'var(--c-warn-fill)' : 'var(--c-ok-fill)',
+                          background: used > cap ? 'var(--destructive)'
+                            : share > 0.85 ? 'var(--attention)' : 'var(--primary)',
                         }} />
                       </span>
-                      <span style={{ fontSize: 'var(--step--2)', color: 'var(--c-meta)' }}>
+                      <span style={{ fontSize: 'var(--step--2)', color: 'var(--muted-foreground)' }}>
                         {used > 0 ? `${format(used)} spent` : 'nothing spent yet'}
                       </span>
                     </>
@@ -232,7 +230,7 @@ function Row({ budget, lines, spentBy, open, onToggle, onEdit }: {
             <button type="button" onClick={onEdit} style={{
               flex: 1, minHeight: 44, borderRadius: 12, display: 'flex', alignItems: 'center',
               justifyContent: 'center', gap: 7, fontSize: 'var(--step--1)', fontWeight: 600,
-              background: 'var(--c-sunk)', color: 'var(--c-ink)',
+              background: 'var(--muted)', color: 'var(--foreground)',
             }}>
               <Icon name="pencil" size={16} strokeWidth={2} />
               Edit
@@ -242,7 +240,7 @@ function Row({ budget, lines, spentBy, open, onToggle, onEdit }: {
                 onClick={() => { haptic('select'); useRef_.current?.requestSubmit(); }}
                 style={{
                   flex: 1, minHeight: 44, borderRadius: 12, fontSize: 'var(--step--1)', fontWeight: 700,
-                  background: 'var(--g-primary)', color: 'var(--c-on-primary)', opacity: using ? 0.6 : 1,
+                  background: 'var(--primary)', color: 'var(--primary-foreground)', opacity: using ? 0.6 : 1,
                 }}>{using ? 'Switching…' : 'Make current'}</button>
             )}
             {budget.current && (
@@ -254,13 +252,13 @@ function Row({ budget, lines, spentBy, open, onToggle, onEdit }: {
                 }}
                 style={{
                   flex: 1, minHeight: 44, borderRadius: 12, fontSize: 'var(--step--1)', fontWeight: 600,
-                  background: sure ? 'var(--c-danger-tint)' : 'transparent', color: 'var(--c-danger)',
+                  background: sure ? 'color-mix(in srgb, var(--destructive) 12%, transparent)' : 'transparent', color: 'var(--destructive)',
                 }}>{dropping ? 'Deleting…' : sure ? 'Tap again to delete' : 'Delete'}</button>
             )}
           </div>
           {dropState && !dropState.ok && <ErrorNote>{dropState.error}</ErrorNote>}
           {budget.current && (
-            <p style={{ margin: 0, fontSize: 'var(--step--2)', lineHeight: 1.45, color: 'var(--c-meta)' }}>
+            <p style={{ margin: 0, fontSize: 'var(--step--2)', lineHeight: 1.45, color: 'var(--muted-foreground)' }}>
               Deleting clears the months ahead. Every month already gone stays as it was.
             </p>
           )}
@@ -293,21 +291,21 @@ function BudgetForm({ categories, budget, lines, thisMonth, onDone, showCancel }
   const filled = chosen.filter((c) => Number(amounts[c.id] || 0) > 0).length;
 
   return (
-    <form action={act} className="el card" style={{
-      margin: '0 var(--gutter)', background: 'var(--c-card)', borderRadius: 18,
+    <form action={act} className="border border-border" style={{
+      margin: '0 var(--gutter)', background: 'var(--card)', borderRadius: 18,
       padding: 'var(--pad)', display: 'flex', flexDirection: 'column', gap: 14,
     }}>
       {budget && <input type="hidden" name="id" value={budget.id} />}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
         <span style={{
           fontSize: 'var(--step--2)', fontWeight: 700, letterSpacing: '.06em',
-          textTransform: 'uppercase', color: 'var(--c-meta)',
+          textTransform: 'uppercase', color: 'var(--muted-foreground)',
         }}>{budget ? 'Editing' : `Step ${step} of 2`}</span>
         <h2 style={{ margin: 0, fontSize: 'var(--step-1)', fontWeight: 600 }}>
           {budget ? budget.name : step === 1 ? 'What do you want to watch?' : 'How much a month?'}
         </h2>
         {!budget && (
-          <p style={{ margin: 0, fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--c-meta)' }}>
+          <p style={{ margin: 0, fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--muted-foreground)' }}>
             {step === 1
               ? 'Pick the headings that matter. Everything filed underneath one of them counts towards it.'
               : 'Give each a figure, name the budget, and say how long it runs.'}
@@ -335,7 +333,7 @@ function BudgetForm({ categories, budget, lines, thisMonth, onDone, showCancel }
                     transition: 'background .15s, color .15s',
                     ...(on
                       ? { background: ink, color: 'var(--c-on-tint)', border: `1px solid ${ink}` }
-                      : { background: 'var(--c-sunk)', color: 'var(--c-meta)', border: '1px solid transparent' }),
+                      : { background: 'var(--muted)', color: 'var(--muted-foreground)', border: '1px solid transparent' }),
                   }}>
                   <Icon name={c.icon} size={19} strokeWidth={1.9} />
                   <span style={{
@@ -374,20 +372,20 @@ function BudgetForm({ categories, budget, lines, thisMonth, onDone, showCancel }
                   placeholder="0" aria-label={`Budget for ${c.name}`}
                   style={{
                     width: 116, minHeight: 46, borderRadius: 11, padding: '0 12px',
-                    textAlign: 'right', border: '1px solid var(--c-border)',
-                    background: 'var(--c-card)', color: 'var(--c-ink)', fontSize: 'var(--field)',
+                    textAlign: 'right', border: '1px solid var(--border)',
+                    background: 'var(--card)', color: 'var(--foreground)', fontSize: 'var(--field)',
                   }} />
               </label>
             ))}
           </div>
 
           <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)' }}>
+            <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--muted-foreground)' }}>
               Name this budget
             </span>
             <input name="name" required maxLength={60} defaultValue={budget?.name ?? ''}
               placeholder="Normal months" style={FIELD} />
-            <span style={{ fontSize: 'var(--step--2)', color: 'var(--c-meta)' }}>
+            <span style={{ fontSize: 'var(--step--2)', color: 'var(--muted-foreground)' }}>
               Whatever you would call it out loud — Ramadan, School year, After the wedding.
             </span>
           </label>
@@ -397,11 +395,11 @@ function BudgetForm({ categories, budget, lines, thisMonth, onDone, showCancel }
               off the card rather than shrinking. */}
           <div style={{ display: 'flex', gap: 10 }}>
             <label style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)' }}>From</span>
+              <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--muted-foreground)' }}>From</span>
               <input type="month" name="from" defaultValue={budget?.from_month ?? thisMonth} required style={FIELD} />
             </label>
             <label style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-meta)' }}>Until</span>
+              <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--muted-foreground)' }}>Until</span>
               <input type="month" name="to" defaultValue={budget?.to_month ?? addMonths(thisMonth, 11)}
                 required style={FIELD} />
             </label>
@@ -414,15 +412,15 @@ function BudgetForm({ categories, budget, lines, thisMonth, onDone, showCancel }
           {!budget && (
             <label style={{
               display: 'flex', alignItems: 'center', gap: 11, minHeight: 52, padding: '0 13px',
-              borderRadius: 13, background: current ? 'var(--c-ok-tint)' : 'var(--c-sunk)',
+              borderRadius: 13, background: current ? 'var(--accent)' : 'var(--muted)',
               transition: 'background .15s', cursor: 'pointer',
             }}>
               <input type="checkbox" name="current" value="yes" checked={current}
                 onChange={(e) => { haptic('select'); setCurrent(e.target.checked); }}
-                style={{ width: 19, height: 19, margin: 0, accentColor: 'var(--c-primary-hi)' }} />
+                style={{ width: 19, height: 19, margin: 0, accentColor: 'var(--primary)' }} />
               <span style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                 <span style={{ fontSize: 'var(--step--1)', fontWeight: 600 }}>Make this my current budget</span>
-                <span style={{ fontSize: 'var(--step--2)', color: 'var(--c-meta)' }}>
+                <span style={{ fontSize: 'var(--step--2)', color: 'var(--muted-foreground)' }}>
                   {current ? 'The months it covers start reporting against it.'
                     : 'Kept for later. You can switch to it any time.'}
                 </span>
@@ -431,8 +429,8 @@ function BudgetForm({ categories, budget, lines, thisMonth, onDone, showCancel }
           )}
 
           {total > 0 && (
-            <p style={{ margin: 0, fontSize: 'var(--step--1)', color: 'var(--c-meta)' }}>
-              <b className="n" style={{ color: 'var(--c-ink)' }}>{format(total)}</b> a month across{' '}
+            <p style={{ margin: 0, fontSize: 'var(--step--1)', color: 'var(--muted-foreground)' }}>
+              <b className="n" style={{ color: 'var(--foreground)' }}>{format(total)}</b> a month across{' '}
               {filled} {filled === 1 ? 'heading' : 'headings'}.
             </p>
           )}
@@ -455,14 +453,14 @@ function BudgetForm({ categories, budget, lines, thisMonth, onDone, showCancel }
 
 const FIELD: React.CSSProperties = {
   width: '100%', minWidth: 0, minHeight: 50, borderRadius: 13, padding: '0 10px',
-  fontSize: 'var(--field)', border: '1px solid var(--c-border)',
-  background: 'var(--c-card)', color: 'var(--c-ink)',
+  fontSize: 'var(--field)', border: '1px solid var(--border)',
+  background: 'var(--card)', color: 'var(--foreground)',
 };
 const GHOST: React.CSSProperties = {
   minHeight: 52, padding: '0 16px', borderRadius: 14, fontSize: 'var(--step-0)',
-  fontWeight: 600, background: 'var(--c-sunk)', color: 'var(--c-meta)',
+  fontWeight: 600, background: 'var(--muted)', color: 'var(--muted-foreground)',
 };
 const SOLID: React.CSSProperties = {
   flex: 1, minHeight: 52, borderRadius: 14, fontSize: 'var(--step-0)', fontWeight: 600,
-  background: 'var(--g-primary)', color: 'var(--c-on-primary)',
+  background: 'var(--primary)', color: 'var(--primary-foreground)',
 };

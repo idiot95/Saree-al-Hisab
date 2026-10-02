@@ -1,18 +1,20 @@
 import Link from '@/app/NavLink';
 import { redirect } from 'next/navigation';
+import { IconAlertTriangle, IconChevronRight, IconTag } from '@tabler/icons-react';
 import {
   actorOrNull, budgetFor, budgetLinesFor, budgetSetsFor, categoriesFor, monthTotals, previousBudget,
 } from '@/db/queries';
 import { withHousehold } from '@/db/client';
 import { format, monthKey } from '@/lib/money';
-import { headerBg } from '../auth-ui';
+import { Chip, tintOf } from '../Icon';
 import TabBar from '../TabBar';
 import { TAB_BAR_SPACE } from '../tabs';
+import MonthPill from '../MonthPill';
 import BudgetForm from './BudgetForm';
 import CopyPrevious from './CopyPrevious';
 import Budgets from './Budgets';
+import PlanNav from './PlanNav';
 import Screen from '../Screen';
-import Back from '../Back';
 
 export const metadata = { title: 'Budget · Saree al-Hisab' };
 export const dynamic = 'force-dynamic';
@@ -20,10 +22,6 @@ export const dynamic = 'force-dynamic';
 const MONTH = /^\d{4}-\d{2}-01$/;
 const label = (m: string) =>
   new Date(m).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
-const shift = (m: string, by: number) => {
-  const d = new Date(m);
-  return monthKey(new Date(d.getFullYear(), d.getMonth() + by, 1));
-};
 
 export default async function Budget({ searchParams }: {
   searchParams: Promise<{ m?: string }>;
@@ -50,87 +48,55 @@ export default async function Budget({ searchParams }: {
   const left = budget - spent;
   const canEdit = actor.role !== 'viewer';
   const empty = budget === 0;
+  /* Only the headings this month has something to say about: a line, or money against it. The full grid of every
+     heading is still under "Adjust this month only". */
+  const lit = rows.filter((r) => Number(r.budget) > 0 || Number(r.spent) > 0);
+  const headings = rows.filter((r) => Number(r.budget) > 0).length;
+  const now = new Date();
+  const start = new Date(month);
+  const daysLeft = now.getFullYear() === start.getFullYear() && now.getMonth() === start.getMonth()
+    ? new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate() - now.getDate() : null;
 
   return (
     <Screen>
-      <Back to="/" />
-      <main style={{ minHeight: '100dvh', background: 'var(--c-bg)', paddingBottom: TAB_BAR_SPACE }}>
-        <header className="el2" style={{
-          background: headerBg('gold'), color: '#fff', borderRadius: '0 0 28px 28px',
-          padding: '18px var(--gutter) 26px', display: 'flex', flexDirection: 'column', gap: 14,
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            <Link href="/" transitionTypes={['nav-back']} aria-label="Back" style={{
-              width: 44, height: 44, marginLeft: -11, borderRadius: 999, display: 'flex',
-              alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,.92)',
-            }}>
-              <svg width={21} height={21} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                <path d="M15 5l-7 7 7 7" />
-              </svg>
-            </Link>
-            <span style={{ flex: 1 }} />
-            <Step href={`/budget?m=${shift(month, -1)}`} label="Previous month" d="M15 5l-7 7 7 7" />
-            <h1 style={{
-              margin: 0, fontSize: 'var(--step-1)', fontWeight: 650, minWidth: 122, textAlign: 'center',
-            }}>{label(month)}</h1>
-            <Step href={`/budget?m=${shift(month, 1)}`} label="Next month" d="M9 5l7 7-7 7" />
+      <main className="min-h-dvh bg-background text-foreground" style={{ paddingBottom: TAB_BAR_SPACE }}>
+        <header className="flex flex-col gap-3 px-[var(--gutter)] pb-4 pt-4">
+          <div className="flex items-end justify-between gap-3">
+            <div className="min-w-0">
+              <h1 className="font-display text-[30px] leading-tight">Plan</h1>
+              <p className="text-sm text-muted-foreground">
+                {empty ? 'Nothing budgeted yet' : (
+                  <>
+                    <span className="whitespace-nowrap">{headings} {headings === 1 ? 'heading' : 'headings'}</span>
+                    {daysLeft !== null && <>{' · '}<span className="whitespace-nowrap">{daysLeft} {daysLeft === 1 ? 'day' : 'days'} left</span></>}
+                  </>
+                )}
+              </p>
+            </div>
+            <MonthPill month={month} path="/budget" />
           </div>
-
-          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 20 }}>
-            <span style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-              <span style={{ fontSize: 'var(--step--2)', color: 'rgba(255,255,255,.66)', letterSpacing: '.04em' }}>
-                BUDGETED
-              </span>
-              <span className="t" style={{ fontSize: 'var(--step-4)', letterSpacing: '-.02em' }}>{format(budget)}</span>
-            </span>
-            {!empty && (
-              <span style={{ display: 'flex', flexDirection: 'column', gap: 3, paddingBottom: 3 }}>
-                <span style={{ fontSize: 'var(--step--2)', color: 'rgba(255,255,255,.66)', letterSpacing: '.04em' }}>
-                  {left >= 0 ? 'LEFT' : 'OVER'}
-                </span>
-                <span className="t" style={{
-                  fontSize: 'var(--step-2)', letterSpacing: '-.02em',
-                  color: left >= 0 ? '#fff' : 'var(--c-danger-fill)',
-                }}>{format(Math.abs(left))}</span>
-              </span>
-            )}
-          </div>
-
-          {!empty && (
-            <span style={{
-              height: 8, borderRadius: 999, background: 'rgba(255,255,255,.18)', overflow: 'hidden',
-            }}>
-              <span style={{
-                display: 'block', height: '100%', borderRadius: 999,
-                width: `${Math.min(100, (spent / budget) * 100)}%`,
-                background: spent > budget ? 'var(--c-danger-fill)'
-                  : spent / budget > 0.85 ? 'var(--c-warn-fill)' : 'var(--c-ok-fill)',
-              }} />
-            </span>
-          )}
-          <p style={{ margin: 0, fontSize: 'var(--step--1)', color: 'rgba(255,255,255,.8)' }}>
-            {empty
-              ? 'Give each category an amount and everything reports against it.'
-              : `${format(spent)} spent of ${format(budget)}`}
-          </p>
+          <PlanNav current="budget" />
         </header>
 
-        <div style={{ padding: '14px 0 0' }}>
-          <Link transitionTypes={['nav-forward']} href="/categories" style={{
-            display: 'flex', alignItems: 'center', gap: 10, margin: '0 var(--gutter) 14px',
-            minHeight: 50, padding: '0 var(--gutter)', borderRadius: 14, textDecoration: 'none',
-            background: 'var(--c-card)', border: '1px solid var(--c-border)', color: 'var(--c-ink)',
-          }}>
-            <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="var(--c-meta)"
-              strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-              <path d="M3.5 11V4.5H10L20.5 15a1.6 1.6 0 0 1 0 2.3l-3.2 3.2a1.6 1.6 0 0 1-2.3 0z" />
-              <path d="M7 8v.01" />
-            </svg>
-            <span style={{ flex: 1, fontSize: 'var(--step-0)', fontWeight: 600 }}>Edit categories</span>
-            <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="var(--c-off)"
-              strokeWidth={2} strokeLinecap="round" aria-hidden><path d="M9 5l7 7-7 7" /></svg>
-          </Link>
+        <div className="flex flex-col gap-5 px-[var(--gutter)]">
+          {!empty && (
+            <section aria-label={`${label(month)} against the budget`} className="rounded-[22px] border border-border bg-card p-4">
+              <dl className="grid grid-cols-3 gap-2">
+                <Figure term="Budgeted" value={format(budget)} />
+                <Figure term="Spent" value={format(spent)} />
+                <Figure term={left >= 0 ? 'Left' : 'Over by'} value={format(Math.abs(left))}
+                  tone={left < 0 ? 'var(--destructive)' : undefined} />
+              </dl>
+              <Bar share={spent / budget} colour={spent > budget ? 'var(--destructive)' : 'var(--primary)'}
+                label={`${Math.round((spent / budget) * 100)}% of the budget spent`} className="mt-3.5 h-2" />
+              {left < 0 && (
+                <p className="mt-3 flex items-center gap-2 text-sm text-destructive">
+                  <IconAlertTriangle size={16} aria-hidden /> Over the budget for {label(month)}.
+                </p>
+              )}
+            </section>
+          )}
+
           {empty && previous && canEdit && (
             <CopyPrevious
               month={month}
@@ -140,6 +106,17 @@ export default async function Budget({ searchParams }: {
             />
           )}
 
+          {lit.length > 0 && (
+            <section aria-label="By category" className="flex flex-col gap-2">
+              <h2 className="px-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">By category</h2>
+              <ul className="overflow-hidden rounded-2xl border border-border bg-card">
+                {lit.map((r, i) => <CategoryLine key={r.category_id} row={r} month={month} first={i === 0} />)}
+              </ul>
+            </section>
+          )}
+        </div>
+
+        <div className="mt-6 flex flex-col">
           {canEdit && (
             <Budgets
               budgets={sets.map((b) => ({ ...b }))}
@@ -156,26 +133,26 @@ export default async function Budget({ searchParams }: {
               thing on the screen and it asked forty questions to answer two.
               <details> rather than state, so it works with no JS. */}
           {canEdit && sets.length > 0 && (
-            <details style={{ margin: '22px var(--gutter) 0' }}>
-              <summary style={{
-                minHeight: 48, display: 'flex', alignItems: 'center', padding: '0 var(--pad)',
-                borderRadius: 14, background: 'var(--c-card)', border: '1px solid var(--c-border)',
-                fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--c-ink)', cursor: 'pointer',
-              }}>
+            <details className="mx-[var(--gutter)] mt-5">
+              <summary className="flex min-h-12 cursor-pointer items-center rounded-2xl border border-border bg-card px-4 text-sm font-semibold">
                 Adjust {label(month)} only
               </summary>
-              <div style={{ margin: '10px calc(var(--gutter) * -1) 0' }}>
+              <div className="-mx-[var(--gutter)] mt-2.5">
                 <BudgetForm month={month} rows={rows} canEdit={canEdit} />
-                <p style={{
-                  margin: '14px var(--gutter) 0', fontSize: 'var(--step--1)',
-                  lineHeight: 1.5, color: 'var(--c-meta)',
-                }}>
+                <p className="mx-[var(--gutter)] mt-3.5 text-sm leading-relaxed text-muted-foreground">
                   Each month is its own set of figures. Changing {label(month)} leaves every
                   earlier month exactly as it was — and leaves the budget above untouched.
                 </p>
               </div>
             </details>
           )}
+
+          <Link transitionTypes={['nav-forward']} href="/categories"
+            className="mx-[var(--gutter)] mt-5 flex min-h-12 items-center gap-2.5 rounded-2xl border border-border bg-card px-4 text-sm font-semibold">
+            <IconTag size={17} className="text-muted-foreground" aria-hidden />
+            <span className="flex-1">Edit categories</span>
+            <IconChevronRight size={17} className="text-muted-foreground" aria-hidden />
+          </Link>
         </div>
         <TabBar current="/budget" />
       </main>
@@ -183,16 +160,69 @@ export default async function Budget({ searchParams }: {
   );
 }
 
-function Step({ href, label, d }: { href: string; label: string; d: string }) {
+function Figure({ term, value, tone }: { term: string; value: string; tone?: string }) {
   return (
-    <Link href={href} aria-label={label} style={{
-      width: 44, height: 44, borderRadius: 999, display: 'flex', alignItems: 'center',
-      justifyContent: 'center', color: 'rgba(255,255,255,.9)',
-    }}>
-      <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-        strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-        <path d={d} />
-      </svg>
-    </Link>
+    <div className="flex min-w-0 flex-col gap-0.5">
+      <dt className="text-xs text-muted-foreground">{term}</dt>
+      <dd className="truncate font-display text-[24px] leading-tight tabular-nums" style={tone ? { color: tone } : undefined}>{value}</dd>
+    </div>
+  );
+}
+
+function Bar({ share, colour, label, className = '' }: { share: number; colour: string; label: string; className?: string }) {
+  return (
+    <span role="img" aria-label={label} className={`block overflow-hidden rounded-full bg-muted ${className}`}>
+      <span className="block h-full rounded-full" style={{ width: `${Math.min(100, Math.max(0, share * 100))}%`, background: colour }} />
+    </span>
+  );
+}
+
+type Row = Awaited<ReturnType<typeof budgetFor>>[number];
+
+/* One heading's month: its own colour on the bar so the row about to go over is visible without reading figures,
+   red only once it has. The row opens that heading's entries; the "of which" children open their own. */
+function CategoryLine({ row, month, first }: { row: Row; month: string; first: boolean }) {
+  const cap = Number(row.budget);
+  const used = Number(row.spent);
+  const over = cap > 0 && used > cap;
+  const kids = (row.kids as { id: string; name: string; spent: string }[]).filter((k) => Number(k.spent) > 0);
+  return (
+    <li className={first ? '' : 'border-t border-border'}>
+      <Link transitionTypes={['nav-forward']} href={`/entries?m=${month}&c=${row.category_id}`}
+        className="flex min-h-[68px] items-center gap-3 px-4 py-3">
+        <Chip icon={row.icon} tint={row.tint} size={36} radius={10} />
+        <span className="flex min-w-0 flex-1 flex-col gap-1.5">
+          <span className="flex items-baseline justify-between gap-2">
+            <span className="truncate text-[15px] font-semibold">
+              {row.name}
+              {row.archived && (
+                <span className="ml-1.5 rounded-md bg-muted px-1.5 py-0.5 align-middle text-[10px] font-bold tracking-wide text-muted-foreground">RETIRED</span>
+              )}
+            </span>
+            <span className={`flex flex-none items-center gap-1 text-sm font-semibold tabular-nums ${over ? 'text-destructive' : ''}`}>
+              {over && <IconAlertTriangle size={14} aria-hidden />}
+              {cap === 0 ? format(used) : over ? `${format(used - cap)} over` : `${format(cap - used)} left`}
+            </span>
+          </span>
+          {cap > 0 && (
+            <Bar share={used / cap} colour={over ? 'var(--destructive)' : tintOf(row.tint)[1]}
+              label={`${row.name}: ${format(used)} of ${format(cap)}`} className="h-1.5" />
+          )}
+          <span className="text-xs text-muted-foreground tabular-nums">
+            {cap === 0 ? 'spent · not budgeted' : `${format(used)} of ${format(cap)}`}
+          </span>
+        </span>
+      </Link>
+      {kids.length > 0 && (
+        <p className="-mt-1.5 flex flex-wrap gap-x-1 pb-3 pl-[64px] pr-4 text-xs leading-relaxed text-muted-foreground">
+          <span>of which</span>
+          {kids.map((k, j) => (
+            <Link key={k.id} transitionTypes={['nav-forward']} href={`/entries?m=${month}&c=${k.id}`} className="font-semibold">
+              {k.name} {format(Number(k.spent))}{j < kids.length - 1 ? ' ·' : ''}
+            </Link>
+          ))}
+        </p>
+      )}
+    </li>
   );
 }

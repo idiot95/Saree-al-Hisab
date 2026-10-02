@@ -15,16 +15,6 @@ type Row = {
   kids: { id: string; name: string; icon: string; spent: string }[];
 };
 
-const TINT: Record<string, [string, string]> = {
-  green: ['var(--cat-green)', 'var(--cat-green-ink)'],
-  orange: ['var(--cat-orange)', 'var(--cat-orange-ink)'],
-  blue: ['var(--cat-blue)', 'var(--cat-blue-ink)'],
-  purple: ['var(--cat-purple)', 'var(--cat-purple-ink)'],
-  pink: ['var(--cat-pink)', 'var(--cat-pink-ink)'],
-  cyan: ['var(--cat-cyan)', 'var(--cat-cyan-ink)'],
-  rust: ['var(--cat-rust)', 'var(--cat-rust-ink)'],
-  indigo: ['var(--cat-indigo)', 'var(--cat-indigo-ink)'],
-};
 
 
 export default function BudgetForm({ month, rows, canEdit }: {
@@ -60,10 +50,10 @@ export default function BudgetForm({ month, rows, canEdit }: {
       <div data-topbar style={{
         position: 'sticky', top: 0, zIndex: 20, margin: '0 0 14px',
         padding: '10px 18px', display: 'flex', alignItems: 'center', gap: 12,
-        background: 'var(--c-bg)', borderBottom: '1px solid var(--c-border)',
+        background: 'var(--background)', borderBottom: '1px solid var(--border)',
       }}>
         <span style={{ display: 'flex', flexDirection: 'column', gap: 1, flex: 1 }}>
-          <span style={{ fontSize: 'var(--step--2)', fontWeight: 600, color: 'var(--c-meta)', letterSpacing: '.03em' }}>
+          <span style={{ fontSize: 'var(--step--2)', fontWeight: 600, color: 'var(--muted-foreground)', letterSpacing: '.03em' }}>
             MONTH TOTAL
           </span>
           <span className="t" style={{ fontSize: 'var(--step-2)', letterSpacing: '-.015em' }}>{format(total)}</span>
@@ -71,8 +61,8 @@ export default function BudgetForm({ month, rows, canEdit }: {
         {canEdit && (
           <button className="cta" type="submit" disabled={pending || !changed} style={{
             minHeight: 46, padding: '0 18px', borderRadius: 12, fontSize: 'var(--step-0)', fontWeight: 600,
-            background: changed ? 'var(--g-primary)' : 'var(--c-sunk)',
-            color: changed ? 'var(--c-on-primary)' : 'var(--c-meta)',
+            background: changed ? 'var(--primary)' : 'var(--muted)',
+            color: changed ? 'var(--primary-foreground)' : 'var(--muted-foreground)',
             opacity: pending ? 0.6 : 1,
           }}>
             {pending ? 'Saving…' : changed ? 'Save' : 'Saved'}
@@ -80,8 +70,8 @@ export default function BudgetForm({ month, rows, canEdit }: {
         )}
       </div>
 
-      <div className="el card" style={{
-        margin: '0 var(--gutter) 14px', background: 'var(--c-card)', borderRadius: 18, padding: '0 var(--pad)',
+      <div className="border border-border" style={{
+        margin: '0 var(--gutter) 14px', background: 'var(--card)', borderRadius: 18, padding: '0 var(--pad)',
       }}>
         {rows.map((r, i) => {
           const spent = Number(r.spent);
@@ -90,7 +80,7 @@ export default function BudgetForm({ month, rows, canEdit }: {
           return (
             <div key={r.category_id} style={{
               display: 'flex', alignItems: 'center', gap: 12, minHeight: 74,
-              borderBottom: i === rows.length - 1 ? undefined : '1px solid var(--c-rule)',
+              borderBottom: i === rows.length - 1 ? undefined : '1px solid var(--border)',
             }}>
               <Chip icon={r.icon} tint={r.tint} size={38} />
 
@@ -101,7 +91,7 @@ export default function BudgetForm({ month, rows, canEdit }: {
                     <span style={{
                       marginLeft: 7, fontSize: 'var(--step--2)', fontWeight: 700, letterSpacing: '.03em',
                       padding: '3px 6px', borderRadius: 6,
-                      background: 'var(--c-sunk)', color: 'var(--c-meta)',
+                      background: 'var(--muted)', color: 'var(--muted-foreground)',
                     }}>RETIRED</span>
                   )}
                 </span>
@@ -111,34 +101,33 @@ export default function BudgetForm({ month, rows, canEdit }: {
                     any figures. */}
                 {budget > 0 && (
                   <span style={{
-                    height: 5, borderRadius: 999, background: 'var(--c-track)',
+                    height: 5, borderRadius: 999, background: 'var(--muted)',
                     overflow: 'hidden', maxWidth: 150,
                   }}>
                     <span style={{
                       display: 'block', height: '100%', borderRadius: 999,
                       width: `${Math.min(100, (spent / budget) * 100)}%`,
-                      backgroundColor: over ? 'var(--c-danger-fill)' : tintOf(r.tint)[1],
-                      backgroundImage: 'var(--g-fill)',
+                      backgroundColor: over ? 'var(--destructive)' : tintOf(r.tint)[1],
                     }} />
                   </span>
                 )}
                 {spent > 0 ? (
                   <Link transitionTypes={['nav-forward']} href={`/entries?m=${month}&c=${r.category_id}`} style={{
                     fontSize: 'var(--step--2)', textDecoration: 'none',
-                    color: over ? 'var(--c-danger)' : 'var(--c-meta)', fontWeight: 600,
+                    color: over ? 'var(--destructive)' : 'var(--muted-foreground)', fontWeight: 600,
                   }}>
                     {format(spent)} of {format(budget || 0)}
                     {over && ` · ${format(spent - budget)} over`}
                   </Link>
                 ) : (
-                  <span style={{ fontSize: 'var(--step--2)', color: 'var(--c-meta)' }}>nothing spent yet</span>
+                  <span style={{ fontSize: 'var(--step--2)', color: 'var(--muted-foreground)' }}>nothing spent yet</span>
                 )}
                 {/* Where a parent's month went, by child — the line the
                     household nests categories to get. Each is a link into
                     that child's entries alone. */}
                 {r.kids.some((k) => Number(k.spent) > 0) && (
                   <span style={{
-                    fontSize: 'var(--step--2)', color: 'var(--c-meta)', lineHeight: 1.5,
+                    fontSize: 'var(--step--2)', color: 'var(--muted-foreground)', lineHeight: 1.5,
                     display: 'flex', flexWrap: 'wrap', columnGap: 4, marginTop: 2,
                   }}>
                     <span>of which</span>
@@ -155,10 +144,10 @@ export default function BudgetForm({ month, rows, canEdit }: {
               <span style={{
                 display: 'flex', alignItems: 'center', gap: 4, flex: 'none',
                 borderRadius: 11, padding: '0 10px', minHeight: 46,
-                background: canEdit ? 'var(--c-sunk2)' : 'transparent',
-                border: canEdit ? '1px solid var(--c-border)' : 'none',
+                background: canEdit ? 'var(--background)' : 'transparent',
+                border: canEdit ? '1px solid var(--border)' : 'none',
               }}>
-                <span style={{ fontSize: 'var(--step--1)', color: 'var(--c-meta)' }}>₹</span>
+                <span style={{ fontSize: 'var(--step--1)', color: 'var(--muted-foreground)' }}>₹</span>
                 <input
                   name={`c_${r.category_id}`} inputMode="decimal" disabled={!canEdit}
                   value={draft[r.category_id] ?? ''} placeholder="0"
@@ -167,7 +156,7 @@ export default function BudgetForm({ month, rows, canEdit }: {
                   }))}
                   style={{
                     width: 88, minHeight: 44, border: 0, background: 'transparent',
-                    color: 'var(--c-ink)', fontSize: 'var(--field)', fontWeight: 600, textAlign: 'right',
+                    color: 'var(--foreground)', fontSize: 'var(--field)', fontWeight: 600, textAlign: 'right',
                   }}
                 />
               </span>
@@ -182,7 +171,7 @@ export default function BudgetForm({ month, rows, canEdit }: {
       {state?.ok && !changed && (
         <p role="status" style={{
           margin: '0 var(--gutter) 12px', padding: '11px 13px', borderRadius: 12,
-          background: 'var(--c-ok-tint)', color: 'var(--c-ok)', fontSize: 'var(--step--1)', fontWeight: 600,
+          background: 'var(--accent)', color: 'var(--primary)', fontSize: 'var(--step--1)', fontWeight: 600,
         }}>{state.message}</p>
       )}
 
