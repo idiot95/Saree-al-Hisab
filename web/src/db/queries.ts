@@ -444,6 +444,48 @@ export async function entriesFor(
   });
 }
 
+/** Every entry, any month, whose words match — merchant, note, category (or its parent), way to pay, account, or the
+ *  person on it, the people a cost was split with, the tab it is on — or whose amount is `amountMinor` when what was typed is a number. The text is matched literally:
+ *  % and _ are escaped, so typing "50%" finds "50%" and not everything. Newest first, at most `limit`. */
+export async function searchEntries(householdId: string, text: string, amountMinor: number | null, limit = 200) {
+  const like = `%${text.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
+  return withHousehold(householdId, async () => {
+    return sql`
+      select t.id, t.kind, t.amount::text, t.occurred_on, t.merchant, t.note, t.is_shared,
+             t.counts_as_spend, t.book_id, t.category_id,
+             c.name as category, c.tint, c.icon,
+             m.name as method, a.name as account, ca.name as counter_account,
+             coalesce(cp.name, rcp.name) as people,
+             (ca.kind = 'person') as to_person,
+             (a.kind = 'person') as from_person,
+             (t.claim_id is not null) as settles,
+             u.name as who, t.created_at
+      from txn t
+      join account a on a.id = t.account_id
+      left join account ca on ca.id = t.counter_account_id
+      left join counterparty cp on cp.account_id in (t.counter_account_id, t.account_id)
+      left join claim cl on cl.id = t.claim_id
+      left join counterparty rcp on rcp.id = cl.counterparty_id
+      left join category c on c.id = t.category_id
+      left join category pc on pc.id = c.parent_id
+      left join payment_method m on m.id = t.payment_method_id
+      join app_user u on u.id = t.created_by
+      where t.household_id = ${householdId}
+        and t.deleted_at is null
+        and (t.merchant ilike ${like} or t.note ilike ${like} or c.name ilike ${like} or pc.name ilike ${like}
+             or m.name ilike ${like} or a.name ilike ${like} or ca.name ilike ${like}
+             or coalesce(cp.name, rcp.name) ilike ${like}
+             -- a cost on a tab: the people it raised claims on, and the tab's own name
+             or exists (select 1 from claim k join counterparty kp on kp.id = k.counterparty_id
+                         where k.txn_id = t.id and kp.name ilike ${like})
+             or exists (select 1 from ledger_book bk where bk.id = t.book_id and bk.name ilike ${like})
+             or (${amountMinor}::bigint is not null and t.amount = ${amountMinor}::bigint))
+      order by t.occurred_on desc, t.created_at desc
+      limit ${limit}
+    ` as Promise<EntryRow[]>;
+  });
+}
+
 export async function entryById(householdId: string, id: string) {
   return withHousehold(householdId, async () => {
     const [r] = await sql`

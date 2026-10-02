@@ -1,8 +1,8 @@
 import Link from '@/app/NavLink';
 import { redirect } from 'next/navigation';
-import { actorOrNull, budgetFor, entriesFor, inboxCount, monthTotals } from '@/db/queries';
+import { actorOrNull, budgetFor, entriesFor, inboxCount, monthTotals, searchEntries } from '@/db/queries';
 import { withHousehold } from '@/db/client';
-import { format, monthKey } from '@/lib/money';
+import { digitsOf, format, monthKey } from '@/lib/money';
 import TabBar from '../TabBar';
 import { TAB_BAR_SPACE } from '../tabs';
 import Screen from '../Screen';
@@ -21,13 +21,15 @@ const monthLabel = (m: string) =>
 
 
 export default async function Entries({ searchParams }: {
-  searchParams: Promise<{ m?: string; c?: string }>;
+  searchParams: Promise<{ m?: string; c?: string; q?: string }>;
 }) {
   const actor = await actorOrNull();
   if (!actor) redirect('/signin');
   if (!actor.household_id) redirect('/no-household');
 
-  const { m, c } = await searchParams;
+  const { m, c, q } = await searchParams;
+  const words = typeof q === 'string' ? q.trim().slice(0, 60) : '';
+  if (words) return <Search householdId={actor.household_id} words={words} currency={actor.currency} canEdit={actor.role !== 'viewer'} />;
   const month = m && MONTH.test(m) ? m : monthKey(new Date());
   const categoryId = c && /^[0-9a-f-]{36}$/.test(c) ? c : null;
   const hh = actor.household_id;
@@ -76,6 +78,41 @@ export default async function Entries({ searchParams }: {
         ) : (
           <EntryList days={days} canEdit={actor.role !== 'viewer'} tools />
         )}
+        <TabBar current="/entries" />
+      </main>
+    </Screen>
+  );
+}
+
+/* Every month at once: what was typed, matched against the words on an entry (and its amount, when it is a number),
+   newest first. Postel: "1,250", "₹1250" and "1250" are the same figure. */
+async function Search({ householdId, words, currency, canEdit }: {
+  householdId: string; words: string; currency: string; canEdit: boolean;
+}) {
+  const figure = words.replace(/[^0-9.]/g, '');
+  const amountMinor = /^\d+(\.\d+)?$/.test(figure) && /^[\s₹$€£,.\d]+$/.test(words)
+    ? Math.round(Number(figure) * 10 ** digitsOf(currency)) : null;
+  const [entries, inbox] = await withHousehold(householdId, () => Promise.all([
+    searchEntries(householdId, words, amountMinor),
+    inboxCount(householdId),
+  ]));
+  const days = byDay(entries);
+  return (
+    <Screen>
+      <main className="min-h-dvh bg-background text-foreground" style={{ paddingBottom: TAB_BAR_SPACE }}>
+        <header className="flex flex-col gap-3 px-[var(--gutter)] pb-4 pt-4">
+          <div className="min-w-0">
+            <h1 className="font-display text-[30px] leading-tight">Activity</h1>
+            <p className="text-sm text-muted-foreground">
+              {entries.length === 0 ? 'Nothing found' : `${entries.length}${entries.length >= 200 ? '+' : ''} found`} in every month
+            </p>
+          </div>
+          <ActivityNav current="entries" review={inbox.duplicates + inbox.bills} />
+          <Link href="/entries" className="flex min-h-11 items-center gap-1.5 self-start rounded-full bg-accent px-3.5 text-sm font-semibold text-accent-foreground">
+            <IconX size={14} aria-hidden /> Back to this month
+          </Link>
+        </header>
+        <EntryList days={days} canEdit={canEdit} tools initialQ={words} everyMonth />
         <TabBar current="/entries" />
       </main>
     </Screen>

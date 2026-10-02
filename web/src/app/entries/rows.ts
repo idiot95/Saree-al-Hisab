@@ -22,7 +22,10 @@ export function dayLabel(iso: string) {
   const diff = Math.round((today.getTime() - d.getTime()) / 86400000);
   if (diff === 0) return 'Today';
   if (diff === 1) return 'Yesterday';
-  return d.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
+  // The year only when it is not this one — search reaches back past January.
+  return d.toLocaleDateString('en-IN', d.getFullYear() === today.getFullYear()
+    ? { weekday: 'short', day: 'numeric', month: 'short' }
+    : { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
 }
 
 /** Grouped by day, newest first: Gestalt proximity does the work a date column would. */

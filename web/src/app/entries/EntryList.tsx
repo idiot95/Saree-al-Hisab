@@ -40,21 +40,25 @@ const FILTERS = [
   { key: 'shared', label: 'Shared', test: (e: Row) => e.is_shared },
 ] as const;
 
-export default function EntryList({ days, canEdit, tools = false, flat = false }: {
+export default function EntryList({ days, canEdit, tools = false, flat = false, initialQ = '', everyMonth = false }: {
   days: { on: string; label: string; rows: Row[] }[]; canEdit: boolean;
   /** Show search and the filter chips (Activity). */
   tools?: boolean;
   /** One card without day headings (Home's "Today"). */
   flat?: boolean;
+  /** Arrived from a search: the words, and that the rows are from every month rather than one. */
+  initialQ?: string; everyMonth?: boolean;
 }) {
-  const [q, setQ] = useState('');
+  const [q, setQ] = useState(initialQ);
   const [filter, setFilter] = useState<(typeof FILTERS)[number]['key']>('all');
   const shown = useMemo(() => {
-    const words = q.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    /* Results the server found for these same words (a note, an amount) are not filtered again here: the list
+       only narrows once the words are changed. */
+    const words = everyMonth && q === initialQ ? [] : q.trim().toLowerCase().split(/\s+/).filter(Boolean);
     const test = FILTERS.find((f) => f.key === filter)!.test;
     return days.map((d) => ({ ...d, rows: d.rows.filter((e) => test(e) && words.every((w) =>
       [e.merchant, e.category, e.method, e.account, e.counter_account, e.people].some((x) => x?.toLowerCase().includes(w)))) }));
-  }, [days, q, filter]);
+  }, [days, q, filter, everyMonth, initialQ]);
   const { format } = useMoney();
   const router = useRouter();
   const [gone, setGone] = useState<Set<string>>(() => new Set());
@@ -86,12 +90,28 @@ export default function EntryList({ days, canEdit, tools = false, flat = false }
     <div className={flat ? '' : 'pt-3'}>
       {tools && (
         <div className="flex flex-col gap-2.5 px-[var(--gutter)] pb-4">
-          <label className="flex min-h-11 items-center gap-2 rounded-xl border border-border bg-card px-3 text-muted-foreground focus-within:border-ring">
-            <IconSearch size={18} aria-hidden />
-            <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search this month"
-              aria-label="Search this month's entries" className="min-w-0 flex-1 bg-transparent py-2 text-foreground outline-none placeholder:text-muted-foreground" />
-            {q && <button type="button" onClick={() => setQ('')} aria-label="Clear search" className="grid size-8 place-items-center rounded-full bg-muted"><IconX size={15} /></button>}
-          </label>
+          {/* Typing narrows what is on screen at once; Enter searches every month on the server. A real GET form,
+              so Enter works before the script has arrived too. */}
+          <form action="/entries" method="get" role="search" onSubmit={(e) => {
+            e.preventDefault();
+            const words = q.trim();
+            router.push(words ? `/entries?q=${encodeURIComponent(words)}` : '/entries');
+          }}>
+            <label className="flex min-h-11 items-center gap-2 rounded-xl border border-border bg-card px-3 text-muted-foreground focus-within:border-ring">
+              <IconSearch size={18} aria-hidden />
+              <input type="search" name="q" value={q} onChange={(e) => setQ(e.target.value)}
+                placeholder={everyMonth ? 'Search every month' : 'Search, or press Enter for every month'}
+                aria-label="Search entries" enterKeyHint="search"
+                className="min-w-0 flex-1 bg-transparent py-2 text-foreground outline-none placeholder:text-muted-foreground" />
+              {q && <button type="button" onClick={() => setQ('')} aria-label="Clear search" className="grid size-8 place-items-center rounded-full bg-muted"><IconX size={15} /></button>}
+            </label>
+          </form>
+          {!everyMonth && q.trim() && (
+            <Link href={`/entries?q=${encodeURIComponent(q.trim())}`} transitionTypes={['nav-forward']}
+              className="flex min-h-11 items-center gap-2 self-start px-1 text-sm font-semibold text-primary">
+              <IconSearch size={16} aria-hidden /> Search every month for “{q.trim()}”
+            </Link>
+          )}
           <div role="group" aria-label="Show" className="flex flex-wrap gap-1.5">
             {FILTERS.map((f) => (
               <button key={f.key} type="button" aria-pressed={filter === f.key} onClick={() => setFilter(f.key)}
@@ -105,7 +125,7 @@ export default function EntryList({ days, canEdit, tools = false, flat = false }
       )}
       {tools && nothing && (
         <p className="px-[var(--gutter)] py-8 text-center text-muted-foreground">
-          {q ? `Nothing this month matches “${q.trim()}”.` : 'Nothing of that kind this month.'}
+          {q ? `Nothing ${everyMonth ? 'here' : 'this month'} matches “${q.trim()}”.` : `Nothing of that kind ${everyMonth ? 'here' : 'this month'}.`}
         </p>
       )}
       {shown.map((d) => {
