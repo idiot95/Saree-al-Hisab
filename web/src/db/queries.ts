@@ -941,20 +941,21 @@ export async function duplicatesFor(householdId: string) {
  *  that had only just opened. */
 export async function billsDue(householdId: string, withinDays = 21) {
   return withHousehold(householdId, async () => {
+    /* card_bill, not card_cycle_total: a cycle is never marked paid, so what is
+       still owed on it comes from the card's balance (see 0104). */
     return sql`
       select c.account_id, a.name as account, a.last4,
-             c.period_start, c.period_end, c.due_on, c.charged::text, c.entries::int,
+             c.period_start, c.period_end, c.due_on, c.charged::text, c.outstanding::text, c.entries::int,
              (c.due_on - current_date)::int as days_away
-      from card_cycle_total c
+      from card_bill c
       join account a on a.id = c.account_id
       where a.household_id = ${householdId}
-        and c.status <> 'paid'
-        and c.charged > 0
+        and c.outstanding > 0
         and c.due_on <= current_date + ${withinDays}::int
       order by c.due_on
     ` as Promise<{ account_id: string; account: string; last4: string | null;
                    period_start: Date; period_end: Date; due_on: Date;
-                   charged: string; entries: number; days_away: number }[]>;
+                   charged: string; outstanding: string; entries: number; days_away: number }[]>;
   });
 }
 
@@ -966,9 +967,9 @@ export async function inboxCount(householdId: string) {
       select
         (select count(*)::int from duplicate_candidate
           where household_id = ${householdId}) as duplicates,
-        (select count(*)::int from card_cycle_total c
+        (select count(*)::int from card_bill c
           join account a on a.id = c.account_id
-          where a.household_id = ${householdId} and c.status <> 'paid' and c.charged > 0
+          where a.household_id = ${householdId} and c.outstanding > 0
             and c.due_on <= current_date + 21) as bills`;
     return r as unknown as { duplicates: number; bills: number };
   });

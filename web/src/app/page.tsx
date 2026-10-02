@@ -48,8 +48,8 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ s
   const allDues = outstandingDues(schedules, now, 7);
   const canAct = actor.role !== 'viewer';
   const dueNow = canAct ? allDues.filter((d) => d.daysAway <= 0) : [];
-  const dues = allDues.length - dueNow.length;
-  const needsYou = inbox.duplicates + inbox.bills + dues;
+  /* The same count as Activity's "To review" badge, so the two never disagree. What is due comes under Upcoming. */
+  const review = inbox.duplicates + inbox.bills;
   const byId = new Map(schedules.map((s) => [s.id, s]));
   const monthName = new Date(month).toLocaleDateString('en-IN', { month: 'long' });
 
@@ -79,17 +79,17 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ s
             ? <MonthRing month={month} budget={budget} spent={spent} />
             : <NoBudgetYet monthName={monthName} spent={spent} entries={progress.entries} />}
 
-          {/* What needs you: decisions waiting, and what's due in the coming week. Nothing else. */}
+          {/* Activity's two other views, counted: decisions waiting, and what comes round this week. Nothing else. */}
           <div className="grid grid-cols-2 gap-2.5">
             <Link href="/inbox" transitionTypes={['nav-forward']}
-              className={`press flex min-h-[72px] flex-col justify-center gap-0.5 rounded-2xl border px-3.5 ${needsYou > 0
+              className={`press flex min-h-[72px] flex-col justify-center gap-0.5 rounded-2xl border px-3.5 ${review > 0
                 ? 'border-attention/40 bg-attention-soft text-attention-soft-foreground' : 'border-border bg-card'}`}>
-              <span className="text-xs opacity-80">Needs you</span>
-              <span className="text-base font-semibold">{needsYou > 0 ? `${needsYou} to look at` : 'All clear'}</span>
+              <span className="text-xs opacity-80">To review</span>
+              <span className="text-base font-semibold">{review > 0 ? `${review} to look at` : 'All clear'}</span>
             </Link>
             <Link href="/schedules" transitionTypes={['nav-forward']}
               className="press flex min-h-[72px] flex-col justify-center gap-0.5 rounded-2xl border border-border bg-card px-3.5">
-              <span className="text-xs text-muted-foreground">Due this week</span>
+              <span className="text-xs text-muted-foreground">Upcoming this week</span>
               <span className="text-base font-semibold tabular-nums">{dueSoon.length ? format(dueSoonTotal) : 'Nothing'}</span>
             </Link>
           </div>

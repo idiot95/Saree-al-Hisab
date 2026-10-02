@@ -14,7 +14,10 @@ export default function MonthRing({ month, budget, spent }: { month: string; bud
   const throughMonth = dayOfMonth / days;
   const throughMoney = budget > 0 ? spent / budget : 0;
   const over = spent > budget;
-  const ahead = !over && throughMoney > throughMonth + 0.08;
+  /* The first week is too early to judge: rent and fees land on the 1st, so on the 2nd a quarter of the month's
+     money has gone in two days and every household would be "going fast". */
+  const early = sameMonth && dayOfMonth < 7;
+  const ahead = !over && !early && throughMoney > throughMonth + 0.08;
   const left = budget - spent;
   const daysLeft = Math.max(0, days - dayOfMonth);
 
@@ -33,9 +36,10 @@ export default function MonthRing({ month, budget, spent }: { month: string; bud
             strokeDasharray={`${used * c} ${c}`} transform="rotate(-90 50 50)" />
           <line x1={50 + 31 * Math.cos(tick)} y1={50 + 31 * Math.sin(tick)} x2={50 + 49 * Math.cos(tick)} y2={50 + 49 * Math.sin(tick)}
             stroke="var(--foreground)" strokeWidth="2.5" strokeLinecap="round" />
-          <text x="50" y="55" textAnchor="middle" fontSize="16" fontWeight="700" fill="var(--foreground)">
+          <text x="50" y="50" textAnchor="middle" fontSize="16" fontWeight="700" fill="var(--foreground)">
             {Math.round(throughMoney * 100)}%
           </text>
+          <text x="50" y="64" textAnchor="middle" fontSize="10" fill="var(--muted-foreground)">used</text>
         </svg>
         <div className="min-w-0">
           <p className="text-xs text-muted-foreground">{over ? 'Over budget by' : 'Left to spend'}</p>
@@ -49,7 +53,8 @@ export default function MonthRing({ month, budget, spent }: { month: string; bud
       <p className="mt-3 flex items-center gap-2 border-t border-border pt-3 text-sm"
         style={{ color: over ? 'var(--destructive)' : ahead ? 'var(--attention-soft-foreground)' : 'var(--muted-foreground)' }}>
         {over ? <IconAlertTriangle size={17} aria-hidden /> : ahead ? <IconTrendingUp size={17} aria-hidden /> : <IconCircleCheck size={17} aria-hidden />}
-        {over ? 'Over the budget for the month.' : ahead ? 'Going a little fast for this point in the month.' : 'On pace for the month.'}
+        {over ? 'Over the budget for the month.' : ahead ? 'Going a little fast for this point in the month.'
+          : early ? 'Early in the month. The pace shows from the 7th.' : 'On pace for the month.'}
       </p>
     </section>
   );

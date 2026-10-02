@@ -217,6 +217,29 @@ ok(iso(newest[0].period_start) === iso(openCycles[openCycles.length - 1].period_
 ok(iso(openCycles[0].period_start) !== iso(newest[0].period_start),
   'and the oldest unpaid cycle is a different one — which is the bill actually due');
 
+/* Nothing marks a cycle paid when the card is paid, so what a bill still owes
+   is derived (card_bill): payments clear the oldest bills first, and a card
+   that owes nothing has no bill outstanding — however many cycles it has. */
+const billOwed = async () => Number((await sql`select coalesce(sum(outstanding), 0)::bigint as s
+  from card_bill where account_id = ${card}`)[0].s);
+const billsByAge = async () => (await sql`select outstanding::bigint as o, charged::bigint as c
+  from card_bill where account_id = ${card} order by period_start`).map((r) => [Number(r.o), Number(r.c)]);
+// Earlier sections leave this card in credit; spend past that so there is a debt to clear.
+await txn({ kind: 'expense', account_id: card, category_id: cat,
+            amount: Math.max(0, await balanceOf(card)) + 52000, occurred_on: '2026-10-09' });
+const cardDebt = Math.max(0, -(await balanceOf(card)));
+ok(cardDebt > 0, 'the card owes something to clear');
+const charges = (await billsByAge()).reduce((n, [, c]) => n + c, 0);
+ok(await billOwed() === Math.min(cardDebt, charges), 'what the bills still owe is what the card owes');
+const [payOff] = await txn({ kind: 'card_payment', account_id: fresh.id, counter_account_id: card, amount: cardDebt });
+ok(await billOwed() === 0, 'paying what the card owes leaves no bill outstanding, with no cycle marked paid');
+await sql`update txn set deleted_at = now() where id = ${payOff.id}`;
+ok(await billOwed() === Math.min(cardDebt, charges), 'take the payment back and the bills owe again');
+const ages = await billsByAge();
+const newestBill = ages[ages.length - 1];
+ok(newestBill[0] === Math.min(cardDebt, newestBill[1]),
+  'what the card still owes sits on its NEWEST bill — payments cleared the oldest first');
+
 console.log('\nPAYMENT METHODS — a rail is not a balance');
 await refuses('a UPI method drawing on a credit card is refused',
   () => sql`insert into payment_method ${sql({ household_id: hh.id, name: 'GPay', kind: 'upi', funding_account_id: card })}`);

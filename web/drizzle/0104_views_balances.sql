@@ -52,3 +52,29 @@ SELECT DISTINCT ON (account_id)
 FROM card_cycle_total
 WHERE status <> 'paid'
 ORDER BY account_id, period_start DESC;
+
+-- What is still owed on each bill. Nothing marks a cycle paid when the card is
+-- paid — a card payment is a transfer into the card, never a status flag — so
+-- "is this bill settled" is DERIVED from the card's balance, like everything
+-- else here. Payments clear the oldest bills first, so whatever the card still
+-- owes belongs to the newest cycles: each cycle's outstanding is its charges,
+-- capped by the debt left after every newer cycle has taken its share. A card
+-- that owes nothing (or is in credit) has no bill outstanding at all.
+DROP VIEW IF EXISTS card_bill CASCADE;
+CREATE VIEW card_bill AS
+WITH debt AS (
+  SELECT b.id AS account_id, GREATEST(0, -b.balance) AS owed
+  FROM account_balance b
+  WHERE b.kind = 'credit'
+), cyc AS (
+  SELECT c.cycle_id, c.account_id, c.period_start, c.period_end, c.statement_on,
+         c.due_on, c.charged, c.entries, d.owed,
+         COALESCE(SUM(c.charged) OVER (PARTITION BY c.account_id ORDER BY c.period_start DESC
+                  ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING), 0) AS newer
+  FROM card_cycle_total c
+  JOIN debt d ON d.account_id = c.account_id
+  WHERE c.status <> 'paid' AND c.charged > 0
+)
+SELECT cycle_id, account_id, period_start, period_end, statement_on, due_on,
+       charged, entries, LEAST(charged, GREATEST(0, owed - newer)) AS outstanding
+FROM cyc;

@@ -110,9 +110,9 @@ export default async function Inbox() {
                   {bills.map((b, i) => {
                     const soon = b.days_away <= 5;
                     return (
-                      <Swipeable key={b.account_id} actions={canWrite ? [
+                      <Swipeable key={`${b.account_id}:${String(b.due_on)}`} actions={canWrite ? [
                         { label: 'Pay', icon: 'move', tone: 'primary',
-                          href: `/add?kind=transfer&to=${b.account_id}&amount=${Number(b.charged)}` },
+                          href: `/add?kind=transfer&to=${b.account_id}&amount=${Number(b.outstanding)}` },
                       ] : []}>
                       <div style={{
                         display: 'flex', alignItems: 'center', gap: 12, minHeight: 78,
@@ -142,7 +142,7 @@ export default async function Inbox() {
                             {' · '}{b.entries} {b.entries === 1 ? 'purchase' : 'purchases'}
                           </span>
                         </span>
-                        <span className="t amt" style={{ fontSize: 'var(--step-1)' }}>{format(Number(b.charged))}</span>
+                        <span className="t amt" style={{ fontSize: 'var(--step-1)' }}>{format(Number(b.outstanding))}</span>
                       </div>
                       </Swipeable>
                     );
