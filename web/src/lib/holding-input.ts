@@ -109,3 +109,45 @@ export function dateProblem(typed: unknown, today: string): string | null {
 export function canWrite(role: unknown): boolean {
   return role === 'owner' || role === 'adult';
 }
+
+/* ---- And back again: what the screens write for a stored figure. ---- */
+
+/** Milligrams as grams, with up to three decimals and no trailing zeros:
+ *  50000 is "50", 12500 is "12.5", 1 is "0.001". Integer arithmetic only. */
+export function gramsLabel(mg: number | string): string {
+  const n = Math.max(0, Math.trunc(Number(mg) || 0));
+  const whole = Math.floor(n / 1000);
+  const frac = String(n % 1000).padStart(3, '0').replace(/0+$/, '');
+  return `${whole.toLocaleString('en-US')}${frac ? `.${frac}` : ''}`;
+}
+
+const KARAT_OF = new Map<number, string>([[999, '24k'], [916, '22k'], [750, '18k'], [585, '14k']]);
+
+/** How a jeweller says it: 22k gold, sterling silver, fine silver. */
+export function purityLabel(metal: string | null, permille: number | null): string {
+  if (metal === 'gold') return KARAT_OF.get(Number(permille)) ?? `${permille}`;
+  if (metal === 'silver') return Number(permille) === 925 ? 'Sterling' : Number(permille) === 999 ? 'Fine' : `${permille}`;
+  return '';
+}
+
+/** A stored rate (numeric as text) for reading: grouped, two decimals, more
+ *  only when the rate is under one so it does not read as 0.00. Kept as text,
+ *  so a rate is never put through a float on its way to the screen. */
+export function rateLabel(rate: string | null): string {
+  if (!rate || !/^\d+(\.\d+)?$/.test(rate)) return '';
+  const [whole, frac = ''] = rate.split('.');
+  const w = whole.replace(/^0+(?=\d)/, '');
+  const grouped = w.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  if (w !== '0') return `${grouped}.${(frac + '00').slice(0, 2)}`;
+  const lead = frac.search(/[1-9]/);
+  const keep = lead < 0 ? 2 : Math.max(2, Math.min(10, lead + 3));
+  return `0.${(frac + '0'.repeat(10)).slice(0, keep)}`;
+}
+
+/** "6 Nov" for a database date (YYYY-MM-DD), read as a calendar day so no
+ *  time zone can move it. */
+export function dayLabel(iso: string | null): string {
+  const m = iso && /^(\d{4})-(\d{2})-(\d{2})/.exec(iso);
+  if (!m) return '';
+  return new Date(Date.UTC(+m[1], +m[2] - 1, +m[3])).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' });
+}

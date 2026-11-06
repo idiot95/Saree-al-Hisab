@@ -151,9 +151,13 @@ for (const theme of ['light', 'dark']) {
     ['muted-foreground', ['secondary']],
     ['primary-foreground', ['primary']],
     ['secondary-foreground', ['secondary']],
+    // the net-worth card
+    ['hero-foreground', ['hero']],
+    ['hero-muted', ['hero']],
   ];
   const MARKS = [['primary', ['muted']], ['destructive', ['muted']], ['attention-ink', ['background', 'card', 'muted']],
-    ['chart-1', ['card']], ['chart-2', ['card']]];
+    ['chart-1', ['card']], ['chart-2', ['card']],
+    ['hero-1', ['hero']], ['hero-2', ['hero']], ['hero-3', ['hero']], ['hero-4', ['hero']]];
   for (const [theme, T, R] of [['light', L, Lr], ['dark', D, Dr]]) {
     console.log(`\n  QUIET LEDGER ${theme.toUpperCase()}`);
     // money-in must not be mistaken for the primary: a luminance gap, not just contrast against the ground

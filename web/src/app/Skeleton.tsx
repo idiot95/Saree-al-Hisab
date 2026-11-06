@@ -214,7 +214,8 @@ export function frameFor(path: string): Frame | 'home' | null {
   if (is(path, '/budget') || is(path, '/trends')) return { title: 'Plan', current: '/budget', back: true, rows: 5, figure: true };
   if (is(path, '/categories')) return { title: 'Categories', current: '/budget', back: true, rows: 6 };
   if (is(path, '/accounts')) return { title: 'Accounts', current: '/accounts', back: true, rows: 4, figure: true };
-  if (is(path, '/worth')) return { title: 'Wealth', current: '/worth', rows: 4, figure: true };
+  if (is(path, '/worth')) return { title: 'Wealth', current: '/worth', rows: 4, figure: true, chips: 3 };
+  if (is(path, `/worth/${ID}`)) return { title: null, eyebrow: 'Wealth', current: null, back: true, rows: 3, figure: true };
   if (is(path, '/people')) return { title: 'Loans', current: '/people', rows: 4, figure: true };
   if (is(path, '/accounts/reconcile')) return { title: 'Reconcile', current: '/accounts', back: true, rows: 4 };
   if (is(path, `/accounts/${ID}/reconcile`)) return { title: null, eyebrow: 'Reconcile', current: null, back: true, rows: 3, form: true };

@@ -86,3 +86,21 @@ assert.equal(canWrite('owner'), true);
 assert.equal(canWrite('adult'), true);
 for (const r of ['viewer', '', 'admin', undefined, null, 'constructor', 'OWNER']) assert.equal(canWrite(r), false, String(r));
 console.log('  holding-input ok');
+
+// ---- labels ----
+{
+  const { gramsLabel, purityLabel, rateLabel, dayLabel } = await import(`${process.env.LIB}/holding-input.js`);
+  for (const [mg, out] of [[50000, '50'], [12500, '12.5'], [1, '0.001'], [0, '0'], [1250125, '1,250.125'], ['50000', '50'], [1010, '1.01']]) {
+    assert.equal(gramsLabel(mg), out, `grams label ${mg}`);
+  }
+  for (const [m, p, out] of [['gold', 999, '24k'], ['gold', 916, '22k'], ['gold', 750, '18k'], ['gold', 585, '14k'],
+    ['silver', 925, 'Sterling'], ['silver', 999, 'Fine']]) assert.equal(purityLabel(m, p), out, `${m} ${p}`);
+  for (const [r, out] of [['84', '84.00'], ['84.1234', '84.12'], ['12345.6', '12,345.60'], ['0.012', '0.0120'],
+    ['0.5', '0.500'], ['0.0000123', '0.0000123'], ['1000000', '1,000,000.00']]) assert.equal(rateLabel(r), out, `rate ${r}`);
+  assert.equal(rateLabel(null), '');
+  assert.equal(rateLabel('1e3'), '');
+  assert.equal(dayLabel('2026-11-06'), '6 Nov');
+  assert.equal(dayLabel('2026-01-31T00:00:00'), '31 Jan');
+  assert.equal(dayLabel(null), '');
+  console.log('  holding labels: ok');
+}

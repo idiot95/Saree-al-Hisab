@@ -218,6 +218,8 @@ export type AccountRow = {
   credit_limit: string | null; statement_day: number | null; due_day: number | null;
   methods: number;
   reconciled_on: string | null;
+  /** A current or former member, or null for joint. */
+  owner_user_id: string | null;
 };
 
 /** Balances come from `account_balance`, never from a stored figure — a
@@ -228,7 +230,7 @@ export async function accountsWithBalances(householdId: string) {
     return sql`
       select b.id, b.name, b.kind, b.last4, b.bank_key, b.card_network,
              b.opening_balance::text, b.balance::text,
-             b.entries::int, b.credit_limit::text, b.statement_day, b.due_day,
+             b.entries::int, b.credit_limit::text, b.statement_day, b.due_day, b.owner_user_id,
              (select to_char(max(r.statement_on), 'YYYY-MM-DD') from reconciliation r
                where r.account_id = b.id) as reconciled_on,
              (select count(*)::int from payment_method m

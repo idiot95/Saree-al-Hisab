@@ -162,6 +162,7 @@ export async function editAccount(_prev: Result | null, fd: FormData): Promise<R
                   where id = ${acc.id} and household_id = ${actor.household_id}`;
       }
       revalidatePath('/accounts');
+      revalidatePath('/worth');
       revalidatePath('/');
       return { ok: true, message: `${name} updated.` };
     }
@@ -214,6 +215,7 @@ export async function editAccount(_prev: Result | null, fd: FormData): Promise<R
     });
 
     revalidatePath('/accounts');
+    revalidatePath('/worth');
     revalidatePath('/');
     return { ok: true, message: `${name} updated.` };
    } catch (e) {

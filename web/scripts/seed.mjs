@@ -9,7 +9,13 @@
    Run: npm run seed you@example.com
      npm run seed you@example.com -- --activity   (adds a realistic month or
        two of entries, a tab, schedules and card purchases; every row it makes
-       has an id starting 5eed, so a re-run deletes and recreates only those) */
+       has an id starting 5eed, so a re-run deletes and recreates only those)
+     npm run seed you@example.com -- --wealth     (a second member, Sara; a USD
+       pot, an AED pot, 50 g of 22k gold and a KWD pot; your own rates for
+       USD, AED and gold dated yesterday, so a real fetch today replaces them
+       and a failed one still values them; none for KWD, which stays "not
+       valued yet" until a rate is fetched or set; and owners on the two banks.
+       Ids start 5eed, so a re-run replaces only these) */
 import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -28,6 +34,7 @@ const sql = postgres(url, { ssl: 'require', max: 1, onnotice: () => {} });
 
 const argv = process.argv.slice(2);
 const withActivity = argv.includes('--activity');
+const withWealth = argv.includes('--wealth');
 const email = (argv.find((a) => !a.startsWith('--')) ?? '').trim().toLowerCase();
 if (!email) {
   console.error('\n  Which books? Pass the email you signed up with:\n');
@@ -61,7 +68,7 @@ const SEED = '5eed';
 const sid = (n) => `5eed0000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 /* With --activity on books that already have the base kit, skip straight to
    the activity: the accounts, categories and ways to pay are looked up by name. */
-const haveBase = withActivity && (await sql`select 1 from account where household_id = ${hh} and name = 'HDFC Savings'`).length > 0;
+const haveBase = (withActivity || withWealth) && (await sql`select 1 from account where household_id = ${hh} and name = 'HDFC Savings'`).length > 0;
 const accounts = {};
 const categories = {};
 const methods = {};
@@ -158,6 +165,50 @@ if (haveBase) {
 
 let activity = null;
 if (withActivity) activity = await seedActivity();
+let wealth = null;
+if (withWealth) wealth = await seedWealth();
+
+async function seedWealth() {
+  const [{ id: me }] = await sql`
+    select u.id from app_user u join member m on m.user_id = u.id
+    where u.email = ${email} and m.household_id = ${hh}`;
+  /* A second member, so the owner chips have someone to switch to. No password and no Google: nobody signs
+     in as her, she only owns things. */
+  const sara = sid(500);
+  await sql`insert into app_user ${sql({ id: sara, name: 'Sara Mogul', email: 'sara.seed@example.com' })}
+            on conflict (id) do nothing`;
+  await sql`insert into member ${sql({ household_id: hh, user_id: sara, role: 'adult' })}
+            on conflict do nothing`;
+
+  await sql`delete from holding where household_id = ${hh} and id::text like ${SEED + '%'}`;
+  const [{ today }] = await sql`select current_date::text as today`;
+  const daysAgo = (n) => new Date(new Date(today + 'T00:00:00Z').getTime() - n * 864e5).toISOString().slice(0, 10);
+
+  const holdings = [
+    // [n, name, owner, kind, currency, metal, purity, [[days ago, quantity], …]]
+    [600, 'US savings', me, 'fx_cash', 'USD', null, null, [[40, 380000], [0, 420000]]],
+    [601, 'Dubai account', null, 'fx_cash', 'AED', null, null, [[0, 1250000]]],
+    [602, 'Jewellery', sara, 'metal', null, 'gold', 916, [[60, 42000], [0, 50000]]],
+    [603, 'Kuwait cash', null, 'fx_cash', 'KWD', null, null, [[0, 1250500]]],
+  ];
+  for (const [n, name, owner, kind, currency, metal, purity, snaps] of holdings) {
+    await sql`insert into holding ${sql({ id: sid(n), household_id: hh, owner_user_id: owner, kind, name, currency, metal, purity_permille: purity })}`;
+    for (const [i, [d, quantity]] of snaps.entries()) {
+      await sql`insert into holding_snapshot ${sql({ id: sid(n * 10 + i), holding_id: sid(n), household_id: hh,
+        as_of: daysAgo(d), quantity, created_by: me })}`;
+    }
+  }
+  /* Rates of the household's own, dated yesterday: a fetch that works today is newer and wins; one that fails
+     leaves these. Gold is per gram of PURE metal. No KWD on purpose. */
+  for (const [base, rate] of [['USD', '84.10'], ['AED', '22.90'], ['XAU', '11250']]) {
+    await sql`insert into price_override ${sql({ household_id: hh, base, quote: 'INR', as_of: daysAgo(1), rate, set_by: me })}
+              on conflict (household_id, base, quote, as_of) do update set rate = excluded.rate`;
+  }
+  // Whose the banks are, so Me and Sara have accounts of their own.
+  if (accounts.hdfc) await sql`update account set owner_user_id = ${me} where id = ${accounts.hdfc}`;
+  if (accounts.icici) await sql`update account set owner_user_id = ${sara} where id = ${accounts.icici}`;
+  return { holdings: holdings.length };
+}
 
 async function seedActivity() {
   const [{ id: me }] = await sql`
@@ -275,6 +326,7 @@ else {
   console.log(`  5 accounts · 8 categories · 5 ways to pay`);
   console.log(`  September budget ₹${(bud / 100).toLocaleString('en-IN')}`);
 }
+if (wealth) console.log(`  wealth: ${wealth.holdings} holdings (USD, AED, 22k gold, KWD), Sara as a second member`);
 if (activity) console.log(`  activity: ${activity.entries} entries, 1 tab, 2 schedules, ${activity.bills} card bill(s) owing`);
 console.log('');
 await sql.end();

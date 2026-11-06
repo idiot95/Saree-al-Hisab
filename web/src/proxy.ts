@@ -71,9 +71,11 @@ export default async function proxy(req: NextRequest) {
   }
 
   const res = NextResponse.next({ request: { headers } });
-  /* A stored file sets its own, stricter policy (default-src 'none'; sandbox):
-     it is shown on its own, never as a page, so it needs no nonce. */
-  if (!pathname.startsWith('/attachment/')) res.headers.set('Content-Security-Policy', policy(nonce, dev));
+  /* A stored file is shown on its own, never as a page, so it gets the strictest policy there is rather
+     than the page policy — and it gets it HERE, not only from the route: a path under /attachment/ that no
+     route matches (a 404, a future route that forgets) still answers under default-src 'none'; sandbox. */
+  res.headers.set('Content-Security-Policy',
+    pathname.startsWith('/attachment/') ? "default-src 'none'; sandbox" : policy(nonce, dev));
   /* A sign-in that Auth.js gave up on — cancelled at Google, or refused
      before our callback ran — never reaches the code that spends the link and
      invite cookies, so they would outlive the attempt they were set for. It

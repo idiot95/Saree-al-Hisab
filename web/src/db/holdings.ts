@@ -105,3 +105,21 @@ export async function insertPhotos(
       values (${householdId}, ${holdingId}, ${snapshotId}, ${p.name}, ${p.mime}, ${p.buf.length}, ${p.buf}, ${userId})`;
   }
 }
+
+/** What the household's live holdings need a price for — each pot's currency,
+ *  XAU for gold and XAG for silver — so the rates can be made fresh BEFORE the
+ *  holdings are valued. Nothing but the codes. */
+export async function holdingBases(householdId: string): Promise<string[]> {
+  return withHousehold(householdId, async () => {
+    const rows = await sql`
+      select distinct case when kind = 'fx_cash' then currency
+                           when metal = 'gold' then 'XAU' else 'XAG' end as base
+      from holding
+      where household_id = ${householdId} and archived_at is null`;
+    return rows.map((r) => String(r.base)).filter(Boolean);
+  });
+}
+
+/** The base a holding is priced in: its currency, or the metal's code. */
+export const baseOf = (h: { kind: string; currency: string | null; metal: string | null }) =>
+  h.kind === 'fx_cash' ? (h.currency ?? '') : h.metal === 'gold' ? 'XAU' : 'XAG';

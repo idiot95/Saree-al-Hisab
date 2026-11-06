@@ -87,6 +87,7 @@ export const UI_NAMES = [
   'chevron_left', 'expand_more', 'expand_less', 'close', 'photo_camera', 'search', 'tune',
   'check_circle', 'event_repeat', 'info', 'arrow_back', 'handshake', 'warning', 'error', 'progress_activity',
   'calendar_month', 'event', 'done_all', 'check', 'circle', 'sell', 'sms', 'more_horiz',
+  'picture_as_pdf', 'add_photo_alternate', 'archive', 'sync_problem', 'account_balance', 'edit', 'photo_library',
 ];
 
 /** Every Material name the font must contain: sorted, unique. */

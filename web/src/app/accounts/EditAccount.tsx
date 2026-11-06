@@ -10,6 +10,7 @@ import { editAccount, archiveAccount } from './actions';
 import CardIdentityFields from './CardIdentityFields';
 import { bankFromName } from '@/lib/card-brand';
 import { startPending } from '../pending';
+import { OwnerSelect } from '../worth/fields';
 
 /* Tap the row and it becomes its own form; save and it becomes a row again.
    The same move as a category, because a person who has learnt one should
@@ -23,6 +24,10 @@ export type Editable = {
   limit: number | null; statement_day: number | null; due_day: number | null;
   /** Live payment methods drawing on it — what stands between it and Archive. */
   methods: number;
+  /** Whose it is: a current member's id, or null for joint. */
+  owner: string | null;
+  /** Who it could belong to: the household's members. */
+  owners: { id: string; name: string }[];
 };
 
 const rupees = (minor: number) => {
@@ -128,6 +133,9 @@ export function AccountForm({ account: a, last = true, onDone }: {
             defaultValue={rupees(a.opening)}
             hint="What it held when you started keeping it here. Today's balance is this plus every entry since — so if the balance on screen is wrong, this is the number to correct." />
         )}
+        {/* Whose it is, for each person's net worth on Wealth. A person's account (money lent) never has an
+            owner — it is the household's — and is never edited here anyway. */}
+        {a.kind !== 'person' && <OwnerSelect members={a.owners} defaultValue={a.owner} />}
         {state && !state.ok && <ErrorNote>{state.error}</ErrorNote>}
         <div style={{ display: 'flex', gap: 9 }}>
           <button type="button" onClick={onDone} style={ghost}>Cancel</button>
