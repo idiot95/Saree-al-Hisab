@@ -40,6 +40,7 @@ CREATE TABLE "price_override" (
 	"set_at" timestamp with time zone DEFAULT now() NOT NULL,
 	CONSTRAINT "price_override_household_id_base_quote_as_of_pk" PRIMARY KEY("household_id","base","quote","as_of"),
 	CONSTRAINT "price_override_rate_positive" CHECK ("price_override"."rate" > 0),
+	CONSTRAINT "price_override_rate_bounded" CHECK ("price_override"."rate" < 1000000000),
 	CONSTRAINT "price_override_codes" CHECK ("price_override"."base" ~ '^[A-Z]{3}$' AND "price_override"."quote" ~ '^[A-Z]{3}$')
 );
 --> statement-breakpoint
@@ -52,6 +53,7 @@ CREATE TABLE "price_quote" (
 	"fetched_at" timestamp with time zone DEFAULT now() NOT NULL,
 	CONSTRAINT "price_quote_base_quote_as_of_source_pk" PRIMARY KEY("base","quote","as_of","source"),
 	CONSTRAINT "price_quote_rate_positive" CHECK ("price_quote"."rate" > 0),
+	CONSTRAINT "price_quote_rate_bounded" CHECK ("price_quote"."rate" < 1000000000),
 	CONSTRAINT "price_quote_codes" CHECK ("price_quote"."base" ~ '^[A-Z]{3}$' AND "price_quote"."quote" ~ '^[A-Z]{3}$')
 );
 --> statement-breakpoint

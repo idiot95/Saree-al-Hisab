@@ -756,6 +756,8 @@ export const priceQuote = pgTable('price_quote', {
 }, (t) => [
   primaryKey({ columns: [t.base, t.quote, t.asOf, t.source] }),
   check('price_quote_rate_positive', sql`${t.rate} > 0`),
+  // A ceiling, so one absurd rate cannot overflow a value and break the household's whole view.
+  check('price_quote_rate_bounded', sql`${t.rate} < 1000000000`),
   check('price_quote_codes', sql`${t.base} ~ '^[A-Z]{3}$' AND ${t.quote} ~ '^[A-Z]{3}$'`),
 ]);
 
@@ -772,5 +774,7 @@ export const priceOverride = pgTable('price_override', {
 }, (t) => [
   primaryKey({ columns: [t.householdId, t.base, t.quote, t.asOf] }),
   check('price_override_rate_positive', sql`${t.rate} > 0`),
+  // A ceiling, so one absurd rate cannot overflow a value and break the household's whole view.
+  check('price_override_rate_bounded', sql`${t.rate} < 1000000000`),
   check('price_override_codes', sql`${t.base} ~ '^[A-Z]{3}$' AND ${t.quote} ~ '^[A-Z]{3}$'`),
 ]);

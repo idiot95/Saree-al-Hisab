@@ -1,5 +1,5 @@
 {
-  "id": "736ddfa2-c8b6-4cf3-a30e-3f8dfc52358b",
+  "id": "472d2a69-83ce-451f-a473-6d26b3d29333",
   "prevId": "e2fb4250-34ff-42a3-a0c1-04451dc59a11",
   "version": "7",
   "dialect": "postgresql",
@@ -2989,6 +2989,10 @@
           "name": "price_override_rate_positive",
           "value": "\"price_override\".\"rate\" > 0"
         },
+        "price_override_rate_bounded": {
+          "name": "price_override_rate_bounded",
+          "value": "\"price_override\".\"rate\" < 1000000000"
+        },
         "price_override_codes": {
           "name": "price_override_codes",
           "value": "\"price_override\".\"base\" ~ '^[A-Z]{3}$' AND \"price_override\".\"quote\" ~ '^[A-Z]{3}$'"
@@ -3057,6 +3061,10 @@
         "price_quote_rate_positive": {
           "name": "price_quote_rate_positive",
           "value": "\"price_quote\".\"rate\" > 0"
+        },
+        "price_quote_rate_bounded": {
+          "name": "price_quote_rate_bounded",
+          "value": "\"price_quote\".\"rate\" < 1000000000"
         },
         "price_quote_codes": {
           "name": "price_quote_codes",

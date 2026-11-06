@@ -100,8 +100,10 @@ CREATE TRIGGER household_base_not_a_pot
   BEFORE UPDATE OF base_currency ON household
   FOR EACH ROW EXECUTE FUNCTION household_base_not_a_pot_check();
 
-/* Each holding with its latest snapshot, the rate that applies today, and
-   its value in the household's minor units.
+/* Each holding with its latest snapshot dated today or earlier, the rate
+   that applies today, and its value in the household's minor units. A
+   snapshot dated after today is kept but not yet current — the same rule
+   the rates follow — so a mistyped date cannot stand in for today's figure.
 
    Which rate: the household's override with the latest as_of ≤ today,
    and the fetched quote with the latest as_of ≤ today (newest fetch, then
@@ -152,7 +154,7 @@ CROSS JOIN LATERAL (
 LEFT JOIN LATERAL (
   SELECT sn.quantity, sn.as_of
   FROM holding_snapshot sn
-  WHERE sn.holding_id = h.id
+  WHERE sn.holding_id = h.id AND sn.as_of <= current_date
   ORDER BY sn.as_of DESC
   LIMIT 1
 ) s ON true

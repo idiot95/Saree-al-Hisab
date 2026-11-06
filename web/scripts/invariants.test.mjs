@@ -933,7 +933,7 @@ try {
     sql`insert into holding_snapshot ${sql({ holding_id: holding, household_id: hh.id, as_of, quantity, created_by: user.id })}`;
   const override = (base, rate, as_of = today) =>
     sql`insert into price_override ${sql({ household_id: hh.id, base, quote: 'INR', as_of, rate, set_by: user.id })}`;
-  const valued = async (id) => (await sql`select quantity::bigint as q, rate::text as rate, rate_as_of::text as rate_as_of,
+  const valued = async (id) => (await sql`select quantity::bigint as q, as_of::text as as_of, rate::text as rate, rate_as_of::text as rate_as_of,
     rate_source, value_minor from holding_value where id = ${id}`)[0];
 
   await refusesWith('an INR pot in an INR household is refused, naming the code', /Use an account for INR/,
@@ -957,12 +957,21 @@ try {
     () => sql`insert into holding_snapshot ${sql({ holding_id: kwd, household_id: elsewhere.id, as_of: yesterday, quantity: 1 })}`);
 
   ok((await valued(kwd)).value_minor === null, 'with a snapshot but no rate, value_minor is NULL');
+  await snap(kwd, 9999, tomorrow);
+  const fut = await valued(kwd);
+  ok(Number(fut.q) === 1500 && fut.as_of === today,
+    `a snapshot dated tomorrow does not stand in for today's (${fut.q} on ${fut.as_of})`);
   await refusesWith('a rate of zero is refused on an override', /rate_positive/, () => override('KWD', 0));
+  await refusesWith('an absurd rate is refused on an override, before it can overflow a value', /rate_bounded/,
+    () => override('KWD', '1000000000'));
+  await refusesWith('and on a quote', /rate_bounded/,
+    () => sql`insert into price_quote ${sql({ base: 'XTS', quote: 'INR', as_of: today, rate: '1000000000', source: 'test' })}`);
   await refusesWith('a negative rate is refused on a quote', /rate_positive/,
     () => sql`insert into price_quote ${sql({ base: 'XTS', quote: 'INR', as_of: today, rate: -1, source: 'test' })}`);
   await override('KWD', '271.5');
   const k = await valued(kwd);
-  ok(String(k.value_minor) === '40725', `KD 1.500 at 271.5 is ₹407.25 — 40725 paise (${k.value_minor})`);
+  ok(String(k.value_minor) === '40725' && Number(k.q) === 1500,
+    `KD 1.500 at 271.5 is ₹407.25 — 40725 paise, from today's snapshot not tomorrow's (${k.q} → ${k.value_minor})`);
 
   const jpy = await pot({ currency: 'JPY', name: 'Yen' });
   await snap(jpy, 500); await override('JPY', '0.55');
@@ -973,6 +982,21 @@ try {
   await snap(gold.id, 50000); await override('XAU', '8000');
   ok(String((await valued(gold.id)).value_minor) === '36640000',
     `50 g of 22k gold at ₹8,000/g pure is 36640000 paise (${(await valued(gold.id)).value_minor})`);
+
+  // A quote alone is used; an override newer than the latest quote beats it.
+  const xts0 = await pot({ currency: 'XTS', name: 'Quote only' });
+  await snap(xts0, 100);
+  await sql`insert into price_quote ${sql({ base: 'XTS', quote: 'INR', as_of: yesterday, rate: '5', source: 'invariant-test' })}`;
+  let x0 = await valued(xts0);
+  ok(x0.rate_source === 'invariant-test' && Number(x0.rate) === 5 && x0.rate_as_of === yesterday && String(x0.value_minor) === '500',
+    `with only a quote and no override, the quote is used (${x0.rate_source} ${x0.rate} → ${x0.value_minor})`);
+  await override('XTS', '6', today);
+  x0 = await valued(xts0);
+  ok(x0.rate_source === 'override' && Number(x0.rate) === 6 && x0.rate_as_of === today && String(x0.value_minor) === '600',
+    `an override dated today beats a quote dated yesterday (${x0.rate_source} ${x0.rate} → ${x0.value_minor})`);
+  await sql`delete from price_override where household_id = ${hh.id} and base = 'XTS'`;
+  await sql`delete from price_quote where base = 'XTS'`;
+  await sql`delete from holding where id = ${xts0}`;
 
   // Which rate applies: newest of override and quote, the override winning a tie; nothing after today.
   const xts = await pot({ currency: 'XTS', name: 'Test pot' });
