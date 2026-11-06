@@ -14,7 +14,7 @@ export const dynamic = 'force-dynamic';
    signing up, which is why the proxy lets it through without a session. */
 
 const REPO = 'https://github.com/idiot95/Saree-al-Hisab';
-const DATED = 'November 2026';
+const DATED = '6 November 2026';
 const link: React.CSSProperties = {
   color: 'var(--primary)', fontWeight: 600, textDecoration: 'underline', textUnderlineOffset: 3,
 };
@@ -23,7 +23,7 @@ const SECTIONS: { title: string; lines: React.ReactNode[] }[] = [
   {
     title: 'What this is',
     lines: [
-      'A set of books for one household, kept by the people in it. Nothing is read from your bank, your messages or your phone: every figure here is one that you or someone in your household typed, scanned and confirmed, or recorded from a schedule.',
+      'A set of books for one household, kept by the people in it. Nothing is read from your bank, and nothing from your messages unless you set a phone up to forward them: every figure here is one that you or someone in your household typed, scanned or forwarded and then confirmed, or recorded from a schedule.',
       'You can keep more than one household, and belong to households other people opened. Each is its own set of books.',
     ],
   },
@@ -50,7 +50,16 @@ const SECTIONS: { title: string; lines: React.ReactNode[] }[] = [
     lines: [
       'Entries go to the app’s own server and nowhere else. An entry saved without signal waits on the phone and goes when there is one.',
       'Signing in sends you to Google and back. Google learns that you signed in to this app, and when; it is not sent your entries or anything in your books. What the app keeps from Google is the account’s id and your email address as it was when you linked it, plus your name and picture if Google made your account here. It asks for no access to your Google data beyond that.',
-      'If you turn on receipt scanning, the photo you scan goes to Google’s Gemini API under your own key and your own quota. Google is the only third party, for sign-in, and for scanning only when you choose it.',
+      'If you turn on receipt scanning, the photo you scan goes to Google’s Gemini API under your own key and your own quota. Google is the only third party, for sign-in, and for scanning (and reading a forwarded bank message the server could not place) only when you have added that key.',
+    ],
+  },
+  {
+    title: 'Bank messages you forward',
+    lines: [
+      'SMS capture is off until you turn it on, phone by phone, under Household. A phone you set up sends the bank messages you chose to this app’s own server, with a key only that phone holds. The server keeps only a hash of the key, and you can revoke it at any time.',
+      'A one-time password is recognised and dropped as it arrives: it is never stored. Every other message becomes a draft under To review, and nothing is recorded in your books until someone saves it.',
+      'What is kept from a message is the figures read from it — amount, money in or out, the last four digits of the account, where, the date — and the sender’s name. Its full text is kept only until the draft is added or dismissed, or for 30 days if nobody does either; then it is deleted, and only those figures remain.',
+      'The message is read on the app’s own server. Only when that cannot tell whether money came in or went out, and only if your household has added its own Gemini key, is the text also sent to Google’s Gemini API, under that key, to be read.',
     ],
   },
   {

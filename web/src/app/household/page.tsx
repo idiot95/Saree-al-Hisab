@@ -19,6 +19,7 @@ import { forcedTheme, THEME_COOKIE } from '@/lib/theme';
 import BooksSwitcher from './BooksSwitcher';
 import PageHead from '../PageHead';
 import Screen from '../Screen';
+import { Icon } from '../Icon';
 
 export const metadata = { title: 'Household · Saree al-Hisab' };
 export const dynamic = 'force-dynamic';
@@ -143,6 +144,17 @@ export default async function Household() {
         <Head>Your account</Head>
         <LinkGoogle linked={members.some((m) => m.id === actor.user_id && m.has_google)} />
         <PasswordCard />
+        <Link href="/household/capture" transitionTypes={['nav-forward']}
+          className="press -mt-2 mb-[22px] mx-[var(--gutter)] flex min-h-14 items-center gap-[11px] rounded-[18px] border border-border bg-card px-[var(--pad)] text-foreground no-underline">
+          <span className="grid size-[38px] flex-none place-items-center rounded-full bg-muted text-muted-foreground">
+            <Icon name="sms" size={18} />
+          </span>
+          <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+            <span className="text-base font-semibold">SMS capture</span>
+            <span className="text-xs text-muted-foreground">Bank messages from your phone, as drafts to review</span>
+          </span>
+          <Icon name="chevron_right" size={18} className="text-muted-foreground" />
+        </Link>
         {/* Signing out lives here, with the rest of the account — not on the
             Home header, where it was the only button and the wrong one to
             press by accident with a thumb. */}

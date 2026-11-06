@@ -1,6 +1,6 @@
 import Link from '@/app/NavLink';
 import { redirect } from 'next/navigation';
-import { actorOrNull, claimsFor, entriesFor, inboxCount, monthTotals, peopleFor, schedulesFor, setupProgress } from '@/db/queries';
+import { actorOrNull, claimsFor, entriesFor, inboxCount, reviewCount, monthTotals, peopleFor, schedulesFor, setupProgress } from '@/db/queries';
 import { owedToYou } from '@/lib/worth';
 import { withHousehold } from '@/db/client';
 import { format, monthKey } from '@/lib/money';
@@ -55,7 +55,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ s
   const canAct = actor.role !== 'viewer';
   const dueNow = canAct ? allDues.filter((d) => d.daysAway <= 0) : [];
   /* The same count as Activity's "To review" badge, so the two never disagree. What is due comes under Upcoming. */
-  const review = inbox.duplicates + inbox.bills;
+  const review = reviewCount(inbox);
   const byId = new Map(schedules.map((s) => [s.id, s]));
   const monthName = new Date(month).toLocaleDateString('en-IN', { month: 'long' });
 

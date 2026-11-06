@@ -7,6 +7,7 @@ import { resolvePayment } from '@/db/payment';
 import { shares } from '../tab/splits';
 import { fits, misfit } from '@/lib/scope';
 import { BILL_MAX_FILES, billFromBase64 } from '@/lib/bills';
+import { acceptDraftIn } from '@/lib/sms-draft';
 
 /* A Server Action is reachable by direct POST, not only through the UI, so
    every value the client sends is treated as untrusted: the household and the
@@ -56,7 +57,10 @@ export type Draft = {
   settles?: string[];
   /* Only on an entry that waited on the phone for signal. The reference makes
      a second delivery of the same entry harmless; the household id lets the
-     server refuse an entry typed under one sign-in and sent under another. */
+     server refuse an entry typed under one sign-in and sent under another.
+     An entry made from a forwarded bank message carries that draft's id here:
+     the draft is marked accepted in the same transaction as the entry, and a
+     second tap on Save finds the first entry rather than making another. */
   clientRef?: string;
   householdId?: string;
 };
@@ -212,6 +216,7 @@ export async function saveEntry(d: Draft): Promise<SaveResult> {
       counter = acc.id;
     }
 
+    let accepted = false;
     try {
       const row = await sql.begin(async (tx) => {
         if (settles.length) {
@@ -246,6 +251,7 @@ export async function saveEntry(d: Draft): Promise<SaveResult> {
             })} returning id`;
             first ??= r.id as string;
           }
+          if (first && clientRef) accepted = await acceptDraftIn(tx, household_id, clientRef, first);
           return first ? { id: first } : null;
         }
         const [entry] = await tx`insert into txn ${sql({
@@ -267,6 +273,10 @@ export async function saveEntry(d: Draft): Promise<SaveResult> {
           counts_as_spend: counts,
         })} on conflict (household_id, client_ref) where client_ref is not null do nothing
            returning id`;
+        /* A draft from a bank message becomes this entry, or neither happens. A
+           client reference that names no open draft of this household (an
+           offline entry, a draft already accepted) changes nothing. */
+        if (entry && clientRef) accepted = await acceptDraftIn(tx, household_id, clientRef, entry.id);
         /* The entry and the shares land together or not at all: a cost on a tab
            with nobody down as owing for it would be a split that never happened.
            A share of zero paise is nothing owed and is not written. */
@@ -317,6 +327,7 @@ export async function saveEntry(d: Draft): Promise<SaveResult> {
       if (tab) { revalidatePath(`/tab/${tab.id}`); revalidatePath('/people'); revalidatePath('/worth'); }
       if (settles.length) { revalidatePath('/people'); revalidatePath('/worth'); revalidatePath('/entries'); }
       revalidatePath('/');
+      if (accepted) revalidatePath('/inbox');
       if (row) return { ok: true, id: row.id };
       /* Lost the race with our own retry: the other delivery landed between
          the check above and this insert. The unique index kept it to one row;

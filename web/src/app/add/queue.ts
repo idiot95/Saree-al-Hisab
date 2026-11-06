@@ -100,7 +100,8 @@ export const readQueue = (): Queued[] => read<Queued[]>(QUEUE) ?? [];
 
 export function enqueue(d: Draft, householdId: string): Queued {
   const item: Queued = {
-    ...d, householdId, clientRef: crypto.randomUUID(), queuedAt: new Date().toISOString(),
+    /* An entry made from a bank message keeps that draft's id, so it is accepted when it lands. */
+    ...d, householdId, clientRef: d.clientRef ?? crypto.randomUUID(), queuedAt: new Date().toISOString(),
   };
   write(QUEUE, [...readQueue(), item]);
   return item;

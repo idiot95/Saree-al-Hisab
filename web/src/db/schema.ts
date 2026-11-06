@@ -864,6 +864,9 @@ export const smsDraft = pgTable('sms_draft', {
   status: inboxStatus('status').notNull().default('open'),
   txnId: uuid('txn_id'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  /** When it was accepted or dismissed: what lets a dismissal be undone for a
+   *  quarter of an hour and no longer. Null while it is open. */
+  decidedAt: timestamp('decided_at', { withTimezone: true }),
 }, (t) => [
   uniqueIndex('sms_draft_household_body').on(t.householdId, t.bodyHash),
   index('sms_draft_household_status').on(t.householdId, t.status),

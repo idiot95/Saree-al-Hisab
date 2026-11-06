@@ -1,6 +1,6 @@
 import Link from '@/app/NavLink';
 import { redirect } from 'next/navigation';
-import { actorOrNull, billsDue, duplicatesFor, schedulesFor } from '@/db/queries';
+import { actorOrNull, billsDue, duplicatesFor, purgeSmsBodies, schedulesFor, smsDrafts, type SmsDraftRow } from '@/db/queries';
 import { withHousehold } from '@/db/client';
 import { outstandingDues } from '@/lib/recur';
 import { format } from '@/lib/money';
@@ -12,6 +12,7 @@ import PageHead, { Label } from '../PageHead';
 import ActivityNav from '../entries/ActivityNav';
 import Swipeable from '../Swipeable';
 import { Icon } from '../Icon';
+import SmsDrafts, { type SmsRow } from './SmsDrafts';
 
 export const metadata = { title: 'To review · Saree al-Hisab' };
 export const dynamic = 'force-dynamic';
@@ -25,17 +26,24 @@ export default async function Inbox() {
   if (!actor.household_id) redirect('/no-household');
 
   const hh = actor.household_id;
-  const [dupes, bills, schedules] = await withHousehold(hh, () => Promise.all([
-    duplicatesFor(hh),
-    billsDue(hh),
-    schedulesFor(hh),
-  ]));
+  /* Forwarded bank messages lose their text once handled or after thirty days; with no scheduler, the screens
+     that list them do it as they open. */
+  const [dupes, bills, schedules, sms] = await withHousehold(hh, async () => {
+    await purgeSmsBodies(hh);
+    return Promise.all([
+      duplicatesFor(hh),
+      billsDue(hh),
+      schedulesFor(hh),
+      smsDrafts(hh),
+    ]);
+  });
   const canWrite = actor.role !== 'viewer';
   const now = new Date();
   const dues = outstandingDues(schedules, now, 7);
-  /* The same two things Activity's badge and Home's tile count: decisions. What is merely due lives under
-     Upcoming, and is pointed at from here rather than listed twice. */
-  const count = dupes.length + bills.length;
+  /* The same three things Activity's badge and Home's tile count (reviewCount): decisions. What is merely due
+     lives under Upcoming, and is pointed at from here rather than listed twice. */
+  const count = dupes.length + bills.length + sms.length;
+  const smsRows = sms.map(toRow);
 
   return (
     <Screen>
@@ -44,11 +52,15 @@ export default async function Inbox() {
           <ActivityNav current="inbox" review={count} />
         </PageHead>
 
+        {/* Always in the tree, so the Undo on a dismissed message outlives the list it emptied. */}
+        <SmsDrafts rows={smsRows} canWrite={canWrite} />
+
         {count === 0 ? (
           <div className="mx-[var(--gutter)] flex flex-col items-center gap-3 rounded-2xl border border-border bg-card px-6 py-8 text-center">
             <Icon name="check_circle" size={34} className="text-money-in" />
             <p className="max-w-[30ch] text-sm leading-relaxed text-muted-foreground">
-              No card bills waiting and no possible duplicates. This fills itself when something wants deciding.
+              No card bills waiting, no possible duplicates and no bank messages. This fills itself when something
+              wants deciding.
             </p>
           </div>
         ) : (
@@ -152,4 +164,19 @@ export default async function Inbox() {
       </main>
     </Screen>
   );
+}
+
+const day = (iso: string) => new Date(`${iso}T00:00:00Z`).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', timeZone: 'UTC' });
+
+function toRow(d: SmsDraftRow): SmsRow {
+  return {
+    id: d.id,
+    amount: d.amount === null ? null : Number(d.amount),
+    direction: d.direction,
+    merchant: d.merchant,
+    when: d.on_date ? day(d.on_date) : new Date(d.received_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }),
+    account: d.account,
+    last4: d.last4,
+    sender: d.sender,
+  };
 }

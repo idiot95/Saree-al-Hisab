@@ -1,6 +1,6 @@
 import Link from '@/app/NavLink';
 import { redirect } from 'next/navigation';
-import { actorOrNull, budgetFor, entriesFor, inboxCount, monthTotals, searchEntries } from '@/db/queries';
+import { actorOrNull, budgetFor, entriesFor, inboxCount, reviewCount, monthTotals, purgeSmsBodies, searchEntries } from '@/db/queries';
 import { withHousehold } from '@/db/client';
 import { digitsOf, format, monthKey } from '@/lib/money';
 import TabBar from '../TabBar';
@@ -33,12 +33,17 @@ export default async function Entries({ searchParams }: {
   const month = m && MONTH.test(m) ? m : monthKey(new Date());
   const categoryId = c && /^[0-9a-f-]{36}$/.test(c) ? c : null;
   const hh = actor.household_id;
-  const [entries, categories, totals, inbox] = await withHousehold(hh, () => Promise.all([
-    entriesFor(hh, month, categoryId),
-    budgetFor(hh, month),
-    monthTotals(hh, month),
-    inboxCount(hh),
-  ]));
+  /* Forwarded bank messages lose their text once handled or after thirty days. There is no scheduler, so the
+     screens that list them do it as they open. */
+  const [entries, categories, totals, inbox] = await withHousehold(hh, async () => {
+    await purgeSmsBodies(hh);
+    return Promise.all([
+      entriesFor(hh, month, categoryId),
+      budgetFor(hh, month),
+      monthTotals(hh, month),
+      inboxCount(hh),
+    ]);
+  });
   const filtered = categories.find((x) => x.category_id === categoryId)
     ?? categories.flatMap((x) => x.kids.map((k) => ({ ...k, name: `${x.name} › ${k.name}` })))
       .find((k) => k.id === categoryId);
@@ -64,7 +69,7 @@ export default async function Entries({ searchParams }: {
             </div>
             <MonthPill month={month} path="/entries" keep={keep} />
           </div>
-          {!filtered && <ActivityNav current="entries" review={inbox.duplicates + inbox.bills} />}
+          {!filtered && <ActivityNav current="entries" review={reviewCount(inbox)} />}
           {filtered && (
             <Link href={`/entries?m=${month}`} className="flex min-h-11 items-center gap-1.5 self-start rounded-full bg-accent px-3.5 text-sm font-semibold text-accent-foreground">
               <Icon name="close" size={14} /> Showing one category
@@ -107,7 +112,7 @@ async function Search({ householdId, words, currency, canEdit }: {
               {entries.length === 0 ? 'Nothing found' : `${entries.length}${entries.length >= 200 ? '+' : ''} found`} in every month
             </p>
           </div>
-          <ActivityNav current="entries" review={inbox.duplicates + inbox.bills} />
+          <ActivityNav current="entries" review={reviewCount(inbox)} />
           <Link href="/entries" className="flex min-h-11 items-center gap-1.5 self-start rounded-full bg-accent px-3.5 text-sm font-semibold text-accent-foreground">
             <Icon name="close" size={14} /> Back to this month
           </Link>

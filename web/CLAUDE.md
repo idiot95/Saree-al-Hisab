@@ -51,9 +51,9 @@ paragraph below says otherwise. Where an older section disagrees, this wins:
 - **One name per thing**, the same on the tab, the switch, the page and the
   browser title: To review (was Inbox / Needs you), Upcoming (was Scheduled),
   Loans (was Loan centre, then a Money view), Money (was Accounts), categories (never headings).
-- **To review is decisions only** — card bills and possible duplicates. Home's
-  tile and Activity's badge count exactly those two (`inboxCount`). What is
-  merely due lives under Upcoming.
+- **To review is decisions only** — card bills, possible duplicates and open
+  SMS drafts. Home's tile and Activity's badge count exactly those three
+  (`inboxCount` → `reviewCount`). What is merely due lives under Upcoming.
 - **Add goes straight to the entry**: the plus opens the drawer over the
   current screen (`@modal/(.)add`); the type/scan/upload fan-out was removed.
   The camera in the drawer's header appears only when a scanning key is set.
@@ -302,7 +302,7 @@ hidden input; there is no `<select>` of payment modes anywhere, because one
 listing every rail under every account showed "ICICI Amazon Pay" twice and
 read as nonsense. Wrap it in a `<div role="group">`, never a `<label>` — a
 label around buttons activates the first chip. The entries list shows the
-rail when there is one and the account when there is not. `sw.js` is v32 (one-screen Add).
+rail when there is one and the account when there is not. `sw.js` is v33 (SMS drafts reach Add).
 Before Save, a debounced
 `checkDuplicate` shows what a household member already recorded within ±1% and
 ±2 days, which is the prevention half of the duplicate rule; the Inbox card is
@@ -965,6 +965,27 @@ it hid a bill due in five days behind a cycle that had just opened. `billsDue`
 goes over every unpaid cycle instead. Three assertions hold the two apart.
 
 The home screen shows the count only when there is something in it.
+
+**Bank messages forwarded from a phone** (Task 22) sit first, under *From SMS*
+(`SmsDrafts.tsx`, always mounted so the Undo on the last dismissed one
+survives the refresh). A row is the parsed fields only — amount or "Amount
+not found", Money in/out/"Direction not clear" with an icon, the date, the
+account whose `last4` matches (`smsDrafts`, first match in pay-picker order),
+the sender — with **Review** (`/add?draft=<id>`) and a swipe to Add or
+Dismiss. The raw text is read only on `/inbox/sms/[id]`. `loadAdd` prefills
+from a household-checked open draft (credit → income, else expense; date;
+merchant → *Where*; the matched account → `fromAccountId`) and AddEntry sends
+`clientRef = draft id` once; `saveEntry` calls `acceptDraftIn` in the entry's
+own transaction, so a double tap is one entry and an accepted draft. The
+draft statements live in `src/lib/sms-draft.ts` (handle-taking, so the
+invariants run them): accept and dismiss null the body at once and stamp
+`decided_at` (0039); `restoreDraftIn` is Undo for 15 minutes;
+`purgeSmsBodiesIn` nulls the text of anything decided or older than 30 days,
+called as `/entries`, `/inbox` and the message screen render — there is no
+scheduler. Phones get keys on `/household/capture` (shown once; owners see
+and revoke everyone's, others their own; viewers add none) with the iPhone
+Shortcuts and Android forwarder guides. `scripts/sms-taps.mjs` drives the
+whole path against a running build.
 
 ## Scheduled payments, without a scheduler
 

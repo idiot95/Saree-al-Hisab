@@ -267,6 +267,13 @@
       "when": 1793972520877,
       "tag": "0038_sms_capture",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1793976810383,
+      "tag": "0039_sms_draft_decided",
+      "breakpoints": true
     }
   ]
 }

@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { actorOrNull, categoriesFor, inboxCount, schedulesFor, tabsForEntry, type ScheduleRow } from '@/db/queries';
+import { actorOrNull, categoriesFor, inboxCount, reviewCount, schedulesFor, tabsForEntry, type ScheduleRow } from '@/db/queries';
 import { withHousehold } from '@/db/client';
 import { waysToPay } from '@/db/payment';
 import { format } from '@/lib/money';
@@ -65,7 +65,7 @@ export default async function Schedules() {
           ? 'Nothing scheduled yet'
           : [out > 0 ? `${format(out)} a month goes out` : null, income > 0 ? `${format(income)} comes in` : null]
               .filter(Boolean).join(' · ') || `${schedules.length} scheduled`}>
-          <ActivityNav current="schedules" review={inbox.duplicates + inbox.bills} />
+          <ActivityNav current="schedules" review={reviewCount(inbox)} />
         </PageHead>
 
         <div className="flex flex-col">

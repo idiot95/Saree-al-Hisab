@@ -18,6 +18,8 @@ execFileSync('npx', ['tsc', '-p', 'tsconfig.lib.json'], { cwd: root, stdio: 'inh
 writeFileSync(join(root, '.libbuild/package.json'), '{"type":"module"}\n');
 const { createFromInviteGoogleIn } = await import(pathToFileURL(join(root, '.libbuild/invite-accept.js')).href);
 const { hashLinkToken, newLinkToken } = await import(pathToFileURL(join(root, '.libbuild/link-token.js')).href);
+/* What becomes of a forwarded bank message — accepted, dismissed, undone, its text purged — run as written. */
+const { acceptDraftIn, dismissDraftIn, restoreDraftIn, purgeSmsBodiesIn } = await import(pathToFileURL(join(root, '.libbuild/sms-draft.js')).href);
 /* The same database the app runs against, as its OWNER: the app connects as
    `saree_app` (APP_DATABASE_URL), which cannot bypass row security, and a
    script that saw only one household would be no use to anyone. */
@@ -1357,6 +1359,68 @@ try {
       () => scoped(h2.id, (tx) => tx`insert into sms_draft ${sql({ household_id: hh.id, body_hash: HEX('9') })}`));
     await refuses('nor a token',
       () => scoped(h2.id, (tx) => tx`insert into capture_token ${sql({ user_id: user.id, household_id: hh.id, token_hash: HEX('8'), label: 'x' })}`));
+
+    // ── a draft's life: accepted once, dismissed and undone, its text purged ──
+    const sd = (o) => sql`insert into sms_draft ${sql({ household_id: hh.id, user_id: user.id, sender: 'HDFCBK',
+      body: 'Rs 99 debited', ...o })} returning id`.then((r) => r[0].id);
+    const body = async (id) => (await sql`select body, status, txn_id from sms_draft where id = ${id}`)[0];
+    const d1 = await sd({ body_hash: HEX('4') });
+    /* saveEntry's write, as the app role inside the household: the entry under client_ref = the draft's id,
+       on conflict nothing, and the draft accepted in the same transaction. A double tap is two of these. */
+    const save = (ref) => scoped(hh.id, async (tx) => {
+      const [e] = await tx`insert into txn ${sql({ household_id: hh.id, created_by: user.id, occurred_on: '2026-11-01',
+        amount: 9900, currency: 'INR', kind: 'expense', account_id: a1.id, client_ref: ref })}
+        on conflict (household_id, client_ref) where client_ref is not null do nothing returning id`;
+      if (e) await acceptDraftIn(tx, hh.id, ref, e.id);
+      return e?.id ?? null;
+    });
+    const first = await save(d1), second = await save(d1);
+    ok(first !== null && second === null, 'accepting a draft twice under the same client_ref writes the entry once');
+    ok((await sql`select count(*)::int as n from txn where household_id = ${hh.id} and client_ref = ${d1}`)[0].n === 1,
+      'and there is exactly one entry carrying that reference');
+    const after = await body(d1);
+    ok(after.status === 'accepted' && after.txn_id === first, 'the draft is accepted, pointing at that entry');
+    ok(after.body === null, 'and its text is gone the moment it is accepted');
+    ok(await scoped(hh.id, (tx) => acceptDraftIn(tx, hh.id, d1, first)) === false, 'an accepted draft cannot be accepted again');
+
+    const d2 = await sd({ body_hash: HEX('6') });
+    const [{ id: foreignTxn }] = [await mkTxn(h2.id, a2.id)];
+    ok(await scoped(h2.id, (tx) => dismissDraftIn(tx, hh.id, d2)) === false,
+      'another household cannot dismiss a draft, even naming its household');
+    ok(await scoped(h2.id, (tx) => dismissDraftIn(tx, h2.id, d2)) === false, 'nor under its own');
+    ok(await scoped(h2.id, (tx) => acceptDraftIn(tx, hh.id, d2, foreignTxn)) === false, 'nor accept it');
+    await refuses('nor accept it by naming one of its own entries from this household\'s scope',
+      () => scoped(hh.id, (tx) => acceptDraftIn(tx, hh.id, d2, foreignTxn)));
+    ok((await body(d2)).status === 'open' && (await body(d2)).body !== null, 'and the draft is untouched, text and all');
+
+    ok(await scoped(hh.id, (tx) => dismissDraftIn(tx, hh.id, d2)) === true, 'the household can dismiss its own draft');
+    ok((await body(d2)).status === 'dismissed' && (await body(d2)).body === null, 'which deletes its text at once');
+    ok(await scoped(hh.id, (tx) => dismissDraftIn(tx, hh.id, d2)) === false, 'a dismissed draft cannot be dismissed twice');
+    ok(await scoped(h2.id, (tx) => restoreDraftIn(tx, hh.id, d2)) === false, 'another household cannot undo the dismissal');
+    ok(await scoped(hh.id, (tx) => restoreDraftIn(tx, hh.id, d2)) === true, 'Undo brings a fresh dismissal back to open');
+    await scoped(hh.id, (tx) => dismissDraftIn(tx, hh.id, d2));
+    await sql`update sms_draft set decided_at = now() - interval '16 minutes' where id = ${d2}`;
+    ok(await scoped(hh.id, (tx) => restoreDraftIn(tx, hh.id, d2)) === false, 'but not once fifteen minutes have passed');
+
+    // The thirty-day rule. Bodies are put back by hand so the purge has something to find.
+    const keep = await sd({ body_hash: HEX('7') });
+    const old = await sd({ body_hash: HEX('8'), created_at: sql`now() - interval '31 days'` });
+    const gone = await sd({ body_hash: HEX('9'), status: 'dismissed' });
+    await sql`update sms_draft set body = 'Rs 99 debited' where id in (${d1}, ${d2})`;
+    const [other] = await sql`insert into sms_draft ${sql({ household_id: h2.id, body_hash: HEX('8'), body: 'theirs',
+      status: 'dismissed' })} returning id`;
+    // Due by the rule, counted independently (the section's earlier accepted draft is among them).
+    const [{ n: due }] = await sql`select count(*)::int as n from sms_draft where household_id = ${hh.id}
+      and body is not null and (status <> 'open' or created_at < now() - interval '30 days')`;
+    const purged = await scoped(hh.id, (tx) => purgeSmsBodiesIn(tx, hh.id));
+    ok(due >= 4 && purged === due, `the purge clears exactly the drafts that are due (${purged} of ${due})`);
+    ok(await scoped(hh.id, (tx) => purgeSmsBodiesIn(tx, hh.id)) === 0, 'and a second purge finds nothing left to clear');
+    ok((await body(d1)).body === null, 'an accepted draft keeps no text');
+    ok((await body(d2)).body === null && (await body(gone)).body === null, 'nor does a dismissed one');
+    ok((await body(old)).body === null && (await body(old)).status === 'open', 'an open draft older than 30 days loses its text, and stays open');
+    ok((await body(keep)).body !== null, 'an open draft from this month keeps its text');
+    ok((await body(other.id)).body === 'theirs', 'another household\'s drafts are not touched by this one\'s purge');
+    ok(await scoped(h2.id, (tx) => purgeSmsBodiesIn(tx, hh.id)) === 0, 'and a purge scoped elsewhere reaches none of this household\'s');
     await app.end();
   }
   await sql`delete from household where id = ${h2.id}`;

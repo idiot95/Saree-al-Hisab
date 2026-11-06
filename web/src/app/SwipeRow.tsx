@@ -272,8 +272,9 @@ export default function SwipeRow({ actions, commit = true, grip = true, flush = 
         {grip && (
           <button type="button" aria-label={open ? 'Hide actions' : 'Show actions'} aria-expanded={open}
             onClick={() => { if (!s.current.moved) { haptic('tap'); show(); } }}
+            className="w-11 in-data-[platform=android]:w-12"
             style={{
-              position: 'absolute', top: 0, bottom: 0, right: 0, width: 44,
+              position: 'absolute', top: 0, bottom: 0, right: 0,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               color: gripColor, opacity: 0.8,
             }}>

@@ -7,6 +7,7 @@ import { contextFor } from './membership';
 import { hashLinkToken } from '@/lib/link-token';
 import { setCurrencyResolver } from '@/lib/money';
 import { fits } from '@/lib/scope';
+import { purgeSmsBodiesIn } from '@/lib/sms-draft';
 
 /* Who is asking, and what they may do — resolved on the server, on every
    request, in a single round trip.
@@ -1060,8 +1061,103 @@ export async function inboxCount(householdId: string) {
         (select count(*)::int from card_bill c
           join account a on a.id = c.account_id
           where a.household_id = ${householdId} and c.outstanding > 0
-            and c.due_on <= current_date + 21) as bills`;
-    return r as unknown as { duplicates: number; bills: number };
+            and c.due_on <= current_date + 21) as bills,
+        (select count(*)::int from sms_draft
+          where household_id = ${householdId} and status = 'open') as sms`;
+    return r as unknown as { duplicates: number; bills: number; sms: number };
+  });
+}
+
+/** What To review counts: card bills, possible duplicates and bank messages
+ *  waiting to become entries. One sum, so Home, Activity and To review agree. */
+export const reviewCount = (i: { duplicates: number; bills: number; sms: number }) => i.duplicates + i.bills + i.sms;
+
+/* ── forwarded bank messages ─────────────────────────────────────────────── */
+
+export type SmsDraftRow = {
+  id: string; sender: string | null; received_at: Date;
+  amount: string | null; direction: 'debit' | 'credit' | null; last4: string | null;
+  merchant: string | null; on_date: string | null; via: string | null;
+  /** The account whose last four digits the message named, if one does. */
+  account_id: string | null; account: string | null;
+};
+
+/* The parsed fields only: the raw text is read on the one screen where a
+   person reads the original (smsDraftBody). The account is the first live,
+   non-person account carrying the message's last four, in the order the pay
+   picker uses, so the two never disagree about which account it meant. */
+const draftColumns = (tx: typeof sql) => tx`
+  d.id, d.sender, d.received_at,
+  case when d.parsed->>'amountMinor' ~ '^[0-9]{1,15}$' then d.parsed->>'amountMinor' end as amount,
+  case when d.parsed->>'direction' in ('debit', 'credit') then d.parsed->>'direction' end as direction,
+  d.parsed->>'last4' as last4, d.parsed->>'merchant' as merchant,
+  case when d.parsed->>'date' ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' then d.parsed->>'date' end as on_date,
+  d.parsed->>'via' as via,
+  acc.id as account_id, acc.name as account`;
+const draftAccount = (tx: typeof sql) => tx`
+  left join lateral (
+    select ra.id, ra.name from real_account ra
+    where ra.household_id = d.household_id and ra.archived_at is null
+      and ra.last4 is not null and ra.last4 = d.parsed->>'last4'
+    order by case ra.kind when 'cash' then 0 when 'spending' then 1 when 'credit' then 2 else 3 end, ra.name
+    limit 1) acc on true`;
+
+/** The open drafts, newest first. Fifty at most: a phone forwarding faster
+ *  than anyone decides is a reason to look at the phone, not to page. */
+export async function smsDrafts(householdId: string) {
+  return withHousehold(householdId, async () => {
+    return sql`
+      select ${draftColumns(sql)}
+      from sms_draft d ${draftAccount(sql)}
+      where d.household_id = ${householdId} and d.status = 'open'
+      order by d.received_at desc, d.created_at desc
+      limit 50` as Promise<SmsDraftRow[]>;
+  });
+}
+
+/** One open draft, for Add entry to prefill from. Null when it is not this
+ *  household's or is no longer open. */
+export async function smsDraftById(householdId: string, id: string) {
+  return withHousehold(householdId, async () => {
+    const [r] = await sql`
+      select ${draftColumns(sql)}
+      from sms_draft d ${draftAccount(sql)}
+      where d.household_id = ${householdId} and d.id = ${id} and d.status = 'open'`;
+    return (r as SmsDraftRow | undefined) ?? null;
+  });
+}
+
+/** One draft with the message as it arrived, for the screen that shows the
+ *  original. `body` is null once the text has been deleted. */
+export async function smsDraftWithBody(householdId: string, id: string) {
+  return withHousehold(householdId, async () => {
+    const [r] = await sql`
+      select ${draftColumns(sql)}, d.body, d.status
+      from sms_draft d ${draftAccount(sql)}
+      where d.household_id = ${householdId} and d.id = ${id}`;
+    return (r as (SmsDraftRow & { body: string | null; status: 'open' | 'accepted' | 'dismissed' }) | undefined) ?? null;
+  });
+}
+
+/** The thirty-day rule, run where drafts are listed (there is no scheduler):
+ *  the text of anything decided or older than thirty days is deleted. */
+export async function purgeSmsBodies(householdId: string) {
+  return withHousehold(householdId, () => purgeSmsBodiesIn(sql, householdId));
+}
+
+/** The phones that can forward messages into these books: this person's own,
+ *  or — for an owner, who may revoke any — everyone's, with whose it is. Live
+ *  tokens only; a revoked one opens nothing and has nothing left to show. */
+export async function captureTokensFor(householdId: string, userId: string, everyone: boolean) {
+  return withHousehold(householdId, async () => {
+    return sql`
+      select t.id, t.label, t.created_at, t.last_used_at, t.user_id, u.name as who
+      from capture_token t join app_user u on u.id = t.user_id
+      where t.household_id = ${householdId} and t.revoked_at is null
+        ${everyone ? sql`` : sql`and t.user_id = ${userId}`}
+      order by (t.user_id = ${userId}) desc, t.created_at desc` as Promise<{
+        id: string; label: string; created_at: Date; last_used_at: Date | null; user_id: string; who: string;
+      }[]>;
   });
 }
 

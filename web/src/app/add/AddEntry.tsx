@@ -59,7 +59,7 @@ export type Claim = {
 
 export default function AddEntry({
   categories, ways, tabs = [], claims = [], today, householdId, draft, offline = false, onQueued, children, sheet = false,
-  canScan = false, top, paidWith: paidDefault, lastPaid = null,
+  canScan = false, top, paidWith: paidDefault, lastPaid = null, fromSms = null,
 }: {
   categories: Category[];
   /** Every real account, each with the rails that draw on it. See src/lib/pay.ts. */
@@ -76,6 +76,8 @@ export default function AddEntry({
   paidWith?: string;
   /** Set when paidWith IS the remembered last-used way, so the row can say so. */
   lastPaid?: string | null;
+  /** Opened from a forwarded bank message: its id is the entry's client reference, so saving accepts it once. */
+  fromSms?: { clientRef: string; sender: string | null } | null;
   draft?: {
     amountMinor: number | null; occurredOn: string | null; merchant: string | null;
     kind: Kind | null; categoryId: string | null; tabId?: string | null;
@@ -94,6 +96,9 @@ export default function AddEntry({
   const router = useRouter();
   const [pending, start] = useTransition();
   const [kept, setKept] = useState<string | null>(null);
+  /* The bank message this entry is made from, until it has been saved or kept once: a second entry typed on the
+     same screen afterwards is a different entry, and must not be mistaken for a retry of the first. */
+  const smsRef = useRef(fromSms?.clientRef ?? null);
 
   /* Opened with signal, so remember what the pickers hold — names only, no
      amounts — for the offline screen to offer the same choices. */
@@ -201,6 +206,7 @@ export default function AddEntry({
       tabCoveredMinor: kind === 'expense' && more.tabId && more.coveredKeys ? fromKeys(more.coveredKeys) : null,
       countsAsSpend: kind === 'expense' && more.tabId ? mine : null,
       settles: settling.map((c) => c.id),
+      ...(smsRef.current ? { clientRef: smsRef.current } : {}),
     };
     const clear = () => {
       setKeys(''); setCategoryId(null); setDupe(null);
@@ -212,6 +218,7 @@ export default function AddEntry({
        message says so rather than letting anyone believe one is on its way. */
     const keep = () => {
       const q = enqueue({ ...d, attachments: null }, householdId);
+      smsRef.current = null;
       haptic('success');
       const n = more.bills.length;
       clear();
@@ -226,7 +233,7 @@ export default function AddEntry({
       try { r = await saveEntry(d); }
       catch { keep(); return; }  // the request itself failed: no signal, or it dropped mid-way
       if (r.ok) {
-        haptic('success'); clear();
+        haptic('success'); clear(); smsRef.current = null;
         /* A cost put on a tab lands on that tab, opening "Attach the bill?"
            when none came with it, because the paper is in hand right now. */
         if (d.tabId) {
@@ -284,6 +291,12 @@ export default function AddEntry({
             <span aria-hidden className="-mr-2.5 size-11 in-data-[platform=android]:size-12" />
           )}
         </div>
+
+        {fromSms && (
+          <p className="flex min-h-8 items-center justify-center gap-1.5 text-sm text-muted-foreground">
+            <Icon name="sms" size={16} /> From a bank message{fromSms.sender ? ` · ${fromSms.sender}` : ''}
+          </p>
+        )}
 
         {/* The amount, as a plain field the phone's keyboard fills. What it
             shows is grouped in the household's currency; what it holds is

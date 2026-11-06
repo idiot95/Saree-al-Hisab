@@ -1,21 +1,26 @@
 import { redirect } from 'next/navigation';
-import { actorOrNull, categoriesFor, tabsForEntry, openClaimsFor, scanningState, topCategories, lastPaidWith } from '@/db/queries';
+import { actorOrNull, categoriesFor, tabsForEntry, openClaimsFor, scanningState, topCategories, lastPaidWith, smsDraftById } from '@/db/queries';
 import { withHousehold } from '@/db/client';
 import { waysToPay } from '@/db/payment';
 import { defaultRef, findRef } from '@/lib/pay';
 
 export type AddSearch = { amount?: string; on?: string; merchant?: string;
-                          kind?: string; category?: string; tab?: string; to?: string; from?: string };
+                          kind?: string; category?: string; tab?: string; to?: string; from?: string;
+                          /** A forwarded bank message to make the entry from. */
+                          draft?: string };
 
 /* Everything Add Entry needs, for both ways it opens: the full page at /add (a direct link, a scan, a reload) and
    the drawer over whatever screen the Add button was tapped on (app/@modal/(.)add). One loader, so the two can
    never offer different choices or check a draft differently. */
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export async function loadAdd(q: AddSearch) {
   const actor = await actorOrNull();
   if (!actor) redirect('/signin');
   if (!actor.household_id) redirect('/no-household');
   const household_id = actor.household_id;
-  const [categories, ways, tabs, claims, scanning, topExpense, topIncome, lastPaid] = await withHousehold(household_id, () => Promise.all([
+  const smsId = typeof q.draft === 'string' && UUID.test(q.draft) ? q.draft : null;
+  const [categories, ways, tabs, claims, scanning, topExpense, topIncome, lastPaid, sms] = await withHousehold(household_id, () => Promise.all([
     categoriesFor(household_id),
     waysToPay(household_id),
     tabsForEntry(household_id),
@@ -24,6 +29,8 @@ export async function loadAdd(q: AddSearch) {
     topCategories(household_id, 'expense'),
     topCategories(household_id, 'income'),
     lastPaidWith(actor.user_id),
+    // Only a viewer-proof, household-checked, still-open draft prefills anything.
+    smsId && actor.role !== 'viewer' ? smsDraftById(household_id, smsId) : Promise.resolve(null),
   ]));
   /* The way this person last paid with, if it still names one of these books' ways. It is a preference that can
      go stale (an archived rail, a reference from the other set of books they keep), so it is resolved exactly as
@@ -52,8 +59,25 @@ export async function loadAdd(q: AddSearch) {
     fromAccountId: ways.some((a) => a.id === q.from) ? q.from! : null,
   };
 
+  /* A bank message: what it said becomes the form, and its id the entry's client reference, so Save marks it
+     accepted in the same transaction and a second tap finds the first entry. Money in is income; out, or a
+     message that did not say, is an expense. The account it named — by its last four — is how it was paid, when
+     one of these books' accounts carries those digits; otherwise the usual way. */
+  if (sms) {
+    const minor = sms.amount === null ? NaN : Number(sms.amount);
+    draft.amountMinor = Number.isSafeInteger(minor) && minor > 0 && minor < 1e11 ? minor : null;
+    draft.kind = sms.direction === 'credit' ? 'income' : 'expense';
+    draft.occurredOn = sms.on_date ?? new Date(sms.received_at).toISOString().slice(0, 10);
+    draft.merchant = sms.merchant ? sms.merchant.slice(0, 60) : null;
+    draft.fromAccountId = sms.account_id && ways.some((w) => w.id === sms.account_id) ? sms.account_id : null;
+    draft.toAccountId = null;
+    draft.categoryId = null;
+    draft.tabId = null;
+  }
+  const fromSms = sms ? { clientRef: sms.id, sender: sms.sender } : null;
+
   return {
-    draft, categories, ways, tabs, today, householdId: household_id,
+    draft, fromSms, categories, ways, tabs, today, householdId: household_id,
     top: { expense: topExpense, income: topIncome },
     paidWith, lastPaid: paidWith === lastPaid ? lastPaid : null,
     // The camera in the header is offered only where a scan can work: a key set, and someone who may add.
