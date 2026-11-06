@@ -16,7 +16,7 @@ Status: **draft for review** · 6 Nov 2026 · Mockups: [Hisab redesign direction
   - Net worth shown as **mine, each member's, joint, and the household total**.
 - SMS scraping. Chosen: **iPhone Shortcut + Android forwarder → drafts**. No native app.
 - Icons from Material Symbols. No hand-written CSS. Ready-made components from mature UI libraries.
-- Picked from the mockups: **Direction A** (one adaptive design on shadcn/ui) and the tab bar **Home · Activity · + · Loans · Wealth**.
+- Picked from the mockups: **Direction A** (one adaptive design on shadcn/ui) in the **Forest & Brass** palette and the tab bar **Home · Activity · + · Loans · Wealth**.
 - Add entry on **one screen, three taps**.
 
 **Assumed (correct me)**
@@ -75,11 +75,19 @@ Each gets its own implementation plan, branch commits and verification. The orde
 ### 3.2 Visual system
 
 - **Palette.** Token values are replaced in place in `src/app/ql.css`, the variables shadcn already reads, so no new stylesheet is needed:
-  - Ground `#F6F6F3`; card `#FFFFFF`; ink `#15171C`; muted ink `#5B606B`.
-  - **Primary indigo `#4338CA`**: Add, the selected state, links.
-  - Attention amber: soft ground `#FFF7E6`, ink `#9A5B00`.
-  - Money-in green `#15803D`; danger `#B91C1C`.
-  - Dark-theme values are derived the same way. `test:contrast` gains every new pair, and nothing ships below 4.5:1 for text.
+  - **Forest & Brass**, chosen by the owner from the palette row on the canvas (6 Nov 2026).
+  - Ground `#F4F1EA` (warm parchment); card `#FFFFFF`; ink `#1B1E1B`; muted ink `#5D605A`; hairlines and bar tracks `#E8E3D8`.
+  - **Primary forest `#1E4D3A`**, with white text (about 9:1): the selected state, links, active tab, progress bars, the dark net-worth card.
+  - Forest soft `#E2ECE6` with ink `#163A2C`: avatar, Android tab pill, chosen chips.
+  - **Brass `#C9A35B`, used for Add only**, with dark ink `#1B1E1B` on it (about 7:1), never white. The one metallic touch echoes the gold holdings. A mark drawn *in* brass on paper (a ring, an icon) uses `#8C6A2E`, because brass on paper is too faint.
+  - Attention: wheat ground `#F6ECD8` with ink `#7A5A1F`, always with an icon and a word. It is a ground, never a filled button, so it can't be mistaken for Add.
+  - Money-in green `#15803D` with a +; danger `#B91C1C`. Money-in is brighter and yellower than forest and always carries its +, so an amount is never read as "selected". `test:contrast` checks that the pair differs in lightness, not hue alone.
+  - **Dark theme:**
+    - Ground `#0F1512`, card `#17201B`, ink `#E7ECE8`, muted `#A3ADA6`.
+    - Primary `#8FC9A9` with ink `#0D1A13` on it.
+    - Brass Add `#D9B977` with ink `#1B1E1B`.
+    - Attention ground `#3A2E14` with ink `#F0D9A6`; money-in `#86D19F`; danger `#F2867A`.
+  - `test:contrast` gains every new pair in both themes, and nothing ships below 4.5:1 for text.
   - The status triad and "icon + word, never colour alone" rules stay.
 - **Type.** Inter (variable) through `next/font/google`, self-hosted at build, with `font-variant-numeric: tabular-nums` for figures through Tailwind's `tabular-nums`. Instrument Serif is dropped.
 - **Icons.** Material Symbols Rounded:
@@ -119,7 +127,7 @@ When a figure changes, its digits roll to the new value instead of jumping. Grou
 
 | | iPhone | Android |
 |---|---|---|
-| Active tab | filled icon + indigo label | filled icon in a 56×30 pill (`#E7E6F9`) + bold label |
+| Active tab | filled icon + forest label | filled icon in a 56×30 forest-soft pill (`#E2ECE6`) + bold label |
 | Icon buttons | 44 px | 48 px |
 | Back | header arrow + left-edge swipe (existing) | header arrow; the system back gesture/button already pops history; edge swipe is off |
 | Bottom padding | `env(safe-area-inset-bottom)` (home indicator) | the same env value; gesture-nav phones report it in standalone |
