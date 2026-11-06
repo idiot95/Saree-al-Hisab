@@ -24,7 +24,6 @@ const sql = postgres(url, { ssl: 'require', max: 1, onnotice: () => {} });
 const B = process.env.BASE_URL ?? 'http://localhost:3000';
 const EMAIL = process.env.CHECK_EMAIL ?? 'ammar@example.com';
 const PASSWORD = process.env.CHECK_PASSWORD ?? 'Correct-horse-9';
-const jar = new Map();
 const cookieHeader = (m) => [...m].map(([k, v]) => `${k}=${v}`).join('; ');
 function take(res, m) {
   for (const c of res.headers.getSetCookie()) {

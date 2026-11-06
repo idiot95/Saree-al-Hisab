@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { actorOrNull } from '@/db/queries';
 import { AuthShell, quietBtn, Rule, Small } from '../auth-ui';
@@ -22,13 +23,13 @@ export default async function SignUp() {
       <GoogleButton action={signUpWithGoogle} />
       <Small className="text-xs">
         Continuing means agreeing to the{' '}
-        <a href="/terms" className="font-semibold text-primary underline underline-offset-[3px]">
+        <Link href="/terms" className="font-semibold text-primary underline underline-offset-[3px]">
           terms, and how your data is kept
-        </a>. Short, and every line of it can be checked.
+        </Link>. Short, and every line of it can be checked.
       </Small>
 
       <Rule>Already have an account</Rule>
-      <a href="/signin" className={quietBtn}>Sign in</a>
+      <Link href="/signin" className={quietBtn}>Sign in</Link>
 
       <Small>
         Signing up gets you your own household. To join someone else&rsquo;s, you need an

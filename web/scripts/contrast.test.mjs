@@ -116,7 +116,7 @@ for (const theme of ['light', 'dark']) {
       if (ground.startsWith('lit:')) b = lit(b);
       const r = ratio(a, b);
       const ok = r >= min;
-      ok ? pass++ : fail++;
+      if (ok) pass++; else fail++;
       if (!ok) console.log(`  FAIL ${ink} on ${ground}  ${r.toFixed(2)}:1 (needs ${min})  (${a} on ${b})`);
     }
   }
@@ -190,7 +190,7 @@ for (const theme of ['light', 'dark']) {
     {
       const a = get(T, R, 'money-in'), b = get(T, R, 'primary');
       const gap = Math.abs(lum(a) - lum(b)), ok = gap >= 0.05;
-      ok ? pass++ : fail++;
+      if (ok) pass++; else fail++;
       if (!ok) console.log(`  FAIL money-in vs primary luminance gap ${gap.toFixed(3)} (needs 0.05)  (${a} vs ${b})`);
     }
     /* A refusal in a holdings form: the destructive ink on its own 10% wash (bg-destructive/10), the wash
@@ -208,7 +208,7 @@ for (const theme of ['light', 'dark']) {
         const a = get(T, R, ink), b = get(T, R, ground);
         if (!a || !b) { fail++; console.log(`  MISS ${ink} on ${ground} — token not defined`); continue; }
         const need = own ?? min, r = ratio(a, b), ok = r >= need;
-        ok ? pass++ : fail++;
+        if (ok) pass++; else fail++;
         if (!ok) console.log(`  FAIL ${ink} on ${ground}  ${r.toFixed(2)}:1 (needs ${need})  (${a} on ${b})`);
       }
     }

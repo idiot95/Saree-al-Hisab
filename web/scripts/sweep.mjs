@@ -73,7 +73,7 @@ function parseArgs(argv) {
 /* ---------- device emulation ---------- */
 function deviceFor(vp) {
   const d = vp.os === 'ios' ? devices['iPhone 13'] : devices['Pixel 7'];
-  const { defaultBrowserType, ...rest } = d; // eslint-disable-line no-unused-vars
+  const { defaultBrowserType, ...rest } = d; // eslint-disable-line @typescript-eslint/no-unused-vars
   return { ...rest, viewport: { width: vp.w, height: vp.h }, screen: { width: vp.w, height: vp.h }, deviceScaleFactor: 1 };
 }
 

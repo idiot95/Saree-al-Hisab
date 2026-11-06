@@ -258,7 +258,7 @@ async function spendOpenReset(tx: TransactionSql<Record<string, unknown>>, token
 
 /** Spend the reset link and set the new password, or do neither. Every other
  *  live reset for that person dies at the same time. */
-export async function usePasswordReset(token: string, passwordHash: string) {
+export async function redeemPasswordReset(token: string, passwordHash: string) {
   return sql.begin(async (tx) => {
     const userId = await spendOpenReset(tx, token);
     if (!userId) return null;

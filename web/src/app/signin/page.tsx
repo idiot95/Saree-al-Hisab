@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { actorOrNull } from '@/db/queries';
 import { AuthShell, ErrorNote, quietBtn, quietLink, Rule, Small } from '../auth-ui';
@@ -44,7 +45,7 @@ export default async function SignIn({ searchParams }: {
       )}
 
       <Rule>New here</Rule>
-      <a href="/signup" className={quietBtn}>Create an account</a>
+      <Link href="/signup" className={quietBtn}>Create an account</Link>
 
       {passwordOpen && (
         <Small className="text-center">

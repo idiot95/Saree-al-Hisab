@@ -4,7 +4,7 @@ import { AuthError } from 'next-auth';
 import { cookies, headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { signIn } from '@/auth';
-import { spendResetForLink, usePasswordReset } from '@/db/membership';
+import { spendResetForLink, redeemPasswordReset } from '@/db/membership';
 import { passwordSignInOpenNow } from '@/lib/password-window';
 import { looksLikeLinkToken } from '@/lib/link-token';
 import { sealLinkIntent } from '@/lib/link-intent';
@@ -32,7 +32,7 @@ export async function setNewPassword(_prev: AuthResult, fd: FormData): Promise<A
 
   // Spends the link and sets the password together, and kills every other live
   // reset for that person — so a second link left lying around is dead too.
-  const done = await usePasswordReset(token, await hashPassword(password));
+  const done = await redeemPasswordReset(token, await hashPassword(password));
   if (!done) return { error: 'That link has been used or has expired.' };
 
   try {

@@ -13,7 +13,6 @@ export const OFF: CSSProperties = {
 export const PRIMARY = 'var(--primary)';
 
 /** Chosen. The ink argument is kept so callers need not change; every choice wears the primary now. */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export const on = (_ink?: string): CSSProperties => ({
   background: PRIMARY, color: 'var(--primary-foreground)', border: `1px solid ${PRIMARY}`,
 });

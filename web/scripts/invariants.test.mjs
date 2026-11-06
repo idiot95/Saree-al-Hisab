@@ -31,7 +31,7 @@ const url = process.env.DATABASE_URL
 const sql = postgres(url, { ssl: 'require', max: 1, onnotice: () => {} });
 
 let pass = 0, fail = 0;
-const ok = (cond, what) => { cond ? pass++ : fail++; console.log(`  ${cond ? 'ok  ' : 'FAIL'} ${what}`); };
+const ok = (cond, what) => { if (cond) pass++; else fail++; console.log(`  ${cond ? 'ok  ' : 'FAIL'} ${what}`); };
 
 /** Expect a write to be refused. Passes only if it throws. */
 async function refuses(what, fn) {

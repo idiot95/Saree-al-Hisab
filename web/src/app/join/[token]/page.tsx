@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { signOut } from '@/auth';
 import { actorOrNull, inviteByToken } from '@/db/queries';
@@ -128,7 +129,7 @@ export default async function Join({ params, searchParams }: {
             That email already has an account. If you sign in with a password, sign in
             first, then open this link again.
           </Small>
-          <a href="/signin" className={quietBtn}>Sign in</a>
+          <Link href="/signin" className={quietBtn}>Sign in</Link>
         </>
       )}
 

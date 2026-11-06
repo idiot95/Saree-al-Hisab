@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { primaryBtn } from '../auth-ui';
 
 /* Books of your own are set up on /setup, the same screen a fresh account
@@ -5,8 +6,8 @@ import { primaryBtn } from '../auth-ui';
    kept in. */
 export default function StartOwn() {
   return (
-    <a href="/setup" className={primaryBtn}>
+    <Link href="/setup" className={primaryBtn}>
       Start my own household
-    </a>
+    </Link>
   );
 }

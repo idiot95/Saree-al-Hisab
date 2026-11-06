@@ -41,7 +41,7 @@ await build({
 const { ensureRates, _resetRateFailures } = await import(pathToFileURL(out).href);
 
 let pass = 0, fail = 0;
-const ok = (c, what) => { c ? pass++ : fail++; console.log(`  ${c ? 'ok  ' : 'FAIL'} ${what}`); };
+const ok = (c, what) => { if (c) pass++; else fail++; console.log(`  ${c ? 'ok  ' : 'FAIL'} ${what}`); };
 
 const erApi = (usd) => ({ result: 'success', time_last_update_unix: Math.floor(Date.now() / 1000) - 3600,
   base_code: 'MVR', rates: { MVR: 1, USD: usd, AED: 0.04375 } });
