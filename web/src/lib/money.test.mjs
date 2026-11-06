@@ -64,6 +64,12 @@ assert.equal(format(1500, 'KWD'), 'KD\u00a02');                        // 1.500 
 assert.equal(format(1500, 'KWD', { paise: true }), 'KD\u00a01.500');
 assert.equal(format(234050, 'INR', { paise: true }), '₹2,340.50');   // the accounting form
 assert.equal(format(21560000, 'INR', { paise: true }), '₹2,15,600.00');
+// 'auto': the minor units only when there are some — what Add Entry's Save says.
+assert.equal(format(234000, 'INR', { paise: 'auto' }), '₹2,340');
+assert.equal(format(234050, 'INR', { paise: 'auto' }), '₹2,340.50');
+assert.equal(format(1500, 'KWD', { paise: 'auto' }), 'KD\u00a01.500');
+assert.equal(format(2000, 'KWD', { paise: 'auto' }), 'KD\u00a02');
+assert.equal(format(1250, 'JPY', { paise: 'auto' }), '¥1,250');
 assert.equal(format(1250, 'JPY'), '¥1,250');
 assert.equal(format(1250, 'JPY', { paise: true }), '¥1,250');
 assert.equal(format(123456, 'SAR', { paise: true }), '\u20C11,234.56');  // the 2025 riyal sign
@@ -139,6 +145,9 @@ console.log(`money: ${CURRENCIES.length} currencies, 52 more assertions passed`)
   assert.equal(drawn(-50, 'USD', { sign: true }), format(-50, 'USD', { sign: true }));
   assert.equal(drawn(12345678, 'INR', { paise: true }), format(12345678, 'INR', { paise: true }));
   assert.equal(drawn(234050, 'INR', { paise: true }), '₹2,340.50');
+  assert.equal(drawn(234000, 'INR', { paise: 'auto' }), '₹2,340');
+  assert.equal(drawn(234050, 'INR', { paise: 'auto' }), '₹2,340.50');
+  assert.equal(drawn(-1500, 'KWD', { paise: 'auto' }), format(-1500, 'KWD', { paise: 'auto' }));
   assert.equal(drawn(234050, 'INR', { paise: true }), format(234050, 'INR', { paise: true }));
   assert.equal(drawn(1500, 'KWD', { paise: true }), format(1500, 'KWD', { paise: true }));
   assert.equal(drawn(1234567, 'KWD', { paise: true }), 'KD\u00a01,234.567');

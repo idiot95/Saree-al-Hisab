@@ -28,7 +28,7 @@ export function useMoney() {
     currency,
     symbol: symbolOf(currency),
     digits: digitsOf(currency),
-    format: (minor: number, opts?: { sign?: boolean; paise?: boolean }) => format(minor, currency, opts),
+    format: (minor: number, opts?: { sign?: boolean; paise?: boolean | 'auto' }) => format(minor, currency, opts),
     keysDisplay: (keys: string) => keysDisplay(keys, currency),
     fromKeys: (keys: string) => fromKeys(keys, currency),
     toKeys: (minor: number) => toKeys(minor, currency),

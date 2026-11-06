@@ -122,16 +122,24 @@ export const digitsOf = (currency: string = resolver()) => ccy(currency).digits;
 export const unitOf = (currency: string = resolver()) => 10 ** ccy(currency).digits;
 export const symbolOf = (currency: string = resolver()) => ccy(currency).symbol;
 
+/** Whether the minor units are drawn: never (rounded away), always (the
+ *  accounting form, ₹2,340.00), or 'auto' — only when there are some
+ *  (₹2,340 but ₹2,340.50), which is how a person says an amount aloud. */
+export type Paise = boolean | 'auto';
+const fractionDigits = (minor: Minor, digits: number, paise: Paise | undefined) =>
+  paise === 'auto' ? (Math.abs(minor) % 10 ** digits === 0 ? 0 : digits) : paise ? digits : 0;
+
 /** ₹2,15,600 — not ₹215,600. Indian grouping puts the first comma after three
  *  digits and every two after that, which `en-IN` gets right and a naive
  *  thousands separator does not. `paise` shows the minor units in full —
  *  the accounting form, ₹2,15,600.00 — otherwise they are rounded away. */
-export function format(minor: Minor, currency: string = resolver(), opts: { sign?: boolean; paise?: boolean } = {}) {
+export function format(minor: Minor, currency: string = resolver(), opts: { sign?: boolean; paise?: Paise } = {}) {
   const x = ccy(currency);
   const whole = Math.abs(minor) / 10 ** x.digits;
+  const f = fractionDigits(minor, x.digits, opts.paise);
   const body = new Intl.NumberFormat(LOCALE[x.group], {
-    minimumFractionDigits: opts.paise ? x.digits : 0,
-    maximumFractionDigits: opts.paise ? x.digits : 0,
+    minimumFractionDigits: f,
+    maximumFractionDigits: f,
   }).format(whole);
   const lead = opts.sign ? (minor < 0 ? '−' : '+') : minor < 0 ? '−' : '';
   return `${lead}${x.symbol}${body}`;
@@ -148,13 +156,14 @@ export const toMajor = (minor: Minor, currency: string = resolver()) => minor / 
  *  format() does. The sign and the symbol live in the
  *  prefix (with the same U+2212 minus) and the value is its magnitude, so the
  *  digits never draw a second, different minus. */
-export function figureParts(minor: Minor, currency: string = resolver(), opts: { sign?: boolean; paise?: boolean } = {}) {
+export function figureParts(minor: Minor, currency: string = resolver(), opts: { sign?: boolean; paise?: Paise } = {}) {
   const x = ccy(currency);
+  const f = fractionDigits(minor, x.digits, opts.paise);
   const lead = opts.sign ? (minor < 0 ? '\u2212' : '+') : minor < 0 ? '\u2212' : '';
   return {
     value: Math.abs(toMajor(minor, currency)),
     locale: LOCALE[x.group],
-    format: { style: 'decimal', minimumFractionDigits: opts.paise ? x.digits : 0, maximumFractionDigits: opts.paise ? x.digits : 0 } as const,
+    format: { style: 'decimal', minimumFractionDigits: f, maximumFractionDigits: f } as const,
     prefix: `${lead}${x.symbol}`,
   };
 }

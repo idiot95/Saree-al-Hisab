@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /* Add Entry, driven the way a thumb drives it, against a running build.
 
-     node scripts/add-taps.mjs [--login email:password] [--shots dir] [--keep]
+     node scripts/add-taps.mjs [--login email:password | --state file] [--shots dir] [--keep]
 
    Env: ADD_BASE (default http://localhost:3000). Reads OWNER_DATABASE_URL from .env.local to check what landed.
 
@@ -54,8 +54,10 @@ const ios = (() => { const { defaultBrowserType, ...d } = devices['iPhone 13']; 
 const pixel = (() => { const { defaultBrowserType, ...d } = devices['Pixel 7']; return d; })(); // eslint-disable-line @typescript-eslint/no-unused-vars
 
 /* Signed in once (sign-in is rate limited), then every context starts from that session. */
-const STATE = path.join(ROOT, '.add-taps-state.json');
-{
+/* --state <file> reuses a signed-in Playwright state (the sweep's .sweep-state.json) instead of signing in. */
+const GIVEN = arg('--state');
+const STATE = GIVEN ?? path.join(ROOT, '.add-taps-state.json');
+if (!GIVEN) {
   const ctx = await browser.newContext({ ...ios });
   const page = await ctx.newPage();
   await page.goto(`${BASE}/signin`);
@@ -123,7 +125,7 @@ try {
     const save = drawer.locator('[data-save]');
     await assert.doesNotReject(save.waitFor());
     const label = await said(save);
-    assert.equal(label, `Save · ₹2,340.00 ${name}`);
+    assert.equal(label, `Save · ₹2,340 ${name}`);
     ok(`Save reads "${label}"`);
     await save.click(); taps++;                                      // 3: Save
     assert.equal(taps, 3);
@@ -183,7 +185,7 @@ try {
     const to = page.getByRole('radiogroup', { name: 'To which account' }).getByRole('radio').first();
     await to.click();
     assert.ok(await save.isEnabled());
-    assert.match(await said(save), /^Save · ₹1,000\.00 to /);
+    assert.match(await said(save), /^Save · ₹1,000 to /);
     await save.click();
     await page.getByText('Entry saved.').waitFor({ timeout: 15000 });
     const [row] = await waitRows((r) => r.kind === 'transfer' && Number(r.amount) === 100000, 'transfer');
@@ -277,9 +279,54 @@ try {
     if (SHOTS) { fs.mkdirSync(SHOTS, { recursive: true }); await page.screenshot({ path: path.join(SHOTS, 'ios-393-light-7-all.png') }); }
     await page.getByRole('dialog', { name: 'Find a category' }).getByRole('button', { name: other, exact: true }).click();
     await assert.doesNotReject(drawer.locator('[data-category-tile][aria-checked=true]', { hasText: other }).waitFor());
-    assert.equal(await said(drawer.locator('[data-save]')), `Save · ₹50.00 ${other}`);
+    assert.equal(await said(drawer.locator('[data-save]')), `Save · ₹50 ${other}`);
     ok(`All opens the finder over the drawer; "${other}" takes the last seat and the Save label`);
+    // Paid with, inside the Add drawer, opens as vaul's nested drawer and answers the row.
+    const payRow = drawer.getByRole('button', { name: /^Paid with/ });
+    await payRow.click();
+    const tiles = page.getByRole('radiogroup', { name: 'How did you pay' }).getByRole('radio');
+    await tiles.nth(1).waitFor();
+    if (SHOTS) { await page.waitForTimeout(500); await page.screenshot({ path: path.join(SHOTS, 'ios-393-light-8-nested-pay.png') }); }
+    const pick = (await tiles.nth(1).evaluate((el) => el.children[1].children[0].textContent)).trim();
+    await tiles.nth(1).click();
+    await page.waitForFunction(() => document.querySelectorAll('[data-slot=drawer-content]').length === 1);
+    assert.ok((await payRow.innerText()).includes(pick), `Paid with now says ${pick}`);
+    assert.ok(await drawer.locator('[data-save]').isVisible());
+    ok(`Paid with opens nested over the Add drawer; choosing "${pick}" closes it and answers the row`);
     await ctx.close();
+  }
+
+  /* ── 8. card Pay after paying BY that card ───────────────────────────── */
+  {
+    /* The remembered way opens an expense, never a move: last paid by the card, then the card's Pay
+       (/add?kind=transfer&to=<card>, no from) must not start From the card itself. */
+    const [card] = await sql`select a.id, a.name, (select pm.id from payment_method pm where pm.funding_account_id = a.id
+        and pm.archived_at is null limit 1) as rail
+      from account a where a.household_id = ${HH} and a.kind = 'credit' and a.archived_at is null limit 1`;
+    if (!card) console.log('  skip card Pay: no credit card in these books');
+    else {
+      const [{ last_paid_with: before }] = await sql`select last_paid_with from app_user where id = ${user.id}`;
+      await sql`update app_user set last_paid_with = ${card.rail ? `m:${card.rail}` : `a:${card.id}`} where id = ${user.id}`;
+      try {
+        const { ctx, page } = await context(ios);
+        await page.goto(`${BASE}/add?kind=transfer&to=${card.id}`);
+        const from = await page.getByRole('button', { name: /^From/ }).innerText();
+        assert.ok(!from.includes(card.name), `From should not be the card: ${from}`);
+        await page.getByLabel(/^Amount in/).fill('1500');
+        const save = page.locator('[data-save]');
+        assert.ok(await save.isEnabled(), 'Save lights for the card\'s Pay');
+        assert.equal(await said(save), `Save · ₹1,500 to ${card.name}`);
+        ok(`card Pay after paying by the card: From is not the card, "${await said(save)}"`);
+        await save.click();
+        await page.getByText('Entry saved.').waitFor({ timeout: 15000 });
+        const [row] = await waitRows((r) => ['transfer', 'card_payment'].includes(r.kind) && Number(r.amount) === 150000
+          && r.counter_account_id === card.id, 'card payment');
+        ok(`one ${row.kind} row into the card, as before`);
+        await ctx.close();
+      } finally {
+        await sql`update app_user set last_paid_with = ${before} where id = ${user.id}`;
+      }
+    }
   }
 
   /* ── screenshots ─────────────────────────────────────────────────────── */
@@ -318,7 +365,7 @@ try {
   }
 } finally {
   await browser.close();
-  fs.rmSync(STATE, { force: true });
+  if (!GIVEN) fs.rmSync(STATE, { force: true });
   if (!KEEP && wrote.size) {
     const ids = [...wrote];
     /* Receipts and claims first (they point at entries), then the entries. */

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import NumberFlow from '@number-flow/react';
-import { figureParts, format } from '@/lib/money';
+import { figureParts, format, type Paise } from '@/lib/money';
 import { useMoney } from './currency';
 
 /* An amount whose digits roll to their new value. The text it draws is the
@@ -14,7 +14,7 @@ import { useMoney } from './currency';
    NumberFlow itself. Screen readers get the whole figure once, from the label,
    not digit by digit as they turn (role="img" hides the moving columns). */
 export function Figure({ minor, currency, sign = false, paise = false, className }: {
-  minor: number; currency?: string; sign?: boolean; paise?: boolean; className?: string;
+  minor: number; currency?: string; sign?: boolean; paise?: Paise; className?: string;
 }) {
   const household = useMoney().currency;
   const ccy = currency ?? household;

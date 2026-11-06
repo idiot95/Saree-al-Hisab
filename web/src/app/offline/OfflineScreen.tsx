@@ -100,7 +100,7 @@ function Pending({ queue }: { queue: Queued[] }) {
         }}>
           <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
             <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {q.kind === 'income' ? 'Income' : q.kind === 'transfer' ? 'Transfer' : (q.merchant || 'Expense')}
+              {q.kind === 'income' ? 'Income' : q.kind === 'transfer' ? 'Move' : (q.merchant || 'Expense')}
               <span style={{ color: 'var(--muted-foreground)', fontWeight: 500 }}> · {q.occurredOn}</span>
             </span>
             {q.stuck && (

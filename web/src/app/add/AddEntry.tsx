@@ -4,7 +4,7 @@ import { useState, useTransition, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Icon } from '../Icon';
 import { Figure } from '../Figure';
-import { defaultRef, findRef, pickWay, type Way } from '@/lib/pay';
+import { defaultRef, findRef, flatWays, pickWay, type Way } from '@/lib/pay';
 import Link from '@/app/NavLink';
 import { friendlyDay } from '@/lib/recur';
 import { useMoney } from '@/app/currency';
@@ -18,7 +18,7 @@ import { fits } from '@/lib/scope';
 import { cn } from '@/lib/utils';
 import TopCategories from './TopCategories';
 import MoreFields, { type MoreState } from './MoreFields';
-import { PayRow, Row, ToRow, WhenRow } from './PickRows';
+import { InDrawer, PayRow, Row, ToRow, WhenRow } from './PickRows';
 import { useKeyboardInset } from './keyboard';
 
 /* Add Entry — the screen the whole product rests on, and now one screen.
@@ -107,6 +107,7 @@ export default function AddEntry({
      figure is a suggestion, correctable the same way as a typed one. */
   const [keys, setKeys] = useState(() => (draft?.amountMinor ? settle(toKeys(draft.amountMinor)) : ''));
   const amountBox = useRef<HTMLInputElement>(null);
+  const [typing, setTyping] = useState(false);
   const [categoryId, setCategoryId] = useState<string | null>(draft?.categoryId ?? null);
   /* Only the categories that take this kind of entry. A category picked for
      one kind and then the kind changed is simply let go of. */
@@ -119,7 +120,18 @@ export default function AddEntry({
   const [paid, setPaid] = useState(() => {
     const from = ways.find((w) => w.id === draft?.fromAccountId);
     if (from) return pickWay(from);
-    return paidDefault && findRef(ways, paidDefault) ? paidDefault : defaultRef(ways);
+    /* The remembered way is how this person PAYS, so it opens an expense only.
+       Money coming in and a move start where they always did: the first way. */
+    let ref = (draft?.kind ?? 'expense') === 'expense' && paidDefault && findRef(ways, paidDefault)
+      ? paidDefault : defaultRef(ways);
+    /* A move arriving with its destination (a card's Pay, an account's Move)
+       can never start from that same account, or To would not resolve and
+       Save would never light. Take the first way that leaves another. */
+    const into = draft?.toAccountId;
+    if (into && findRef(ways, ref)?.way.id === into) {
+      ref = flatWays(ways).find((o) => o.way.id !== into)?.ref ?? ref;
+    }
+    return ref;
   });
   const [counterId, setCounterId] = useState<string | null>(draft?.toAccountId ?? null);
   const [occurredOn, setOccurredOn] = useState(draft?.occurredOn ?? today);
@@ -242,6 +254,7 @@ export default function AddEntry({
   const moreLabel = kind === 'income' && claims.length > 0 ? 'What it clears, note, bill, tab…' : 'Note, bill, tab, shared…';
 
   return (
+    <InDrawer.Provider value={sheet}>
     <main className={cn('flex flex-col bg-background text-foreground', !sheet && 'min-h-dvh')}>
       <header className="flex flex-none flex-col gap-1 px-[var(--gutter)] pt-2">
         <div className="flex items-center justify-between gap-2">
@@ -284,8 +297,9 @@ export default function AddEntry({
             type="text" inputMode="decimal" autoComplete="off" enterKeyHint="done"
             autoFocus={!draft?.amountMinor}
             value={keys === '' ? '' : keysDisplay(keys)}
-            onChange={(e) => setKeys(typed(e.target.value))}
-            onBlur={() => setKeys((k) => settle(k))}
+            onChange={(e) => { setKept(null); setKeys(typed(e.target.value)); }}
+            onFocus={() => setTyping(true)}
+            onBlur={() => { setTyping(false); setKeys((k) => settle(k)); }}
             onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); amountBox.current?.blur(); } }}
             placeholder={digits ? `0.${'0'.repeat(digits)}` : '0'}
             aria-label={`Amount in ${currency}`}
@@ -297,9 +311,10 @@ export default function AddEntry({
           )}
         </label>
         {/* The amount as the ledger will write it, digits rolling as they are
-            typed. Decoration only: the field is the control. */}
+            typed — only while it is being typed, since a settled field already
+            says exactly this. Decoration only: the field is the control. */}
         <p aria-hidden data-figure-echo className="-mt-1 mb-1 min-h-5 text-center text-sm text-muted-foreground">
-          {minor > 0 && <Figure minor={minor} paise className="n" />}
+          {minor > 0 && (typing || keys !== settle(keys)) && <Figure minor={minor} paise="auto" className="n" />}
         </p>
       </header>
 
@@ -342,26 +357,26 @@ export default function AddEntry({
           </div>
         )}
 
+        {children && <div className="-mx-[var(--gutter)]">{children}</div>}
+      </div>
+
+      {/* Save, pinned under the thumb and saying what it will do, with what
+          was kept, a refusal and the duplicate line above it, so none of them
+          can be scrolled out of sight. On an iPhone it is lifted by however much of
+          the page the keyboard covers. */}
+      <div style={{ '--kb': `${kb}px` } as React.CSSProperties}
+        className="sticky bottom-[var(--kb)] z-10 flex-none border-t border-border bg-background px-[var(--gutter)] pt-2.5 pb-[calc(10px+env(safe-area-inset-bottom))]">
         {kept && (
-          <p role="status" className="m-0 flex items-center gap-2.5 rounded-xl bg-accent px-3.5 py-3 text-sm leading-snug font-semibold text-accent-foreground">
+          <p role="status" className="m-0 mb-2 flex items-center gap-2.5 rounded-xl bg-accent px-3.5 py-3 text-sm leading-snug font-semibold text-accent-foreground">
             <Icon name="schedule" size={18} />{kept}
           </p>
         )}
 
         {error && (
-          <p role="alert" className="m-0 flex items-center gap-2.5 rounded-xl bg-destructive/10 px-3.5 py-3 text-sm font-semibold text-destructive">
+          <p role="alert" className="m-0 mb-2 flex items-center gap-2.5 rounded-xl bg-destructive/10 px-3.5 py-3 text-sm font-semibold text-destructive">
             <Icon name="error" size={18} />{error}
           </p>
         )}
-
-        {children && <div className="-mx-[var(--gutter)]">{children}</div>}
-      </div>
-
-      {/* Save, pinned under the thumb and saying what it will do, with the
-          duplicate line above it. On an iPhone it is lifted by however much of
-          the page the keyboard covers. */}
-      <div style={{ '--kb': `${kb}px` } as React.CSSProperties}
-        className="sticky bottom-[var(--kb)] z-10 flex-none border-t border-border bg-background px-[var(--gutter)] pt-2.5 pb-[calc(10px+env(safe-area-inset-bottom))]">
         {/* What a household member already recorded that this might be: one quiet line at the moment of the
             decision, right above the button that makes it. */}
         {shownDupe && (
@@ -381,7 +396,7 @@ export default function AddEntry({
               <span className="flex-none">Save</span>
               {minor > 0 && <>
                 {' '}<span aria-hidden className="flex-none">·</span>{' '}
-                <Figure minor={minor} paise className="n flex-none" />
+                <Figure minor={minor} paise="auto" className="n flex-none" />
                 {what && <>{' '}<span className="min-w-0 truncate">{what}</span></>}
               </>}
             </>
@@ -389,6 +404,7 @@ export default function AddEntry({
         </button>
       </div>
     </main>
+    </InDrawer.Provider>
   );
 }
 

@@ -113,7 +113,8 @@ export async function categoriesFor(householdId: string) {
 }
 
 /* Add Entry's eight tiles: the categories this household has actually used
-   in the last 90 days, most entries first, for one kind of entry. A newer
+   in the last 90 days, most entries of THIS kind first (a 'both' category
+   filed under spending ranks for spending, not for income). A newer
    household — or one that files only a few things — has fewer than eight,
    so the rest are padded with its top-level categories in their own order
    (the order Categories sets). Children are offered only once used: a tile
@@ -129,7 +130,7 @@ export async function topCategories(householdId: string, kind: 'expense' | 'inco
       left join (
         select category_id, count(*)::int as n from txn
         where household_id = ${householdId} and deleted_at is null and category_id is not null
-          and occurred_on >= current_date - 90
+          and kind = ${kind} and occurred_on >= current_date - 90
         group by category_id
       ) u on u.category_id = c.id
       where c.household_id = ${householdId} and c.archived_at is null
