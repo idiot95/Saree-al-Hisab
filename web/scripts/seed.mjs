@@ -135,13 +135,25 @@ bud = Number((await sql`select coalesce(sum(amount),0)::bigint as total from bud
 
 
 if (haveBase) {
-  for (const r of await sql`select id, name from account where household_id = ${hh}`) {
-    accounts[{ 'HDFC Savings': 'hdfc', 'ICICI Savings': 'icici', Cash: 'cash', 'HDFC Recurring Deposit': 'rd', 'HDFC Regalia': 'card' }[r.name]] = r.id;
-  }
-  for (const r of await sql`select id, name from category where household_id = ${hh}`) {
-    categories[{ Rent: 'rent', Groceries: 'groceries', 'School fees': 'school', 'Eating Out': 'eating', Shopping: 'shopping', Children: 'children', Utilities: 'utilities', Transport: 'transport' }[r.name]] = r.id;
-  }
+  /* Looked up by name; a missing one is a stop, not an undefined that turns
+     into a confusing insert error (or a row on the wrong account) later. */
+  const want = {
+    account: { 'HDFC Savings': 'hdfc', 'ICICI Savings': 'icici', Cash: 'cash', 'HDFC Recurring Deposit': 'rd', 'HDFC Regalia': 'card' },
+    category: { Rent: 'rent', Groceries: 'groceries', 'School fees': 'school', 'Eating Out': 'eating', Shopping: 'shopping', Children: 'children', Utilities: 'utilities', Transport: 'transport' },
+  };
+  for (const r of await sql`select id, name from account where household_id = ${hh}`) if (want.account[r.name]) accounts[want.account[r.name]] = r.id;
+  for (const r of await sql`select id, name from category where household_id = ${hh}`) if (want.category[r.name]) categories[want.category[r.name]] = r.id;
   for (const r of await sql`select id, name from payment_method where household_id = ${hh}`) methods[r.name] = r.id;
+  const missing = [
+    ...Object.entries(want.account).filter(([, k]) => !accounts[k]).map(([n]) => `account "${n}"`),
+    ...Object.entries(want.category).filter(([, k]) => !categories[k]).map(([n]) => `category "${n}"`),
+    ...['GPay', 'PhonePe', 'HDFC Regalia', 'Cash', 'Net banking'].filter((n) => !methods[n]).map((n) => `way to pay "${n}"`),
+  ];
+  if (missing.length) {
+    console.error(`\n  --activity needs the base kit, but ${target.name} is missing: ${missing.join(', ')}.`);
+    console.error('  Seed fresh books (no entries) first, or restore those names.\n');
+    await sql.end(); process.exit(1);
+  }
 }
 
 let activity = null;

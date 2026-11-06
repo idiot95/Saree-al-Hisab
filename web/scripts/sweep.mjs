@@ -28,8 +28,9 @@ const BASE = (process.env.SWEEP_BASE || 'http://localhost:3000').replace(/\/$/, 
 const STATE = process.env.SWEEP_STATE || path.join(HERE, '..', '.sweep-state.json');
 
 const DEFAULT_ROUTES = ['/', '/entries', '/budget', '/trends', '/people', '/worth', '/accounts',
-  '/add', '/household', '/categories', '/schedules', '/inbox', '/signin', '/terms', '/offline'];
-const PUBLIC_ROUTES = new Set(['/signin', '/terms', '/offline']);
+  '/add', '/household', '/categories', '/schedules', '/inbox', '/signin', '/signup', '/terms', '/offline'];
+/* Public routes are measured with NO session: with one, /signin bounces to /. */
+const PUBLIC_ROUTES = new Set(['/signin', '/signup', '/terms', '/offline']);
 
 const VIEWPORTS = [
   { w: 360, h: 780, os: 'android' },
@@ -43,7 +44,7 @@ const PER_KIND_CAP = 10; // lines printed per kind per page; the rest is counted
 
 /* ---------- args ---------- */
 function parseArgs(argv) {
-  const a = { routes: DEFAULT_ROUTES, out: 'sweep-out', csp: false, engine: 'chromium', login: null, selftest: false };
+  const a = { routes: DEFAULT_ROUTES, out: 'sweep-out', csp: false, engine: 'chromium', login: null, selftest: false, note: '' };
   for (let i = 0; i < argv.length; i++) {
     const k = argv[i];
     if (k === '--routes') a.routes = argv[++i].split(',').map((s) => s.trim()).filter(Boolean);
@@ -52,6 +53,7 @@ function parseArgs(argv) {
     else if (k === '--engine') a.engine = argv[++i];
     else if (k === '--login') a.login = argv[++i];
     else if (k === '--selftest') a.selftest = true;
+    else if (k === '--note') a.note = argv[++i];
     else { console.error(`unknown argument ${k}`); process.exit(2); }
   }
   if (!['chromium', 'webkit', 'all'].includes(a.engine)) { console.error('--engine must be chromium|webkit|all'); process.exit(2); }
@@ -172,26 +174,60 @@ function checkTruncation() {
   return out;
 }
 
-/** 4. Tap targets are at least 44x44 (48 for icon-only buttons on Android). */
-function checkTapTargets() {
+/** 4. Tap targets are at least 44x44 (48 for icon-only buttons on Android).
+ *  Exempt, in the WCAG 2.5.8 spirit: links inline in running text, sr-only or
+ *  clipped boxes, off-screen elements, aria-hidden/inert subtrees, disabled
+ *  controls, closed dialogs/drawers, and data-tap-ok="<reason>" (a reason is
+ *  required). The box measured is the larger of the element and its nearest
+ *  clickable ancestor. */
+function checkTapTargets(vw) {
   const platform = document.documentElement.getAttribute('data-platform');
   const out = [];
+  const label = (el) => {
+    const id = el.id ? `#${el.id}` : '';
+    const cls = typeof el.className === 'string' && el.className ? '.' + el.className.trim().split(/\s+/).slice(0, 2).join('.') : '';
+    const text = (el.getAttribute('aria-label') || el.textContent || el.getAttribute('name') || el.getAttribute('href') || '').trim().replace(/\s+/g, ' ').slice(0, 30);
+    return `${el.tagName.toLowerCase()}${id}${cls} "${text}"`;
+  };
+  const inlineInRunningText = (el) => {
+    if (el.tagName !== 'A' || getComputedStyle(el).display !== 'inline') return false;
+    let host = el.parentElement;
+    while (host && getComputedStyle(host).display === 'inline') host = host.parentElement;
+    if (!host) return false;
+    return Array.from(host.childNodes).some((n) => n.nodeType === 3 && n.nodeValue.trim()) ||
+      Array.from(host.querySelectorAll('*')).some((e) => e !== el && !el.contains(e) && !e.contains(el) &&
+        getComputedStyle(e).display === 'inline' && !e.matches('a, button, [role=button]') &&
+        Array.from(e.childNodes).some((n) => n.nodeType === 3 && n.nodeValue.trim()));
+  };
   for (const el of document.body.querySelectorAll('a, button, [role=button], input, select')) {
     if (el.tagName === 'INPUT' && el.type === 'hidden') continue;
+    if (el.hasAttribute('data-tap-ok')) {
+      if (!el.getAttribute('data-tap-ok').trim()) out.push({ reason: 'data-tap-ok needs a reason', where: label(el) });
+      continue;
+    }
+    if (el.disabled) continue;
+    if (el.closest('[aria-hidden="true"], [inert]')) continue;
+    if (el.closest('dialog:not([open]), [role=dialog][hidden], [data-state=closed]')) continue;
+    const det = el.closest('details:not([open])');
+    if (det && !el.closest('summary')) continue;
     const cs = getComputedStyle(el);
     if (cs.display === 'none' || cs.visibility === 'hidden' || parseFloat(cs.opacity) === 0) continue;
-    const r = el.getBoundingClientRect();
+    let r = el.getBoundingClientRect();
     if (r.width === 0 || r.height === 0) continue;
+    const clipped = /rect\(\s*0(px)?,\s*0(px)?,\s*0(px)?,\s*0(px)?\)/.test(cs.clip) || /^inset\((50|100)%/.test(cs.clipPath) ||
+      (r.width <= 1 && r.height <= 1) || (r.width <= 1 && cs.overflow === 'hidden') ;
+    if (clipped) continue;
+    if (r.right <= 0 || r.left >= vw || r.bottom + window.scrollY <= 0) continue;
+    if (inlineInRunningText(el)) continue;
+    const anc = el.parentElement && el.parentElement.closest('a, button, [role=button], label');
+    if (anc) {
+      const ar = anc.getBoundingClientRect();
+      if (ar.width * ar.height > r.width * r.height) r = ar;
+    }
     const iconOnly = (el.tagName === 'BUTTON' || el.getAttribute('role') === 'button') && !(el.textContent || '').replace(/\s+/g, '').replace(/[-]/g, '');
     const min = platform === 'android' && iconOnly ? 48 : 44;
     if (r.width + 0.5 < min || r.height + 0.5 < min) {
-      const id = el.id ? `#${el.id}` : '';
-      const cls = typeof el.className === 'string' && el.className ? '.' + el.className.trim().split(/\s+/).slice(0, 2).join('.') : '';
-      const text = (el.getAttribute('aria-label') || el.textContent || el.getAttribute('name') || el.getAttribute('href') || '').trim().replace(/\s+/g, ' ').slice(0, 30);
-      out.push({
-        reason: `tap target ${Math.round(r.width)}x${Math.round(r.height)} < ${min}`,
-        where: `${el.tagName.toLowerCase()}${id}${cls} "${text}"`,
-      });
+      out.push({ reason: `tap target ${Math.round(r.width)}x${Math.round(r.height)} < ${min}`, where: label(el) });
     }
   }
   return out;
@@ -214,16 +250,63 @@ async function runChecks(page, { consoleErrors, csp, vw, vh }) {
   const add = (kind, list) => list.forEach((f) => found.push({ kind, ...f }));
   add('overflow', await run(page, checkHorizontalOverflow, vw));
   add('truncation', await run(page, checkTruncation));
-  add('tap', await run(page, checkTapTargets));
+  add('tap', await run(page, checkTapTargets, vw));
   await page.evaluate(() => window.scrollTo(0, 0));
   add('overlap', await run(page, checkFixedOverlap, 'top', vw, vh));
   await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
-  await page.waitForTimeout(150);
+  await scrollSettled(page);
   add('overlap', await run(page, checkFixedOverlap, 'bottom', vw, vh));
   await page.evaluate(() => window.scrollTo(0, 0));
   add('console', await checkConsole(consoleErrors));
   if (csp) add('csp', await checkCsp(page));
   return found;
+}
+
+/** Test-only: no transitions or animations, so measurement never catches a frame mid-motion. */
+const NO_MOTION = '*,*::before,*::after{transition:none!important;animation-duration:0s!important;animation-delay:0s!important;scroll-behavior:auto!important}';
+
+/** Wait until the page has stopped changing: fonts loaded, nothing aria-busy or
+ *  skeletal, animations finished (endless ones ignored), and two layout samples
+ *  100ms apart identical. Gives up after `timeout` and measures anyway. */
+async function settle(page, timeout = 8000) {
+  await page.addStyleTag({ content: NO_MOTION });
+  return page.evaluate(async (timeout) => {
+    await document.fonts.ready;
+    const sample = () => {
+      const bars = [];
+      for (const el of document.body.querySelectorAll('*')) {
+        const p = getComputedStyle(el).position;
+        if (p === 'fixed' || p === 'sticky') { const r = el.getBoundingClientRect(); bars.push([r.x, r.y, r.width, r.height].map(Math.round).join(',')); }
+      }
+      return `${document.body.scrollHeight}|${document.documentElement.scrollWidth}|${bars.join(';')}`;
+    };
+    const quiet = () =>
+      !document.querySelector('[aria-busy="true"], [data-pending]') &&
+      document.getAnimations().every((a) => a.playState !== 'running' || a.effect?.getComputedTiming().iterations === Infinity);
+    const t0 = Date.now();
+    let prev = null;
+    while (Date.now() - t0 < timeout) {
+      const cur = sample();
+      if (quiet() && cur === prev) return true;
+      prev = cur;
+      await new Promise((r) => setTimeout(r, 100));
+    }
+    return false;
+  }, timeout);
+}
+
+/** After a scroll, wait for two equal scrollY samples. */
+async function scrollSettled(page, timeout = 3000) {
+  await page.evaluate(async (timeout) => {
+    const t0 = Date.now();
+    let prev = -1;
+    while (Date.now() - t0 < timeout) {
+      const y = window.scrollY;
+      if (y === prev) return;
+      prev = y;
+      await new Promise((r) => setTimeout(r, 60));
+    }
+  }, timeout);
 }
 
 function wireCollectors(page) {
@@ -290,31 +373,35 @@ async function sweepEngine(args, engine, hasState) {
   const { browser, name, viewports } = await launch(engine);
   const dir = path.join(args.out, name);
   fs.mkdirSync(dir, { recursive: true });
+  const host = new URL(BASE).hostname;
+  const norm = (p) => (p.length > 1 ? p.replace(/\/$/, '') : p);
   for (const vp of viewports) {
     const vpName = `${vp.w}x${vp.h}`;
     for (const theme of THEMES) {
-      const ctx = await browser.newContext({
-        ...deviceFor(vp),
-        baseURL: BASE,
-        serviceWorkers: 'block',
-        ...(hasState ? { storageState: STATE } : {}),
-      });
-      const host = new URL(BASE).hostname;
-      await ctx.addCookies([{ name: 'ql.theme', value: theme, domain: host, path: '/' }]);
-      if (args.csp) await ctx.addInitScript(CSP_INIT);
+      const open = async (signedIn) => {
+        const ctx = await browser.newContext({
+          ...deviceFor(vp), baseURL: BASE, serviceWorkers: 'block',
+          ...(signedIn ? { storageState: STATE } : {}),
+        });
+        await ctx.addCookies([{ name: 'ql.theme', value: theme, domain: host, path: '/' }]);
+        if (args.csp) await ctx.addInitScript(CSP_INIT);
+        return ctx;
+      };
+      const ctxs = { anon: await open(false), authed: hasState ? await open(true) : null };
       for (const route of args.routes) {
+        const ctx = PUBLIC_ROUTES.has(route) ? ctxs.anon : ctxs.authed;
         const page = await ctx.newPage();
         const consoleErrors = wireCollectors(page);
         let found = [];
         try {
           await page.goto(route, { waitUntil: 'load', timeout: 30000 });
-          await page.waitForLoadState('networkidle', { timeout: 5000 }).catch(() => {});
-          await page.waitForTimeout(400);
-          await page.screenshot({ path: path.join(dir, `${vpName}-${theme}${slug(route)}.png`) });
-          found = await runChecks(page, { consoleErrors, csp: args.csp, vw: vp.w, vh: vp.h });
-          const landed = new URL(page.url()).pathname;
-          if (hasState && !PUBLIC_ROUTES.has(route) && landed.startsWith('/signin')) {
-            found.push({ kind: 'load', reason: 'redirected to /signin (state file not signed in?)', where: landed });
+          const landed = norm(new URL(page.url()).pathname);
+          if (landed !== norm(route)) {
+            found.push({ kind: 'load', reason: `landed on ${landed}, not the requested route`, where: route });
+          } else {
+            if (!(await settle(page))) found.push({ kind: 'load', reason: 'page did not settle within 8s (measured anyway)', where: route });
+            await page.screenshot({ path: path.join(dir, `${vpName}-${theme}${slug(route)}.png`) });
+            found.push(...await runChecks(page, { consoleErrors, csp: args.csp, vw: vp.w, vh: vp.h }));
           }
         } catch (e) {
           found.push({ kind: 'load', reason: 'page failed to load', where: String(e.message).split('\n')[0].slice(0, 160) });
@@ -322,52 +409,91 @@ async function sweepEngine(args, engine, hasState) {
         report(route, vpName, theme, found);
         await page.close();
       }
-      await ctx.close();
+      await ctxs.anon.close();
+      if (ctxs.authed) await ctxs.authed.close();
     }
   }
   await browser.close();
 }
 
-/* ---------- selftest: each kind of check must be able to fire ---------- */
+/* ---------- selftest: each kind of check must fire, and clean pages must not ---------- */
+const CSS = `body{margin:0;font:16px sans-serif}
+  .bar{position:fixed;left:0;right:0;bottom:0;height:60px;background:#ccc}
+  .top{position:fixed;left:0;right:0;top:0;height:50px;background:#ccc}
+  .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
+  .btn{min-width:48px;min-height:48px}`;
+const page = (body, extra = '') => `<!doctype html><html data-platform="android"><head>
+  <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1">${extra}
+  <style>${CSS}</style></head><body>${body}</body></html>`;
+
+const SCENARIOS = [
+  { name: 'broken page', csp: true, expect: ['overflow', 'overlap', 'truncation', 'tap', 'console', 'csp'],
+    meta: `<meta http-equiv="Content-Security-Policy" content="script-src 'self'">`,
+    html: `<style>body{height:1600px}</style><p>Intro text</p><div class="bar">Bar</div>
+      <div id="wide" style="width:2000px;height:10px;background:red"></div>
+      <div id="ell" style="width:60px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">A very long label that cannot fit</div>
+      <div data-truncate-ok><div style="width:60px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Allowed to be cut off here</div></div>
+      <button id="tiny" style="width:20px;height:20px"></button>
+      <button id="noreason" data-tap-ok="" style="width:20px;height:20px"></button>
+      <p style="position:absolute;top:1560px;margin:0">Last line under the bar</p>`,
+    after: async (p) => p.evaluate(() => {
+      console.error('selftest injected error');
+      const s = document.createElement('script'); s.textContent = '1'; document.head.appendChild(s);
+    }),
+    also: (found) => found.some((f) => /Allowed to be cut/.test(f.where)) ? 'data-truncate-ok NOT honoured' : null },
+  { name: 'clean page (every exemption present)', expect: [],
+    html: `<div class="top">Header</div><div style="padding:70px 16px 80px;height:1400px">
+      <p>Some text with an <a href="#" id="inline">inline link</a> in running text.</p>
+      <button class="btn" id="ok">Fine</button>
+      <button class="sr">Screen reader only</button>
+      <button disabled style="width:10px;height:10px"></button>
+      <button data-tap-ok="decorative dismiss, row is the target" style="width:10px;height:10px"></button>
+      <div aria-hidden="true"><button style="width:10px;height:10px"></button></div>
+      <dialog><button style="width:10px;height:10px">x</button></dialog>
+      <button style="position:absolute;left:-500px;width:10px;height:10px"></button>
+      <a href="#" style="display:inline-block;padding:14px 20px"><span><button style="width:10px;height:10px;display:inline-block;padding:0">in</button></span></a>
+      <p id="last">Last line, clear of the bar</p></div><div class="bar">Bar</div>` },
+  { name: 'text under the bottom bar that can scroll clear passes', expect: [],
+    html: `<div style="padding:16px 16px 100px;height:1500px"><p>Top</p><p style="position:absolute;top:1490px;margin:0">Ends the page</p></div><div class="bar">Bar</div>` },
+  { name: 'text that cannot scroll clear fails', expect: ['overlap'],
+    html: `<div style="height:1500px;position:relative"><p style="position:absolute;top:1480px;margin:0">Last line, flush with the end</p></div><div class="bar">Bar</div>` },
+  { name: 'top bar over text fails', expect: ['overlap'],
+    html: `<div class="top">Header</div><p style="margin:0;padding:16px">Starts under the header</p><div style="height:1000px"></div>` },
+];
+
 async function selftest() {
   const browser = await chromium.launch();
-  const ctx = await browser.newContext({ ...deviceFor(VIEWPORTS[0]) });
-  await ctx.addInitScript(CSP_INIT);
-  const page = await ctx.newPage();
-  const consoleErrors = wireCollectors(page);
-  const html = `<!doctype html><html data-platform="android"><head>
-    <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1">
-    <meta http-equiv="Content-Security-Policy" content="script-src 'self'">
-    <style>body{margin:0;height:1600px;font:16px sans-serif}
-    .bar{position:fixed;left:0;right:0;bottom:0;height:60px;background:#ccc}</style></head><body>
-    <p>Intro text</p>
-    <div class="bar">Bar</div>
-    <div id="wide" style="width:2000px;height:10px;background:red"></div>
-    <div id="ell" style="width:60px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">A very long label that cannot fit</div>
-    <div id="ok" data-truncate-ok><div style="width:60px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Allowed to be cut off here</div></div>
-    <button id="tiny" style="width:20px;height:20px"></button>
-    <p id="last" style="position:absolute;top:1560px;margin:0">Last line under the bar</p>
-    </body></html>`;
-  await page.route('http://selftest.local/', (r) => r.fulfill({ contentType: 'text/html', body: html }));
-  await page.goto('http://selftest.local/');
-  await page.evaluate(() => {
-    console.error('selftest injected error');
-    const s = document.createElement('script'); s.textContent = '1'; document.head.appendChild(s); // blocked by the meta CSP
-  });
-  await page.waitForTimeout(200);
-  const found = await runChecks(page, { consoleErrors, csp: true, vw: VIEWPORTS[0].w, vh: VIEWPORTS[0].h });
-  await browser.close();
-  const kinds = new Set(found.map((f) => f.kind));
+  const vp = VIEWPORTS[0];
+  const kindsAll = ['overflow', 'overlap', 'truncation', 'tap', 'console', 'csp'];
   let bad = 0;
-  for (const k of ['overflow', 'overlap', 'truncation', 'tap', 'console', 'csp']) {
-    const n = found.filter((f) => f.kind === k).length;
-    console.log(`selftest ${k}: ${kinds.has(k) ? 'fired' : 'DID NOT FIRE'} (${n})`);
-    if (!kinds.has(k)) bad++;
+  for (const sc of SCENARIOS) {
+    const ctx = await browser.newContext({ ...deviceFor(vp) });
+    await ctx.addInitScript(CSP_INIT);
+    const pg = await ctx.newPage();
+    const errs = wireCollectors(pg);
+    const html = page(sc.html, sc.meta || '');
+    await pg.route('http://selftest.local/', (r) => r.fulfill({ contentType: 'text/html', body: html }));
+    await pg.goto('http://selftest.local/');
+    if (sc.after) await sc.after(pg);
+    await settle(pg);
+    const found = await runChecks(pg, { consoleErrors: errs, csp: true, vw: vp.w, vh: vp.h });
+    await ctx.close();
+    const kinds = new Set(found.map((f) => f.kind));
+    console.log(`selftest [${sc.name}]`);
+    for (const k of kindsAll) {
+      const want = sc.expect.includes(k);
+      const got = kinds.has(k);
+      const okk = want === got;
+      if (!okk) bad++;
+      if (want || got) console.log(`  ${okk ? 'ok  ' : 'FAIL'} ${k}: ${got ? 'fired' : 'silent'}${want ? ' (expected)' : ' (UNEXPECTED)'} (${found.filter((f) => f.kind === k).length})`);
+    }
+    if (!sc.expect.length && !found.length) console.log('  ok   no failures (expected)');
+    if (sc.also) { const m = sc.also(found); if (m) { bad++; console.log(`  FAIL ${m}`); } else console.log('  ok   data-truncate-ok honoured'); }
+    if (sc.name.startsWith('broken')) found.forEach((f) => console.log(`     ${f.kind}: ${f.reason} (${f.where})`));
+    else if (found.length && !sc.expect.length) found.forEach((f) => console.log(`     ${f.kind}: ${f.reason} (${f.where})`));
   }
-  const allowed = found.some((f) => f.kind === 'truncation' && /Allowed to be cut/.test(f.where));
-  console.log(`selftest data-truncate-ok: ${allowed ? 'NOT HONOURED' : 'honoured'}`);
-  if (allowed) bad++;
-  found.forEach((f) => console.log(`  ${f.kind}: ${f.reason} (${f.where})`));
+  await browser.close();
+  console.log(bad ? `\nselftest FAILED (${bad})` : '\nselftest passed');
   process.exit(bad ? 1 : 0);
 }
 
@@ -376,7 +502,13 @@ const args = parseArgs(process.argv.slice(2));
 if (args.selftest) await selftest();
 if (args.login) await login(args.login);
 const hasState = fs.existsSync(STATE);
-if (!hasState) console.log(`warning: no SWEEP_STATE file at ${STATE}; signed-in routes will land on /signin (use --login email:password)`);
+const needsSession = args.routes.filter((r) => !PUBLIC_ROUTES.has(r));
+if (!hasState && needsSession.length) {
+  console.error(`error: no SWEEP_STATE file at ${STATE}, but these routes need a session: ${needsSession.join(', ')}.`);
+  console.error('Sign in first with --login email:password (or point SWEEP_STATE at a storage-state file).');
+  process.exit(1);
+}
+console.log(`# sweep ${new Date().toISOString()} base ${BASE}${args.note ? ` | ${args.note}` : ''}`);
 const engines = args.engine === 'all' ? ['chromium', 'webkit'] : [args.engine];
 for (const e of engines) await sweepEngine(args, e, hasState);
 const kinds = Object.entries(tally).map(([k, n]) => `${k}=${n}`).join(' ');
