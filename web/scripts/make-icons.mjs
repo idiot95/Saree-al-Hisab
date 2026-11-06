@@ -2,7 +2,8 @@
 
    No image library, because adding one to a finance app so it can draw a
    letter is a poor trade. The mark is ح — the first letter of حساب, the
-   reckoning the app is named for — in cream on the header's charcoal blue.
+   reckoning the app is named for — in rose gold on the hero plum (Plum & Rose
+   Gold, Nov 2026; it was cream on the old header's charcoal blue).
 
    The outline below is Amiri's ح (SIL OFL 1.1), the same face the app sets
    إن الله سريع الحساب in, so the mark on the home screen and the line in the
@@ -24,8 +25,8 @@ import { fileURLToPath } from 'node:url';
 const OUT = join(dirname(fileURLToPath(import.meta.url)), '..', 'public', 'icons');
 mkdirSync(OUT, { recursive: true });
 
-const INK = [35, 61, 77];        // #233D4D, the header colour
-const CREAM = [242, 245, 240];   // #F2F5F0, the page colour
+const INK = [58, 29, 54];        // #3A1D36, the hero plum (ql.css --hero): the ground
+const CREAM = [217, 163, 140];   // #D9A38C, rose gold (ql.css --attention): the mark
 
 /** Width ÷ height of the letter's ink, so it is never stretched. */
 const RATIO = 0.8970;
@@ -194,4 +195,24 @@ for (const [name, size, opts] of [
   const file = join(OUT, name);
   writeFileSync(file, png(size, draw(size, opts)));
   console.log(`  ${name.padEnd(22)} ${size}×${size}`);
+}
+
+/* The browser tab's icon: src/app/favicon.ico (Next serves it at /favicon.ico). An ICO is a small directory of
+   PNGs — 16, 32 and 48 — so it needs nothing beyond the encoder above. It was Next's default triangle until now. */
+{
+  const sizes = [16, 32, 48];
+  const pngs = sizes.map((n) => png(n, draw(n, {})));
+  const head = Buffer.alloc(6 + 16 * sizes.length);
+  head.writeUInt16LE(0, 0); head.writeUInt16LE(1, 2); head.writeUInt16LE(sizes.length, 4);
+  let offset = head.length;
+  sizes.forEach((n, i) => {
+    const e = 6 + 16 * i;
+    head.writeUInt8(n, e); head.writeUInt8(n, e + 1); head.writeUInt8(0, e + 2); head.writeUInt8(0, e + 3);
+    head.writeUInt16LE(1, e + 4); head.writeUInt16LE(32, e + 6);
+    head.writeUInt32LE(pngs[i].length, e + 8); head.writeUInt32LE(offset, e + 12);
+    offset += pngs[i].length;
+  });
+  const file = join(dirname(fileURLToPath(import.meta.url)), '..', 'src', 'app', 'favicon.ico');
+  writeFileSync(file, Buffer.concat([head, ...pngs]));
+  console.log(`  ${'favicon.ico'.padEnd(22)} ${sizes.join(', ')}`);
 }
