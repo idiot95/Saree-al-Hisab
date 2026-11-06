@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Field, Problem, keepFields } from '../worth/fields';
 import { Icon } from '../Icon';
 import { haptic } from '../haptics';
-import Sheet from '../Sheet';
+import BottomDrawer from '../BottomDrawer';
 import { createTab } from './actions';
 import NewPeople from './NewPeople';
 
@@ -31,9 +31,8 @@ export default function NewTab() {
         New tab
       </button>
 
-      <Sheet open={open} onClose={close} label="New tab">
+      <BottomDrawer open={open} onClose={close} label="New tab" showTitle>
         <form noValidate onSubmit={keepFields(act)} className="flex flex-col gap-4 pt-0.5">
-          <h2 className="text-xl font-bold">New tab</h2>
           <Field label="Name · optional" name="name" maxLength={60}
             placeholder="Goa weekend, Office petrol…" autoComplete="off" />
 
@@ -57,7 +56,7 @@ export default function NewTab() {
             </Button>
           </div>
         </form>
-      </Sheet>
+      </BottomDrawer>
     </>
   );
 }

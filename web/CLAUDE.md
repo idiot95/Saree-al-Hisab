@@ -119,7 +119,7 @@ paragraph below says otherwise. Where an older section disagrees, this wins:
   posts straight to its action (it works without script) spreads `useKeepOnRefusal(state)` from worth/fields, which puts
   back what React's post-action reset undid after a refusal; one that opens only after a tap uses `keepFields`. A form that stays
   mounted after a success closes or is redrawn with a new key through `useOnSuccess(state, fn)`, because the reset runs
-  after a success too and would leave its radios and selects on the defaults while its state keeps the last choice. CardDeck and the schedules Calendar/MonthGrid are untouched (Task 28).
+  after a success too and would leave its radios and selects on the defaults while its state keeps the last choice. CardDeck and the schedules Calendar/MonthGrid moved to library components in Task 28 (below).
   `scripts/accounts-taps.mjs` edits a bank account's starting balance and a ₹1 reconciliation (with Undo), watching
   the Figures move, adds and stops a throwaway regular payment, and renames a category and back.
 - **Back returns to where you were** (`backStack.ts`): `NavTrail` in the root
@@ -130,6 +130,19 @@ paragraph below says otherwise. Where an older section disagrees, this wins:
   an entry opened from Home to Activity, and a September entry to October.)
 - **A tapped tab lights at once**, before its screen arrives, so the bar agrees
   with the loading frame instead of pointing at the screen being left.
+- **Library components, not hand-made ones** (Task 28). Every bottom drawer is shadcn's `Drawer` (vaul) through
+  `src/app/BottomDrawer.tsx`: it names the dialog (`label`, shown as the heading with `showTitle`), takes focus itself
+  (or a `focus` ref, the category search) and gives it back on close (Radix), clears the home indicator, keeps vaul's
+  `repositionInputs` for the iOS keyboard, unmounts its content when shut (a form inside starts fresh), and opens as
+  vaul's `NestedRoot` inside another drawer (`InDrawer`, which the Add drawer provides too). Nothing registers with the
+  back stack — Sheet never did. `Sheet.tsx` and its `.sheet`/`.veil`/`.el2` CSS are gone. Every month grid is shadcn's
+  `Calendar` (react-day-picker) through `src/app/HijriCalendar.tsx`: Monday first, a custom `DayButton` with the Hijri
+  day under the English one (the 1st names its month), the Hijri months under the caption, `min`/`max` as disabled days
+  and paging bounds, 44px cells (48 on Android), chosen = primary, today = a ring; `marksFor` lets Upcoming's calendar
+  put its dots under a day and its count in the day's label ("…, 2 scheduled"). The card wallet is shadcn's `Carousel`
+  (Embla): dots are buttons "Card N of M" with `aria-current`, 44/48px targets, arrow keys page it (not inside a field).
+  `scripts/sweep.mjs` takes `route|tap=<regex>` steps, so a drawer can be swept open; with a dialog open the overlap
+  check measures that dialog only, and a bar outside it only where it really paints on top.
 - `npm run test:contrast` measures the Quiet Ledger pairs too (192 pairs; the old header ramps are gone).
 
 ## The four invariants — enforced in Postgres, not in components
@@ -329,7 +342,7 @@ in `public/brands/`, so a card looks like itself offline and no bank learns
 which accounts a household keeps.
 
 Cards run **sideways**, one to a screen with the next peeking, so five cards
-cost no more of the page than one. The deck is scroll-snap (`.deck`), and the
+cost no more of the page than one. The deck is shadcn's Carousel (Embla; it was scroll-snap `.deck`), and the
 swipe is never the only way: the dots under it are buttons, every card is in
 the page in reading order, and each carries its own Pay and Edit rather than
 depending on which happens to be in view — which also keeps a horizontal drag
@@ -355,7 +368,7 @@ hidden input; there is no `<select>` of payment modes anywhere, because one
 listing every rail under every account showed "ICICI Amazon Pay" twice and
 read as nonsense. Wrap it in a `<div role="group">`, never a `<label>` — a
 label around buttons activates the first chip. The entries list shows the
-rail when there is one and the account when there is not. `sw.js` is v36 (the icon font gained the Accounts, Categories and Scan glyphs; v35 was the Household, auth and offline screens restyled).
+rail when there is one and the account when there is not. `sw.js` is v37 (Task 28: the offline Add's When drawer is shadcn Calendar now; v36 was the icon font gaining the Accounts, Categories and Scan glyphs).
 Before Save, a debounced
 `checkDuplicate` shows what a household member already recorded within ±1% and
 ±2 days, which is the prevention half of the duplicate rule; the Inbox card is
@@ -1124,7 +1137,7 @@ each cell carrying its Hijri day and the 1st of a Hijri month naming it. Nothing
 is fetched to draw a month; the page passes down the rule, the `since` date and
 the schedule's occurrence rows, and the grid decides for itself. A dot per
 item — out, in, overdue as a hollow ring, done faded. Tapping a day opens a
-bottom drawer (`Sheet.tsx`: veil at z41, dialog at z42 above the tab bar,
+bottom drawer (`BottomDrawer`, shadcn Drawer since Task 28; it was `Sheet.tsx`: veil at z41, dialog at z42 above the tab bar,
 Escape, scroll lock, focus to the handle) with a `DueRow` for anything still
 open, or the status word and a link to the entry for anything settled. Recording
 from the drawer is offered only within a fortnight of the date, so the calendar
@@ -1227,7 +1240,7 @@ one place a day is chosen: `DateChips` (a wrapping row of quick days —
 "Today · Yesterday · Sun 6 Sep · Sat 5 Sep" going back for Add Entry, the
 next three days going on for MoveDue, "In 6 months · In a year · In 2 years"
 for a schedule's end — plus a dashed "Another day…" that opens `DateSheet`, a
-`Sheet` around `MonthGrid`, a month with Gregorian numbers and the Hijri day
+`BottomDrawer` around `MonthGrid` (shadcn Calendar via `HijriCalendar` since Task 28), a month with Gregorian numbers and the Hijri day
 under each, bounded by `min`/`max`); `DayOfMonth` (1..28 or 1..30 in seven
 columns) and `MonthOfYear` (twelve names in four) for a rule; `Segmented` for
 the two-or-three-way choices (Every month / Once a year, English / Hijri,

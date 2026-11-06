@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Field, Problem, keepFields } from '../../worth/fields';
 import { Icon } from '../../Icon';
 import { haptic } from '../../haptics';
-import Sheet from '../../Sheet';
+import BottomDrawer from '../../BottomDrawer';
 import PayPicker from '../../PayPicker';
 import { DateChips } from '../../DatePick';
 import { useMoney } from '@/app/currency';
@@ -53,11 +53,10 @@ export default function MoneyBack({ tabId, ways, today, owing }: {
         Money back
       </button>
 
-      <Sheet open={open} onClose={close} label="Money back">
+      <BottomDrawer open={open} onClose={close} label="Money back" showTitle>
         {from && (
           /* In a drawer, which needs script to open: keepFields keeps the amount and the ticks after a refusal. */
           <form noValidate onSubmit={keepFields(act)} className="flex flex-col gap-4 pt-0.5">
-            <h2 className="text-xl font-bold">Money back</h2>
             <input type="hidden" name="tabId" value={tabId} />
             <input type="hidden" name="counterpartyId" value={from.id ?? ''} />
             <input type="hidden" name="occurred_on" value={on} />
@@ -118,7 +117,7 @@ export default function MoneyBack({ tabId, ways, today, owing }: {
             </p>
           </form>
         )}
-      </Sheet>
+      </BottomDrawer>
     </>
   );
 }

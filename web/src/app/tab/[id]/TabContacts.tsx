@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Problem, keepFields } from '../../worth/fields';
 import { Icon } from '../../Icon';
 import { haptic } from '../../haptics';
-import Sheet from '../../Sheet';
+import BottomDrawer from '../../BottomDrawer';
 import { useMoney } from '@/app/currency';
 import { addToTab, removeFromTab } from '../actions';
 import NewPeople from '../NewPeople';
@@ -59,9 +59,8 @@ export default function TabContacts({ tabId, people, canEdit }: {
         )}
       </div>
 
-      <Sheet open={open} onClose={close} label="People on this tab">
+      <BottomDrawer open={open} onClose={close} label="People on this tab" showTitle>
         <div className="flex flex-col gap-4 pt-0.5">
-          <h2 className="text-xl font-bold">People on this tab</h2>
 
           {people.length > 0 && (
             <ul className="flex flex-col">
@@ -109,7 +108,7 @@ export default function TabContacts({ tabId, people, canEdit }: {
             </form>
           )}
         </div>
-      </Sheet>
+      </BottomDrawer>
     </>
   );
 }

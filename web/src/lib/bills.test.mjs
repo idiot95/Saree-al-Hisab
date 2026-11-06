@@ -51,4 +51,13 @@ assert.match(d, /^inline; filename="[\x20-\x7e]+"; filename\*=UTF-8''/);
 assert.ok(!/['()*]/.test(d.split("UTF-8''")[1]), d);
 assert.ok(!/[\r\n]/.test(dispositionFor('x\r\ny', 'image/png')));
 assert.doesNotThrow(() => dispositionFor('\ud800 lone', 'image/png'));
+/* A header value must be ByteString (Latin-1) or the response throws: a Devanagari name with a rupee sign and one
+   with a lone surrogate both come out as a value the Headers constructor takes, for /attachment/[id] and
+   /attachment/h/[id] alike (both serve through dispositionFor). */
+for (const name of ['रसीद ₹.jpg', '\ud800 lone.png', 'bill \udc00\ud83d.pdf']) {
+  const v = dispositionFor(name, 'image/jpeg');
+  assert.ok([...v].every((c) => c.charCodeAt(0) <= 0x7e && c.charCodeAt(0) >= 0x20), `${JSON.stringify(name)} → ${v}`);
+  assert.doesNotThrow(() => new Headers({ 'Content-Disposition': v }), JSON.stringify(name));
+}
+assert.equal(dispositionFor('रसीद ₹.jpg', 'image/jpeg').split("UTF-8''")[1], encodeURIComponent('रसीद ₹.jpg'));
 assert.equal(SERVE_HEADERS['Content-Security-Policy'], "default-src 'none'; sandbox");

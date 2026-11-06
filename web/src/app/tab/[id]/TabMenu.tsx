@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Field, Problem, keepFields } from '../../worth/fields';
 import { Icon } from '../../Icon';
 import { haptic } from '../../haptics';
-import Sheet from '../../Sheet';
+import BottomDrawer from '../../BottomDrawer';
 import { useMoney } from '@/app/currency';
 import { deleteTab, renameTab, toggleTabClosed } from '../actions';
 
@@ -53,7 +53,7 @@ export default function TabMenu({ tabId, name, note, closed, held }: {
         <Icon name="dots" size={22} />
       </button>
 
-      <Sheet open={open} onClose={close} label="Tab settings">
+      <BottomDrawer open={open} onClose={close} label="Tab settings">
         {view === 'menu' && (
           <div className="flex flex-col pt-0.5">
             <h2 className="mb-1.5 text-xl font-bold">{name}</h2>
@@ -105,7 +105,7 @@ export default function TabMenu({ tabId, name, note, closed, held }: {
             </div>
           </form>
         )}
-      </Sheet>
+      </BottomDrawer>
     </>
   );
 }

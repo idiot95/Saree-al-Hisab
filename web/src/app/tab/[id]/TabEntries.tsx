@@ -5,7 +5,7 @@ import { useCallback, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import SwipeRow, { type SwipeAction } from '../../SwipeRow';
 import Snack, { type SnackState } from '../../Snack';
-import Sheet from '../../Sheet';
+import BottomDrawer from '../../BottomDrawer';
 import { Button } from '@/components/ui/button';
 import { Problem } from '../../worth/fields';
 import { Chip, Icon } from '../../Icon';
@@ -163,7 +163,7 @@ export default function TabEntries({
         </section>
       ))}
 
-      <Sheet open={open?.kind === 'bill' && !!target} onClose={close}
+      <BottomDrawer open={open?.kind === 'bill' && !!target} onClose={close}
         label={shown?.kind === 'bill' && shown.fresh ? 'Attach the bill' : 'Bills'}>
         {shown?.kind === 'bill' && target && (
           <BillBody entry={target} fresh={shown.fresh} tabName={tabName} editHref={edit(target.id)}
@@ -171,15 +171,15 @@ export default function TabEntries({
             onDone={(text) => { close(); setSnack({ text }); router.refresh(); }}
             onSkip={close} />
         )}
-      </Sheet>
+      </BottomDrawer>
 
-      <Sheet open={open?.kind === 'remind'} onClose={close} label="Remind">
+      <BottomDrawer open={open?.kind === 'remind'} onClose={close} label="Remind">
         {shown?.kind === 'remind' && (
           <RemindBody entry={shown.txnId ? target : null} tabId={tabId} tabName={tabName}
             claims={shown.txnId ? owedOn(shown.txnId) : claims.filter((c) => c.outstanding > 0)}
             bills={bills} />
         )}
-      </Sheet>
+      </BottomDrawer>
 
       <Snack snack={snack} onClose={closeSnack} />
     </>

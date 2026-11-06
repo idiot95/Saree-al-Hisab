@@ -1,11 +1,12 @@
 'use client';
 
-import { createContext, useContext, useState } from 'react';
+import { useContext, useState } from 'react';
 import { Drawer as Vaul } from 'vaul';
 import { Drawer, DrawerContent, DrawerTitle } from '@/components/ui/drawer';
 import { Icon, ACCOUNT_ICON } from '../Icon';
 import PayPicker, { WayTile, describe } from '../PayPicker';
 import { MonthGrid } from '../DatePick';
+import { InDrawer } from '../BottomDrawer';
 import { findRef, payLabel, type Way } from '@/lib/pay';
 import { friendlyDay, shiftDay } from '@/lib/recur';
 import { formatHijri, toHijri } from '@/lib/hijri';
@@ -16,9 +17,9 @@ import { cn } from '@/lib/utils';
    each that says the current answer and opens a drawer to change it. The full choices (every way to pay as a
    tile, the month grid) are a tap away instead of a screen's height of scrolling between the amount and Save. */
 
-/** True inside the Add drawer: a question there opens as vaul's nested drawer, so the Add drawer behind it
- *  scales back and a drag on the question is not also a drag on Add. On the full page there is no parent. */
-export const InDrawer = createContext(false);
+/* True inside the Add drawer (or any BottomDrawer): a question there opens as vaul's nested drawer, so the drawer
+   behind it scales back and a drag on the question is not also a drag on Add. On the full page there is no parent. */
+export { InDrawer };
 
 /** A vaul drawer holding one question. Over the Add drawer or the full page alike. */
 export function PickDrawer({ open, onClose, title, children }: {
