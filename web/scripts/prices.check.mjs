@@ -41,7 +41,13 @@ await build({
     }));
   } }],
 });
-const { ensureRates, _resetRateFailures } = await import(pathToFileURL(out).href);
+/* The failure memo (15 minutes per provider and quote) is module state with no reset exported, as it should be in
+   production. A fresh instance of the module is a fresh memo: ESM caches by URL, so a new query string evaluates the
+   bundle again. Each step that needs a clean slate takes one. */
+let instance = 0;
+let ensureRates;
+const freshModule = async () => { ({ ensureRates } = await import(`${pathToFileURL(out).href}?i=${++instance}`)); };
+await freshModule();
 
 let pass = 0, fail = 0;
 const ok = (c, what) => { if (c) pass++; else fail++; console.log(`  ${c ? 'ok  ' : 'FAIL'} ${what}`); };
@@ -90,20 +96,20 @@ try {
   const [aed] = await sql`select rate::text, fetched_at > now() - interval '1 minute' as fresh from price_quote where quote = ${Q} and base = 'AED'`;
   ok(aed.fresh && aed.rate === (1 / 0.04375).toFixed(10), 'fetched_at moved, the stored rate did not');
 
-  _resetRateFailures();
+  await freshModule();
   const f4 = fakeFetch({ '/v6/latest/MVR': 'fail' });
   await sql`update price_quote set fetched_at = now() - interval '25 hours' where quote = ${Q}`;
   const r4 = await ensureRates('h', ['USD', 'XAU'], Q, f4);
   ok(r4.stale.join() === 'USD,XAU', `a failing provider is swallowed and reported stale (${r4.stale})`);
-  _resetRateFailures();
+  await freshModule();
   const f5 = fakeFetch({ '/v6/latest/MVR': { result: 'error' } });
   ok((await ensureRates('h', ['USD'], Q, f5)).stale.join() === 'USD', 'unparseable answer is stale, no throw');
-  _resetRateFailures();
+  await freshModule();
   const f6 = fakeFetch({ '/v6/latest/MVR': erApi(-1) });
   ok((await ensureRates('h', ['USD'], Q, f6)).stale.join() === 'USD', 'a negative rate is discarded');
 
   // An outage: the first render pays for it, the next ones within 15 minutes do not fetch.
-  _resetRateFailures();
+  await freshModule();
   const f7 = fakeFetch({ '/v6/latest/MVR': 'fail' });
   await ensureRates('h', ['USD'], Q, f7);
   const f8 = fakeFetch({ '/v6/latest/MVR': erApi(0.0125) });
@@ -111,21 +117,21 @@ try {
   ok(f7.calls.length === 1 && f8.calls.length === 0 && r8.stale.join() === 'USD', 'after a failure the pair is not fetched again for 15 minutes');
 
   // A provider that hangs and ignores the signal: the whole call still returns in about 4 s.
-  _resetRateFailures();
+  await freshModule();
   const hang = () => new Promise(() => {});
   const t0 = Date.now();
   const r9 = await ensureRates('h', ['USD', 'XAU', 'XAG'], Q, hang);
   const dt = Date.now() - t0;
   ok(r9.stale.length === 3 && dt < 5500, `a hanging provider costs one budget, ${dt} ms (not one per request)`);
   // Slow FX that does honour the signal, then metals share the same spent budget.
-  _resetRateFailures();
+  await freshModule();
   const slow = (u, { signal }) => new Promise((_, rej) => signal.addEventListener('abort', () => rej(signal.reason)));
   const t1 = Date.now();
   const r10 = await ensureRates('h', ['USD', 'XAU'], Q, slow);
   ok(r10.stale.length === 2 && Date.now() - t1 < 5500, `a slow provider honouring the signal: ${Date.now() - t1} ms`);
 
   // The wrong pair is discarded; an invalid quote does nothing at all.
-  _resetRateFailures();
+  await freshModule();
   const f11 = fakeFetch({ '/v6/latest/MVR': { ...erApi(0.0125), base_code: 'USD' } });
   ok((await ensureRates('h', ['USD'], Q, f11)).stale.join() === 'USD', 'an answer for another base currency is discarded');
   const f12 = fakeFetch({});

@@ -27,10 +27,10 @@ const BUDGET_MS = 4000;
 const MAX_BODY = 256 * 1024;
 /* A provider that failed is left alone for this long, so an outage costs the
    first render a few seconds and the rest nothing. Per process, in memory:
-   a cold start forgets it, which only means one more try. */
+   a cold start forgets it, which only means one more try. Nothing resets it from outside: scripts/prices.check
+   takes a fresh instance of the module instead. */
 const RETRY_AFTER_MS = 15 * 60 * 1000;
 const failedAt = new Map<string, number>();
-export const _resetRateFailures = () => failedAt.clear();
 const recentlyFailed = (key: string) => Date.now() - (failedAt.get(key) ?? 0) < RETRY_AFTER_MS;
 const fail = (key: string) => { failedAt.set(key, Date.now()); };
 
