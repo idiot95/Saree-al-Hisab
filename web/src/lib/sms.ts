@@ -25,21 +25,21 @@ const MAX_MERCHANT = 40;
 
 const squeeze = (t: string) => t.replace(/\s+/g, ' ').trim();
 
-const OTP_WORDS = new RegExp([
+const OTP_SOURCE = [
   '(?<![a-z])o\\.?t\\.?p\\.?s?(?![a-z])',            // OTP, OTPs, O.T.P., OTP482913
   'ओटीपी',                                              // Hindi
   '\\bone[- ]?time[- ]?(?:password|pin|passcode|code)',
   '\\bverification code\\b',
   '\\bpasscode\\b',
-].join('|'), 'i');
+].join('|');
+const OTP_KEYWORD = new RegExp(OTP_SOURCE, 'gi');
 
 /* Past the keywords above, a 4-8 digit number is a code only when a
    code-phrase sits directly beside it (three tokens). "Never share your PIN"
    in a bank's footer, or "Ref 4829131", is not enough. */
-const STANDALONE_NUM = /(?<![\w.,₹/-])\d{4,8}(?!\d|[.,]\d|[-/]\d| ?(?:hrs?|hours|am|pm|%|days?|mins?)\b)/gi;
-const ATTACHED_OTP = /otp\d{4,8}/i;                 // "OTP482913" has no gap to be standalone in
+const STANDALONE_NUM = /(?<![\w.,₹/-])\d{4,8}(?!\d|[.,]\d|[-/]\d| ?(?:hrs?|hours|am|pm|days?|mins?)\b|%)/gi;
 const CODE_BEFORE = /\b(?:code|pin|mpin|password|passcode|verification|authori[sz]ation|verify|key|token)(?: (?:no\.?|number))?(?: is| are)?(?: ?[:-])?$|\b(?:do not|don't|never) share$/i;
-const CODE_AFTER = /^(?:is(?: \S+){0,3}? (?:code|pin|mpin|password|passcode|verification|login|key|token)\b|(?:is )?valid (?:for|till)\b|expires?\b|(?:to|for) (?:authori[sz]e|verify|login|log in|sign in|signin|approve)\b|as your (?:password|pin|code)\b)/i;
+const CODE_AFTER = /^(?:is(?: \S+){0,3}? (?:otp|code|pin|mpin|password|passcode|verification|login|key|token)\b|(?:is )?valid (?:for|till)\b|expires?\b|(?:to|for) (?:authori[sz]e|verify|login|log in|sign in|signin|approve)\b|as your (?:password|pin|code)\b)/i;
 // "Use/Enter N to confirm" and "Enter N on the app" need the verb; "Reply 4829 to confirm dispute" does not count.
 const USE_BEFORE = /\b(?:use|enter)$/i;
 const USE_AFTER = /^(?:(?:to|for) (?:confirm|complete)\b|(?:on|in) the app\b)/i;
@@ -47,17 +47,58 @@ const USE_AFTER = /^(?:(?:to|for) (?:confirm|complete)\b|(?:on|in) the app\b)/i;
 const NOT_A_CODE_BEFORE = /(?:\b(?:a\/c|ac|acct|account|card|ref|refno|txn|id|call|no|number)\b[:.]?|[Xx*]{2,}) ?$/i;
 const CURRENCY_TAIL = /(?:\brs\.?|\binr|₹|\b([A-Z]{3})) ?:? ?$/i;
 
+const DEVANAGARI_DIGITS = /[०-९]/g;
+const CONNECTIVE = /^(?:(?:the|is|are|number|for|txn|id|ref|of|your|login|transaction)\b|no\b\.?)/i;
+const AMOUNT_PHRASE = /^(?:rs\.?|inr|₹|([A-Z]{3})) ?:? ?\d[\d,]*(?:\.\d{1,3})?/i;
+const SKIP = /^[ :\-.,/(\[{<"'=#*_]+/;
+const ALNUM_CODE = /^(?=[A-Za-z0-9]*\d)(?=[A-Za-z0-9]*[A-Za-z])[A-Za-z0-9]{4,8}(?![A-Za-z0-9])/;
+const AFTER_KEYWORD_WINDOW = 34;
+const IS_CODE = /(?:\b(?:is|are)|:) ?[:-]* ?\d{4,8}(?!\d|[.,]\d|[-/]\d| ?(?:hrs?|hours|am|pm|days?|mins?)\b|%)/i;
+
+/** Is there a code just after an OTP keyword? The window is about 30
+ *  characters, stops at a sentence end (". " before a capital or digit), and
+ *  steps over punctuation, "is/for/txn/no/id/ref/of/your", and an amount
+ *  phrase ("for Rs 500"). A code is 4-8 digits (not an amount, date or time),
+ *  or, right after "OTP is" or "OTP:", a 4-8 character letters-and-digits token.
+ *  "Never share your OTP with anyone" has no code beside it, so it is no OTP. */
+function codeAfterKeyword(w: string): boolean {
+  let i = 0;
+  while (i < w.length) {
+    const r = w.slice(i);
+    if (/^\. [A-Z0-9]/.test(r)) return false;
+    let m: RegExpExecArray | null;
+    if ((m = CONNECTIVE.exec(r))) { i += m[0].length; continue; }
+    if ((m = AMOUNT_PHRASE.exec(r)) && (!m[1] || isCurrency(m[1].toUpperCase()))) { i += m[0].length; continue; }
+    if ((m = SKIP.exec(r))) {
+      const stop = m[0].search(/\. [A-Z0-9]/);        // a sentence end inside the run
+      if (stop >= 0) return false;
+      i += m[0].length; continue;
+    }
+    if ((m = /^\d{4,8}(?![\d]|[.,]\d|[-/]\d| ?(?:hrs?|hours|am|pm|days?|mins?)\b|%)/i.exec(r))) return true;
+    if (ALNUM_CODE.test(r) && /^(?: ?(?:is|are))? ?:?-? ?$/i.test(w.slice(0, i))) return true;
+    return false;
+  }
+  return false;
+}
+
 /** True for a one-time password however it is phrased. Checked before any
  *  parsing: "OTP for txn of Rs 500" is an OTP, whatever amount it carries.
  *  A missed OTP costs more than a lost draft, so this leans to true.
- *  An OTP keyword alone is not enough: a bank's "never share your OTP"
- *  footer carries no code, so the debit above it is kept. A code is a
- *  standalone 4-8 digit number that is not an account, reference, phone,
- *  amount, date or time. */
+ *  A keyword (OTP, one-time password, verification code, passcode) makes an
+ *  OTP only with a code right beside it; a bank's "never share your OTP"
+ *  footer has none, so the debit above it is kept. Without a keyword, a
+ *  4-8 digit number needs a code-phrase within three tokens. */
 export function isOtp(text: string): boolean {
-  const t = squeeze(text);
+  const t = squeeze(text).replace(DEVANAGARI_DIGITS, (d) => String(d.charCodeAt(0) - 0x966));
   if (/^\d{4,8} ?[-:–]/.test(t)) return true;
-  let candidate = ATTACHED_OTP.test(t);
+  for (const k of t.matchAll(OTP_KEYWORD)) {
+    const from = k.index! + k[0].length;
+    if (codeAfterKeyword(t.slice(from, from + AFTER_KEYWORD_WINDOW))) return true;
+    // A longer description may come first: "OTP for txn of Rs 500 at SHOP on card XX1234 is 482913".
+    const rest = t.slice(from, from + 160);
+    const end = rest.search(/\. [A-Z0-9]/);
+    if (IS_CODE.test(end < 0 ? rest : rest.slice(0, end))) return true;
+  }
   for (const m of t.matchAll(STANDALONE_NUM)) {
     const at = m.index!, end = at + m[0].length;
     const beforeToks = t.slice(Math.max(0, at - 40), at).trimEnd().split(' ');
@@ -67,12 +108,11 @@ export function isOtp(text: string): boolean {
     const before = beforeToks.slice(-3).join(' ');
     if (NOT_A_CODE_BEFORE.test(before)) continue;
     if (/^\d{3,4}$/.test(beforeToks[beforeToks.length - 1] ?? '') || /^\d{3,}/.test(afterToks[0] ?? '')) continue;  // "1800 2662"
-    candidate = true;
     const after = afterToks.slice(0, 5).join(' ');
     if (CODE_BEFORE.test(before) || CODE_AFTER.test(after)) return true;
     if (USE_BEFORE.test(before) && USE_AFTER.test(after)) return true;
   }
-  return candidate && OTP_WORDS.test(t);
+  return false;
 }
 
 /* ── amount ──────────────────────────────────────────────────────────── */
@@ -136,10 +176,10 @@ function amounts(text: string): Amount[] {
 // A transaction that did not happen. "failed" and the like colour the whole
 // message; "will be debited" and "mandate" only the sentence they sit in.
 const FAILED = /\b(?:failed|declined|unsuccessful)\b/i;
-const NOT_YET = /\b(?:not (?:been )?debited|will be debited|is due)\b/i;
+const NOT_YET = /\b(?:not (?:been )?debited|will be debited|will debit|to be debited|is due)\b/i;
 // An executed autopay says "debited ... via UPI Mandate"; only a mandate being set up or awaited is not done.
 const MANDATE = /\b(?:e-?)?mandate\b/i;
-const MANDATE_PENDING = /\b(?:will be|registered|created|set up|setup|is due)\b/i;
+const MANDATE_PENDING = /\b(?:will be|will debit|to be debited|registered|created|set up|setup|is due|due on|upcoming|scheduled)\b/i;
 const REVERSAL = /\brevers(?:ed|al)\b/i;
 const DEBIT = /\b(?:debited|debit(?! card)|spent|sent(?! you\b)|paid(?! you\b)|withdrawn|withdrawal|purchased?|used for|(?:transferred|trf) to)\b/gi;
 const CREDIT = /\b(?:credited|credit alert|received|deposited|refunded|refund\b(?!@)|revers(?:ed|al)|(?:sent|paid) you|cashback (?:added|credited|received))\b/gi;
@@ -223,7 +263,7 @@ function findDate(text: string): string | null {
 }
 
 const VPA = /^[\w.\-]+@[A-Za-z][\w]*$/;
-const NAME_STOP = new Set(['on', 'via', 'using', 'ref', 'refno', 'upi', 'txn', 'from', 'to', 'at', 'with', 'for', 'by', 'in', 'is', 'utr', 'imps', 'neft',
+const NAME_STOP = new Set(['on', 'via', 'using', 'ref', 'refno', 'upi', 'txn', 'be', 'from', 'to', 'at', 'with', 'for', 'by', 'in', 'is', 'utr', 'imps', 'neft',
   'initiated', 'declined', 'failed', 'reversed', 'has', 'been', 'was', 'successful', 'successfully', 'processed', 'not']);
 const ACCOUNT_WORD = new Set(['a/c', 'ac', 'acct', 'account', 'card', 'bank']);
 const NOT_A_NAME = new Set(['block', 'confirm', 'your', 'my', 'the', 'a', 'an', 'atm']);

@@ -148,6 +148,26 @@ export const OTP_FIXTURES: string[] = [
   'Swiggy: 482913 is your verification', 'Your temporary password is 482913', 'Your one time code is 482913', 'Confirmation code 482913',
   'Your security key 482913 expires in 5 min', 'Do not share 482913', 'Verification: 482913', 'Your code - 482913',
   'Authentication 482913 for login',
+  // The code sits against the keyword behind punctuation, "No.", "ID", "Ref" or "for txn".
+  'Dear Customer, your OTP is :-482913 for txn of Rs 500 at SHOP. Do not share it with anyone',
+  'OTP:-482913. Valid for 10 mins',
+  'OTP-482913 for your transaction of INR 500.00 at AMAZON on card XX1234. Valid 5 mins',
+  'One Time Password-482913 for login. Do not share',
+  'Your one-time password is:-4829',
+  'Your verification code-482913',
+  'Use OTP-482913 to complete txn of Rs 500',
+  'OTP is-482913',
+  'Your OTP No. 482913 for Rs 500 at SHOP. Do not share',
+  'OTP No:482913 for login to NetBanking',
+  'OTP number 482913',
+  'Your OTP for txn 482913 on card XX1234',
+  'OTP for Txn: 482913',
+  'OTP ID 482913', 'OTP Ref 482913', 'OTP.482913', 'OTP,482913', 'OTP/482913',
+  'OTP is AB12CD',
+  'ओटीपी ५५८२१३ है',
+  'Your OTP for txn of Rs 500 at SHOP on card XX1234 is 482913. Valid for 10 mins. Never share your OTP with anyone',
+  'OTP for txn on 01/11/26 is 482913',
+  'OTP for card XX1234 is 482913',
 ];
 
 export const PROMO_FIXTURES: string[] = [
@@ -222,5 +242,16 @@ export const EDGE_FIXTURES: SmsFixture[] = [
   E('Rs 199 debited towards e-mandate for SPOTIFY', 19900, 'INR', 'debit', null, null, null),
   // A fee's "of" amount never outranks a plain nearest amount.
   E('Rs 500 debited for GST of Rs 90', 50000, 'INR', 'debit', null, null, null),
+  // Footers that name an OTP with no code beside it: digits before the keyword do not make it one.
+  E('Rs 500 debited from A/c XX1234 on 06 Nov 2026. Never share your OTP with anyone', 50000, 'INR', 'debit', '1234', null, '2026-11-06'),
+  E('Rs 500 debited from A/c XX1234 at 14:30. Not you? SMS BLOCK 1234 to 5676791. Never share OTP', 50000, 'INR', 'debit', '1234', null, null),
+  E('Rs 500 debited from A/c XX1234. UTR 48291312. Never share your OTP', 50000, 'INR', 'debit', '1234', null, null),
+  E('Rs 500 debited from A/c XX1234. IMPS 482913. Never share OTP', 50000, 'INR', 'debit', '1234', null, null),
+  E('Rs 500 debited from A/c XX1234 at SHOP 4829. Do not share your OTP', 50000, 'INR', 'debit', '1234', 'SHOP', null),
+  // A mandate still to come is not a debit.
+  E('AutoPay mandate: Rs 649 to be debited on 05-12-26 from A/c XX1234 for NETFLIX', null, null, null, '1234', null, '2026-12-05'),
+  E('Your UPI mandate for NETFLIX is scheduled. Rs 649 will debit on 05-12-26', null, null, null, null, null, '2026-12-05'),
+  E('Upcoming mandate: Rs 649 to be debited from A/c XX1234 on 05-12-26', null, null, null, '1234', null, '2026-12-05'),
+  E('Mandate created successfully. Rs 1 debited from A/c XX1234 for verification', 100, 'INR', 'debit', '1234', null, null),
   E('Rs.500 debited A/cXX1234 on 01Nov26', 50000, 'INR', 'debit', '1234', null, '2026-11-01'),
 ];

@@ -110,7 +110,7 @@ const hostile = [
   'card ' + '1'.repeat(1990) + 'x', 'card 12345 '.repeat(180), 'bal ' .repeat(500), 'card '.repeat(400),
   'balance' + S(800) + 'is' + S(800) + 'Rs' + S(300), 'Rs ' + '9,'.repeat(995), 'Rs 1 '.repeat(400) + ' debited '.repeat(20),
   'to '.repeat(660), 'is '.repeat(660), 'a/c '.repeat(500), '1-1-'.repeat(500), 'UPI/1/' + 'a'.repeat(1990), 'UPI/1/a '.repeat(240),
-  'a'.repeat(1990) + ' sent', 'code ' + '1'.repeat(1990), '1234 '.repeat(390), 'OTP' + S(1990) + '1', 'bal Rs ' + S(1000) + '9'.repeat(900),
+  'a'.repeat(1990) + ' sent', 'code ' + '1'.repeat(1990), '1234 '.repeat(390), 'OTP' + S(1990) + '1', 'OTP '.repeat(480), 'OTP is :- '.repeat(190), 'OTP for txn of Rs 5 '.repeat(95), 'OTP' + ':-'.repeat(990), 'bal Rs ' + S(1000) + '9'.repeat(900),
 ];
 for (const h of hostile) {
   const t0 = performance.now();
