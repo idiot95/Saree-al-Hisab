@@ -1054,11 +1054,13 @@ try {
   await refusesWith('a rate of ten decimals plus a billion is refused by the CHECK', /rate_bounded/, () => setOverride('KWD', '1000000000.5'));
 
   // holding_value_at is holding_value for any date; for today they agree on every holding.
-  const mism = await sql`select v.id from holding_value v
+  const mism = await sql`select v.id, f.id as fid from holding_value v
     full join holding_value_at(${hh.id}, current_date) f on f.id = v.id
-    where v.household_id = ${hh.id} and v.value_minor is distinct from f.value_minor`;
+    where coalesce(v.household_id, ${hh.id}) = ${hh.id}
+      and (v.id is null or f.id is null or v.value_minor is distinct from f.value_minor)`;
   const total = (await sql`select count(*)::int as n from holding_value where household_id = ${hh.id}`)[0].n;
-  ok(total >= 6 && mism.length === 0,
+  const totalAt = (await sql`select count(*)::int as n from holding_value_at(${hh.id}, current_date)`)[0].n;
+  ok(total >= 6 && totalAt === total && mism.length === 0,
     `holding_value_at(today) equals holding_value for all ${total} holdings, ties, quotes, overrides and nulls included`);
   const at = async (id, d) => (await sql`select value_minor::text as v from holding_value_at(${hh.id}, ${d}::date) where id = ${id}`)[0]?.v ?? 'missing';
   await upsert(xts, 100, yesterday);
@@ -1076,11 +1078,36 @@ try {
   // The expression worthSeries uses: the current month's point is today's figure, and last month's is its own month-end.
   const point = async (month) => (await sql`
     select coalesce((select sum(v.value_minor) from holding_value_at(${hh.id},
-             least((${month}::date + interval '1 month - 1 day')::date, current_date)) v where v.archived_at is null), 0)::text as holdings`)[0].holdings;
+             least((${month}::date + interval '1 month - 1 day')::date, current_date)) v
+           where v.archived_at is null or v.archived_at >= (${month}::date + interval '1 month')::date), 0)::text as holdings`)[0].holdings;
   const nowSum = (await sql`select coalesce(sum(value_minor), 0)::text as s from holding_value where household_id = ${hh.id} and archived_at is null`)[0].s;
   ok(await point((await sql`select date_trunc('month', current_date)::date::text as m`)[0].m) === nowSum,
     `worthSeries' holdings point for this month is today's holdings total (${nowSum})`);
   ok(await point('2000-01-01') === '0', 'and a month before any snapshot is 0');
+
+  // A past date against a hand-computed set: snapshots 200 (5 days ago) and 300 (2 days ago), rates 2 (5 days ago) and 3 (yesterday).
+  const d = async (n) => (await sql`select (current_date - ${n}::int)::text as d`)[0].d;
+  const hist = await pot({ currency: 'XTS', name: 'History' });
+  await upsert(hist, 200, await d(5)); await upsert(hist, 300, await d(2));
+  await setOverride('XTS', '2', await d(5)); await setOverride('XTS', '3', await d(1));
+  const want = [[6, 'null'], [5, '400'], [3, '400'], [2, '600'], [1, '900'], [0, '900']];
+  const got = [];
+  for (const [n] of want) got.push([n, String((await sql`select value_minor::text as v from holding_value_at(${hh.id}, ${await d(n)}::date) where id = ${hist}`)[0].v)]);
+  ok(JSON.stringify(got) === JSON.stringify(want), `a past date's value is the hand-computed one: ${got.map((g) => g.join('→')).join(' ')}`);
+  ok(String((await valued(hist)).value_minor) === '900', 'and today agrees with holding_value');
+
+  // Archiving never rewrites history: a holding live last month stays in last month's point and leaves this month's.
+  const lm = (await sql`select (date_trunc('month', current_date) - interval '1 month')::date::text as m, date_trunc('month', current_date)::date::text as c`)[0];
+  const old = await pot({ currency: 'XTS', name: 'Archived later' });
+  await upsert(old, 1000, lm.m); await setOverride('XTS', '2', lm.m);
+  await sql`delete from price_override where household_id = ${hh.id} and base = 'XTS' and as_of in (${await d(5)}, ${await d(1)})`;
+  const lastBefore = await point(lm.m), thisBefore = await point(lm.c);
+  await sql`update holding set archived_at = now() where id = ${old}`;
+  const lastAfter = await point(lm.m), thisAfter = await point(lm.c);
+  ok(Number(lastBefore) >= 2000 && lastAfter === lastBefore, `archiving leaves last month's point unchanged (${lastBefore} → ${lastAfter})`);
+  const oldNow = Number((await valued(old)).value_minor);
+  ok(oldNow > 0 && Number(thisBefore) - Number(thisAfter) === oldNow,
+    `and today's point drops it (${thisBefore} → ${thisAfter})`);
 
   // Digits come from the same list as money.ts.
   const digits = await sql`select code, currency_digits(code) as d from unnest(
@@ -1132,7 +1159,7 @@ try {
     ok(await n(app`select count(*)::int as n from holding`) === 0, 'unscoped, there are no holdings at all');
     ok(await scoped(elsewhere.id, (tx) => n(tx`select count(*)::int as n from holding_value_at(${hh.id}, current_date)`)) === 0,
       'holding_value_at, as the app, shows another household none of these holdings');
-    ok(await scoped(hh.id, (tx) => n(tx`select count(*)::int as n from holding_value_at(${hh.id}, current_date)`)) === total,
+    ok(await scoped(hh.id, (tx) => n(tx`select count(*)::int as n from holding_value_at(${hh.id}, current_date)`)) === (await sql`select count(*)::int as n from holding where household_id = ${hh.id}`)[0].n,
       'and its own household all of them');
     await refusesWith('an override written into another household is refused', /row-level security/,
       () => scoped(elsewhere.id, (tx) => tx`insert into price_override ${sql({ household_id: hh.id, base: 'XTS', quote: 'INR',

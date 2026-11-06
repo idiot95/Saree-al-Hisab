@@ -1,6 +1,6 @@
 // Run through: node scripts/lib.test.mjs
 import assert from 'node:assert/strict';
-const { gramsToMg, purityPermille, parseRate, fxQuantity, dateProblem } = await import(`${process.env.LIB}/holding-input.js`);
+const { canWrite, gramsToMg, purityPermille, parseRate, fxQuantity, dateProblem } = await import(`${process.env.LIB}/holding-input.js`);
 
 // grams -> integer milligrams, by string arithmetic
 for (const [typed, mg] of [['0', 0], ['1', 1000], ['12.5', 12500], ['12.500', 12500], ['0.001', 1], ['.5', 500],
@@ -48,4 +48,29 @@ assert.equal(dateProblem('2026-11-06', '2026-11-06'), null);
 assert.equal(dateProblem('2026-11-05', '2026-11-06'), null);
 assert.match(dateProblem('2026-11-07', '2026-11-06'), /future/);
 for (const bad of ['', 'yesterday', '2026-02-30', '2026-13-01', '06/11/2026']) assert.ok(dateProblem(bad, '2026-11-06'), bad);
+
+// commas group digits; they are never a decimal point
+assert.deepEqual(gramsToMg('1,000.5'), { ok: true, mg: 1000500 });
+assert.deepEqual(gramsToMg('12,50,000'), { ok: true, mg: 1250000000 });
+assert.deepEqual(fxQuantity('12,50,000.50', 'USD'), { ok: true, minor: 125000050 });
+assert.deepEqual(parseRate('1,234.5'), { ok: true, rate: '1234.5' });
+for (const bad of ['12,5', '1,2,3', '1,00', '1234,567', ',5', '5,', '1.000,5', '1,000,00', '12,5.5']) {
+  for (const r of [gramsToMg(bad), fxQuantity(bad, 'USD'), parseRate(bad)]) {
+    assert.equal(r.ok, false, `comma rejects ${bad}`);
+    assert.match(r.error, /Use a point for decimals, like 12\.5/);
+  }
+}
+// no prototype lookups
+for (const p of ['constructor', '__proto__', 'toString', 'hasOwnProperty']) {
+  assert.equal(purityPermille('gold', p).ok, false, p);
+  assert.equal(purityPermille('silver', p).ok, false, p);
+}
+assert.equal(purityPermille('constructor', '999').ok, false);
+// dates before 1900 are refused
+assert.ok(dateProblem('1899-12-31', '2026-11-06'));
+assert.equal(dateProblem('1900-01-01', '2026-11-06'), null);
+// writers are an allow-list
+assert.equal(canWrite('owner'), true);
+assert.equal(canWrite('adult'), true);
+for (const r of ['viewer', '', 'admin', undefined, null, 'constructor', 'OWNER']) assert.equal(canWrite(r), false, String(r));
 console.log('  holding-input ok');

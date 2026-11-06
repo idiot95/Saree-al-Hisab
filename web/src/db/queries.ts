@@ -1144,13 +1144,15 @@ export async function worthSeries(householdId: string, months = 6) {
                 or before it, times the rate in effect that day, rounded once,
                 half-even — holding_value_at is holding_value for any date. The
                 current month stops at today, so its point is today's figure and
-                a snapshot dated ahead is not counted early. Archived holdings are
-                left out, as archived accounts are. A holding with no snapshot or
+                a snapshot dated ahead is not counted early. A holding archived
+                during or before a month is out of that month and later ones;
+                archiving never rewrites the months it was live in. A holding with no snapshot or
                 no rate yet that day contributes nothing. */
              coalesce((select sum(v.value_minor)
                        from holding_value_at(${householdId},
                               least((s.month + interval '1 month - 1 day')::date, current_date)) v
-                       where v.archived_at is null), 0)::text as holdings
+                       where v.archived_at is null
+                          or v.archived_at >= (s.month + interval '1 month')::date), 0)::text as holdings
       from span s
       order by s.month
     ` as Promise<{ month: string; held: string; holdings: string }[]>;

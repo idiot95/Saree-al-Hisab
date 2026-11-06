@@ -6,18 +6,22 @@ import { sql, withHousehold } from '@/db/client';
 import { currentActor } from '@/db/queries';
 import { resolveOwner } from '@/db/holdings';
 import { isCurrency } from '@/lib/money';
-import { dateProblem, fxQuantity, gramsToMg, parseRate, purityPermille } from '@/lib/holding-input';
+import { canWrite, dateProblem, fxQuantity, gramsToMg, parseRate, purityPermille } from '@/lib/holding-input';
 
 export type Result = { ok: true; message?: string } | { ok: false; error: string };
 
 /* Reachable by direct POST, so each one re-establishes who is asking and
    re-checks that every id belongs to their household. A viewer is stopped
    here, not by hiding a button. */
+class Refused extends Error {}
 async function mustWrite() {
   const actor = await currentActor();
-  if (actor.role === 'viewer') throw new Error('Viewers cannot change holdings.');
+  if (!canWrite(actor.role)) throw new Refused('Viewers cannot change holdings.');
   return actor;
 }
+/** Only our own refusal is worded for the person; anything else is not shown. */
+const refusal = (e: unknown) =>
+  e instanceof Refused ? e.message : 'Something went wrong. Try again.';
 
 const text = (fd: FormData, k: string) => String(fd.get(k) ?? '').trim();
 const today = async () => (await sql`select current_date::text as d`)[0].d as string;
@@ -33,7 +37,7 @@ function friendly(e: unknown): string {
 
 export async function createHolding(_prev: Result | null, fd: FormData): Promise<Result> {
   let actor;
-  try { actor = await mustWrite(); } catch (e) { rethrowControlFlow(e); return { ok: false, error: (e as Error).message }; }
+  try { actor = await mustWrite(); } catch (e) { rethrowControlFlow(e); return { ok: false, error: refusal(e) }; }
   return withHousehold(actor.household_id, async () => {
     try {
       const kind = text(fd, 'kind');
@@ -96,15 +100,16 @@ export async function createHolding(_prev: Result | null, fd: FormData): Promise
    quantity is the whole balance on that day, not a change to it. */
 export async function updateSnapshot(_prev: Result | null, fd: FormData): Promise<Result> {
   let actor;
-  try { actor = await mustWrite(); } catch (e) { rethrowControlFlow(e); return { ok: false, error: (e as Error).message }; }
+  try { actor = await mustWrite(); } catch (e) { rethrowControlFlow(e); return { ok: false, error: refusal(e) }; }
   return withHousehold(actor.household_id, async () => {
     try {
       const id = text(fd, 'id');
       const [h] = /^[0-9a-f-]{36}$/i.test(id)
-        ? await sql`select id, kind, currency, name from holding
-                    where id = ${id} and household_id = ${actor.household_id} and archived_at is null`
+        ? await sql`select id, kind, currency, name, archived_at from holding
+                    where id = ${id} and household_id = ${actor.household_id}`
         : [];
       if (!h) return { ok: false, error: 'That is not one of your holdings.' };
+      if (h.archived_at) return { ok: false, error: 'That holding is archived.' };
 
       const now = await today();
       const asOf = text(fd, 'asOf') || now;
@@ -134,16 +139,17 @@ export async function updateSnapshot(_prev: Result | null, fd: FormData): Promis
 /* Archived, never deleted: its snapshots stay, and it simply stops counting. */
 export async function archiveHolding(_prev: Result | null, fd: FormData): Promise<Result> {
   let actor;
-  try { actor = await mustWrite(); } catch (e) { rethrowControlFlow(e); return { ok: false, error: (e as Error).message }; }
+  try { actor = await mustWrite(); } catch (e) { rethrowControlFlow(e); return { ok: false, error: refusal(e) }; }
   return withHousehold(actor.household_id, async () => {
     try {
       const id = text(fd, 'id');
-      const rows = /^[0-9a-f-]{36}$/i.test(id)
-        ? await sql`update holding set archived_at = now()
-                    where id = ${id} and household_id = ${actor.household_id} and archived_at is null
-                    returning name`
+      const [h] = /^[0-9a-f-]{36}$/i.test(id)
+        ? await sql`select archived_at from holding where id = ${id} and household_id = ${actor.household_id}`
         : [];
-      if (!rows.length) return { ok: false, error: 'That is not one of your holdings.' };
+      if (!h) return { ok: false, error: 'That is not one of your holdings.' };
+      if (h.archived_at) return { ok: false, error: 'That holding is archived.' };
+      await sql`update holding set archived_at = now()
+                where id = ${id} and household_id = ${actor.household_id} and archived_at is null`;
       revalidatePath('/worth');
       revalidatePath('/');
       return { ok: true, message: 'Archived. Its history is kept.' };
@@ -160,7 +166,7 @@ export async function archiveHolding(_prev: Result | null, fd: FormData): Promis
    string it was typed as. */
 export async function setRateOverride(_prev: Result | null, fd: FormData): Promise<Result> {
   let actor;
-  try { actor = await mustWrite(); } catch (e) { rethrowControlFlow(e); return { ok: false, error: (e as Error).message }; }
+  try { actor = await mustWrite(); } catch (e) { rethrowControlFlow(e); return { ok: false, error: refusal(e) }; }
   return withHousehold(actor.household_id, async () => {
     try {
       const base = text(fd, 'base').toUpperCase();

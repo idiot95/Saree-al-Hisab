@@ -116,7 +116,7 @@ export async function editAccount(_prev: Result | null, fd: FormData): Promise<R
   let actor;
   try { actor = await mustWrite(); } catch (e) { rethrowControlFlow(e); return { ok: false, error: (e as Error).message }; }
   return withHousehold(actor.household_id, async () => {
-
+   try {
     const id = String(fd.get('id') ?? '');
     const name = String(fd.get('name') ?? '').trim();
     const last4 = String(fd.get('last4') ?? '').trim() || null;
@@ -216,6 +216,12 @@ export async function editAccount(_prev: Result | null, fd: FormData): Promise<R
     revalidatePath('/accounts');
     revalidatePath('/');
     return { ok: true, message: `${name} updated.` };
+   } catch (e) {
+    rethrowControlFlow(e);
+    const m = (e as Error)?.message ?? '';
+    if (/owner must be a member/i.test(m)) return { ok: false, error: 'That person is not in this household.' };
+    return { ok: false, error: 'That could not be saved. Check the details and try again.' };
+   }
   });
 }
 
