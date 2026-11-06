@@ -128,7 +128,7 @@ export default function TabEntries({
   return (
     <>
       {visible.length === 0 && (
-        <Empty icon="receipt_long" text="Nothing on this tab yet. Add cost, below, puts the first one on." />
+        <Empty icon="receipt_long" text={canEdit ? 'Nothing on this tab yet. Add cost, below, puts the first one on.' : 'Nothing on this tab yet.'} />
       )}
 
       {months.map((m) => (

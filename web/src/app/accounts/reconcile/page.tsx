@@ -20,6 +20,7 @@ export default async function ReconcilePicker() {
   if (!actor) redirect('/signin');
   if (!actor.household_id) redirect('/no-household');
   const accounts = await reconcileTargets(actor.household_id);
+  const canWrite = actor.role !== 'viewer';
 
   return (
     <Screen>
@@ -30,8 +31,10 @@ export default async function ReconcilePicker() {
         <section aria-labelledby="sec-which" className="flex flex-col gap-1.5 px-[var(--gutter)] pb-8">
           <h2 id="sec-which" className="px-0.5 text-[13px] font-semibold text-muted-foreground">Which account</h2>
           {accounts.length === 0 && (
-            <Empty icon="account_balance" inset={false} text="No account to match yet. Add your bank account first."
-              action={{ href: '/accounts', label: 'Add an account', icon: 'add' }} />
+            /* The way to add one only for someone who may: a viewer is told there is nothing yet, and no more. */
+            <Empty icon="account_balance" inset={false}
+              text={canWrite ? 'No account to match yet. Add your bank account first.' : 'No account to match yet.'}
+              action={canWrite ? { href: '/accounts', label: 'Add an account', icon: 'add' } : undefined} />
           )}
           <ul className="overflow-hidden rounded-[18px] bg-card empty:hidden">
             {accounts.map((a) => {
@@ -65,9 +68,6 @@ export default async function ReconcilePicker() {
                 </li>
               );
             })}
-            {accounts.length === 0 && (
-              <li className="py-6 text-center text-sm text-muted-foreground">No accounts yet.</li>
-            )}
           </ul>
         </section>
         <TabBar current="/accounts" />

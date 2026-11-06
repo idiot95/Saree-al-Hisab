@@ -65,7 +65,7 @@ export default async function Capture() {
             <Label>{owner ? 'Phones in this household' : 'Your phones'}</Label>
             {tokens.length === 0 ? (
               <EmptyLine icon="phone_iphone" className="rounded-2xl border border-dashed border-border">
-                No phone is set up yet. Add one below, and its bank messages arrive as drafts.
+                No phone is set up yet.{canAdd && ' Add one below, and its bank messages arrive as drafts.'}
               </EmptyLine>
             ) : (
               <div className="rounded-2xl border border-border bg-card px-4">

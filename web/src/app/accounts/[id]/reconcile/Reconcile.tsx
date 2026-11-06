@@ -1,5 +1,6 @@
 'use client';
 
+import { EmptyLine } from '../../../entries/parts';
 import Link from '@/app/NavLink';
 import { useActionState, useState } from 'react';
 import { ErrorNote, primaryBtn, quietBtn } from '../../../auth-ui';
@@ -119,7 +120,7 @@ export default function Reconcile({ accountId, credit, today, lastOn, cleared, e
             );
           })}
           {upTo.length === 0 && (
-            <p className="py-5 text-center text-sm text-muted-foreground">Nothing to match up to this date.</p>
+            <EmptyLine icon="done_all" className="">Nothing to match up to this date.</EmptyLine>
           )}
         </div>
         {later > 0 && (

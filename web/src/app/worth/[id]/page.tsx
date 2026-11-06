@@ -1,4 +1,5 @@
 import { notFound, redirect } from 'next/navigation';
+import { EmptyLine } from '../../entries/parts';
 import { actorOrNull, membersOf } from '@/db/queries';
 import { baseOf, holdingById, photosFor, snapshotsFor } from '@/db/holdings';
 import { ensureRates } from '@/db/prices';
@@ -111,7 +112,7 @@ export default async function Holding({ params }: { params: Promise<{ id: string
                   {forSnap(s.id).length > 0 && <Thumbs photos={forSnap(s.id)} />}
                 </li>
               ))}
-              {snapshots.length === 0 && <li className="px-3.5 py-3 text-sm text-muted-foreground">No figures yet.</li>}
+              {snapshots.length === 0 && <li><EmptyLine icon="schedule" className="">No figures yet.</EmptyLine></li>}
             </ol>
           </section>
 

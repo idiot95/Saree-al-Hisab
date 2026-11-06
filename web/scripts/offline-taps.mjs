@@ -11,7 +11,7 @@
       opened online leaves the pickers on the phone (ql.pickers.v1).
    2. The network is cut (context.setOffline). A screen asked for now — /entries — is answered by the worker with the
       cached /offline: Add Entry with the No connection banner.
-   3. An expense typed there is kept on the phone: one entry in ql.queue.v1 with a clientRef, listed under
+   3. An expense typed there, for an amount no entry in the books has, is kept on the phone: one entry in ql.queue.v1 with a clientRef, listed under
       "Waiting for signal · 1", and nothing has reached the books.
    4. The network comes back. SyncQueue sends on `online`, on that same screen: the snack says the entry is in the
       books, the phone's queue is empty and nothing is listed as waiting. Exactly one row carries that client_ref.
@@ -52,6 +52,7 @@ const errors = [];
 page.on('pageerror', (e) => errors.push(e.message));
 
 let ref = null;
+let SHOWN = '';
 let user = null;
 try {
   /* ── 1. online: the worker, the shell, the pickers ───────────────────── */
@@ -93,7 +94,13 @@ try {
 
   /* ── 3. typed without signal: kept on the phone ──────────────────────── */
   const before = (await sql`select count(*)::int as n from txn where household_id = ${hh}`)[0].n;
-  await amount.fill('29');
+  /* An amount nothing else in the books has, so Home's line for it can only be this run's entry. */
+  const taken = new Set((await sql`select amount from txn where household_id = ${hh}`).map((r) => Number(r.amount)));
+  let RUPEES = 0;
+  for (let i = 0; i < 200 && !RUPEES; i++) { const r = 101 + Math.floor(Math.random() * 8800); if (!taken.has(r * 100)) RUPEES = r; }
+  assert.ok(RUPEES, 'found an amount the books do not hold');
+  SHOWN = `₹${RUPEES.toLocaleString('en-IN')}`;
+  await amount.fill(String(RUPEES));
   await page.locator('[data-category-tile]').first().click();
   await page.locator('[data-save]').click();
   await page.getByText(/kept on this phone/).first().waitFor({ timeout: 10000 });
@@ -101,12 +108,12 @@ try {
   assert.equal(queued.length, 1, 'one entry in the queue');
   ref = queued[0].clientRef;
   assert.match(ref, /^[0-9a-f-]{36}$/, 'it carries a clientRef');
-  assert.equal(queued[0].amountMinor, 2900);
+  assert.equal(queued[0].amountMinor, RUPEES * 100);
   const waiting = page.getByRole('region', { name: 'Waiting to be sent' });
   await waiting.getByRole('heading', { name: 'Waiting for signal · 1' }).waitFor();
   assert.equal((await sql`select count(*)::int as n from txn where household_id = ${hh}`)[0].n, before, 'nothing reached the books');
   if (SHOTS) await page.screenshot({ path: path.join(SHOTS, 'offline-2-queued.png') });
-  ok(`offline: ₹29 kept on the phone (clientRef ${ref.slice(0, 8)}…), "Waiting for signal · 1", the books unchanged`);
+  ok(`offline: ${SHOWN} kept on the phone (clientRef ${ref.slice(0, 8)}…), "Waiting for signal · 1", the books unchanged`);
 
   /* ── 4. signal back: the queue drains where it stands ────────────────── */
   /* The browser says `online` and SyncQueue sends at once, on this very screen: the worker served /offline at the
@@ -119,18 +126,19 @@ try {
   ok('signal back: SyncQueue sends at once — "The entry kept on this phone is in the books.", the queue empty, nothing waiting');
   const rows = await sql`select id, amount from txn where household_id = ${hh} and client_ref = ${ref}`;
   assert.equal(rows.length, 1, 'exactly one row carries the clientRef');
-  assert.equal(Number(rows[0].amount), 2900);
+  assert.equal(Number(rows[0].amount), RUPEES * 100);
   assert.equal((await sql`select count(*)::int as n from txn where household_id = ${hh}`)[0].n, before + 1, 'one row more in the books, no more');
   /* SyncQueue's refresh after sending asks the server for the address on screen, so the cached shell gives way to
      the real Activity. Home lists the entry. */
   await page.getByRole('heading', { name: 'Activity', level: 1 }).waitFor({ timeout: 10000 });
   await page.goto(`${BASE}/`);
   await page.getByRole('heading', { name: /^(Today|Latest)$/ }).waitFor();
-  assert.equal(await page.getByRole('region', { name: /^(Today|Latest)$/ }).getByText('₹29', { exact: true }).count() >= 1, true, 'Home lists the ₹29');
+  assert.equal(await page.getByRole('region', { name: /^(Today|Latest)$/ }).getByText(SHOWN, { exact: true }).count(), 1,
+    `Home lists this run's ${SHOWN}, once`);
   await page.goto(`${BASE}/offline`);
   await page.getByLabel(/^Amount in/).waitFor();
   assert.equal(await page.getByRole('region', { name: 'Waiting to be sent' }).count(), 0, 'nothing is waiting any more');
-  ok('exactly one row carries that client_ref (₹29), one more row in the books; the screen becomes the real Activity, Home lists it; /offline lists nothing waiting');
+  ok(`exactly one row carries that client_ref (${SHOWN}), one more row in the books; the screen becomes the real Activity, Home lists it once; /offline lists nothing waiting`);
   assert.deepEqual(errors, [], 'no page errors');
 } finally {
   await browser.close();

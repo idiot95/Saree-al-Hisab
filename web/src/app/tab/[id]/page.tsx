@@ -108,7 +108,7 @@ export default async function Tab({ params, searchParams }: {
                     {tab.costs > 0 && back > 0 && ' · '}
                     {back > 0 && <><Figure minor={back} /> back</>}
                   </>
-                ) : 'Add the first cost below.'}
+                ) : canEdit ? 'Add the first cost below.' : 'Nothing has been put on it yet.'}
               </p>
               {tab.note && <p className="text-[13px] text-muted-foreground">{tab.note}</p>}
             </section>

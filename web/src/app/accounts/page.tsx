@@ -107,7 +107,7 @@ export default async function Accounts() {
                     <AccountLine a={a} rails={railsOn(a.id)} />
                   </EditAccount>
                 ))}
-                {everyday.length === 0 && <Empty icon="account_balance">No bank account or cash yet. Add one below.</Empty>}
+                {everyday.length === 0 && <Empty icon="account_balance">No bank account or cash yet.{canWrite && ' Add one below.'}</Empty>}
               </List>
             </Section>
 

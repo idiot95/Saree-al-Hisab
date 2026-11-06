@@ -5,7 +5,8 @@
                                   [--theme light|dark] [--state file]
 
    Env: FRAMES_BASE (default http://localhost:3000). Reads OWNER_DATABASE_URL from .env.local. --state is a
-   signed-in Playwright storage state (default .sweep-state.json).
+   signed-in Playwright storage state (default .sweep-state.json). It refuses any database host but localhost or
+   127.0.0.1: it locks tables.
 
    How the frame is caught: the server is made to wait. Every table a page reads, except the three the layout
    needs to know who is asking (app_user, member, household), is locked ACCESS EXCLUSIVE in an open transaction,
@@ -17,7 +18,9 @@
      · the first card under the header — the hero (its top and height): the first element below the header with
        a rounded card ground (bg-card / bg-hero / bg-attention-soft), at least 40px tall;
      · the first section heading's top — the first h2 below the header, or a frame's [data-frame=label] bar.
-   A delta over 4px fails the route. `[data-frame=skip-hero]` / `skip-label` on the frame's main marks a screen
+   A hero that runs past the fold on both frame and page has only its top compared (its height is the fold's), and
+   the line says "hero height not compared, ran past fold". A delta over 4px fails the route.
+   `[data-frame=skip-hero]` / `skip-label` on the frame's main marks a screen
    whose real page has no such thing at all (it is reported, not compared).
 
    With --routes, a route may name a link to follow instead of an address: `@/people>^/tab/` opens /people and
@@ -58,6 +61,12 @@ const LAYOUT_TABLES = new Set(['app_user', 'member', 'household']);
 
 const env = fs.readFileSync(path.join(ROOT, '.env.local'), 'utf8');
 const url = process.env.OWNER_DATABASE_URL || /^OWNER_DATABASE_URL="?([^"\n]+)/m.exec(env)[1];
+/* It takes ACCESS EXCLUSIVE locks on nearly every table: a local verification database only, never a shared one. */
+const dbHost = new URL(url).hostname;
+if (!['localhost', '127.0.0.1'].includes(dbHost)) {
+  console.error(`refusing to run: the database is on ${dbHost}, and this check locks its tables. Point it at localhost.`);
+  process.exit(2);
+}
 const sql = postgres(url, { ssl: 'require', max: 2, onnotice: () => {} });
 const tables = (await sql`
   select tablename from pg_tables where schemaname = 'public' and tablename not like '\\_%'`)
@@ -79,7 +88,7 @@ function measure() {
   const header = main.querySelector('header');
   const below = header ? header.getBoundingClientRect().bottom - 1 : 0;
   /* Height as far as the screen shows it: a list that runs past the fold is measured to the fold. */
-  const box = (e) => { if (!e) return null; const b = e.getBoundingClientRect(); return { top: Math.round(b.top), h: Math.round(Math.min(b.bottom, innerHeight) - b.top) }; };
+  const box = (e) => { if (!e) return null; const b = e.getBoundingClientRect(); return { top: Math.round(b.top), h: Math.round(Math.min(b.bottom, innerHeight) - b.top), past: b.bottom > innerHeight }; };
   /* The bar: which slot is lit (text-primary), from the frame's still bar or the page's live one. */
   const bars = [...document.querySelectorAll('nav')].filter((n) => getComputedStyle(n).position === 'fixed' && n.getBoundingClientRect().bottom >= innerHeight - 1);
   const bar = bars.length ? bars[bars.length - 1] : null;
@@ -204,20 +213,28 @@ for (const raw of routes) {
   };
   cmp('title', frame.h1, real.h1, 'top');
   if (frame.held !== 'client' && (frame.lit !== real.lit || frame.barH !== real.barH)) problems.push(`tab bar lit ${frame.lit}/${real.lit}, height ${frame.barH}/${real.barH}`);
-  if (!frame.skip.includes('skip-hero')) { cmp('hero', frame.hero, real.hero, 'top'); cmp('hero', frame.hero, real.hero, 'h'); }
+  /* A hero that runs past the fold on both is clipped to the same height by construction: only its top is compared,
+     and the line says so. */
+  const pastFold = frame.hero?.past && real.hero?.past;
+  if (!frame.skip.includes('skip-hero')) { cmp('hero', frame.hero, real.hero, 'top'); if (!pastFold) cmp('hero', frame.hero, real.hero, 'h'); }
   if (!frame.skip.includes('skip-label')) cmp('heading', frame.label, real.label, 'top');
   const dd = (a, b, f) => (a && b ? a[f] - b[f] : null);
   rows.push({ route: raw === route ? route : `${raw} → ${route}`, held: frame.held ?? 'server', frame, real,
     dTitle: dd(frame.h1, real.h1, 'top'), dHero: dd(frame.hero, real.hero, 'top'), dHeroH: dd(frame.hero, real.hero, 'h'),
     dLabel: dd(frame.label, real.label, 'top') });
   const line = `bar ${frame.lit ?? '—'}/${real.lit ?? '—'}  title ${fmt(frame.h1)}/${fmt(real.h1)}  hero ${fmt(frame.hero)}/${fmt(real.hero)}  heading ${fmt(frame.label)}/${fmt(real.label)}`;
-  const tag = `${frame.held === 'client' ? ' [tap]' : ''}${frame.skip ? ` (${frame.skip})` : ''}`;
+  const tag = `${frame.held === 'client' ? ' [tap]' : ''}${frame.skip ? ` (${frame.skip})` : ''}${pastFold ? ' (hero height not compared, ran past fold)' : ''}`;
   /* The frames for Home and Plan are the budgeted month's (Left to spend), the state a household lives in once it has
      a budget. Measured against a month with none, the hero is a different card by design: reported, not failed.
      (Run with --state for a household that has a budget to compare them; see the Task 29 report.) */
   if (problems.length && real.noBudget && /^\/(budget)?$/.test(route)) {
-    console.log(`note ${route}  ${line}\n     no budget this month, so the page shows the smaller card; the frame is Left to spend's: ${problems.join('; ')}`);
-    continue;
+    const excused = problems.filter((p) => /^(hero|heading) /.test(p));
+    const rest = problems.filter((p) => !excused.includes(p));
+    if (rest.length === 0) {
+      console.log(`note ${route}  ${line}\n     no budget this month, so the page shows the smaller card; the frame is Left to spend's: ${excused.join('; ')}`);
+      continue;
+    }
+    problems.splice(0, problems.length, ...rest, ...excused.map((p) => `(excused, no budget) ${p}`));
   }
   if (problems.length) { failed++; console.log(`FAIL ${route}${tag}  ${line}\n     ${problems.join('; ')}`); }
   else console.log(`ok   ${route}${tag}  ${line}`);
