@@ -98,16 +98,18 @@ paragraph below says otherwise. Where an older section disagrees, this wins:
   `scripts/plan-taps.mjs` drives the redirect, a two-step create with the box unticked, Make current, and an
   "Adjust this month only" save that changes the bar.
 - **Loans is one list and a pushed tab** (`/people`, Task 26; mock N2). The header is the title and a **New tab** pill
-  (`tab/NewTab.tsx`, the same `createTab` drawer). The card under it is the net — "Owed to you" (`owedToYou()` less
-  what you owe) as a `Figure` in money-in with a +, or "You owe" in plain ink when it is the other way; both halves
-  are spelled out under it whenever both exist, so with nothing owed back it is Home's figure exactly. Then *Open
-  tabs* as one list card: the tab's folder in its tint, the name, "n costs · last cost <day>", and what is still
+  (`tab/NewTab.tsx`, the same `createTab` drawer). The card under it is "Owed to you", **gross and Home's figure
+  exactly** (`owedToYou().owed`), as a `Figure` in money-in with a +; what you owe others is never netted against it
+  but sits on its own line, "You owe ₹X" in plain ink, only when there is some. Then *Open
+  tabs* as one list card (dividers inset past the chip): the tab's folder in its tint, the name, "n costs · last cost <day>", and what is still
   owed as a `Figure` (Settled with a check). Rows still swipe to Remind and Add cost. `/people/[id]` and
-  `/tab/[id]` are pushed screens (back arrow to `/people`) with the balance as a `Figure` hero; every action and
+  `/tab/[id]` are pushed screens (back arrow to `/people`) with the balance as a `Figure` hero (a person who owes you
+  and is owed by you shows the two as separate figures, never one sum); every action and
   server action is as before. Drawer forms (New tab, Money back, the tab menu, People on this tab) submit through
   `keepFields`; the person page's forms stay direct `useActionState` forms. Names wrap rather than truncate.
   `scripts/loans-taps.mjs` opens a tab from the list, records ₹100 of Money back and watches both figures drop,
-  then swipes a row open and shut with real touch events.
+  swipes a row open and shut with real touch events, creates, renames, closes and deletes a throwaway tab, and
+  lends to and takes a repayment from a person, watching their figure move each time.
 - **Back returns to where you were** (`backStack.ts`): `NavTrail` in the root
   layout records each in-app address for the session; the header arrow
   (`BackLink`) and the edge swipe step back through history when there is an

@@ -54,28 +54,28 @@ export default async function LoanCentre() {
   const done = tabs.filter((t) => !open.includes(t));
   const month = new Date().toLocaleDateString('en-IN', { month: 'long' });
 
-  /* The headline is the net: what is owed to you less what you owe. Usually nothing is owed the other way and it
-     is Home's "Owed to you" exactly; when you owe more than you are owed it says "You owe", in plain ink, and the
-     two halves are spelled out under it whenever both are there. */
-  const net = owed - youOwe;
-  const short = net < 0;
-
   return (
     <Screen>
       <main className="min-h-dvh bg-background text-foreground" style={{ paddingBottom: TAB_BAR_SPACE }}>
         <PageHead title="Loans" right={canWrite ? <NewTab /> : undefined} />
 
         <div className="flex flex-col gap-5 px-[var(--gutter)] pb-6">
-          <section aria-label={short ? 'You owe' : 'Owed to you'} className="flex flex-col gap-2 rounded-[22px] bg-card p-[18px]">
-            <span className="text-[13px] text-muted-foreground">{short ? 'You owe' : 'Owed to you'}</span>
-            <Figure minor={Math.abs(net)} sign={net > 0}
-              className={`text-[38px] font-bold leading-none tracking-tight tabular-nums ${net > 0 ? 'text-money-in' : ''}`} />
+          {/* "Owed to you" is Home's figure exactly (owedToYou().owed, gross): money arriving, so money-in with a +.
+              What you owe others is never netted against it; it is its own line, in plain ink, with the words. */}
+          <section aria-label="Owed to you" className="flex flex-col gap-2 rounded-[22px] bg-card p-[18px]">
+            <span className="text-[13px] text-muted-foreground">Owed to you</span>
+            <Figure minor={owed} sign={owed > 0}
+              className={`text-[38px] font-bold leading-none tracking-tight tabular-nums ${owed > 0 ? 'text-money-in' : ''}`} />
+            {youOwe > 0 && (
+              <span className="text-[15px] font-medium">
+                You owe <Figure minor={youOwe} className="font-semibold tabular-nums" />
+              </span>
+            )}
             <span className="text-[13px] leading-snug text-muted-foreground">
               {tabs.length === 0 && lent.length === 0
                 ? 'A tab keeps what you put down for others (a trip, the office, a cousin) and what comes back.'
                 : [
                     `Across ${open.length} open ${open.length === 1 ? 'tab' : 'tabs'}`,
-                    youOwe > 0 ? `${format(owed)} owed to you, ${format(youOwe)} you owe` : null,
                     backThisMonth > 0 ? `${format(backThisMonth)} came back in ${month}` : null,
                   ].filter(Boolean).join(' · ')}
             </span>
@@ -159,7 +159,7 @@ function TabItem({ t, last, canWrite, quiet = false }: { t: TabRow; last: boolea
   return (
     <Swipeable actions={actions} commit={false}>
       <Link href={`/tab/${t.id}`} transitionTypes={['nav-forward']} draggable={false}
-        className={`flex min-h-16 items-center gap-3 py-3 ${last ? '' : 'border-b border-border'} ${quiet ? 'opacity-75' : ''}`}>
+        className={`relative flex min-h-16 items-center gap-3 py-3 ${last ? '' : 'after:absolute after:right-0 after:bottom-0 after:left-12 after:h-px after:bg-border'} ${quiet ? 'opacity-75' : ''}`}>
         <Chip icon="folder" tint={tabTint(t.id)} size={36} radius={999} />
         <span className="flex min-w-0 flex-1 flex-col gap-1">
           <span className="text-[15px] font-medium leading-snug [overflow-wrap:anywhere]">{t.name}</span>

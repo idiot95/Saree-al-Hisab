@@ -54,11 +54,14 @@ export default async function Person({ params }: { params: Promise<{ id: string 
   const canWrite = actor.role !== 'viewer';
 
   const settled = balance === 0 && owedOnClaims === 0;
-  /* What this person owes you is money arriving: money-in and a +. Where you owe them (and they owe nothing on
-     shared costs) it says "You owe" in plain ink; both ways at once is said apart in the line under it. */
+  /* What this person owes you is money arriving: money-in and a +. What you owe them is plain ink with the words.
+     The two directions are never added into one figure: when both are open (you owe them on a loan, they owe you
+     for shared costs) the card shows each on its own. */
   const theyOwe = balance >= 0;
   const youOweOnly = balance < 0 && owedOnClaims === 0;
-  const total = Math.abs(balance) + owedOnClaims;
+  const bothWays = balance < 0 && owedOnClaims > 0;
+  const label = settled || bothWays ? 'Between you' : theyOwe ? 'Owes you' : 'You owe';
+  const big = 'text-[38px] font-bold leading-none tracking-tight tabular-nums';
 
   return (
     <Screen>
@@ -66,29 +69,41 @@ export default async function Person({ params }: { params: Promise<{ id: string 
         <PageHead back="/people" eyebrow="Loans" title={person.name} />
 
         <div className="flex flex-col gap-5 pb-6">
-          <section aria-label="Between you" className="mx-[var(--gutter)] flex flex-col gap-2 rounded-[22px] bg-card p-[18px]">
-            <span className="text-[13px] text-muted-foreground">
-              {settled ? 'Between you' : theyOwe ? 'Owes you' : youOweOnly ? 'You owe' : 'Between you'}
-            </span>
+          <section aria-label={label} className="mx-[var(--gutter)] flex flex-col gap-2 rounded-[22px] bg-card p-[18px]">
+            <span className="text-[13px] text-muted-foreground">{label}</span>
             {settled ? (
               <span className="flex items-center gap-2 text-[30px] font-bold leading-none tracking-tight">
                 <Icon name="check_circle" size={28} className="text-money-in" />Settled up
               </span>
+            ) : bothWays ? (
+              <dl className="grid grid-cols-2 gap-3">
+                <div className="flex min-w-0 flex-col gap-1">
+                  <dt className="text-xs text-muted-foreground">Owes you, for shared costs</dt>
+                  <dd><Figure minor={owedOnClaims} sign className="text-[28px] font-bold leading-none tracking-tight text-money-in tabular-nums" /></dd>
+                </div>
+                <div className="flex min-w-0 flex-col gap-1">
+                  <dt className="text-xs text-muted-foreground">You owe, on loans</dt>
+                  <dd><Figure minor={-balance} className="text-[28px] font-bold leading-none tracking-tight tabular-nums" /></dd>
+                </div>
+              </dl>
+            ) : youOweOnly ? (
+              <Figure minor={-balance} className={big} />
             ) : (
-              <Figure minor={youOweOnly ? -balance : total} sign={theyOwe}
-                className={`text-[38px] font-bold leading-none tracking-tight tabular-nums ${theyOwe ? 'text-money-in' : ''}`} />
+              <Figure minor={balance + owedOnClaims} sign className={`${big} text-money-in`} />
             )}
             {/* Lending and shared costs are different debts and are said apart — conflating them is what makes a
                 khata stop being trusted. */}
-            <p className="text-[13px] leading-snug text-muted-foreground">
-              {settled
-                ? `Nothing outstanding between you${person.phone ? ` · ${person.phone}` : ''}`
-                : [
-                    balance > 0 ? `${format(balance)} lent` : null,
-                    balance < 0 ? `${format(-balance)} you owe` : null,
-                    owedOnClaims > 0 ? `${format(owedOnClaims)} for shared costs` : null,
-                  ].filter(Boolean).join(' · ')}
-            </p>
+            {!bothWays && (
+              <p className="text-[13px] leading-snug text-muted-foreground">
+                {settled
+                  ? `Nothing outstanding between you${person.phone ? ` · ${person.phone}` : ''}`
+                  : [
+                      balance > 0 ? `${format(balance)} lent` : null,
+                      balance < 0 ? `${format(-balance)} you owe` : null,
+                      owedOnClaims > 0 ? `${format(owedOnClaims)} for shared costs` : null,
+                    ].filter(Boolean).join(' · ')}
+              </p>
+            )}
           </section>
 
           {canWrite && (

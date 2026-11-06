@@ -14,7 +14,11 @@
    3. Back on /people, "Owed to you" has dropped by the same ₹100.
    4. A tab row swipes open (a finger dragged left) to Remind and Add cost, and closes again on Escape; shut, its
       action layer is not drawn at all (the dark-theme edge). The grip opens and closes it too.
-   The receipts this run recorded are removed afterwards, unless --keep.                                          */
+   5. A throwaway tab (named for this run): New tab creates it and lands on its screen (a redirect through
+      keepFields), the menu renames it, closes it ("Tab · closed", closed_at set) and deletes it (back on /people,
+      the row gone from the books).
+   6. On a person: Lend ₹50, and their figure goes up by ₹50; Got money back ₹50, and it comes back down.
+   The receipts, loans and tabs this run made are removed afterwards, unless --keep.                                          */
 import { createRequire } from 'node:module';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -54,6 +58,9 @@ const figureIn = (region) => region.getByRole('img').first();
 const started = new Date();
 let hh = null;
 let tabId = null;
+const RUN = Date.now().toString(36);
+const TAB = `Loans taps ${RUN}`;
+let personAcc = null;
 
 try {
   [{ hh }] = await sql`select active_household_id as hh from app_user where lower(email) = lower(${EMAIL})`;
@@ -140,11 +147,91 @@ try {
   await grip.click();
   await shut();
   ok('the grip opens and closes the same row');
+
+  /* ── 5. a throwaway tab: create, rename, close, delete ────────────── */
+  await page.goto(`${BASE}/people`);
+  await page.getByRole('button', { name: 'New tab' }).click();
+  const make = page.getByRole('dialog', { name: 'New tab' });
+  await make.getByLabel('Name · optional').fill(TAB);
+  await make.getByRole('button', { name: 'Open the tab' }).click();
+  await page.waitForURL((u) => /^\/tab\/[0-9a-f-]{36}$/.test(u.pathname), { timeout: 20000 });
+  await page.getByRole('heading', { name: TAB, level: 1 }).waitFor();
+  const [made] = await sql`select id from ledger_book where household_id = ${hh} and name = ${TAB}`;
+  assert.ok(made, 'the tab is in the books');
+  assert.equal(new URL(page.url()).pathname, `/tab/${made.id}`);
+
+  const menu = async () => {
+    await page.getByRole('button', { name: 'Tab settings' }).click();
+    return page.getByRole('dialog', { name: 'Tab settings' });
+  };
+  let m = await menu();
+  await m.getByRole('button', { name: /^Rename/ }).click();
+  await m.getByLabel('Name', { exact: true }).fill(`${TAB} renamed`);
+  await m.getByRole('button', { name: 'Save', exact: true }).click();
+  await page.getByRole('heading', { name: `${TAB} renamed`, level: 1 }).waitFor({ timeout: 20000 });
+  await page.getByRole('dialog', { name: 'Tab settings' }).waitFor({ state: 'hidden' });
+
+  m = await menu();
+  await m.getByRole('button', { name: /^Close this tab/ }).click();
+  await page.getByText('Tab · closed').waitFor({ timeout: 20000 });
+  const [shutRow] = await sql`select closed_at from ledger_book where id = ${made.id}`;
+  assert.ok(shutRow.closed_at, 'closed_at is set');
+  await page.getByRole('dialog', { name: 'Tab settings' }).waitFor({ state: 'hidden' });
+
+  m = await menu();
+  await m.getByRole('button', { name: /^Delete this tab/ }).click();
+  await m.getByRole('button', { name: 'Delete the tab' }).click();
+  await page.waitForURL((u) => u.pathname === '/people', { timeout: 20000 });
+  assert.equal((await sql`select 1 from ledger_book where id = ${made.id}`).length, 0, 'the tab is gone from the books');
+  assert.equal(await page.getByRole('link', { name: new RegExp(TAB) }).count(), 0, 'and from the list');
+  ok('a throwaway tab: New tab creates it and lands on it, the menu renames it, closes it and deletes it');
+
+  /* ── 6. a person: lend, then take it back ─────────────────────────── */
+  const [who] = await sql`select cp.id, cp.name, cp.account_id from counterparty cp
+    where cp.household_id = ${hh} and cp.archived_at is null order by cp.name limit 1`;
+  personAcc = who.account_id;
+  const heroFigure = async () => {
+    const v = await page.locator('main section').first().getByRole('img').first().getAttribute('aria-label');
+    return minor(v);
+  };
+  await page.goto(`${BASE}/people/${who.id}`);
+  await page.getByRole('heading', { name: who.name, level: 1 }).waitFor();
+  const p0 = await heroFigure();
+  await page.getByRole('button', { name: 'Lend money' }).click();
+  await page.getByLabel('Amount').fill('50');
+  await page.getByRole('button', { name: 'Record loan' }).click();
+  await page.waitForFunction((want) => {
+    const el = document.querySelector('main section [role=img]');
+    return el && Math.round(Number(el.getAttribute('aria-label').replace(/[^0-9.]/g, '')) * 100) === want;
+  }, p0 + 5000, { timeout: 20000 });
+  ok(`Lend ₹50 to ${who.name}: their figure went from ${p0 / 100} to ${(p0 + 5000) / 100}`);
+
+  await page.goto(`${BASE}/people/${who.id}`);
+  await page.getByRole('button', { name: 'Got money back' }).click();
+  await page.getByLabel('Amount').fill('50');
+  await page.getByRole('button', { name: 'Record repayment' }).click();
+  await page.waitForFunction((want) => {
+    const el = document.querySelector('main section [role=img]');
+    return el && Math.round(Number(el.getAttribute('aria-label').replace(/[^0-9.]/g, '')) * 100) === want;
+  }, p0, { timeout: 20000 });
+  const moved = await sql`select kind, amount::bigint as amount from txn
+    where household_id = ${hh} and created_at >= ${started} and deleted_at is null
+      and (account_id = ${personAcc} or counter_account_id = ${personAcc})`;
+  assert.equal(moved.length, 2, 'one loan and one repayment in the books');
+  ok(`Got ₹50 back from ${who.name}: the figure is back at ${p0 / 100}, and both transfers are in the books`);
 } finally {
   if (!KEEP && hh && tabId) {
     await sql`delete from txn t using claim c, txn o
       where c.id = t.claim_id and o.id = c.txn_id and o.book_id = ${tabId}
         and t.household_id = ${hh} and t.kind = 'claim_receipt' and t.created_at >= ${started}`;
+  }
+  if (!KEEP && hh) {
+    if (personAcc) {
+      await sql`delete from txn where household_id = ${hh} and created_at >= ${started}
+        and (account_id = ${personAcc} or counter_account_id = ${personAcc})`;
+    }
+    /* Normally already deleted by step 5; a run that stopped part way leaves its tab here. */
+    await sql`delete from ledger_book where household_id = ${hh} and name like ${`${TAB}%`}`;
   }
   await browser.close();
   await sql.end();
