@@ -109,6 +109,21 @@ try {
      keyboard is back on the button that opened it. */
   await page.getByRole('dialog', { name: 'Money back' }).waitFor({ state: 'hidden' });
   const opener = page.getByRole('button', { name: 'Money back' });
+  /* Focus is back on the opener itself — that very button, by name — not merely somewhere whose text mentions it
+     (the body's text does, so a check on textContent passed with focus lost to <body>). */
+  const focusIsOn = async (name) => {
+    const exact = page.getByRole('button', { name, exact: true });
+    for (let i = 0; i < 50; i++) {
+      const [mine, tag] = await Promise.all([
+        exact.evaluate((el) => el === document.activeElement).catch(() => false),
+        page.evaluate(() => document.activeElement?.tagName),
+      ]);
+      if (mine && tag === 'BUTTON') return;
+      await page.waitForTimeout(100);
+    }
+    throw new Error(`focus is not on the "${name}" button (it is on ${await page.evaluate(() => document.activeElement?.tagName)})`);
+  };
+
   /* The handle is a real Close button, as Sheet's was: the drawer opens with focus on it, activating it (a keyboard,
      or a screen reader's double tap) closes the drawer, and focus is back on the button that opened it. Then a tap
      on it does the same. */
@@ -120,11 +135,11 @@ try {
   assert.ok(closeBox.height >= 44 && closeBox.width >= 44, `Close is a 44px target (${closeBox.width}x${closeBox.height})`);
   await page.keyboard.press('Enter');
   await mbDrawer.waitFor({ state: 'hidden' });
-  await page.waitForFunction(() => document.activeElement?.textContent?.includes('Money back'), null, { timeout: 5000 });
+  await focusIsOn('Money back');
   await opener.click();
   await mbDrawer.getByRole('button', { name: 'Close' }).click();
   await mbDrawer.waitFor({ state: 'hidden' });
-  await page.waitForFunction(() => document.activeElement?.textContent?.includes('Money back'), null, { timeout: 5000 });
+  await focusIsOn('Money back');
   ok('Money back opens with focus on its Close handle (44px); Enter closes it and so does a tap, focus back on Money back each time');
   await opener.click();
   const again = page.getByRole('dialog', { name: 'Money back' });
@@ -143,7 +158,7 @@ try {
   assert.ok(chip.includes(named.replace(/^(\d+) (\w{3})\w*$/, '$1 $2')), `the chosen chip is ${named} (${chip})`);
   await page.keyboard.press('Escape');
   await again.waitFor({ state: 'hidden' });
-  await page.waitForFunction(() => document.activeElement?.textContent?.includes('Money back'), null, { timeout: 5000 });
+  await focusIsOn('Money back');
   const sent = await sql`select count(*)::int as n from txn t join claim c on c.id = t.claim_id join txn o on o.id = c.txn_id
     where t.household_id = ${hh} and t.kind = 'claim_receipt' and o.book_id = ${tabId} and t.created_at >= ${started}`;
   assert.equal(sent[0].n, got.length, 'closing the drawer sent nothing');

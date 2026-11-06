@@ -38,8 +38,11 @@ export default function BottomDrawer({ open, onClose, label, showTitle = false, 
 }) {
   const Root = useContext(InDrawer) ? Vaul.NestedRoot : Drawer;
   const close = useRef<HTMLButtonElement>(null);
-  /* A drag that starts on the handle and lets go there is a drag, not a tap: its click must not also close. */
+  /* A drag that starts on the handle and lets go there is a drag, not a tap: its click must not also close. Where the
+     pointer went down is kept only until it comes up (or the gesture is cancelled), and whether it moved is decided
+     then, so a stale press can never swallow a later click. */
   const grab = useRef<{ x: number; y: number } | null>(null);
+  const dragged = useRef(false);
   /* Where focus was when the drawer opened, so closing puts it back. Radix only returns focus to a DrawerTrigger,
      and these drawers are opened by the caller's own button (and, nested, from inside another drawer). */
   const opener = useRef<HTMLElement | null>(null);
@@ -61,10 +64,16 @@ export default function BottomDrawer({ open, onClose, label, showTitle = false, 
           'data-[vaul-drawer-direction=bottom]:max-h-[86dvh]',
           'data-[vaul-drawer-direction=bottom]:rounded-t-[24px] data-[vaul-drawer-direction=bottom]:border-t-0')}>
         <DrawerClose ref={close} aria-label="Close"
-          onPointerDown={(e) => { grab.current = { x: e.clientX, y: e.clientY }; }}
-          onClick={(e) => {
+          onPointerDown={(e) => { grab.current = { x: e.clientX, y: e.clientY }; dragged.current = false; }}
+          onPointerUp={(e) => {
             const g = grab.current; grab.current = null;
-            if (g && Math.hypot(e.clientX - g.x, e.clientY - g.y) > 6) e.preventDefault();
+            dragged.current = !!g && Math.hypot(e.clientX - g.x, e.clientY - g.y) > 6;
+          }}
+          onPointerCancel={() => { grab.current = null; dragged.current = false; }}
+          onClick={(e) => {
+            const wasDrag = dragged.current; dragged.current = false;
+            /* detail 0: a keyboard or a screen reader activated it — no pointer, so nothing to have dragged. */
+            if (e.detail !== 0 && wasDrag) e.preventDefault();
           }}
           className="flex min-h-11 w-full flex-none cursor-grab items-center justify-center rounded-t-[24px] outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset in-data-[platform=android]:min-h-12">
           <span aria-hidden className="h-[5px] w-10 rounded-full bg-border" />

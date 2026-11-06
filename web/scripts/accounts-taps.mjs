@@ -313,6 +313,13 @@ try {
     [x.closest('td').dataset.day, !(x.disabled || x.getAttribute('aria-disabled') === 'true')]));
   const minIso = span.find(([, on]) => on)?.[0];
   assert.ok(minIso, 'at least one day is offered in the first month');
+  /* The bound is the form's own: a regular payment starts today (NewSchedule's `iso`, the phone's date when the form
+     opened), so the last day can be no earlier. Read from the phone's clock, not from the grid being tested. */
+  const startIso = await page.evaluate(() => {
+    const t = new Date();
+    return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
+  });
+  assert.equal(minIso, startIso, `the first day offered is the form's start, today (${startIso})`);
   assert.deepEqual(span.filter(([d, on]) => d < minIso && on).map(([d]) => d), [], 'no day before the first (min) is offered');
   assert.deepEqual(span.filter(([d, on]) => d >= minIso && !on).map(([d]) => d), [], 'the first day and every later one are offered');
   await page.keyboard.press('Escape');
