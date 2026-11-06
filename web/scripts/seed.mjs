@@ -6,7 +6,10 @@
    and September budget the artboards were drawn against, so the screens have
    something to show.
 
-   Run: npm run seed you@example.com                                          */
+   Run: npm run seed you@example.com
+     npm run seed you@example.com -- --activity   (adds a realistic month or
+       two of entries, a tab, schedules and card purchases; every row it makes
+       has an id starting 5eed, so a re-run deletes and recreates only those) */
 import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -23,7 +26,9 @@ const url = process.env.DATABASE_URL
   ?? /^DATABASE_URL="?([^"\n]+)/m.exec(envFile)[1];
 const sql = postgres(url, { ssl: 'require', max: 1, onnotice: () => {} });
 
-const email = (process.argv[2] ?? '').trim().toLowerCase();
+const argv = process.argv.slice(2);
+const withActivity = argv.includes('--activity');
+const email = (argv.find((a) => !a.startsWith('--')) ?? '').trim().toLowerCase();
 if (!email) {
   console.error('\n  Which books? Pass the email you signed up with:\n');
   console.error('    npm run seed you@example.com\n');
@@ -52,6 +57,16 @@ if (!target) {
 }
 const hh = target.household_id;
 
+const SEED = '5eed';
+const sid = (n) => `5eed0000-0000-4000-8000-${String(n).padStart(12, '0')}`;
+/* With --activity on books that already have the base kit, skip straight to
+   the activity: the accounts, categories and ways to pay are looked up by name. */
+const haveBase = withActivity && (await sql`select 1 from account where household_id = ${hh} and name = 'HDFC Savings'`).length > 0;
+const accounts = {};
+const categories = {};
+const methods = {};
+let bud = 0;
+if (!haveBase) {
 /* Idempotent: clears what this script put there before, and nothing else.
    Entries are left alone — seeding must never quietly delete a real month. */
 const [{ n: entries }] = await sql`select count(*)::int as n from txn where household_id = ${hh}`;
@@ -65,7 +80,6 @@ await sql`delete from payment_method where household_id = ${hh}`;
 await sql`delete from category where household_id = ${hh}`;
 await sql`delete from account where household_id = ${hh}`;
 
-const accounts = {};
 for (const a of [
   { key: 'hdfc', name: 'HDFC Savings', kind: 'spending', opening_balance: 28353000, last4: '4471' },
   { key: 'icici', name: 'ICICI Savings', kind: 'spending', opening_balance: 7820000, last4: '9930' },
@@ -79,7 +93,6 @@ for (const a of [
   accounts[key] = r.id;
 }
 
-const categories = {};
 for (const [i, c] of [
   ['rent', 'Rent', 'house2', 'green'],
   ['groceries', 'Groceries', 'cart', 'green'],
@@ -103,7 +116,8 @@ for (const m of [
   { name: 'Cash', kind: 'cash', funding_account_id: accounts.cash, sort_order: 3 },
   { name: 'Net banking', kind: 'netbanking', funding_account_id: accounts.hdfc, handle: 'HDFC', sort_order: 4 },
 ]) {
-  await sql`insert into payment_method ${sql({ household_id: hh, ...m })}`;
+  const [pm] = await sql`insert into payment_method ${sql({ household_id: hh, ...m })} returning id`;
+  methods[m.name] = pm.id;
 }
 
 // September's budget. Monthly and carried forward — October is written as a
@@ -116,8 +130,139 @@ for (const [key, amount] of [
     household_id: hh, category_id: categories[key], month: '2026-09-01', amount })}`;
 }
 
-const [{ total: bud }] = await sql`select coalesce(sum(amount),0)::bigint as total from budget where household_id = ${hh}`;
+bud = Number((await sql`select coalesce(sum(amount),0)::bigint as total from budget where household_id = ${hh}`)[0].total);
+}
+
+
+if (haveBase) {
+  for (const r of await sql`select id, name from account where household_id = ${hh}`) {
+    accounts[{ 'HDFC Savings': 'hdfc', 'ICICI Savings': 'icici', Cash: 'cash', 'HDFC Recurring Deposit': 'rd', 'HDFC Regalia': 'card' }[r.name]] = r.id;
+  }
+  for (const r of await sql`select id, name from category where household_id = ${hh}`) {
+    categories[{ Rent: 'rent', Groceries: 'groceries', 'School fees': 'school', 'Eating Out': 'eating', Shopping: 'shopping', Children: 'children', Utilities: 'utilities', Transport: 'transport' }[r.name]] = r.id;
+  }
+  for (const r of await sql`select id, name from payment_method where household_id = ${hh}`) methods[r.name] = r.id;
+}
+
+let activity = null;
+if (withActivity) activity = await seedActivity();
+
+async function seedActivity() {
+  const [{ id: me }] = await sql`
+    select u.id from app_user u join member m on m.user_id = u.id
+    where u.email = ${email} and m.household_id = ${hh}`;
+  const [{ today }] = await sql`select current_date::text as today`;
+  const base = new Date(today + 'T00:00:00Z');
+  const iso = (d) => d.toISOString().slice(0, 10);
+  const daysAgo = (n) => iso(new Date(base.getTime() - n * 864e5));
+  const inDays = (n) => new Date(base.getTime() + n * 864e5);
+
+  // Clear only what an earlier --activity run made (ids 5eed…). Entries go
+  // first (claims and receipts follow them), then the people and their accounts.
+  await sql`delete from txn where household_id = ${hh} and id::text like ${SEED + '%'}`;
+  await sql`delete from schedule where household_id = ${hh} and id::text like ${SEED + '%'}`;
+  await sql`delete from ledger_book where household_id = ${hh} and id::text like ${SEED + '%'}`;
+  await sql`delete from counterparty where household_id = ${hh} and id::text like ${SEED + '%'}`;
+  await sql`delete from account where household_id = ${hh} and id::text like ${SEED + '%'}`;
+
+  let n = 1000;
+  const txn = async (o) => {
+    const row = { household_id: hh, created_by: me, source: 'manual', id: sid(++n), ...o };
+    await sql`insert into txn ${sql(row)}`;
+    return row.id;
+  };
+  const M = methods;
+  // An entry's account is the one its way to pay draws on (the card, for a card purchase).
+  const fundedBy = { GPay: accounts.hdfc, PhonePe: accounts.icici, 'HDFC Regalia': accounts.card, Cash: accounts.cash, 'Net banking': accounts.hdfc };
+  const C = categories;
+  const expenses = [
+    // [days ago, amount rupees, category, method, merchant]
+    [0, 640, 'eating', 'GPay', 'Bohri Kitchen'], [1, 2210, 'groceries', 'PhonePe', 'DMart'],
+    [2, 480, 'transport', 'GPay', 'Uber'], [3, 1850, 'shopping', 'HDFC Regalia', 'Westside'],
+    [4, 3200, 'utilities', 'Net banking', 'Tata Power'], [5, 760, 'eating', 'Cash', 'Cafe Madras'],
+    [6, 1390, 'groceries', 'GPay', 'Reliance Fresh'], [7, 5200, 'children', 'HDFC Regalia', 'FirstCry'],
+    [8, 310, 'transport', 'Cash', 'Auto'], [9, 2790, 'shopping', 'HDFC Regalia', 'Amazon'],
+    [10, 920, 'eating', 'PhonePe', 'Theobroma'], [11, 1675, 'groceries', 'PhonePe', 'Nature\'s Basket'],
+    [12, 45000, 'rent', 'Net banking', 'Rent, Bandra flat'], [13, 1100, 'utilities', 'GPay', 'Jio Fiber'],
+    [14, 22000, 'school', 'Net banking', 'St. Xavier\'s term fees'], [15, 590, 'eating', 'Cash', 'Chai Point'],
+    [16, 1480, 'shopping', 'HDFC Regalia', 'Zara'], [17, 850, 'transport', 'GPay', 'Metro card top-up'],
+    [18, 2430, 'groceries', 'GPay', 'Big Basket'],
+    [19, 4120, 'eating', 'HDFC Regalia', 'The Bombay Canteen, anniversary dinner with the whole family and cousins'],
+    [20, 1240, 'children', 'PhonePe', 'Toy Library'],
+    [24, 2550, 'groceries', 'GPay', 'DMart'], [26, 700, 'eating', 'Cash', 'Irani cafe'],
+    [28, 3600, 'shopping', 'HDFC Regalia', 'Amazon'], [30, 940, 'transport', 'GPay', 'Uber'],
+    [33, 2870, 'groceries', 'PhonePe', 'Reliance Fresh'], [34, 1999, 'utilities', 'Net banking', 'Airtel postpaid'],
+    [36, 6800, 'children', 'HDFC Regalia', 'Decathlon, cricket kit and shoes and pads for the school team'],
+    [38, 880, 'eating', 'GPay', 'Burger Singh'], [40, 45000, 'rent', 'Net banking', 'Rent, Bandra flat'],
+    [41, 22000, 'school', 'Net banking', 'St. Xavier\'s term fees'], [43, 1520, 'groceries', 'GPay', 'DMart'],
+    [45, 3150, 'utilities', 'Net banking', 'Tata Power'],
+    [47, 2200, 'shopping', 'HDFC Regalia', 'Shoppers Stop, festive clothes for the children and parents'],
+    [49, 640, 'transport', 'Cash', 'Auto'],
+  ];
+  for (const [d, rupees, cat, method, merchant] of expenses) {
+    await txn({ kind: 'expense', amount: rupees * 100, currency: 'INR', occurred_on: daysAgo(d),
+      account_id: fundedBy[method], category_id: C[cat], payment_method_id: M[method], merchant,
+      is_shared: cat === 'groceries' || cat === 'rent' });
+  }
+  // Income: salary each month, and something on the side.
+  for (const [d, rupees, acc, merchant] of [
+    [5, 185000, 'hdfc', 'Salary, Acme Corp'], [35, 185000, 'hdfc', 'Salary, Acme Corp'], [14, 32000, 'icici', 'Freelance design work for the Dubai client'],
+  ]) {
+    await txn({ kind: 'income', amount: rupees * 100, currency: 'INR', occurred_on: daysAgo(d),
+      account_id: accounts[acc], merchant });
+  }
+
+  // A pair that trips the duplicate detector: same account, same amount, two days apart.
+  await txn({ kind: 'expense', amount: 123456, currency: 'INR', occurred_on: daysAgo(2), account_id: accounts.hdfc,
+    category_id: C.shopping, payment_method_id: M.GPay, merchant: 'Croma Electronics' });
+  await txn({ kind: 'expense', amount: 123456, currency: 'INR', occurred_on: daysAgo(1), account_id: accounts.hdfc,
+    category_id: C.shopping, payment_method_id: M.GPay, merchant: 'Croma' });
+
+  // A tab with two people and three costs carrying claims; one partly paid back.
+  const people = [];
+  for (const [i, name] of ['Imran Qureshi', 'Fatema Lokhandwala'].entries()) {
+    const [acc] = await sql`insert into account ${sql({ id: sid(100 + i), household_id: hh, name, kind: 'person' })} returning id`;
+    const [cp] = await sql`insert into counterparty ${sql({ id: sid(110 + i), household_id: hh, name, relationship: 'friend', account_id: acc.id })} returning id`;
+    people.push(cp.id);
+  }
+  const book = sid(120);
+  await sql`insert into ledger_book ${sql({ id: book, household_id: hh, name: 'Lonavala weekend' })}`;
+  for (const cp of people) await sql`insert into book_member ${sql({ book_id: book, counterparty_id: cp })}`;
+  const claimIds = [];
+  for (const [i, [d, rupees, merchant]] of [[9, 9000, 'Villa booking'], [8, 3600, 'Petrol and tolls'], [8, 2400, 'Dinner at Sunny Dhaba']].entries()) {
+    const t = await txn({ kind: 'expense', amount: rupees * 100, currency: 'INR', occurred_on: daysAgo(d),
+      account_id: accounts.hdfc, category_id: C.eating, payment_method_id: M.GPay, merchant, book_id: book });
+    for (const [j, cp] of people.entries()) {
+      const [c] = await sql`insert into claim ${sql({ id: sid(200 + i * 2 + j), household_id: hh, kind: 'shared', counterparty_id: cp,
+        expected_amount: (rupees * 100) / 3, txn_id: t })} returning id`;
+      claimIds.push(c.id);
+    }
+  }
+  // Imran pays back part of his share of the villa.
+  await txn({ kind: 'claim_receipt', amount: 100000, currency: 'INR', occurred_on: daysAgo(3),
+    account_id: accounts.hdfc, payment_method_id: M.GPay, claim_id: claimIds[0], merchant: 'Imran Qureshi' });
+
+  // Schedules: a monthly expense due this week, and a monthly income.
+  const dom = (d) => Math.min(28, d.getUTCDate());
+  await sql`insert into schedule ${sql({ id: sid(300), household_id: hh, name: 'Broadband and cable, the family bundle plan',
+    amount: 119900, account_id: accounts.hdfc, category_id: C.utilities, kind: 'expense',
+    rrule: `FREQ=MONTHLY;BYMONTHDAY=${dom(inDays(3))}`, rule_since: daysAgo(40) })}`;
+  await sql`insert into schedule ${sql({ id: sid(301), household_id: hh, name: 'Rental income, Pune flat',
+    amount: 2200000, account_id: accounts.icici, kind: 'income', counts_as_spend: false,
+    rrule: `FREQ=MONTHLY;BYMONTHDAY=${dom(inDays(5))}`, rule_since: daysAgo(40) })}`;
+
+  const [r] = await sql`select count(*)::int as n from txn where household_id = ${hh} and id::text like ${SEED + '%'}`;
+  const [cards] = await sql`select count(*)::int as n from card_bill c join account a on a.id = c.account_id
+    where a.household_id = ${hh} and c.outstanding > 0`;
+  return { entries: r.n, bills: cards.n };
+}
+
 console.log(`\n  ${target.name}`);
-console.log(`  5 accounts · 8 categories · 5 ways to pay`);
-console.log(`  September budget ₹${(Number(bud) / 100).toLocaleString('en-IN')}\n`);
+if (haveBase) console.log('  base kit already in place');
+else {
+  console.log(`  5 accounts · 8 categories · 5 ways to pay`);
+  console.log(`  September budget ₹${(bud / 100).toLocaleString('en-IN')}`);
+}
+if (activity) console.log(`  activity: ${activity.entries} entries, 1 tab, 2 schedules, ${activity.bills} card bill(s) owing`);
+console.log('');
 await sql.end();
