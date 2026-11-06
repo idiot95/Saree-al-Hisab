@@ -175,7 +175,7 @@ export const EDGE_FIXTURES: SmsFixture[] = [
   E('Txn of Rs 500 failed. Amount debited will be refunded in 5 days', null, null, null, null, null, null),
   E('UPI txn of Rs 500 to x@ybl declined. A/c not debited', null, null, null, null, 'x@ybl', null),
   E('Rs 500 will be debited on 05-11-26 for mandate to NETFLIX', null, null, null, null, 'NETFLIX', '2026-11-05'),
-  E('Rs 500 credited to A/c XX1234. Your loan EMI of Rs 9,000 will be debited on 05-11-26', null, null, null, '1234', null, '2026-11-05'),
+  E('Rs 500 credited to A/c XX1234. Your loan EMI of Rs 9,000 will be debited on 05-11-26', 50000, 'INR', 'credit', '1234', null, '2026-11-05'),
   // Currency forms.
   E('Your Credit Card ...1234 was used for AED 50.00 at CARREFOUR', 5000, 'AED', 'debit', '1234', 'CARREFOUR', null),
   E('Purchase of AED 50.00 with Debit Card ending 1234 at CARREFOUR', 5000, 'AED', 'debit', '1234', 'CARREFOUR', null),
@@ -184,5 +184,19 @@ export const EDGE_FIXTURES: SmsFixture[] = [
   E('AED50.00 was spent on your Credit Card XXX1234 at SHOP. Avl Cr. Limit is AED 9,000', 5000, 'AED', 'debit', '1234', 'SHOP', null),
   E('A/c ...1234 debited Rs 500', 50000, 'INR', 'debit', '1234', null, null),
   E('Rs 500 debited ref 123456 to x@ybl', 50000, 'INR', 'debit', null, 'x@ybl', null),
+  // Security footers and unmasked numbers are not OTPs; the sentence that did not happen is not the one that did.
+  E('Rs 500 spent on card XX1234 at SHOP. Never share your Card No, CVV, PIN or Password', 50000, 'INR', 'debit', '1234', 'SHOP', null),
+  E('Rs 500 debited from A/c XX1234. Not you? Call 1800 2662 to block. Never share PIN', 50000, 'INR', 'debit', '1234', null, null),
+  E('INR 500 debited from A/c XX1234. UPI Ref 4829131. Do not share your UPI PIN', 50000, 'INR', 'debit', '1234', null, null),
+  E('Rs 500 debited from A/c 1234 on 01-11-26. Never share your card details with anyone', 50000, 'INR', 'debit', '1234', null, '2026-11-01'),
+  E('Rs 500 debited from A/c 123456 to SHOP. Do not share your PIN', 50000, 'INR', 'debit', '3456', 'SHOP', null),
+  E('Rs 500 debited from A/c XX1234. Get cashback of Rs 50 on your next txn', 50000, 'INR', 'debit', '1234', null, null),
+  E('Rs 500 credited to A/c XX1234 towards refund for order of Rs 900', 50000, 'INR', 'credit', '1234', null, null),
+  // Ambiguous: a fee and the transaction both follow "of". The transaction ("txn of") is taken.
+  E('Charges of Rs 20 debited for txn of Rs 500', 50000, 'INR', 'debit', null, null, null),
+  E('Your A/c balance is low. Rs 500 debited from A/c XX1234', 50000, 'INR', 'debit', '1234', null, null),
+  E('Your mandate for NETFLIX executed successfully. Rs 649 debited from A/c XX1234', 64900, 'INR', 'debit', '1234', null, null),
+  E('Rs 649 debited from A/c XX1234 for NETFLIX. Next payment is due on 05-12-26', 64900, 'INR', 'debit', '1234', null, '2026-12-05'),
+  E('Rs 50 cashback added to your Paytm wallet', 5000, 'INR', 'credit', null, null, null),
   E('Rs.500 debited A/cXX1234 on 01Nov26', 50000, 'INR', 'debit', '1234', null, '2026-11-01'),
 ];

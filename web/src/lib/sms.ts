@@ -29,13 +29,19 @@ const OTP_WORDS = new RegExp([
   '(?<![a-z])o\\.?t\\.?p\\.?s?(?![a-z])',            // OTP, OTPs, O.T.P., OTP482913
   'ओटीपी',                                              // Hindi
   '\\bone[- ]?time[- ]?(?:password|pin|passcode|code)',
-  '\\b(?:verification|security|authentication|auth|login|secure|access|transaction) (?:code|pin)\\b',
-  '\\b(?:passcode|mpin|password)\\b',
+  '\\bverification code\\b',
+  '\\bpasscode\\b',
 ].join('|'), 'i');
-// Words that sit beside a one-time number.
-const CODE_NEAR = /\b(?:code|pin|mpin|password|passcode|otp|authori[sz]e[ds]?|authori[sz]ation|approve[ds]?|verification|do not share|never share|valid for|valid till|expires?)\b/i;
+
+/* Past the keywords above, a 4-8 digit number is a code only when a
+   code-phrase sits directly beside it (three tokens). "Never share your PIN"
+   in a bank's footer, or "Ref 4829131", is not enough. */
 const STANDALONE_NUM = /(?<![\w.,₹-])\d{4,8}(?!\d|[.,]\d)/g;
-const CURRENCY_BEFORE = /(?:\brs\.?|\binr|₹|([A-Z]{3})) ?:? ?$/i;
+const CODE_BEFORE = /\b(?:code|pin|mpin|password|passcode)(?: is| are)?[:-]?$|\b(?:do not|don't|never) share$/i;
+const CODE_AFTER = /^(?:is(?: \S+){0,3}? (?:code|pin|mpin|password|passcode)\b|(?:is )?valid (?:for|till)\b|expires?\b|(?:to|for) (?:authori[sz]e|verify|login|log in|approve|confirm|complete)\b)/i;
+// A number after these is an account, reference or phone number.
+const NOT_A_CODE_BEFORE = /\b(?:a\/c|ac|acct|account|card|ref|refno|txn|id|call|no|number)\b[:.]?$/i;
+const CURRENCY_TAIL = /(?:\brs\.?|\binr|₹|\b([A-Z]{3})) ?:? ?$/i;
 
 /** True for a one-time password however it is phrased. Checked before any
  *  parsing: "OTP for txn of Rs 500" is an OTP, whatever amount it carries.
@@ -45,36 +51,55 @@ export function isOtp(text: string): boolean {
   if (OTP_WORDS.test(t)) return true;
   if (/^\d{4,8} ?[-:–]/.test(t)) return true;
   for (const m of t.matchAll(STANDALONE_NUM)) {
-    const at = m.index!;
-    const pre = /(?:\brs\.?|\binr|₹) ?:? ?$/i.test(t.slice(Math.max(0, at - 6), at));
-    const cc = /([A-Z]{3}) ?:? ?$/.exec(t.slice(Math.max(0, at - 6), at));
-    if (pre || (cc && isCurrency(cc[1]))) continue;      // an amount, not a code
-    const before = t.slice(Math.max(0, at - 40), at).split(' ').slice(-5).join(' ');
-    const after = t.slice(at + m[0].length, at + m[0].length + 50).split(' ').slice(0, 6).join(' ');
-    if (CODE_NEAR.test(before) || CODE_NEAR.test(after)) return true;
+    const at = m.index!, end = at + m[0].length;
+    const beforeToks = t.slice(Math.max(0, at - 40), at).trimEnd().split(' ');
+    const afterToks = t.slice(end, end + 60).trimStart().split(' ');
+    const cur = CURRENCY_TAIL.exec(t.slice(Math.max(0, at - 6), at));
+    if (cur && (!cur[1] || isCurrency(cur[1].toUpperCase()))) continue;       // an amount
+    const before = beforeToks.slice(-3).join(' ');
+    if (NOT_A_CODE_BEFORE.test(before)) continue;
+    if (/^\d{3,4}$/.test(beforeToks[beforeToks.length - 1] ?? '') || /^\d{3,}/.test(afterToks[0] ?? '')) continue;  // "1800 2662"
+    if (CODE_BEFORE.test(before) || CODE_AFTER.test(afterToks.slice(0, 5).join(' '))) return true;
   }
   return false;
 }
 
 /* ── amount ──────────────────────────────────────────────────────────── */
 
-type Amount = { start: number; end: number; minor: number; currency: string; preferred: boolean };
+type Amount = {
+  start: number; end: number; minor: number; currency: string;
+  /** Where the "of/for/amt" phrase that introduces it begins, or null. */
+  phrase: number | null;
+  /** 0 "txn/transaction of", 1 "amt/of/for", 2 "charges/fee of", 3 none. */
+  rank: number;
+};
 
 // "Rs", "Rs.", "Rs:", "INR", "₹", or a three-letter currency code, before the figure.
 const AMOUNT = /(?:\b[Rr][Ss]\.?|\b[Ii][Nn][Rr]|(₹)|\b([A-Z]{3})) ?:? ?(\d[\d,]*(?:\.\d{1,3})?)/g;
 // "500.00 AED": the code after the figure.
 const AMOUNT_AFTER = /(?<![\w.,])(\d[\d,]*(?:\.\d{1,3})?) ?([A-Z]{3})\b/g;
-const PREFERRED = /\b(?:amt|amount|of|for)[:.]? ?(?:[a-z]{2,3}\.?|₹)? ?:? ?$/i;
+const PHRASE = /\b(?:amt|amount|of|for)[:.]? ?$/i;
 
 // "Avl Bal Rs 5,000", "balance after txn Rs 9,500", "Avl Cr Limit Rs 95,000",
-// "Total Due Rs 5,000": the keyword, up to four words, then a currency and a figure.
-const BALANCE = /\b(?:bal(?:ance)?|lmt|limit|due|outstanding)\b(?: \S{1,15}){0,4}? ?:?-? ?(?:rs\.?|inr|₹|[a-z]{3}) ?:? ?\d[\d,]*(?:\.\d{1,3})?/gi;
+// "Total Due Rs 5,000": the keyword, up to four words (none ending a sentence), a currency, a figure.
+const BALANCE = /\b(?:bal(?:ance)?|lmt|limit|due|outstanding)\b\.?(?: [^\s;.]{1,15}){0,4}? ?:?-? ?(rs\.?|inr|₹|[a-z]{3}) ?:? ?\d[\d,]*(?:\.\d{1,3})?/gi;
+const stripBalance = (t: string) =>
+  t.replace(BALANCE, (all, cur: string) => (/^(?:rs\.?|inr|₹)$/i.test(cur) || isCurrency(cur.toUpperCase()) ? ' ' : all));
 
 function toAmount(whole: string, code: string, start: number, end: number, text: string): Amount | null {
   const [w, f = ''] = whole.replace(/,/g, '').split('.');
   if (w.length > 12) return null;
   if (f.length > digitsOf(code)) return null;      // 3 decimals only where the currency has 3
-  return { start, end, minor: fromKeys(f ? `${w}.${f}` : w, code), currency: code, preferred: PREFERRED.test(text.slice(Math.max(0, start - 14), start)) };
+  const head = text.slice(Math.max(0, start - 20), start);
+  const p = PHRASE.exec(head);
+  let rank = 3;
+  if (p) {
+    // Both "Charges of Rs 20 debited for txn of Rs 500" amounts follow "of";
+    // the transaction's own ("txn of") outranks a fee's ("charges of").
+    const lead = head.slice(0, p.index).trimEnd();
+    rank = /\b(?:txn|transaction|purchase|payment)$/i.test(lead) ? 0 : /\b(?:charges?|fees?|gst|tax)$/i.test(lead) ? 2 : 1;
+  }
+  return { start, end, minor: fromKeys(f ? `${w}.${f}` : w, code), currency: code, phrase: p ? start - 20 + p.index - (rank === 0 ? (/\b(?:txn|transaction|purchase|payment) $/i.exec(head.slice(0, p.index))?.[0].length ?? 0) : 0) : null, rank };
 }
 
 function amounts(text: string): Amount[] {
@@ -97,25 +122,62 @@ function amounts(text: string): Amount[] {
 
 /* ── direction ───────────────────────────────────────────────────────── */
 
-// A transaction that did not happen, or has not yet: no direction, no amount.
-const NOT_DONE = /\b(?:failed|declined|unsuccessful|not (?:been )?debited|will be debited|is due|mandate)\b/i;
+// A transaction that did not happen. "failed" and the like colour the whole
+// message; "will be debited" and "mandate" only the sentence they sit in.
+const FAILED = /\b(?:failed|declined|unsuccessful)\b/i;
+const NOT_YET = /\b(?:not (?:been )?debited|will be debited|is due|mandate)\b/i;
 const REVERSAL = /\brevers(?:ed|al)\b/i;
 const DEBIT = /\b(?:debited|debit(?! card)|spent|sent(?! you\b)|paid(?! you\b)|withdrawn|withdrawal|purchased?|used for|(?:transferred|trf) to)\b/gi;
-const CREDIT = /\b(?:credited|credit alert|received|deposited|refunded|refund\b(?!@)|revers(?:ed|al)|(?:sent|paid) you)\b/gi;
+const CREDIT = /\b(?:credited|credit alert|received|deposited|refunded|refund\b(?!@)|revers(?:ed|al)|(?:sent|paid) you|cashback (?:added|credited|received))\b/gi;
 
 type Verb = { start: number; end: number; direction: 'debit' | 'credit' };
 
-function verbs(text: string): Verb[] {
-  if (NOT_DONE.test(text)) return [];
+/** Sentence ranges. "Rs." and "A/c no." are not sentence ends. */
+function sentences(text: string): [number, number][] {
+  const out: [number, number][] = [];
+  let from = 0;
+  for (const m of text.matchAll(/(?<!\b(?:rs|inr|no|sr))[.;!?] /gi)) {
+    out.push([from, m.index! + 1]);
+    from = m.index! + 2;
+  }
+  out.push([from, text.length]);
+  return out;
+}
+
+function verbs(text: string, sents: [number, number][]): Verb[] {
+  if (FAILED.test(text)) return [];
   const out: Verb[] = [];
+  const live = (i: number) => {
+    const s = sents.find(([a, b]) => i >= a && i <= b)!;
+    return !NOT_YET.test(text.slice(s[0], s[1]));
+  };
   if (!REVERSAL.test(text))                      // a reversal puts the money back, whatever else it says
-    for (const m of text.matchAll(DEBIT)) out.push({ start: m.index!, end: m.index! + m[0].length, direction: 'debit' });
-  for (const m of text.matchAll(CREDIT)) out.push({ start: m.index!, end: m.index! + m[0].length, direction: 'credit' });
+    for (const m of text.matchAll(DEBIT)) if (live(m.index!)) out.push({ start: m.index!, end: m.index! + m[0].length, direction: 'debit' });
+  for (const m of text.matchAll(CREDIT)) if (live(m.index!)) out.push({ start: m.index!, end: m.index! + m[0].length, direction: 'credit' });
   return out;
 }
 
 const gap = (a: { start: number; end: number }, b: { start: number; end: number }) =>
   Math.max(0, a.start - b.end, b.start - a.end);
+
+/** The verb with its amount: for each verb the amounts in its own sentence
+ *  (else any), the nearest, unless an amount introduced by "txn of / amt / of / for"
+ *  lies within 10 characters of that distance, which then wins (best rank first). */
+function pair(vs: Verb[], amts: Amount[], sents: [number, number][]): { v: Verb; a: Amount } | null {
+  let best: { v: Verb; a: Amount; score: number } | null = null;
+  for (const v of vs) {
+    const sent = sents.find(([s, e]) => v.start >= s && v.start <= e)!;
+    const here = amts.filter((a) => a.start >= sent[0] && a.start <= sent[1]);
+    const cands = (here.length ? here : amts).map((a) => ({ a, d: gap(v, { start: a.rank < 3 && a.phrase !== null ? Math.min(a.phrase, a.start) : a.start, end: a.end }) }));
+    if (!cands.length) continue;
+    const near = Math.min(...cands.map((c) => c.d));
+    const pool = cands.filter((c) => c.d <= near + 10 && (c.d === near || c.a.rank < 3));
+    pool.sort((x, y) => x.a.rank - y.a.rank || x.d - y.d);
+    const pick = pool[0];
+    if (!best || pick.d < best.score) best = { v, a: pick.a, score: pick.d };
+  }
+  return best;
+}
 
 /* ── last4, date, merchant ───────────────────────────────────────────── */
 
@@ -149,7 +211,7 @@ const VPA = /^[\w.\-]+@[A-Za-z][\w]*$/;
 const NAME_STOP = new Set(['on', 'via', 'using', 'ref', 'refno', 'upi', 'txn', 'from', 'to', 'at', 'with', 'for', 'by', 'in', 'is', 'utr', 'imps', 'neft',
   'initiated', 'declined', 'failed', 'reversed', 'has', 'been', 'was', 'successful', 'successfully', 'processed', 'not']);
 const ACCOUNT_WORD = new Set(['a/c', 'ac', 'acct', 'account', 'card', 'bank']);
-const NOT_A_NAME = new Set(['your', 'my', 'the', 'a', 'an', 'atm']);
+const NOT_A_NAME = new Set(['block', 'your', 'my', 'the', 'a', 'an', 'atm']);
 
 /** The name after one to/at/from, or null when what follows is an account, a number or nothing. */
 function nameAfter(rest: string): string | null {
@@ -193,17 +255,9 @@ function findMerchant(text: string): string | null {
  *  body alone decides. */
 export function parseSms(text: string, _sender?: string): ParsedSms {
   void _sender;
-  const clean = squeeze(text).replace(BALANCE, ' ');
-  const amts = amounts(clean);
-  const vs = verbs(clean);
-
-  // The amount beside "amt/of/for" is the transaction's; failing that, nearest the verb.
-  let best: { a: Amount; v: Verb } | null = null;
-  let bestKey: [number, number] = [2, Infinity];
-  for (const v of vs) for (const a of amts) {
-    const key: [number, number] = [a.preferred ? 0 : 1, gap(a, v)];
-    if (key[0] < bestKey[0] || (key[0] === bestKey[0] && key[1] < bestKey[1])) { bestKey = key; best = { a, v }; }
-  }
+  const clean = stripBalance(squeeze(text));
+  const sents = sentences(clean);
+  const best = pair(verbs(clean, sents), amounts(clean), sents);
 
   const l4 = LAST4.exec(clean)?.[1];
   return {
