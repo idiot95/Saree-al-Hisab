@@ -7,7 +7,7 @@ import { Icon, Chip } from '../Icon';
 import { haptic } from '../haptics';
 import { useMoney } from '@/app/currency';
 import SwipeRow, { type SwipeAction } from '../SwipeRow';
-import { Problem } from '../worth/fields';
+import { Problem, keepFields } from '../worth/fields';
 import {
   createBudgetSet, updateBudgetSet, useBudgetSet, deleteBudgetSet,
 } from './actions';
@@ -218,8 +218,10 @@ function Row({ budget, lines, spentBy, open, onToggle, onEdit }: {
    the checkbox: a budget written for next Ramadan is not one to apply to this month, so whether it takes over is
    asked, and an unchecked box sends nothing (the action reads === 'yes').
 
-   The action goes straight into useActionState, so the form posts as a form. Every field is controlled, so a
-   refusal (which resets a form's uncontrolled fields) loses nothing typed. The two steps themselves need script. */
+   Submitted through keepFields, not <form action>: after a settled action React resets the form, and a reset puts
+   a controlled checkbox back to its first state in the DOM while React's state stays as it was — so after a
+   refusal the unticked "current" box came back ticked and the corrected resubmit adopted the budget. The form
+   needs script anyway (its two steps are client state), so nothing is lost by skipping the native post. */
 function BudgetForm({ categories, budget, lines, thisMonth, onDone, showCancel }: {
   categories: Category[]; budget: Budget | null; lines: Line[];
   thisMonth: string; onDone: () => void; showCancel: boolean;
@@ -251,7 +253,7 @@ function BudgetForm({ categories, budget, lines, thisMonth, onDone, showCancel }
   const filled = chosen.filter((c) => minorOf(c.id) > 0).length;
 
   return (
-    <form action={act} className="flex flex-col gap-4 rounded-[18px] bg-card p-4">
+    <form onSubmit={keepFields(act)} className="flex flex-col gap-4 rounded-[18px] bg-card p-4">
       {budget && <input type="hidden" name="id" value={budget.id} />}
       <div className="flex flex-col gap-1">
         <span className="text-xs font-semibold text-muted-foreground">{budget ? 'Editing' : `Step ${step} of 2`}</span>

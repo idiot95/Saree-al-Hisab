@@ -61,7 +61,7 @@ export default async function Plan({ searchParams }: {
     monthlySeries(hh, 6, trendMonth),
     categoryTrend(hh, trendMonth, partial ? day : null),
     tabList(hh),
-    receiptsByMonth(hh, 6),
+    receiptsByMonth(hh, 6, trendMonth),
   ]));
 
   const budget = Number(totals.budget);

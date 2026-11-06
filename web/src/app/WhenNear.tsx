@@ -21,5 +21,5 @@ export default function WhenNear({ className = 'h-36', children }: { className?:
     io.observe(el);
     return () => io.disconnect();
   }, []);
-  return <div ref={ref} className={`${className} w-full overflow-hidden`}>{near ? children : null}</div>;
+  return <div ref={ref} className={`${className} w-full`}>{near ? children : null}</div>;
 }

@@ -7,7 +7,9 @@
    --state is a signed-in Playwright storage state for an owner or contributing member (default .sweep-state.json).
 
    1. /trends?m=… redirects to /budget?m=…#trends, keeping its params, and Plan has the #trends section.
-   2. Create a budget in two steps with "Make this my current budget" unticked; it is kept, not in use.
+   2. Create a budget in two steps with "Make this my current budget" unticked. It is refused once (the last month
+      before the first), keeping what was typed and the box unticked; put right and sent again, it is kept for
+      later: not in use, and this month's budget rows are unchanged.
    3. Make it current from its open row; it wears "In use" and the month's figures appear with its category bar.
    4. Open "Adjust <month> only", save a smaller figure for that category, and the bar on the page changes —
       over budget, with the word.
@@ -86,11 +88,29 @@ try {
   await page.getByLabel('Name this budget').fill(NAME);
   const current = page.getByRole('checkbox', { name: /Make this my current budget/ });
   await current.uncheck();
+  /* Refused first (the last month before the first), then put right and sent again. The box was unticked and
+     must still be: a refusal used to let React's form reset tick it again, and the resubmit adopted the budget. */
+  const monthBefore = await sql`select category_id, amount from budget where household_id = ${hh} and month = ${MONTH}::date order by category_id`;
+  const from = await page.getByLabel('From').inputValue();
+  const [fy, fm] = from.split('-').map(Number);
+  const prior = `${fm === 1 ? fy - 1 : fy}-${String(fm === 1 ? 12 : fm - 1).padStart(2, '0')}`;
+  await page.getByLabel('Until').fill(prior);
+  await page.getByRole('button', { name: 'Create the budget' }).click();
+  await page.getByRole('alert').filter({ hasText: 'The last month comes before the first.' }).waitFor({ timeout: 20000 });
+  await page.waitForTimeout(300);
+  assert.equal(await current.isChecked(), false, 'after a refusal the box is still unticked');
+  assert.equal(await page.getByLabel('Name this budget').inputValue(), NAME, 'after a refusal the name is kept');
+  ok('a refused create keeps what was typed, and the box stays unticked');
+  await page.getByLabel('Until').fill(`${fy + 1}-${String(fm).padStart(2, '0')}`);
   await page.getByRole('button', { name: 'Create the budget' }).click();
   const row = page.getByRole('button', { name: new RegExp(NAME) });
   await row.waitFor({ timeout: 20000 });
   assert.equal(await row.getByText('In use').count(), 0, 'kept for later, not in use');
-  ok('a budget is created in two steps with the box unticked, and is kept, not in use');
+  const [made] = await sql`select current_at from budget_set where household_id = ${hh} and name = ${NAME}`;
+  assert.equal(made.current_at, null, 'the set is not current in the database');
+  const monthAfter = await sql`select category_id, amount from budget where household_id = ${hh} and month = ${MONTH}::date order by category_id`;
+  assert.deepEqual(monthAfter, monthBefore, "this month's figures did not change");
+  ok("put right and sent again, it is kept for later: not in use, and this month's figures are as they were");
 
   /* ── 3. make it current ───────────────────────────────────────────── */
   await row.click();

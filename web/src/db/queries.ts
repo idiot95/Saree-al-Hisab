@@ -755,14 +755,15 @@ export async function tabHeldOwed(householdId: string) {
 }
 
 /** Money that has come back against what was owed, by month — the six bars on
- *  Trends. Empty months stay in, for the same reason they do in monthlySeries. */
-export async function receiptsByMonth(householdId: string, months = 6) {
+ *  Trends, ending at `end` (a month's first day; this month when null). Empty
+ *  months stay in, for the same reason they do in monthlySeries. */
+export async function receiptsByMonth(householdId: string, months = 6, end: string | null = null) {
   return withHousehold(householdId, async () => {
     return sql`
       with span as (
         select generate_series(
-          date_trunc('month', current_date) - make_interval(months => ${months - 1}),
-          date_trunc('month', current_date),
+          coalesce(${end}::date, date_trunc('month', current_date)::date) - make_interval(months => ${months - 1}),
+          coalesce(${end}::date, date_trunc('month', current_date)::date),
           interval '1 month')::date as month
       )
       select to_char(s.month, 'YYYY-MM-DD') as month,

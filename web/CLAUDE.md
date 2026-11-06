@@ -92,7 +92,7 @@ paragraph below says otherwise. Where an older section disagrees, this wins:
   the running month is compared day for day with last month (`categoryTrend(…, days)`), the average is of
   finished months only. Its cards: where the month went as a bar list (category colour on the icon only), the
   changes on last month, six months of spending as a line with the budget dashed, owed to you by tab, six months
-  of money back. Charts are shadcn Chart (Recharts) in `budget/TrendCharts.tsx`, loaded through `next/dynamic`
+  of money back (every card ends at that month; `receiptsByMonth(…, end)`). Charts are shadcn Chart (Recharts) in `budget/TrendCharts.tsx`, loaded through `next/dynamic`
   `ssr:false` inside `WhenNear` (`src/app/WhenNear.tsx`, shared with Wealth): the box is the plot's fixed height
   and a chart's caption is drawn by the page outside it, so nothing moves when the chart arrives.
   `scripts/plan-taps.mjs` drives the redirect, a two-step create with the box unticked, Make current, and an
@@ -752,8 +752,10 @@ spending against measures against a figure that does not apply. Making current
 and Delete are the swipe (`SwipeRow`, `commit={false}` so a long swipe never
 fires either outright), and the open row repeats both as buttons (Delete on every
 budget, a second tap to confirm), so neither is reachable only by gesture. The
-create/edit form passes its action straight to `useActionState` with every field
-controlled; its two steps still need script. Creating asks in two steps and ends with a
+create/edit form needs script (its two steps are client state) and submits through
+`keepFields`: React's reset after a settled `<form action>` puts a controlled
+checkbox back to its first state in the DOM, so a refused create re-ticked
+"Make this my current budget" and the corrected resubmit adopted the budget. Creating asks in two steps and ends with a
 **checkbox**: a budget written for next Ramadan is not one to apply to this
 month, so whether it takes over is asked rather than assumed — and an unchecked
 box sends nothing at all, so the action reads `=== 'yes'` rather than `!== 'no'`.
