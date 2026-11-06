@@ -145,6 +145,19 @@ try {
     const [{ last_paid_with: lp }] = await sql`select last_paid_with from app_user where id = ${user.id}`;
     assert.match(lp ?? '', /^[am]:/);
     ok(`last_paid_with remembered (${lp.slice(0, 2)}…)`);
+    /* Edit on the saved snack is one navigation, a push to the entry: closing the snack no longer also replaces the
+       address (that replace's Back mark could be spent by the push). Back from the entry says nothing again and
+       only takes ?saved= off, and the trail ends where the history does: at Home. */
+    await page.getByRole('button', { name: 'Edit', exact: true }).click();
+    await page.waitForURL((u) => u.pathname === `/entries/${row.id}`, { timeout: 15000 });
+    await page.getByRole('link', { name: 'Back' }).first().click();
+    await page.waitForURL((u) => u.pathname === '/' && !u.searchParams.has('saved'), { timeout: 15000 });
+    await page.waitForTimeout(800);
+    assert.equal(await page.getByText('Entry saved.').count(), 0, 'no second "Entry saved." on the way back');
+    const trailNow = await page.evaluate(() => JSON.parse(sessionStorage.getItem('ql.trail.v1') ?? '[]'));
+    assert.equal(trailNow.at(-1), '/', `the trail ends at Home (${JSON.stringify(trailNow)})`);
+    assert.ok(!trailNow.some((u) => u.startsWith('/?saved=')), `and holds no ?saved= step (${JSON.stringify(trailNow)})`);
+    ok('Edit on the saved snack opens the entry; Back returns to a clean Home, the trail in step');
     await ctx.close();
   }
 

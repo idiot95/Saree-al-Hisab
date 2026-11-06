@@ -37,15 +37,18 @@ function Picker({ icon, tint, onIcon, onTint }: {
 }) {
   const [find, setFind] = useState('');
   const q = find.trim().toLowerCase();
-  const shown: readonly string[] = q ? ICONS.filter((n) => n.includes(q)) : ICONS;
-  /* 184 icons are far past one glance, and a grid of them all put Save some 2,000px down the form. So: one row of
-     five — the chosen icon first, then the first suggestions or matches — the search to narrow, and "Show all" for
-     the rest in a short box that scrolls by itself. */
-  const lead = !q || icon.includes(q) ? [icon] : [];
-  const row = [...lead, ...shown.filter((n) => n !== icon)].slice(0, 5);
-  const rest = shown.filter((n) => !row.includes(n));
+  const matches: readonly string[] = q ? ICONS.filter((n) => n.includes(q)) : ICONS;
+  /* 184 icons are far past one glance, and a grid of them all put Save some 2,000px down the form. So ONE list in a
+     fixed order — the first five always on show, the rest behind "Show all" in a short box that scrolls by itself —
+     and the search to narrow it. Choosing an icon never moves it: its button stays where it is (and keeps focus).
+     The chosen icon stays in sight: during a search that it does not match it leads the list, and when it sits in
+     the shut box it is shown again as a sixth tile ahead of "Show all". */
+  const list: readonly string[] = q && !matches.includes(icon) ? [icon, ...matches] : matches;
+  const head = list.slice(0, 5);
+  const rest = list.slice(5);
   const [all, setAll] = useState(false);
   const allId = useId();
+  const chosenHidden = !all && rest.includes(icon);
   const [ibg, iink] = tintOf(tint);
   const tile = (n: string) => {
     const on = n === icon;
@@ -87,26 +90,28 @@ function Picker({ icon, tint, onIcon, onTint }: {
         <input type="search" value={find} onChange={(e) => setFind(e.target.value)}
           placeholder="Find an icon" aria-label="Find an icon" autoComplete="off"
           className="h-12 w-full rounded-xl border border-input bg-card px-3.5 text-[length:var(--field)] text-foreground" />
-        {shown.length === 0 && (
+        {matches.length === 0 && (
           <span className="py-2 text-sm text-muted-foreground">Nothing called that. Try another word.</span>
         )}
-        {/* One row: the chosen icon and the first suggestions (or the first matches for what was typed). */}
-        <div className="grid grid-cols-5 gap-2">{row.map(tile)}</div>
-        {rest.length > 0 && (
-          <>
-            <button type="button" aria-expanded={all} aria-controls={allId} onClick={() => setAll((o) => !o)}
-              className="press flex min-h-11 items-center gap-1.5 self-start text-sm font-semibold text-primary in-data-[platform=android]:min-h-12">
-              <Icon name={all ? 'expand_less' : 'expand_more'} size={18} />
-              {all ? 'Fewer icons' : q ? `Show all ${shown.length} matches` : `Show all ${shown.length} icons`}
-            </button>
-            {/* The rest in a box that scrolls by itself, four rows tall, so the form's Save stays a short scroll away. */}
-            {all && (
-              <div id={allId} role="group" aria-label="All icons"
-                className="grid max-h-[232px] grid-cols-5 gap-2 overflow-y-auto overscroll-contain rounded-xl border border-border p-2">
-                {rest.map(tile)}
-              </div>
+        <div className="grid grid-cols-5 gap-2">{head.map(tile)}</div>
+        {(chosenHidden || rest.length > 0) && (
+          <div className="flex items-center gap-3">
+            {chosenHidden && <div className="grid w-[calc((100%_-_2rem)/5)] flex-none">{tile(icon)}</div>}
+            {rest.length > 0 && (
+              <button type="button" aria-expanded={all} aria-controls={allId} onClick={() => setAll((o) => !o)}
+                className="press flex min-h-11 items-center gap-1.5 text-sm font-semibold text-primary in-data-[platform=android]:min-h-12">
+                <Icon name={all ? 'expand_less' : 'expand_more'} size={18} />
+                {all ? 'Fewer icons' : q ? `Show all ${list.length} matches` : `Show all ${list.length} icons`}
+              </button>
             )}
-          </>
+          </div>
+        )}
+        {/* The rest of the same list, four rows tall, so the form's Save stays a short scroll away. */}
+        {all && rest.length > 0 && (
+          <div id={allId} role="group" aria-label="All icons"
+            className="grid max-h-[232px] grid-cols-5 gap-2 overflow-y-auto overscroll-contain rounded-xl border border-border p-2">
+            {rest.map(tile)}
+          </div>
         )}
       </fieldset>
     </>

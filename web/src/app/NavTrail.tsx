@@ -12,8 +12,11 @@ export default function NavTrail() {
      document), so the address it brings is recorded as a replace, as the history does. */
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
+      // A click that opens a new tab or window (or is not the main button) navigates nothing here.
+      if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
       const a = (e.target as Element | null)?.closest?.('a[data-replace]');
-      if (a instanceof HTMLAnchorElement) replacing(a.href);
+      // A link to where the page already is goes nowhere, so it marks nothing.
+      if (a instanceof HTMLAnchorElement && a.href !== location.href) replacing(a.href);
     };
     document.addEventListener('click', onClick, true);
     return () => document.removeEventListener('click', onClick, true);

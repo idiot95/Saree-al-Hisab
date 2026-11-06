@@ -407,6 +407,31 @@ try {
   ok(`renamed back to "${cat.name}"`);
   await page.getByRole('button', { name: /^Add a category/ }).click();
   const newCat = page.getByRole('form', { name: 'Add a category' });
+  /* Choosing an icon from "Show all" by keyboard: the icon stays where it is, keeps focus and is pressed (it used to
+     move into the first row, so its button unmounted and focus fell to the page). Enter on one, Space on another. */
+  await newCat.getByRole('button', { name: /^Show all \d+ icons$/ }).click();
+  const box = newCat.getByRole('group', { name: 'All icons' });
+  for (const [i, key] of [[9, 'Enter'], [17, 'Space']]) {
+    const pick = box.getByRole('button').nth(i);
+    const name = await pick.getAttribute('aria-label');
+    await pick.focus();
+    await page.keyboard.press(key);
+    await page.waitForTimeout(200);
+    const same = await pick.evaluate((el) => el === document.activeElement && el.isConnected);
+    assert.ok(same, `after ${key}, focus is still on "${name}" in the box`);
+    assert.equal(await pick.getAttribute('aria-pressed'), 'true', `"${name}" is pressed`);
+    assert.equal(await newCat.locator('input[name=icon]').inputValue(), name, `the form sends "${name}"`);
+  }
+  ok('an icon chosen from Show all by keyboard (Enter, then Space on another) keeps focus where it is and is pressed');
+  /* Shut, the chosen icon (deep in the list) is still in sight and pressed, as a sixth tile ahead of Show all. */
+  await newCat.getByRole('button', { name: 'Fewer icons' }).click();
+  const chosen = await newCat.locator('input[name=icon]').inputValue();
+  assert.equal(await newCat.getByRole('button', { name: chosen, exact: true, pressed: true }).count(), 1, `"${chosen}" shows, pressed, with the box shut`);
+  /* Searching for something it does not match leaves it in sight too. */
+  await newCat.getByLabel('Find an icon').fill('car');
+  assert.equal(await newCat.getByRole('button', { name: chosen, exact: true, pressed: true }).count(), 1, `"${chosen}" stays in sight during a search`);
+  await newCat.getByLabel('Find an icon').fill('');
+  ok(`with the box shut, and during a search it does not match, the chosen "${chosen}" is still shown and pressed`);
   await newCat.getByLabel('Name').fill(NEWCAT);
   await newCat.getByRole('button', { name: 'Add category' }).click();
   await newCat.waitFor({ state: 'detached', timeout: 20000 });

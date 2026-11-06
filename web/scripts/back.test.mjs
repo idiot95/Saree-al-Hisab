@@ -75,37 +75,116 @@ go('/'); go('/worth');
 trail.replacing('/worth?o=joint'); go('/people');
 assert.deepEqual(read(), ['/', '/worth', '/people'], 'a mark for another address does not apply');
 go('/people/x');
-assert.deepEqual(read(), ['/', '/worth', '/people', '/people/x'], 'and it is spent: the next move pushes');
+assert.deepEqual(read(), ['/', '/worth', '/people', '/people/x'], 'nor to the next one');
+trail.replacing('/'); go('/?saved=abc'); go('/');
+assert.deepEqual(read(), ['/', '/worth', '/people', '/people/x', '/'], 'an address in between does not spend a mark');
+go('/budget'); go('/');
+assert.deepEqual(read(), ['/', '/worth', '/people', '/people/x', '/'], 'once used it is gone: Back to / pops as usual');
 trail.replacing('/worth?o=a%20b'); go('/worth?o=a+b');
 assert.equal(read().at(-1), '/worth?o=a+b');
-assert.equal(read().length, 4, 'the same address spelled two ways is the same address');
-ok('a mark applies only to the address it names, once, however the query is spelled');
+assert.equal(read().length, 5, 'the same address spelled two ways is the same address');
+ok('a mark applies only to the address it names, once, however the query is spelled, even with an address in between');
 
-/* Every replacing navigation in the app is marked: a <Link replace> carries data-replace, and a file that calls
-   router.replace or history.replaceState calls replacing() (or marks the Link it belongs to). */
+/* Every replacing navigation in the app is marked. The rules the scan enforces:
+   - a <Link …> element whose props include `replace` also carries `data-replace` (the element is read to its real
+     closing `>`, at brace depth 0 and outside quotes, so `=>` and `>` inside {…} do not end it);
+   - each call of router.replace (whatever the router is called, or a `replace` destructured from useRouter()) and
+     each history.replaceState is marked, call by call: `replacing(` within the six lines before it, or — the pairing
+     rule — the call sits inside the props of a <Link … data-replace> (OwnerChips' onClick calls replaceState for its
+     own Link, whose click NavTrail has already marked);
+   - RedirectType.replace is refused outright: a server redirect cannot be marked on the phone.
+   Comments are skipped: a comment may well describe a <Link replace>. */
 {
   const { readFileSync, readdirSync } = await import('node:fs');
   const { join } = await import('node:path');
+
+  /** Comment ranges, skipping quoted strings so 'image/*' or 'http://' never open one. */
+  function commentRanges(src) {
+    const out = [];
+    let i = 0, q = null;
+    while (i < src.length) {
+      const c = src[i];
+      if (q) { if (c === '\\') { i += 2; continue; } if (c === q) q = null; i++; continue; }
+      if (c === '/' && src[i + 1] === '*') { const e = src.indexOf('*/', i + 2); const end = e < 0 ? src.length : e + 2; out.push([i, end]); i = end; continue; }
+      if (c === '/' && src[i + 1] === '/' && src[i - 1] !== ':') { const e = src.indexOf('\n', i); const end = e < 0 ? src.length : e; out.push([i, end]); i = end; continue; }
+      /* Quotes only open in code positions (after = ( , [ { : ? + ! & | or whitespace), not an apostrophe inside a word. */
+      if ((c === '"' || c === "'" || c === '`') && /[=(,[{:?\s+!&|]/.test(src[i - 1] ?? ' ')) { q = c; i++; continue; }
+      i++;
+    }
+    return out;
+  }
+  /** A JSX opening tag from `<Link` to its own closing `>`: depth 0, outside quotes. Returns [start, end, props]. */
+  function linkElements(src) {
+    const out = [];
+    for (const m of src.matchAll(/<Link\b/g)) {
+      let depth = 0, q = null, i = m.index + 5;
+      for (; i < src.length; i++) {
+        const c = src[i];
+        if (q) { if (c === '\\') { i++; continue; } if (c === q) q = null; continue; }
+        if (c === '"' || c === "'" || c === '`') { q = c; continue; }
+        if (c === '{') depth++;
+        else if (c === '}') depth--;
+        else if (c === '>' && depth === 0) break;
+      }
+      out.push([m.index, i, src.slice(m.index + 5, i)]);
+    }
+    return out;
+  }
+  /** The props written at depth 0 (outside any {…}): `replace`, `replace={x}`, `data-replace`. */
+  const topLevel = (props) => { let d = 0, t = ''; for (const c of props) { if (c === '{') d++; if (d === 0) t += c; if (c === '}') d--; } return t; };
+
   const root = new URL('../src', import.meta.url).pathname;
   const files = readdirSync(root, { recursive: true }).filter((f) => /\.(tsx?|jsx?)$/.test(f)).map((f) => join(root, f));
   const unmarked = [];
   let sites = 0;
   for (const f of files) {
-    // Code only: a comment may well describe a <Link replace>.
-    const src = readFileSync(f, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
-    for (const m of src.matchAll(/<Link\b([\s\S]*?)>/g)) {
-      if (!/(^|\s)replace(\s|=|\/|$)/.test(m[1])) continue;
+    const src = readFileSync(f, 'utf8');
+    const comments = commentRanges(src);
+    const inComment = (at) => comments.some(([a, b]) => at >= a && at < b);
+    const links = linkElements(src).filter(([a]) => !inComment(a));
+    for (const [, , props] of links) {
+      const top = topLevel(props);
+      if (!/(^|\s)replace(\s|=|\/|$)/.test(top)) continue;
       sites++;
-      if (!/data-replace/.test(m[1])) unmarked.push(`${f}: <Link replace> without data-replace`);
+      if (!/(^|\s)data-replace(\s|=|\/|$)/.test(top)) unmarked.push(`${f}: <Link replace> without data-replace`);
     }
-    for (const m of src.matchAll(/\b(?:router\.replace|history\.replaceState)\(/g)) {
+    /* Every name a router is held by in this file, and a destructured replace. */
+    const routers = new Set(['router']);
+    for (const m of src.matchAll(/const\s+(\w+)\s*=\s*useRouter\(\)/g)) routers.add(m[1]);
+    const calls = [];
+    for (const r of routers) for (const m of src.matchAll(new RegExp(`\\b${r}\\.replace\\(`, 'g'))) calls.push([m.index, `${r}.replace(`]);
+    for (const m of src.matchAll(/\bhistory\.replaceState\(/g)) calls.push([m.index, m[0]]);
+    for (const m of src.matchAll(/const\s*\{[^}]*\breplace\b[^}]*\}\s*=\s*useRouter\(\)/g)) {
+      if (!inComment(m.index)) unmarked.push(`${f}: replace destructured from useRouter() — call router.replace after replacing()`);
+    }
+    for (const m of src.matchAll(/\bRedirectType\.replace\b/g)) {
+      if (!inComment(m.index)) unmarked.push(`${f}: RedirectType.replace cannot be marked for Back`);
+    }
+    for (const [at, what] of calls) {
+      if (inComment(at)) continue;
       sites++;
-      if (!/\breplacing\(|data-replace/.test(src)) unmarked.push(`${f}: ${m[0]} without replacing()`);
+      const lineStart = src.lastIndexOf('\n', at) + 1;
+      let from = lineStart;
+      for (let k = 0; k < 6 && from > 0; k++) from = src.lastIndexOf('\n', from - 2) + 1;
+      const before = src.slice(from, at);
+      const paired = links.some(([a, b, props]) => at > a && at < b && /(^|\s)data-replace(\s|=|\/|$)/.test(topLevel(props)));
+      if (!/\breplacing\(/.test(before) && !paired) unmarked.push(`${f}:${src.slice(0, at).split('\n').length}: ${what} without replacing() just before it`);
     }
   }
   assert.deepEqual(unmarked, [], 'every replacing navigation is marked');
   assert.ok(sites >= 11, `the scan found the app's replacing navigations (${sites})`);
-  ok(`all ${sites} replacing navigations in src are marked (data-replace or replacing())`);
+  ok(`all ${sites} replacing navigations in src are marked (data-replace, replacing() just before, or paired)`);
+
+  /* The scan itself, on code written to slip past the old one. */
+  const probe = (code) => {
+    const comments = commentRanges(code);
+    const links = linkElements(code).filter(([a]) => !comments.some(([x, y]) => a >= x && a < y));
+    return links.map(([, , p]) => topLevel(p));
+  };
+  assert.deepEqual(probe(`<Link onClick={() => go(a > b)} replace href="/x">`).map((t) => /(^|\s)replace(\s|=|\/|$)/.test(t)), [true],
+    'a `>` inside {…} does not end the element before `replace`');
+  assert.deepEqual(probe(`/* <Link replace> */ const x = 'image/*'; <Link href="/y">`).length, 1, 'comments are skipped, quoted /* is not one');
+  ok('the scan reads a <Link> to its real end and skips comments, not quoted /*');
 }
 
 console.log(`  back.test: ${n} passed`);
