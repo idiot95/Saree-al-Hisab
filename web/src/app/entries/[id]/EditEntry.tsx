@@ -163,6 +163,7 @@ export default function EditEntry({ entry, categories, ways, canEdit, back = '/e
           ) : (
             <form action={remove} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               <input type="hidden" name="id" value={entry.id} />
+              <input type="hidden" name="back" value={back} />
               <p style={{ margin: 0, fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--muted-foreground)' }}>
                 The month&rsquo;s totals and the account balance change straight away.
               </p>

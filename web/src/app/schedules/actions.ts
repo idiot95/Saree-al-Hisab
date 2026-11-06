@@ -123,6 +123,7 @@ export async function createSchedule(_prev: Result | null, fd: FormData): Promis
               ${cal === 'gregorian' ? rule : null}, ${cal === 'hijri' ? rule : null})`;
 
     revalidatePath('/entries');
+    revalidatePath('/');
     return { ok: true, message: `${name} added.` };
   });
 }
@@ -138,6 +139,7 @@ export async function archiveSchedule(_prev: Result | null, fd: FormData): Promi
         and archived_at is null returning id`;
     if (!done.length) return { ok: false, error: 'That schedule is not one of yours.' };
     revalidatePath('/entries');
+    revalidatePath('/');
     return { ok: true, message: 'Stopped. Entries already recorded are untouched.' };
   });
 }
@@ -233,6 +235,7 @@ export async function skipDue(_prev: Result | null, fd: FormData): Promise<Resul
       on conflict (schedule_id, due_on) do update set status = 'skipped', txn_id = null`;
 
     revalidatePath('/entries');
+    revalidatePath('/');
     return { ok: true, message: 'Skipped.' };
   });
 }

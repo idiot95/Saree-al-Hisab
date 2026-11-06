@@ -112,8 +112,7 @@ export default function EntryList({ days, canEdit, tools = false, flat = false, 
               <Icon name="search" size={16} /> Search every month for “{q.trim()}”
             </Link>
           )}
-          <div role="group" aria-label="Kind of entry"
-            className="-mx-[var(--gutter)] flex overflow-x-auto px-[calc(var(--gutter)-0.5rem)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div role="group" aria-label="Kind of entry" className="-mx-2 flex flex-wrap">
             {FILTERS.map((f) => (
               <button key={f.key} type="button" aria-pressed={filter === f.key} onClick={() => setFilter(f.key)}
                 className={`flex min-h-11 flex-none items-center gap-1 whitespace-nowrap rounded-full px-2 text-[13px] ${filter === f.key

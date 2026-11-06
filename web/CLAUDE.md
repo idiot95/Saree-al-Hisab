@@ -47,14 +47,19 @@ paragraph below says otherwise. Where an older section disagrees, this wins:
   household belong to Home (`OWNED_BY` lights it) and open as pushed screens with a back arrow; `/accounts` is
   pushed from Wealth (`/worth`). The active tab is a filled icon with a `text-primary` label on iOS, and a 56x30
   `bg-accent` pill on Android (`in-data-[platform=android]:` (data-platform is on <html>, the group class on <body>, so group-data would never match)).
-- **Activity is one screen** (`/entries`, Task 24): under the title a row of link chips (`ActivityChips.tsx`)
+- **Activity is one screen** (`/entries`, Task 24): under the title a wrapping row of link chips (`ActivityChips.tsx`;
+  rows wrap, never scroll sideways, so what is offered can be counted)
   *All · To review (n) · Upcoming · From SMS (n)* picks the view by `?f=all|review|upcoming|sms` (default all;
   each view's data is loaded only for its chip: `ReviewView`, `UpcomingView`, `SmsView`). To review's badge is
   bills + duplicates and From SMS's is open drafts, so the two add up to Home's tile. The month pill and search
   belong to All (`?m=`, `?q=`, `?c=` as before); Upcoming keeps its own calendar month; review and SMS are not
   month-filtered. `/inbox` and `/schedules` are redirects that keep every param (`/inbox?dismissed=` goes to
-  `?f=sms`); `/inbox/sms/[id]` stays the message screen and returns to `/entries?f=sms`. `purgeSmsBodies` runs
-  on every render of the page. `Segments`/`ActivityNav` are gone. A card holding swipe rows keeps
+  `?f=sms`); `/inbox/sms/[id]` stays the message screen and returns to `/entries?f=sms`. `purgeSmsBodies`, the
+  badge counts and the chip's reads run in one transaction on every render. Chips replace the address, and the
+  Back trail replaces its last `/entries` step to match. An entry opened from a chip carries `from=` (duplicates →
+  `?f=review`, the calendar drawer → `?f=upcoming`), and Back, Save and Delete return there: `entries/back.ts`
+  `safeBack` is the one exact list of where they may go (`scripts/activity-taps.mjs` drives chips, redirects
+  and both returns against a running build). `Segments`/`ActivityNav` are gone. A card holding swipe rows keeps
   `px-[var(--pad)]`: SwipeRow's negative margin is `--pad`, and any other padding makes the card scrollable, so
   opening a row scrolls it and the scroll closes the row again.
 - **One name per thing**, the same on the tab, the switch, the page and the

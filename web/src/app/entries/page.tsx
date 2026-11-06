@@ -41,39 +41,35 @@ export default async function Activity({ searchParams }: { searchParams: Promise
   const hh = actor.household_id;
   const canWrite = actor.role !== 'viewer';
   const month = sp.m && MONTH.test(sp.m) ? sp.m : null;
-  /* Forwarded bank messages lose their text once handled or after thirty days. There is no scheduler, so the
-     screen that lists them does it as it opens, whichever chip it opens on. The counts feed the chips' badges:
-     card bills and duplicates on To review, open drafts on From SMS — together, Home's To review tile. */
-  const inbox = await withHousehold(hh, async () => {
+  const words = typeof sp.q === 'string' ? sp.q.trim().slice(0, 60) : '';
+  const shown = month ?? monthKey(new Date());
+  const categoryId = sp.c && /^[0-9a-f-]{36}$/.test(sp.c) ? sp.c : null;
+  /* One transaction for the screen: forwarded bank messages lose their text once handled or after thirty days
+     (there is no scheduler, so the screen that lists them does it as it opens, whichever chip), the counts for the
+     chips' badges — card bills and duplicates on To review, open drafts on From SMS, together Home's tile — and
+     the reads of the one view on screen. The loaders' own withHousehold joins this scope. */
+  const { inbox, view, all, found } = await withHousehold(hh, async () => {
     await purgeSmsBodies(hh);
-    return inboxCount(hh);
+    const inbox = await inboxCount(hh);
+    const view = f === 'review' ? await loadReview(hh, canWrite, inbox.sms)
+      : f === 'upcoming' ? await loadUpcoming(hh, canWrite, sp.new === '1')
+      : f === 'sms' ? await loadSms(hh, canWrite, sp.dismissed)
+      : null;
+    const found = f === 'all' && words ? await searchEntries(hh, words, amountOf(words, actor.currency)) : null;
+    const all = f !== 'all' || words ? null : await Promise.all([
+      entriesFor(hh, shown, categoryId),
+      budgetFor(hh, shown),
+      monthTotals(hh, shown),
+    ]);
+    return { inbox, view, all, found };
   });
   const review = inbox.bills + inbox.duplicates;
   const chips = <ActivityChips current={f} review={review} sms={inbox.sms} month={month} />;
 
-  if (f === 'review') {
-    const v = await loadReview(hh, canWrite, inbox.sms);
-    return <Shell sub={v.sub} chips={chips}>{v.body}</Shell>;
-  }
-  if (f === 'upcoming') {
-    const v = await loadUpcoming(hh, canWrite, sp.new === '1');
-    return <Shell sub={v.sub} chips={chips}>{v.body}</Shell>;
-  }
-  if (f === 'sms') {
-    const v = await loadSms(hh, canWrite, sp.dismissed);
-    return <Shell sub={v.sub} chips={chips}>{v.body}</Shell>;
-  }
+  if (view) return <Shell sub={view.sub} chips={chips}>{view.body}</Shell>;
+  if (found || !all) return <Search entries={found ?? []} words={words} canEdit={canWrite} chips={chips} />;
 
-  const words = typeof sp.q === 'string' ? sp.q.trim().slice(0, 60) : '';
-  if (words) return <Search householdId={hh} words={words} currency={actor.currency} canEdit={canWrite} chips={chips} />;
-
-  const shown = month ?? monthKey(new Date());
-  const categoryId = sp.c && /^[0-9a-f-]{36}$/.test(sp.c) ? sp.c : null;
-  const [entries, categories, totals] = await withHousehold(hh, () => Promise.all([
-    entriesFor(hh, shown, categoryId),
-    budgetFor(hh, shown),
-    monthTotals(hh, shown),
-  ]));
+  const [entries, categories, totals] = all;
   const filtered = categories.find((x) => x.category_id === categoryId)
     ?? categories.flatMap((x) => x.kids.map((k) => ({ ...k, name: `${x.name} › ${k.name}` })))
       .find((k) => k.id === categoryId);
@@ -109,15 +105,18 @@ export default async function Activity({ searchParams }: { searchParams: Promise
   );
 }
 
-/* Every month at once: what was typed, matched against the words on an entry (and its amount, when it is a number),
-   newest first. Postel: "1,250", "₹1250" and "1250" are the same figure. */
-async function Search({ householdId, words, currency, canEdit, chips }: {
-  householdId: string; words: string; currency: string; canEdit: boolean; chips: React.ReactNode;
-}) {
+/* Postel: "1,250", "₹1250" and "1250" are the same figure — a search that is a number also matches amounts. */
+function amountOf(words: string, currency: string) {
   const figure = words.replace(/[^0-9.]/g, '');
-  const amountMinor = /^\d+(\.\d+)?$/.test(figure) && /^[\s₹$€£,.\d]+$/.test(words)
+  return /^\d+(\.\d+)?$/.test(figure) && /^[\s₹$€£,.\d]+$/.test(words)
     ? Math.round(Number(figure) * 10 ** digitsOf(currency)) : null;
-  const entries = await withHousehold(householdId, () => searchEntries(householdId, words, amountMinor));
+}
+
+/* Every month at once: what was typed, matched against the words on an entry (and its amount, when it is a number),
+   newest first. */
+function Search({ entries, words, canEdit, chips }: {
+  entries: Awaited<ReturnType<typeof searchEntries>>; words: string; canEdit: boolean; chips: React.ReactNode;
+}) {
   const days = byDay(entries);
   return (
     <Shell sub={`${entries.length === 0 ? 'Nothing found' : `${entries.length}${entries.length >= 200 ? '+' : ''} found`} in every month`}

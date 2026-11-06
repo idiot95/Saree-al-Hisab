@@ -38,8 +38,12 @@ export default function SmsDrafts({ rows, canWrite, justDismissed = null, empty 
   const closeSnack = useCallback(() => {
     setSnack(null);
     setOffer(null);
-    // The ?dismissed= comes off the address, so a reload does not offer the Undo twice.
-    if (justDismissed) router.replace('/entries?f=sms', { scroll: false });
+    // The ?dismissed= comes off the address (and nothing else does), so a reload does not offer the Undo twice.
+    if (justDismissed) {
+      const u = new URL(window.location.href);
+      u.searchParams.delete('dismissed');
+      router.replace(`${u.pathname}${u.search}`, { scroll: false });
+    }
   }, [justDismissed, router]);
   const undoElsewhere = (id: string) => start(async () => {
     const back = await restoreDraft(id);

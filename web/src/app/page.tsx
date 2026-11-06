@@ -62,7 +62,8 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ s
   const allDues = outstandingDues(schedules, now, 7);
   const canAct = actor.role !== 'viewer';
   const dueNow = canAct ? allDues.filter((d) => d.daysAway <= 0) : [];
-  /* The same count as Activity's "To review" badge, so the two never disagree. What is due comes under Upcoming. */
+  /* Activity's To review and From SMS badges together, so the tile and the chips never disagree. What is due comes
+     under Upcoming. */
   const review = reviewCount(inbox);
   /* The tile opens the chip that holds what it counts: To review for bills and duplicates, From SMS when bank
      messages are all there is. */
@@ -168,7 +169,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ s
                     <DueRow key={`${d.scheduleId}:${d.dueOn}`}
                       scheduleId={d.scheduleId} name={s.name} kind={s.kind} dueOn={d.dueOn}
                       on={d.on} movedFrom={d.movedFrom} daysAway={d.daysAway}
-                      amount={Number(s.amount ?? 0)} category={s.category} icon={s.icon} tint={s.tint}
+                      amount={Number(s.amount ?? 0)} category={s.category} icon={s.icon}
                       rule={ruleOf(s)?.rule} cal={ruleOf(s)?.cal} today={todayIso} />
                   );
                 })}

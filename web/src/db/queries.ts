@@ -1068,8 +1068,9 @@ export async function inboxCount(householdId: string) {
   });
 }
 
-/** What To review counts: card bills, possible duplicates and bank messages
- *  waiting to become entries. One sum, so Home, Activity and To review agree. */
+/** What Home's To review tile counts: card bills, possible duplicates and bank messages waiting to become
+ *  entries. On Activity the same three are split across two chips — To review (bills + duplicates) and From SMS
+ *  (messages) — whose badges add up to this. */
 export const reviewCount = (i: { duplicates: number; bills: number; sms: number }) => i.duplicates + i.bills + i.sms;
 
 /* ── forwarded bank messages ─────────────────────────────────────────────── */

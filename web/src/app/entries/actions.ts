@@ -2,6 +2,7 @@
 
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
+import { safeBack } from './back';
 import { sql, withHousehold } from '@/db/client';
 import { currentActor } from '@/db/queries';
 import { resolvePayment } from '@/db/payment';
@@ -10,8 +11,6 @@ import { rethrowControlFlow } from '@/lib/rethrow';
 import { fits, misfit } from '@/lib/scope';
 import { BILL_MAX_FILES, billFromBase64, type Bill } from '@/lib/bills';
 
-/** Where an edit may send you back to: a screen of ours, never a URL from the form. */
-const BACK = /^\/(?:|entries|accounts|people|tab\/[0-9a-f-]{36}|people\/[0-9a-f-]{36})$/;
 
 export type Result = { ok: true; message?: string } | { ok: false; error: string };
 
@@ -145,9 +144,9 @@ export async function updateEntry(_prev: Result | null, fd: FormData): Promise<R
     revalidatePath('/');
     revalidatePath('/accounts');
     revalidatePath('/people');
-    const back = String(fd.get('back') ?? '');
+    const back = safeBack(fd.get('back'));
     if (back.startsWith('/tab/')) revalidatePath(back);
-    redirect(BACK.test(back) ? back : '/entries');
+    redirect(back);
   });
 }
 
@@ -170,7 +169,10 @@ export async function deleteEntry(_prev: Result | null, fd: FormData): Promise<R
     revalidatePath('/entries');
     revalidatePath('/');
     revalidatePath('/accounts');
-    redirect('/entries');
+    // Back to where the entry was opened from, as Save does.
+    const back = safeBack(fd.get('back'));
+    if (back.startsWith('/tab/')) revalidatePath(back);
+    redirect(back);
   });
 }
 

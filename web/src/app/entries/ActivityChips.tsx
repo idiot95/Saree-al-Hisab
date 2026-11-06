@@ -1,7 +1,7 @@
 'use client';
 
 import Link from '@/app/NavLink';
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { haptic } from '../haptics';
 
 export type ActivityFilter = 'all' | 'review' | 'upcoming' | 'sms';
@@ -21,18 +21,6 @@ export default function ActivityChips({ current, review, sms, month }: {
   const [seen, setSeen] = useState(current);
   if (seen !== current) { setSeen(current); setPicked(null); }
   const lit = picked ?? current;
-  /* On a narrow phone the row scrolls sideways; the chosen chip is brought fully into view (the row only, never
-     the page), so From SMS is not left cut off at the edge while it is the view on screen. */
-  const nav = useRef<HTMLElement>(null);
-  useEffect(() => {
-    const el = nav.current?.querySelector<HTMLElement>('[aria-current="page"]');
-    const row = nav.current;
-    if (!el || !row) return;
-    const over = el.offsetLeft + el.offsetWidth - (row.scrollLeft + row.clientWidth);
-    const under = el.offsetLeft - row.scrollLeft;
-    if (over > 0) row.scrollLeft += over + 16;
-    else if (under < 0) row.scrollLeft += under - 16;
-  }, [current]);
   const chips: { key: ActivityFilter; label: string; count?: number }[] = [
     { key: 'all', label: 'All' },
     { key: 'review', label: 'To review', count: review },
@@ -47,8 +35,8 @@ export default function ActivityChips({ current, review, sms, month }: {
     return s ? `/entries?${s}` : '/entries';
   };
   return (
-    <nav ref={nav} aria-label="Activity"
-      className="relative -mx-[var(--gutter)] flex gap-1.5 overflow-x-auto px-[var(--gutter)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+    /* The row wraps, never scrolls sideways: what is offered can be counted. */
+    <nav aria-label="Activity" className="flex flex-wrap gap-1.5">
       {chips.map((c) => {
         const on = c.key === lit;
         return (
@@ -59,7 +47,7 @@ export default function ActivityChips({ current, review, sms, month }: {
               if (c.key !== lit) haptic('select');
               setPicked(c.key);
             }}
-            className={`press flex min-h-11 min-w-11 flex-none items-center justify-center gap-1.5 whitespace-nowrap rounded-full border px-3 text-sm transition-colors ${on
+            className={`press flex min-h-11 min-w-11 flex-none items-center justify-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 text-sm in-data-[platform=android]:min-h-12 transition-colors ${on
               ? 'border-primary bg-primary font-semibold text-primary-foreground'
               : 'border-border bg-card font-medium text-foreground'}`}>
             {c.label}

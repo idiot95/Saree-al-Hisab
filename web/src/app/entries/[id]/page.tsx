@@ -6,6 +6,7 @@ import {
 import { withHousehold } from '@/db/client';
 import { waysToPay } from '@/db/payment';
 import EditEntry from './EditEntry';
+import { safeBack } from '../back';
 import OwedFor from './OwedFor';
 import PageHead from '../../PageHead';
 import { TAB_BAR_SPACE } from '../../tabs';
@@ -21,9 +22,8 @@ const KIND = {
   adjust_in: 'Balance adjustment', adjust_out: 'Balance adjustment',
 } as Record<string, string>;
 
-/* Where Back and Save return to: the screen the entry was opened from, when it
-   is one of ours. A tab's entry goes back to its tab, not to Entries. */
-const FROM = /^\/(?:|entries|accounts|people|tab\/[0-9a-f-]{36}|people\/[0-9a-f-]{36})$/;
+/* Where Back, Save and Delete return to: the screen the entry was opened from, when it is one of ours
+   (safeBack's exact list). A tab's entry goes back to its tab, a duplicate to To review, not to Entries. */
 
 export default async function Entry({ params, searchParams }: {
   params: Promise<{ id: string }>; searchParams: Promise<{ from?: string }>;
@@ -34,7 +34,7 @@ export default async function Entry({ params, searchParams }: {
 
   const { id } = await params;
   const { from } = await searchParams;
-  const back = from && FROM.test(from) ? from : '/entries';
+  const back = safeBack(from);
   if (!/^[0-9a-f-]{36}$/.test(id)) notFound();
 
   const entry = await entryById(actor.household_id, id);

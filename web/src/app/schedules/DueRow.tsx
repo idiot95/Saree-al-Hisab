@@ -18,7 +18,7 @@ export default function DueRow({
   /** The day it is expected: the same, unless it was moved. */
   on?: string; movedFrom?: string;
   daysAway: number;
-  amount: number; category: string | null; icon?: string | null; tint?: string | null;
+  amount: number; category: string | null; icon?: string | null;
   /** With the rule and today's date the row can offer to move the due. */
   rule?: string; cal?: Calendar; today?: string;
   /** A due months away can be moved or skipped, but not recorded yet. */

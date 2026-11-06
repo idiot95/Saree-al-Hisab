@@ -45,6 +45,7 @@ export async function notDuplicate(_prev: Result | null, fd: FormData): Promise<
       values (${a}, ${b}, ${actor.user_id}) on conflict do nothing`;
 
     revalidatePath('/entries');
+    revalidatePath('/');
     return { ok: true, message: 'Kept both.' };
   });
 }

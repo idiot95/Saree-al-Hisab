@@ -66,7 +66,7 @@ export async function loadUpcoming(hh: string, canWrite: boolean, startOpen: boo
                   scheduleId={d.scheduleId} name={s.name} kind={s.kind} dueOn={d.dueOn}
                   on={d.on} movedFrom={d.movedFrom}
                   daysAway={d.daysAway} amount={Number(s.amount ?? 0)} category={s.category}
-                  icon={s.icon} tint={s.tint} rule={ruleOf(s)?.rule} cal={ruleOf(s)?.cal} today={todayIso} />
+                  icon={s.icon} rule={ruleOf(s)?.rule} cal={ruleOf(s)?.cal} today={todayIso} />
               );
             })}
           </div>

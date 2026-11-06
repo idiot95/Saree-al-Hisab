@@ -263,7 +263,7 @@ export default function Calendar({ schedules, canWrite, today }: {
                 return (
                   <DueRow key={`${it.s.id}:${it.dueOn}`} scheduleId={it.s.id} name={it.s.name} kind={it.s.kind}
                     dueOn={it.dueOn} on={it.on} movedFrom={it.movedFrom} daysAway={daysAway}
-                    amount={it.s.amount} category={it.s.category} icon={it.s.icon} tint={it.s.tint}
+                    amount={it.s.amount} category={it.s.category} icon={it.s.icon}
                     rule={it.s.rule} cal={it.s.cal} today={today} canRecord={daysAway <= 14} />
                 );
               }
@@ -293,7 +293,7 @@ export default function Calendar({ schedules, canWrite, today }: {
                       {it.status === 'paid' ? (income ? 'Came in' : 'Paid') : it.status === 'skipped' ? 'Skipped'
                         : it.status === 'overdue' ? 'Overdue' : it.status === 'today' ? 'Due today' : 'Coming'}
                       {it.status === 'paid' && it.txn && (
-                        <Link href={`/entries/${it.txn}`} transitionTypes={['nav-forward']} style={{ color: 'var(--primary)', fontWeight: 600, minHeight: 44, display: 'inline-flex', alignItems: 'center', marginLeft: 6 }}>
+                        <Link href={`/entries/${it.txn}?from=${encodeURIComponent('/entries?f=upcoming')}`} transitionTypes={['nav-forward']} style={{ color: 'var(--primary)', fontWeight: 600, minHeight: 44, display: 'inline-flex', alignItems: 'center', marginLeft: 6 }}>
                           See the entry
                         </Link>
                       )}

@@ -23,6 +23,12 @@ export function visited(url: string) {
   const trail = read();
   if (trail[trail.length - 1] === url) return;
   if (trail[trail.length - 2] === url) { trail.pop(); write(trail); return; }
+  /* Activity's chips replace the address rather than push it (/entries?f=… to /entries?f=…), so the history has
+     no step for them: the trail must not either, or canGoBack would promise a screen that is not there. */
+  const pathOf = (u: string | undefined) => u?.split('?')[0];
+  if (pathOf(url) === '/entries' && pathOf(trail[trail.length - 1]) === '/entries') {
+    trail[trail.length - 1] = url; write(trail); return;
+  }
   trail.push(url);
   write(trail);
 }
