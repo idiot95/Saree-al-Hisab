@@ -1,7 +1,8 @@
 import { redirect } from 'next/navigation';
 import { actorOrNull } from '@/db/queries';
 import { AuthShell, quietBtn } from '../auth-ui';
-import SignUpForm from './SignUpForm';
+import GoogleButton from '../signin/GoogleButton';
+import { signUpWithGoogle } from './actions';
 
 export const metadata = { title: 'Create your account · Saree al-Hisab' };
 export const dynamic = 'force-dynamic';
@@ -19,7 +20,13 @@ export default async function SignUp() {
       blurb="You, first. Your household — its name and its currency — is the next screen."
     >
       <div style={{ padding: '26px var(--gutter) 30px', display: 'flex', flexDirection: 'column', gap: 14 }}>
-        <SignUpForm />
+        <GoogleButton action={signUpWithGoogle} />
+        <p style={{ margin: '2px 4px 0', fontSize: 'var(--step--2)', lineHeight: 1.5, color: 'var(--muted-foreground)' }}>
+          Continuing means agreeing to the{' '}
+          <a href="/terms" style={{ color: 'var(--primary)', fontWeight: 600, textDecoration: 'underline', textUnderlineOffset: 3 }}>
+            terms, and how your data is kept
+          </a>. Short, and every line of it can be checked.
+        </p>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '2px 0' }}>
           <span style={{ flex: 1, height: 1, background: 'var(--border)' }} />

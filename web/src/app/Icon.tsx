@@ -9,6 +9,7 @@ import {
   IconPlus, IconCamera, IconUpload, IconPencil, IconCheck,
   IconTrash, IconPlayerSkipForward, IconPlayerStop, IconArrowsRightLeft,
   IconFolder, IconDots, IconBell, IconPaperclip,
+  IconBrandGoogle, IconCircleCheck, IconCircleDashed,
   type Icon as TablerIcon,
 } from '@tabler/icons-react';
 import dynamic from 'next/dynamic';
@@ -94,6 +95,10 @@ const SET: Record<string, TablerIcon> = {
   dots: IconDots,
   bell: IconBell,
   clip: IconPaperclip,
+  // Whether a person signs in with Google: the mark, linked, not linked yet.
+  google: IconBrandGoogle,
+  linked: IconCircleCheck,
+  unlinked: IconCircleDashed,
 };
 
 /* The long tail of glyphs lives in its own chunk (glyphs-more.tsx) and is

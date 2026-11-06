@@ -4,12 +4,20 @@
    the constraints that make that impossible, so they are worth a test each.
 
    Run: node scripts/invariants.test.mjs                                      */
-import { readFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import postgres from 'postgres';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
+/* The invitation code is run as written, not restated: src/lib/invite-accept.ts
+   takes its database handle as an argument, so the same compile the lib tests
+   use lets it run here against the real schema. */
+execFileSync('npx', ['tsc', '-p', 'tsconfig.lib.json'], { cwd: root, stdio: 'inherit' });
+writeFileSync(join(root, '.libbuild/package.json'), '{"type":"module"}\n');
+const { createFromInviteGoogleIn } = await import(pathToFileURL(join(root, '.libbuild/invite-accept.js')).href);
+const { hashLinkToken, newLinkToken } = await import(pathToFileURL(join(root, '.libbuild/link-token.js')).href);
 /* The same database the app runs against, as its OWNER: the app connects as
    `saree_app` (APP_DATABASE_URL), which cannot bypass row security, and a
    script that saw only one household would be no use to anyone. */
@@ -39,7 +47,8 @@ async function allows(what, fn) {
 const PHONES = ['+910000000001', '+910000000002', '+910000000003'];
 const EMAILS = ['invited@invariant.test', 'someone.else@invariant.test',
                 'passing@invariant.test', 'negative@invariant.test',
-                'google.a@invariant.test', 'google.b@invariant.test'];
+                'google.a@invariant.test', 'google.b@invariant.test',
+                'google.invited@invariant.test', 'google.late@invariant.test'];
 await sql`delete from household where name = 'Invariant test'`;
 // A crashed run can leave reset links behind; they hold their user in place.
 await sql`delete from password_reset where user_id in
@@ -736,6 +745,48 @@ console.log('\nGOOGLE IDENTITY — a Google account is keyed on its sub, one per
   await sql`delete from app_user where id in (${a.id}, ${b.id})`;
   const left = (await sql`select count(*)::int as n from auth_identity where subject = 'sub-1'`)[0].n;
   ok(left === 0, 'deleting a person takes their linked Google account with it');
+}
+
+console.log('\nINVITED WITH GOOGLE — one transaction, one use, one place');
+{
+  const address = 'google.invited@invariant.test';
+  const mk = async (email, extra = {}) => {
+    const { token, hash } = newLinkToken();
+    await sql`insert into invite ${sql({ household_id: hh.id, email, role: 'viewer', invited_by: user.id,
+      token_hash: hash, expires_at: new Date(Date.now() + 7 * 864e5), ...extra })}`;
+    return token;
+  };
+  const token = await mk(address);
+
+  ok(await createFromInviteGoogleIn(sql, token, 'inv-sub-1', 'someone.else@invariant.test', 'X') === null,
+    'a Google account for a different address cannot spend the invitation');
+  const made = await createFromInviteGoogleIn(sql, token, 'inv-sub-1', address, 'Invited by Google');
+  ok(!!made?.userId, 'the invited address, vouched for by Google, gets an account');
+  const [m] = await sql`select count(*)::int as n, min(role::text) as role from member
+    where user_id = ${made?.userId ?? null}`;
+  ok(m.n === 1 && m.role === 'viewer', 'with exactly one membership, in the role the invitation named');
+  const [ident] = await sql`select count(*)::int as n from auth_identity
+    where user_id = ${made?.userId ?? null} and provider = 'google' and subject = 'inv-sub-1'`;
+  ok(ident.n === 1, 'and their Google account linked in the same stroke');
+  const [fresh] = await sql`select extract(epoch from sessions_valid_from) <= floor(extract(epoch from now())) as ok
+    from app_user where id = ${made?.userId ?? null}`;
+  ok(fresh?.ok === true, 'and their first session, minted a moment later in whole seconds, is not already revoked');
+  const [spent] = await sql`select status from invite where token_hash = ${hashLinkToken(token)}`;
+  ok(spent.status === 'accepted', 'and the invitation spent');
+  ok(await createFromInviteGoogleIn(sql, token, 'inv-sub-2', address, 'Again') === null,
+    'a second use of the same invitation is refused');
+  const [people] = await sql`select count(*)::int as n from app_user where email = ${address}`;
+  ok(people.n === 1, 'and made nobody');
+
+  const late = await mk('google.late@invariant.test', { expires_at: new Date(Date.now() - 864e5) });
+  ok(await createFromInviteGoogleIn(sql, late, 'inv-sub-3', 'google.late@invariant.test', 'Late') === null,
+    'an expired invitation admits nobody');
+  const withdrawn = await mk('google.late@invariant.test', { status: 'revoked' });
+  ok(await createFromInviteGoogleIn(sql, withdrawn, 'inv-sub-3', 'google.late@invariant.test', 'Late') === null,
+    'nor does a withdrawn one');
+  const [none] = await sql`select count(*)::int as n from app_user where email = 'google.late@invariant.test'`;
+  ok(none.n === 0, 'and neither leaves an account behind');
+  await sql`delete from invite where household_id = ${hh.id} and email in ${sql([address, 'google.late@invariant.test'])}`;
 }
 
 console.log('\nROW SECURITY — Postgres itself refuses another household\'s rows');

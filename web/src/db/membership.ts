@@ -1,6 +1,7 @@
 import 'server-only';
 import { identity as sql } from './client';
 import { hashLinkToken } from '@/lib/link-token';
+import { createFromInviteGoogleIn, lockOpenInvite, openInviteEmailIn } from '@/lib/invite-accept';
 import { starterKitFor } from './starter';
 
 export type Role = 'owner' | 'adult' | 'viewer';
@@ -182,11 +183,7 @@ export async function createAccount(email: string, name: string, passwordHash: s
  *  invitation doing it — both, or neither. */
 export async function createFromInvite(token: string, name: string, passwordHash: string) {
   return sql.begin(async (tx) => {
-    const [inv] = await tx`
-      select id, household_id, email, role from invite
-      where token_hash = ${hashLinkToken(token)}
-        and status = 'open' and expires_at > now()
-      for update`;
+    const inv = await lockOpenInvite(tx, token);
     if (!inv) return null;
     const [u] = await tx`
       insert into app_user (email, name, password_hash, password_set_at, active_household_id)
@@ -201,15 +198,25 @@ export async function createFromInvite(token: string, name: string, passwordHash
   });
 }
 
+/** Someone arriving through an invitation with a Google account and no
+ *  account here. Same checks as createFromInvite and acceptInviteAs (lockOpenInvite: open, in date,
+ *  written to this address, spent once); the person, their Google identity,
+ *  their place in the household and the spent invitation land together. */
+export async function createFromInviteGoogle(token: string, sub: string, email: string, name: string) {
+  return createFromInviteGoogleIn(sql, token, sub, email, name);
+}
+
+/** The address an invitation is waiting for, while it is still open and in
+ *  date. No lock: this only informs the sign-in decision; spending the
+ *  invitation re-checks everything under one (lockOpenInvite). */
+export async function openInviteEmail(token: string): Promise<string | null> {
+  return openInviteEmailIn(sql, token);
+}
+
 /** For someone who already has an account and is holding an invitation. */
 export async function acceptInviteAs(token: string, userId: string, email: string) {
   return sql.begin(async (tx) => {
-    const [inv] = await tx`
-      select id, household_id, role from invite
-      where token_hash = ${hashLinkToken(token)}
-        and lower(email) = ${email.toLowerCase()}
-        and status = 'open' and expires_at > now()
-      for update`;
+    const inv = await lockOpenInvite(tx, token, email);
     if (!inv) return null;
     await tx`insert into member ${tx({
       household_id: inv.household_id, user_id: userId, role: inv.role,

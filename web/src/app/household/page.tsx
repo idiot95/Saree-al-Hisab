@@ -11,6 +11,7 @@ import RevokeButton from './RevokeButton';
 import TabBar from '../TabBar';
 import { TAB_BAR_SPACE } from '../tabs';
 import PasswordCard from './PasswordCard';
+import LinkGoogle from './LinkGoogle';
 import ScanKey from './ScanKey';
 import ThemePicker from './ThemePicker';
 import { forcedTheme, THEME_COOKIE } from '@/lib/theme';
@@ -139,6 +140,7 @@ export default async function Household() {
         <ThemePicker current={theme} />
 
         <Head>Your account</Head>
+        <LinkGoogle linked={members.some((m) => m.id === actor.user_id && m.has_google)} />
         <PasswordCard />
         {/* Signing out lives here, with the rest of the account — not on the
             Home header, where it was the only button and the wrong one to

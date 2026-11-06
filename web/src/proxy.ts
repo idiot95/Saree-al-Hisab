@@ -1,7 +1,8 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { auth } from '@/auth';
+import { INVITE_COOKIE, LINK_COOKIE } from '@/lib/flow-cookies';
 
-/* Two jobs, and only two.
+/* Two jobs, and one chore.
 
    1. A Content-Security-Policy with a fresh nonce per request. Next inlines a
       bootstrap script on every page, so a policy without a nonce would have to
@@ -14,6 +15,8 @@ import { auth } from '@/auth';
       real check runs in the page and in every Server Action, where the cookie
       is verified, dated against the account's session epoch, and the role is
       read from the database.
+
+   The chore: /signin?error= drops the Google flow cookies (see below).
 
    /api/auth, /signin, /signup, /join, /reset and /terms are excluded from the
    redirect: Auth.js has to answer, and opening your own household, accepting
@@ -69,6 +72,14 @@ export default async function proxy(req: NextRequest) {
 
   const res = NextResponse.next({ request: { headers } });
   res.headers.set('Content-Security-Policy', policy(nonce, dev));
+  /* A sign-in that Auth.js gave up on — cancelled at Google, or refused
+     before our callback ran — never reaches the code that spends the link and
+     invite cookies, so they would outlive the attempt they were set for. It
+     always lands here with ?error=, and a page cannot set cookies; this can. */
+  if (pathname === '/signin' && req.nextUrl.searchParams.has('error')) {
+    res.cookies.delete(LINK_COOKIE);
+    res.cookies.delete(INVITE_COOKIE);
+  }
   return res;
 }
 

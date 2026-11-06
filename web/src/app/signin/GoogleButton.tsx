@@ -5,22 +5,29 @@ import { primaryBtn } from '../auth-ui';
 import { signInWithGoogle } from './actions';
 
 /* A real form posting a Server Action, so it works before the bundle has
-   hydrated: the action redirects to Google either way. */
-export default function GoogleButton() {
+   hydrated: the action redirects to Google either way.
+   /join hands in its own action (it sets the invite cookie first), its
+   label and the token as a hidden field. */
+export default function GoogleButton({ action = signInWithGoogle, label = 'Continue with Google', fields }: {
+  action?: (fd: FormData) => Promise<void>;
+  label?: string;
+  fields?: Record<string, string>;
+}) {
   return (
-    <form action={signInWithGoogle}>
-      <Submit />
+    <form action={action}>
+      {fields && Object.entries(fields).map(([k, v]) => <input key={k} type="hidden" name={k} value={v} />)}
+      <Submit label={label} />
     </form>
   );
 }
 
-function Submit() {
+function Submit({ label }: { label: string }) {
   const { pending } = useFormStatus();
   return (
     <button type="submit" disabled={pending}
       style={{ ...primaryBtn, opacity: pending ? 0.65 : 1 }}>
       <GoogleMark />
-      {pending ? 'Opening Google…' : 'Continue with Google'}
+      {pending ? 'Opening Google…' : label}
     </button>
   );
 }

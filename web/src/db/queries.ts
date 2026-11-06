@@ -141,12 +141,15 @@ export async function possibleDuplicate(
 export async function membersOf(householdId: string) {
   return withHousehold(householdId, async () => {
     return sql`
-      select u.id, u.name, u.email, u.image, m.role, m.joined_at, u.last_seen_at
+      select u.id, u.name, u.email, u.image, m.role, m.joined_at, u.last_seen_at,
+             exists (select 1 from auth_identity ai
+                     where ai.user_id = u.id and ai.provider = 'google') as has_google
       from member m join app_user u on u.id = m.user_id
       where m.household_id = ${householdId}
       order by case m.role when 'owner' then 0 when 'adult' then 1 else 2 end, m.joined_at
     ` as Promise<{ id: string; name: string; email: string | null; image: string | null;
-                   role: 'owner' | 'adult' | 'viewer'; joined_at: Date; last_seen_at: Date | null }[]>;
+                   role: 'owner' | 'adult' | 'viewer'; joined_at: Date; last_seen_at: Date | null;
+                   has_google: boolean }[]>;
   });
 }
 

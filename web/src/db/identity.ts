@@ -36,6 +36,11 @@ export async function linkGoogle(userId: string, sub: string, email: string): Pr
     values (${userId}, 'google', ${sub}, ${email.trim().toLowerCase()})`;
 }
 
+/* A new account starts its session epoch at 1970, not now(): it has no
+   earlier session to revoke, and now() carries microseconds while the token
+   minted a moment later carries whole seconds — so the very first session
+   read as issued before the epoch, i.e. revoked, and the person landed back
+   on /signin. Found by driving the callback end to end. */
 /** A new account that only Google can open: no password, no household yet.
  *  The person and their Google identity land together, or neither does. */
 export async function createGoogleUser(
@@ -44,8 +49,8 @@ export async function createGoogleUser(
   const address = email.trim().toLowerCase();
   return sql.begin(async (tx) => {
     const [u] = await tx`
-      insert into app_user (email, name, image)
-      values (${address}, ${name.trim() || address.split('@')[0]}, ${image})
+      insert into app_user (email, name, image, sessions_valid_from)
+      values (${address}, ${name.trim() || address.split('@')[0]}, ${image}, to_timestamp(0))
       returning id`;
     await tx`
       insert into auth_identity (user_id, provider, subject, email_at_link)

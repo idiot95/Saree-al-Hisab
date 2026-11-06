@@ -3,7 +3,8 @@ import Credentials from 'next-auth/providers/credentials';
 import Google from 'next-auth/providers/google';
 import { cookies } from 'next/headers';
 import {
-  contextFor, findLoginUser, isLocked, recordFailedAttempt, recordSuccessfulLogin,
+  acceptInviteAs, contextFor, createFromInviteGoogle, findLoginUser, isLocked, openInviteEmail,
+  recordFailedAttempt, recordSuccessfulLogin,
 } from '@/db/membership';
 import {
   createGoogleUser, hasGoogle, identityUser, linkGoogle, sessionUser, userIdByEmail,
@@ -14,6 +15,8 @@ import { decideGoogleSignIn, type GoogleClaims } from '@/lib/google-signin';
 import { gatherSignInFacts } from '@/lib/google-facts';
 import { signInErrorPath } from '@/lib/signin-errors';
 import { rethrowControlFlow } from '@/lib/rethrow';
+import { INVITE_COOKIE, LINK_COOKIE } from '@/lib/flow-cookies';
+import { looksLikeLinkToken } from '@/lib/link-token';
 
 /* Two ways in: Google (the primary one), and an address and a password we
    hold ourselves until AUTH_PASSWORD_UNTIL.
@@ -35,15 +38,14 @@ import { rethrowControlFlow } from '@/lib/rethrow';
    a credentials POST is refused).                                           */
 
 /* The link-intent cookie (set from Household when someone asks to link
-   Google) is spent by the callback it was set for, whatever happens there. */
-const LINK_COOKIE = 'ql.link';
+   Google) and the invite cookie (set by "Accept with Google" on /join) are
+   spent by the callback they were set for, whatever happens there. */
 
-/** The invitation being accepted, from the `ql.invite` cookie.
- *  TODO(Task 5): read and verify `ql.invite` here. Until then no Google
- *  sign-in is ever an invite acceptance. */
-async function pendingInvite(): Promise<{ email: string } | null> {
-  return null;
-}
+/** Where the invitation link has nothing left to give: its own page says
+ *  why (used, withdrawn, expired). Only a token that looks like one of ours
+ *  goes into the address. */
+const deadInvitePath = (token: string) =>
+  looksLikeLinkToken(token) ? `/join/${token}?e=1` : '/signin';
 
 /** Who is signed in right now — only if the cookie is still honoured. A
  *  cookie older than the account's session epoch is nobody, so a revoked
@@ -76,6 +78,7 @@ function raceRefusal(e: unknown) {
 async function googleSignIn(user: User, profile: Profile | undefined): Promise<boolean | string> {
   const jar = await cookies();
   const linkToken = jar.get(LINK_COOKIE)?.value;
+  const inviteToken = jar.get(INVITE_COOKIE)?.value || undefined;
   try {
     const sub = typeof profile?.sub === 'string' ? profile.sub : '';
     const email = typeof profile?.email === 'string' ? profile.email.trim().toLowerCase() : '';
@@ -84,13 +87,24 @@ async function googleSignIn(user: User, profile: Profile | undefined): Promise<b
       sub, email, emailVerified: !!email && profile?.email_verified === true,
     };
 
+    /* The invitation this sign-in is accepting, by the hash of its token. A
+       cookie naming an invitation that is no longer open is not quietly
+       dropped — that would turn "accept" into a bare account with no books —
+       it goes back to the invitation's page, which says what happened. */
+    let invite: { email: string } | null = null;
+    if (inviteToken) {
+      const invitedEmail = await openInviteEmail(inviteToken);
+      if (!invitedEmail) return deadInvitePath(inviteToken);
+      invite = { email: invitedEmail };
+    }
+
     const facts = await gatherSignInFacts(claims, {
       identityUser, userIdByEmail, hasGoogle,
       sessionUserId: honouredSessionUser,
       linkIntentToken: linkToken,
       secret: process.env.AUTH_SECRET || undefined,
       nowMs: Date.now(),
-      invite: await pendingInvite(),
+      invite,
     });
     const d = decideGoogleSignIn(claims, facts);
 
@@ -98,9 +112,13 @@ async function googleSignIn(user: User, profile: Profile | undefined): Promise<b
     switch (d.kind) {
       case 'refuse':
         return signInErrorPath(d.code);
-      case 'join-existing':
-        // TODO(Task 5): acceptInviteAs(token, d.userId, email), then sign in as d.userId.
-        return '/signin';
+      case 'join-existing': {
+        // Only reached with an open invite, so inviteToken is set.
+        const joined = await acceptInviteAs(inviteToken!, d.userId, email);
+        if (!joined) return deadInvitePath(inviteToken!);
+        userId = d.userId;
+        break;
+      }
       case 'signin':
         userId = d.userId;
         break;
@@ -110,8 +128,16 @@ async function googleSignIn(user: User, profile: Profile | undefined): Promise<b
         break;
       case 'create': {
         const name = typeof profile?.name === 'string' ? profile.name : '';
-        const image = typeof profile?.picture === 'string' ? profile.picture : null;
-        userId = await createGoogleUser(email, name, image, sub);
+        if (inviteToken) {
+          // The person, their Google identity, their place in the household
+          // and the spent invitation: all in one transaction, or none of it.
+          const made = await createFromInviteGoogle(inviteToken, sub, email, name);
+          if (!made) return deadInvitePath(inviteToken);
+          userId = made.userId;
+        } else {
+          const image = typeof profile?.picture === 'string' ? profile.picture : null;
+          userId = await createGoogleUser(email, name, image, sub);
+        }
         break;
       }
     }
@@ -131,10 +157,14 @@ async function googleSignIn(user: User, profile: Profile | undefined): Promise<b
     const refusal = raceRefusal(e);
     if (refusal) return refusal;
     const pg = e as PgError;
-    console.error('google sign-in failed:', pg?.code ?? 'unknown', pg?.constraint_name ?? '');
+    // The code, the constraint and the error's class name — never a message,
+    // which can carry the offending row.
+    console.error('google sign-in failed:', pg?.code ?? 'unknown', pg?.constraint_name ?? '',
+      (e as Error)?.name ?? '');
     return false;
   } finally {
     jar.delete(LINK_COOKIE);
+    jar.delete(INVITE_COOKIE);
   }
 }
 

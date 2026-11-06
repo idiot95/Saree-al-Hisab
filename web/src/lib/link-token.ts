@@ -18,3 +18,9 @@ export function newLinkToken() {
   const token = randomBytes(32).toString('base64url');
   return { token, hash: hashLinkToken(token) };
 }
+
+/** The shape newLinkToken makes: 32 bytes as base64url, 43 characters. Only
+ *  for deciding whether a value may be put back into an address — whether it
+ *  opens anything is the database's to say. */
+export const looksLikeLinkToken = (v: unknown): v is string =>
+  typeof v === 'string' && /^[A-Za-z0-9_-]{43}$/.test(v);

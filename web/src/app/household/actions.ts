@@ -1,11 +1,15 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { rethrowControlFlow } from '@/lib/rethrow';
 import { redirect } from 'next/navigation';
 import { identity, sql, withHousehold } from '@/db/client';
-import { currentActor } from '@/db/queries';
+import { actorOrNull, currentActor } from '@/db/queries';
+import { signIn } from '@/auth';
+import { hasGoogle } from '@/db/identity';
+import { sealLinkIntent } from '@/lib/link-intent';
+import { LINK_COOKIE, LINK_MAX_AGE, flowCookieOptions } from '@/lib/flow-cookies';
 import { createHousehold, revokeSessions, switchHousehold } from '@/db/membership';
 import { newLinkToken } from '@/lib/link-token';
 import { hashPassword, passwordProblem, verifyPassword } from '@/lib/password';
@@ -341,5 +345,26 @@ export async function setTheme(_prev: Result | null, formData: FormData): Promis
     });
   }
   revalidatePath('/', 'layout');
+  return { ok: true };
+}
+
+/* ── Google ──────────────────────────────────────────────────────────────
+   Linking is per person and open to every role: a viewer signs in like
+   anyone else. The cookie names who asked, sealed and good for ten minutes;
+   the signIn callback links only if it still matches the session that comes
+   back from Google, and only a session we still honour (a revoked one is
+   nobody, so it cannot link). */
+export async function startLinkGoogle(_prev: Result | null, _fd: FormData): Promise<Result> {
+  const actor = await actorOrNull();
+  if (!actor) redirect('/signin');
+  if (await hasGoogle(actor.user_id)) return { ok: false, error: 'Google is already linked to your account.' };
+  const secret = process.env.AUTH_SECRET;
+  if (!secret) return { ok: false, error: 'Google cannot be linked right now.' };
+
+  const jar = await cookies();
+  jar.set(LINK_COOKIE, sealLinkIntent(actor.user_id, secret, Date.now()),
+    flowCookieOptions(LINK_MAX_AGE, (await headers()).get('x-forwarded-proto')));
+  // Redirects to Google by throwing; it must not be caught here.
+  await signIn('google', { redirectTo: '/household' });
   return { ok: true };
 }

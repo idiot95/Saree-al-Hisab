@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from 'react';
 import { changeRole, issueReset, removeMember } from './actions';
+import { Icon } from '../Icon';
 
 type Role = 'owner' | 'adult' | 'viewer';
 const LABEL: Record<Role, string> = {
@@ -9,7 +10,10 @@ const LABEL: Record<Role, string> = {
 };
 
 export default function MemberRow({ member, canManage, isSelf, last, origin }: {
-  member: { id: string; name: string; email: string | null; image: string | null; role: Role };
+  member: {
+    id: string; name: string; email: string | null; image: string | null; role: Role;
+    has_google: boolean;
+  };
   canManage: boolean; isSelf: boolean; last: boolean; origin: string;
 }) {
   const [roleState, saveRole, savingRole] = useActionState(changeRole, null);
@@ -50,6 +54,17 @@ export default function MemberRow({ member, canManage, isSelf, last, origin }: {
             fontSize: 'var(--step--1)', color: 'var(--muted-foreground)',
             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
           }}>{member.email}</span>
+          {/* For the owner, who is the one who will have to chase anyone not
+              linked before passwords end. An icon and a word, never colour. */}
+          {canManage && (
+            <span style={{
+              display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 'var(--step--2)',
+              fontWeight: 600, color: 'var(--muted-foreground)',
+            }}>
+              <Icon name={member.has_google ? 'linked' : 'unlinked'} size={14} />
+              {member.has_google ? 'Google linked' : 'Not linked yet'}
+            </span>
+          )}
         </span>
 
         {!canManage || isSelf ? (

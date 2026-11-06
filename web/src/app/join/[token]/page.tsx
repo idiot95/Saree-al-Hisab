@@ -3,17 +3,20 @@ import { signOut } from '@/auth';
 import { actorOrNull, inviteByToken } from '@/db/queries';
 import { householdsOf } from '@/db/membership';
 import { AuthShell, DeadEnd, ErrorNote, maskEmail, primaryBtn, quietBtn } from '../../auth-ui';
-import { acceptInvitation } from '../actions';
+import { acceptInvitation, acceptWithGoogle } from '../actions';
+import { passwordSignInOpenNow } from '@/lib/password-window';
+import GoogleButton from '../../signin/GoogleButton';
 import JoinForm from './JoinForm';
 
 export const metadata = { title: 'Join a household · Saree al-Hisab' };
 export const dynamic = 'force-dynamic';
 
-/* Be honest about what this link is. With a password login there is no outside
-   identity to prove, so an invitation link is a credential: whoever opens it
-   can take the place it was meant for. Hence 256 bits of randomness, only the
-   hash stored, one use, and a week to live — and the screen that hands the
-   owner this link says exactly that. */
+/* Be honest about what this link is. Accepted with Google, the invitation is
+   bound to the address it was sent to: Google has to vouch for that address
+   or the sign-in is refused. Accepted with a password — only until the
+   cutoff — there is no outside identity to prove, so the link is a
+   credential: whoever opens it can take the place it was meant for. Hence
+   256 bits of randomness, only the hash stored, one use, and a week to live. */
 
 export default async function Join({ params, searchParams }: {
   params: Promise<{ token: string }>;
@@ -53,6 +56,7 @@ export default async function Join({ params, searchParams }: {
   const signedInAs = actor?.email ?? null;
   const wrongAccount = !!signedInAs && signedInAs.toLowerCase() !== invite.email.toLowerCase();
   const rightAccount = !!signedInAs && !wrongAccount;
+  const passwordOpen = passwordSignInOpenNow();
 
   return (
     <AuthShell
@@ -107,19 +111,44 @@ export default async function Join({ params, searchParams }: {
           </form>
         )}
 
-        {!signedInAs && invite.has_account && (
+        {!signedInAs && (
+          <GoogleButton action={acceptWithGoogle} label="Accept with Google" fields={{ token }} />
+        )}
+        {!signedInAs && (
+          <p style={{ margin: 0, fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--muted-foreground)' }}>
+            Use the Google account for {maskEmail(invite.email)}, the address this invitation
+            was sent to.
+          </p>
+        )}
+
+        {!signedInAs && invite.has_account && passwordOpen && (
           <>
             <p style={{ margin: 0, fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--muted-foreground)' }}>
-              That email already has an account. Sign in, then open this link again.
+              That email already has an account. If you sign in with a password, sign in
+              first, then open this link again.
             </p>
             <a href="/signin" style={quietBtn}>Sign in</a>
           </>
         )}
 
-        {!signedInAs && !invite.has_account && <JoinForm token={token} email={invite.email} />}
+        {/* The password way in lasts only as long as password sign-in does. */}
+        {!signedInAs && !invite.has_account && passwordOpen && (
+          <details>
+            <summary style={{
+              listStyle: 'none', cursor: 'pointer', textAlign: 'center', padding: '12px 0',
+              fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--foreground)',
+              textDecoration: 'underline', textUnderlineOffset: 3,
+            }}>
+              Join with a password instead
+            </summary>
+            <div style={{ paddingTop: 6 }}><JoinForm token={token} email={invite.email} /></div>
+          </details>
+        )}
 
         <p style={{ margin: '2px 4px 0', fontSize: 'var(--step--2)', lineHeight: 1.5, color: 'var(--muted-foreground)' }}>
-          <b>Anyone who opens this link can take this place.</b> Do not forward it. It works
+          <b>{passwordOpen
+            ? 'Anyone who opens this link can take this place.'
+            : 'Only the Google account it was sent to can take this place.'}</b> Do not forward it. It works
           once and expires on {new Date(invite.expires_at).toLocaleDateString('en-IN',
             { day: 'numeric', month: 'long' })}.
         </p>
