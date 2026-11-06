@@ -40,7 +40,7 @@ export default function ActivityChips({ current, review, sms, month }: {
       {chips.map((c) => {
         const on = c.key === lit;
         return (
-          <Link key={c.key} href={hrefOf(c.key)} replace transitionTypes={['nav-lateral']}
+          <Link key={c.key} href={hrefOf(c.key)} replace data-replace transitionTypes={['nav-lateral']}
             aria-current={c.key === current ? 'page' : undefined}
             onClick={(e) => {
               if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;

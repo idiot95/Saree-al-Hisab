@@ -17,7 +17,7 @@ export default function OwnerChips({ chips, current, onPick }: {
         const on = c.key === current;
         const href = c.key === 'household' ? '/worth' : `/worth?o=${encodeURIComponent(c.key)}`;
         return (
-          <Link key={c.key} href={href} replace scroll={false} prefetch={false}
+          <Link key={c.key} href={href} replace data-replace scroll={false} prefetch={false}
             aria-current={on ? 'true' : undefined}
             onClick={(e) => {
               if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;

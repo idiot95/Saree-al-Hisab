@@ -10,6 +10,7 @@ import { Figure } from '../Figure';
 import { startPending } from '../pending';
 import { dismissDraft, restoreDraft } from './actions';
 import { DIRECTION } from './direction';
+import { replacing } from '../backStack';
 
 /* Bank messages a phone forwarded, waiting to become entries. Never an entry on their own: Review opens Add entry
    with what the message said already filled in, and Save there is what records it. A row swipes to Add and Dismiss;
@@ -42,6 +43,7 @@ export default function SmsDrafts({ rows, canWrite, justDismissed = null, empty 
     if (justDismissed) {
       const u = new URL(window.location.href);
       u.searchParams.delete('dismissed');
+      replacing(`${u.pathname}${u.search}`);
       router.replace(`${u.pathname}${u.search}`, { scroll: false });
     }
   }, [justDismissed, router]);

@@ -11,6 +11,7 @@ import { useMoney } from '../../currency';
 import { addHoldingPhotos, archiveHolding, setRateOverride, updateSnapshot, type Result } from '../actions';
 import { PhotoField, withPhotos } from '../PhotoField';
 import { Field, Problem, keepFields } from '../fields';
+import { replacing } from '../../backStack';
 
 /* What can be done to one holding. Each drawer posts to its server action, says what went wrong in a
    sentence if it did, and on success closes and refreshes the page — so the value on the card rolls to its new
@@ -129,7 +130,7 @@ export function ArchiveHolding({ id, name }: { id: string; name: string }) {
   const router = useRouter();
   const [state, act, pending] = useActionState(async (_: Result | null, fd: FormData) => {
     const r = await archiveHolding(null, fd);
-    if (r.ok) { haptic('success'); router.replace('/worth'); } else haptic('warn');
+    if (r.ok) { haptic('success'); replacing('/worth'); router.replace('/worth'); } else haptic('warn');
     return r;
   }, null);
   return (

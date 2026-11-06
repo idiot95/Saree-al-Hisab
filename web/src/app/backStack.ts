@@ -18,32 +18,40 @@ function write(trail: string[]) {
   try { sessionStorage.setItem(KEY, JSON.stringify(trail.slice(-MAX))); } catch { /* the trail is a convenience */ }
 }
 
-/** Called on every route change with the full address (path and query). */
-export function visited(url: string) {
-  const trail = read();
-  if (trail[trail.length - 1] === url) return;
-  if (trail[trail.length - 2] === url) { trail.pop(); write(trail); return; }
-  /* Activity's replacing moves leave the history no step, so the trail must not have one either, or canGoBack would
-     promise a screen that is not there. */
-  if (replacesOnActivity(trail[trail.length - 1], url)) { trail[trail.length - 1] = url; write(trail); return; }
-  trail.push(url);
-  write(trail);
+/* A replacing navigation leaves the history no new step, so the trail must not get one either, or canGoBack would
+   promise a screen that is not there. Which navigations replace is said where they happen, not guessed from the
+   addresses: every `<Link replace>` carries `data-replace` (NavTrail's click listener calls `replacing` with its
+   href), and every `router.replace` or `history.replaceState` calls `replacing` first. scripts/back.test.mjs fails
+   if one does not. The mark is for the very next address, and only if that address is the one named; a mark that
+   is never followed (a modifier-click into a new tab, a chip that is already on) lapses after a few seconds. */
+const LAPSE_MS = 10_000;
+let pending: { url: string; at: number } | null = null;
+
+/** The same address however it was spelled: path, then the query as URLSearchParams writes it. */
+export function normal(url: string) {
+  try {
+    const u = new URL(url, 'http://x');
+    const q = u.searchParams.toString();
+    return q ? `${u.pathname}?${q}` : u.pathname;
+  } catch { return url; }
 }
 
-/** Does a move from `prev` to `next` replace the address rather than push it? Only Activity's own: a chip (the view,
- *  ?f=, changes), and the ways out of one category (?c= dropped) or of a search (?q= dropped). The month pill and a
- *  search push, so they are steps like any other — a rule of "any /entries to /entries" swallowed them, and Back
- *  then left Activity after a month step instead of returning to the month before. (An empty search sent from the
- *  search page also pushes /entries and is counted as a replace: the trail then holds one step fewer than the
- *  history, which only ever sends Back to the fixed parent, never to a screen that is not there.) */
-export function replacesOnActivity(prev: string | undefined, next: string) {
-  if (!prev) return false;
-  const [pp, pq = ''] = prev.split('?');
-  const [np, nq = ''] = next.split('?');
-  if (pp !== '/entries' || np !== '/entries') return false;
-  const a = new URLSearchParams(pq), b = new URLSearchParams(nq);
-  if ((a.get('f') || 'all') !== (b.get('f') || 'all')) return true;
-  return (a.has('c') && !b.has('c')) || (a.has('q') && !b.has('q'));
+/** The next arrival at `url` replaces the current address rather than pushing a new one. */
+export function replacing(url: string) {
+  pending = { url: normal(url), at: Date.now() };
+}
+
+/** Called on every route change with the full address (path and query). */
+export function visited(url: string) {
+  const mark = pending;
+  pending = null;
+  const replaced = !!mark && mark.url === normal(url) && Date.now() - mark.at < LAPSE_MS;
+  const trail = read();
+  if (trail[trail.length - 1] === url) return;
+  if (replaced && trail.length) { trail[trail.length - 1] = url; write(trail); return; }
+  if (trail[trail.length - 2] === url) { trail.pop(); write(trail); return; }
+  trail.push(url);
+  write(trail);
 }
 
 /** Is there an in-app screen to go back to? */

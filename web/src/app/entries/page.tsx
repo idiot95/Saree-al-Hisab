@@ -101,7 +101,7 @@ async function ActivityScreen({ sp }: { sp: Params }) {
       right={<MonthPill month={shown} path="/entries" keep={keep} />}
       chips={filtered ? (
         /* One category, from a budget line: the chips would mean "all of Activity", so the way out is one chip. */
-        <Link href={`/entries?m=${shown}`} replace
+        <Link href={`/entries?m=${shown}`} replace data-replace
           className="press flex min-h-11 items-center gap-1.5 self-start rounded-full bg-accent px-3.5 text-sm font-semibold text-accent-foreground">
           <Icon name="close" size={16} /> Showing one category
         </Link>
@@ -136,7 +136,7 @@ function Search({ entries, words, canEdit, chips }: {
     <Shell sub={`${entries.length === 0 ? 'Nothing found' : `${entries.length}${entries.length >= 200 ? '+' : ''} found`} in every month`}
       chips={<>
         {chips}
-        <Link href="/entries" replace
+        <Link href="/entries" replace data-replace
           className="press flex min-h-11 items-center gap-1.5 self-start rounded-full bg-accent px-3.5 text-sm font-semibold text-accent-foreground">
           <Icon name="close" size={16} /> Back to this month
         </Link>

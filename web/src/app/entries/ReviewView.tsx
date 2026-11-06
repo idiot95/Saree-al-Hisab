@@ -110,7 +110,7 @@ export async function loadReview(hh: string, canWrite: boolean, sms: number) {
 
 function Pointer({ href, icon, strong, rest }: { href: string; icon: string; strong: string; rest: string }) {
   return (
-    <Link href={href} replace transitionTypes={['nav-lateral']}
+    <Link href={href} replace data-replace transitionTypes={['nav-lateral']}
       className="press flex min-h-14 items-center gap-3 border-b border-border px-3.5 last:border-b-0">
       <Icon name={icon} size={22} className="text-primary" />
       <span className="flex-1 text-sm"><b className="font-semibold">{strong}</b>

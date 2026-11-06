@@ -17,6 +17,7 @@ import { shrink } from '../../add/Bills';
 import { reminderText, shareReminder } from '../../remind';
 import { Face, tabTint } from '../look';
 import { startPending } from '../../pending';
+import { replacing } from '../../backStack';
 
 export type TabEntry = {
   id: string; on: string; incoming: boolean; title: string;
@@ -70,6 +71,7 @@ export default function TabEntries({
     setOpen(null);
     if (fromUrl.current) {
       fromUrl.current = false;
+      replacing(`/tab/${tabId}`);
       router.replace(`/tab/${tabId}`, { scroll: false });
     }
   }, [router, tabId]);
