@@ -136,15 +136,16 @@ try {
   await page.goto(`${BASE}/accounts`);
   const worthCard = page.getByRole('link', { name: 'Net worth, open Wealth' });
   const accountsWorth = await figureIn(worthCard).getAttribute('aria-label');
-  const mini = (term) => worthCard.locator('dl > div').filter({ has: page.locator('dt', { hasText: exactly(term) }) }).getByRole('img');
+  const mini = (term) => worthCard.locator('dl > div').filter({ has: page.locator('dt', { hasText: exactly(term) }) }).getByRole('img').first();
   const accountsOwed = await mini('Owed to you').getAttribute('aria-label');
   const [{ holdings }] = await sql`select coalesce(sum(value_minor), 0)::text as holdings
     from holding_value where household_id = ${hh} and archived_at is null`;
   assert.equal(accountsWorth, wealthWorth, `Accounts' net worth (${accountsWorth}) is Wealth's (${wealthWorth})`);
   assert.equal(homeWorth, wealthWorth, `Home's net worth (${homeWorth}) is Wealth's (${wealthWorth})`);
-  assert.equal(accountsOwed, wealthOwed, `Accounts' "Owed to you" (${accountsOwed}) is Wealth's (${wealthOwed})`);
-  assert.equal(loansOwed, wealthOwed, `Loans' "Owed to you" (${loansOwed}) is Wealth's (${wealthOwed})`);
-  if (homeOwed !== null) assert.equal(homeOwed, wealthOwed, `Home's "Owed to you" (${homeOwed}) is Wealth's (${wealthOwed})`);
+  /* Loans draws money arriving with a + (money-in); the amount is what must agree. */
+  assert.equal(rupeesOf(accountsOwed), rupeesOf(wealthOwed), `Accounts' "Owed to you" (${accountsOwed}) is Wealth's (${wealthOwed})`);
+  assert.equal(rupeesOf(loansOwed), rupeesOf(wealthOwed), `Loans' "Owed to you" (${loansOwed}) is Wealth's (${wealthOwed})`);
+  if (homeOwed !== null) assert.equal(rupeesOf(homeOwed), rupeesOf(wealthOwed), `Home's "Owed to you" (${homeOwed}) is Wealth's (${wealthOwed})`);
   ok(`net worth ${wealthWorth} on Wealth, Home and Accounts (holdings of ₹${Math.round(Number(holdings) / 100)} counted); owed to you ${wealthOwed} on Wealth, Accounts, Loans${homeOwed !== null ? ' and Home' : ''}`);
 
   /* ── 1. edit the starting balance on /accounts ────────────────────── */

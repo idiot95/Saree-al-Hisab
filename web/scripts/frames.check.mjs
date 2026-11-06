@@ -29,6 +29,7 @@ import { createRequire } from 'node:module';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { localOwnerUrl } from './local-only.mjs';
 
 const require = createRequire(import.meta.url);
 const { chromium, devices } = require('playwright');

@@ -12,14 +12,12 @@
 
    Run: npx next start -p 3000, then
         NODE_TLS_REJECT_UNAUTHORIZED=0 node scripts/revocation.check.mjs     */
-import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import postgres from 'postgres';
 import { localOwnerUrl } from './local-only.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
-const envFile = readFileSync(join(root, '.env.local'), 'utf8');
 const url = localOwnerUrl(root);
 const sql = postgres(url, { ssl: 'require', max: 1, onnotice: () => {} });
 const B = process.env.BASE_URL ?? 'http://localhost:3000';
@@ -34,8 +32,15 @@ function take(res, m) {
   }
 }
 const get = async (path, m) => { const r = await fetch(B + path, { headers: { cookie: cookieHeader(m) }, redirect: 'manual' }); take(r, m); return r; };
-// /setup answers 200 to anyone signed in without books and redirects everyone else.
-const signedIn = async (m) => { const r = await get('/setup', m); return r.status === 200; };
+/* Signed in: Home opens (200), or sends a person with no books on to /setup or /no-household. Signed out, or a
+   refused session: a redirect to /signin. (It asked /setup alone, which redirects anyone who has books — the seeded
+   account included — so a good session read as signed out.) */
+const signedIn = async (m) => {
+  const r = await get('/', m);
+  if (r.status === 200) return true;
+  const to = r.headers.get('location') ?? '';
+  return r.status >= 300 && r.status < 400 && new URL(to, B).pathname !== '/signin';
+};
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 async function signIn() {

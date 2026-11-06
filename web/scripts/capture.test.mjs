@@ -9,7 +9,6 @@
 
    Run: npm run build && npx next start -p 3000, then
         NODE_TLS_REJECT_UNAUTHORIZED=0 node scripts/capture.test.mjs         */
-import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHash, randomBytes } from 'node:crypto';
@@ -17,11 +16,10 @@ import postgres from 'postgres';
 import { execFileSync } from 'node:child_process';
 import { writeFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
-import { localOwnerUrl, assertLocal } from './local-only.mjs';
+import { localOwnerUrl } from './local-only.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
-const envFile = readFileSync(join(root, '.env.local'), 'utf8');
-const url = assertLocal(localOwnerUrl(root));
+const url = localOwnerUrl(root);
 /* removeMember and changeRole run these statements (src/lib/member-change.ts); compiled as the lib tests compile
    them, so what is proved here is the action's own code. */
 execFileSync('npx', ['tsc', '-p', 'tsconfig.lib.json'], { cwd: root, stdio: 'inherit' });
