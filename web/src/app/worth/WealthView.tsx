@@ -1,18 +1,21 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from '@/app/NavLink';
 import { Figure } from '../Figure';
 import { Icon } from '../Icon';
 import { useMoney } from '../currency';
 import OwnerChips from './OwnerChips';
 import HoldingRow from './HoldingRow';
-import WorthChart from './WorthChart';
+import dynamic from 'next/dynamic';
 import type { HoldingItem, RateNote, SeriesPoint, WealthView as View } from './types';
 
 /* The part of Wealth that changes with the owner chip. Every set of figures arrived with the page; a chip only
    picks which one is drawn, so the headline and the legend roll to their new values (Figure) and nothing is
    fetched. The holdings listed follow the same choice: a member's own, the joint ones, or all of them. */
+/* Recharts is a large library and the chart is below the fold on one view only: it loads when it is drawn. */
+const WorthChart = dynamic(() => import('./WorthChart'), { ssr: false, loading: () => <div className="h-36" /> });
+
 const CLASSES = [
   { key: 'bank', word: 'Bank & cash', swatch: 'bg-hero-1' },
   { key: 'pots', word: 'Pots', swatch: 'bg-hero-2' },
@@ -30,8 +33,10 @@ export default function WealthView({ views, initial, items, potRates, metalRates
   const mine = items.filter((h) => v.key === 'household' || (v.key === 'joint' ? h.owner === null : h.owner === v.key));
   const pots = mine.filter((h) => h.kind === 'fx_cash');
   const metals = mine.filter((h) => h.kind === 'metal');
-  const parts = CLASSES.map((c) => ({ ...c, value: v[c.key] }));
+  // What is owed to you is the household's, never a member's, so a member's legend leaves it out.
+  const parts = CLASSES.filter((c) => c.key !== 'owed' || v.counted).map((c) => ({ ...c, value: v[c.key] }));
   const whole = parts.reduce((n, p) => n + p.value, 0);
+  const inBar = parts.filter((p) => p.value > 0);
 
   return (
     <div className="flex flex-col gap-4">
@@ -42,7 +47,7 @@ export default function WealthView({ views, initial, items, potRates, metalRates
         <Figure minor={v.worth} className="text-[38px] font-bold leading-none tracking-tight tabular-nums" />
         {/* The bar is the shape; the legend under it is the record, word and figure for each class. */}
         <div aria-hidden="true" className="flex h-2.5 gap-0.5 overflow-hidden rounded-full bg-hero-foreground/15">
-          {whole > 0 && parts.map((p) => (
+          {whole > 0 && inBar.map((p) => (
             <span key={p.key} className={`${p.swatch} basis-0 transition-[flex-grow] duration-500 ease-out`}
               style={{ flexGrow: p.value }} />
           ))}
@@ -58,7 +63,7 @@ export default function WealthView({ views, initial, items, potRates, metalRates
         </dl>
         {v.debt !== 0 && (
           <p className="flex items-center justify-between border-t border-hero-foreground/15 pt-2 text-xs">
-            <span className="text-hero-muted">Less cards and money you owe</span>
+            <span className="text-hero-muted">{v.counted ? 'Less cards and money you owe' : 'Less cards and money owed'}</span>
             <span className="font-semibold tabular-nums"><Figure minor={v.debt} /></span>
           </p>
         )}
@@ -96,7 +101,7 @@ export default function WealthView({ views, initial, items, potRates, metalRates
         <section aria-label="Month by month" className="mx-[var(--gutter)] flex flex-col gap-2">
           <h2 className="px-0.5 text-[13px] font-semibold text-muted-foreground">Month by month</h2>
           <div className="rounded-[18px] bg-card p-4">
-            <WorthChart series={series} />
+            <WhenNear><WorthChart series={series} /></WhenNear>
           </div>
         </section>
       )}
@@ -131,4 +136,20 @@ function Row({ href, icon, word, value, lateral }: { href: string; icon: string;
       <Icon name="chevron_right" size={18} className="text-muted-foreground" />
     </Link>
   );
+}
+
+/* The chart's code is fetched only when its card comes near the screen. Rendering the lazy component on the
+   first paint would have Next put its chunk among the page's first scripts, which is what lazy was for. */
+function WhenNear({ children }: { children: React.ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [near, setNear] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const io = new IntersectionObserver((es) => { if (es.some((e) => e.isIntersecting)) { setNear(true); io.disconnect(); } },
+      { rootMargin: '300px 0px' });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+  return <div ref={ref} className="min-h-36">{near ? children : <div className="h-36" />}</div>;
 }

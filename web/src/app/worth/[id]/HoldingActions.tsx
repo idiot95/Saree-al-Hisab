@@ -9,7 +9,7 @@ import { haptic } from '../../haptics';
 import { useMoney } from '../../currency';
 import { addHoldingPhotos, archiveHolding, setRateOverride, updateSnapshot, type Result } from '../actions';
 import { PhotoField, withPhotos } from '../PhotoField';
-import { Field, Problem } from '../fields';
+import { Field, Problem, keepFields } from '../fields';
 
 /* What can be done to one holding. Each drawer posts to its server action, says what went wrong in a
    sentence if it did, and on success closes and refreshes the page — so the value on the card rolls to its new
@@ -51,7 +51,8 @@ export function UpdateBalance({ id, fx, currency }: { id: string; fx: boolean; c
   return (
     <Sheet open={s.open} setOpen={(o) => { s.setOpen(o); if (!o) setFiles([]); }} title="Update balance"
       trigger={<button type="button" className={`${action} bg-primary text-primary-foreground`}><Icon name="edit" size={19} />Update balance</button>}>
-      <form action={s.act} className="flex flex-col gap-4 pt-4">
+      {/* JS-only on purpose: the drawer cannot open without script, so wrapping the action in a client closure loses no no-JS path. */}
+      <form noValidate onSubmit={keepFields(s.act)} className="flex flex-col gap-4 pt-4">
         <input type="hidden" name="id" value={id} />
         <Field label={fx ? `Balance today, in ${currency}` : 'Weight today, in grams'} name="quantity" inputMode="decimal" required
           autoFocus hint={fx ? 'The whole balance, not the change.' : 'The whole weight, not the change. Up to three decimals.'} />
@@ -71,7 +72,8 @@ export function AddPhotos({ holdingId }: { holdingId: string }) {
   return (
     <Sheet open={s.open} setOpen={(o) => { s.setOpen(o); if (!o) setFiles([]); }} title="Add photos"
       trigger={<button type="button" className={`${action} border border-border bg-card`}><Icon name="add_photo_alternate" size={19} />Add photos</button>}>
-      <form action={s.act} className="flex flex-col gap-4 pt-4">
+      {/* JS-only on purpose: the drawer cannot open without script, so wrapping the action in a client closure loses no no-JS path. */}
+      <form noValidate onSubmit={keepFields(s.act)} className="flex flex-col gap-4 pt-4">
         <input type="hidden" name="holdingId" value={holdingId} />
         <p className="text-sm text-muted-foreground">Kept with the holding itself. A photo for one day’s figure goes in with Update balance.</p>
         <PhotoField files={files} onChange={setFiles} />
@@ -108,7 +110,8 @@ export function RateLine({ base, subject, rate, stale, canWrite, fx }: {
           <Icon name="currency_exchange" size={22} className="text-primary" />{body}<Icon name="edit" size={18} className="text-muted-foreground" />
         </button>
       }>
-      <form action={s.act} className="flex flex-col gap-4 pt-4">
+      {/* JS-only on purpose: the drawer cannot open without script, so wrapping the action in a client closure loses no no-JS path. */}
+      <form noValidate onSubmit={keepFields(s.act)} className="flex flex-col gap-4 pt-4">
         <input type="hidden" name="base" value={base} />
         <Field label={fx ? `${symbol.trim()} for 1 ${subject}` : `${symbol.trim()} for 1 g of pure ${subject.toLowerCase()}`}
           name="rate" inputMode="decimal" required autoFocus
@@ -132,7 +135,8 @@ export function ArchiveHolding({ id, name }: { id: string; name: string }) {
     return r;
   }, null);
   return (
-    <form action={act} onSubmit={(e) => { if (!sure) { e.preventDefault(); haptic('select'); setSure(true); } }}
+    // JS-only: the second tap and the redirect after it need script; the closure loses no no-JS path.
+    <form onSubmit={(e) => { if (!sure) { e.preventDefault(); haptic('select'); setSure(true); return; } keepFields(act)(e); }}
       className="flex flex-col gap-1.5 pt-2">
       <input type="hidden" name="id" value={id} />
       <button type="submit" disabled={pending}

@@ -71,7 +71,7 @@ export default async function Accounts() {
     bank_key: a.bank_key, card_network: a.card_network,
     opening: Number(a.opening_balance), limit: a.credit_limit ? Number(a.credit_limit) : null,
     statement_day: a.statement_day, due_day: a.due_day, methods: a.methods,
-    owner: a.owner_user_id && members.some((m) => m.id === a.owner_user_id) ? a.owner_user_id : null,
+    owner: a.owner_user_id,
     owners,
   });
 

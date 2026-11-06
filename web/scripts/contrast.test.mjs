@@ -153,6 +153,8 @@ for (const theme of ['light', 'dark']) {
     ['secondary-foreground', ['secondary']],
     // the net-worth card
     ['hero-foreground', ['hero']],
+    // Wealth: a stale rate's note sits on paper and on a card, not only on its own wheat ground
+    ['attention-soft-foreground', ['background', 'card']],
     ['hero-muted', ['hero']],
   ];
   const MARKS = [['primary', ['muted']], ['destructive', ['muted']], ['attention-ink', ['background', 'card', 'muted']],
@@ -166,6 +168,16 @@ for (const theme of ['light', 'dark']) {
       const gap = Math.abs(lum(a) - lum(b)), ok = gap >= 0.05;
       ok ? pass++ : fail++;
       if (!ok) console.log(`  FAIL money-in vs primary luminance gap ${gap.toFixed(3)} (needs 0.05)  (${a} vs ${b})`);
+    }
+    /* A refusal in a holdings form: the destructive ink on its own 10% wash (bg-destructive/10), the wash
+       composited over the ground the form sits on (the drawer is background; account rows are card). */
+    for (const ground of ['background', 'card']) {
+      const ink = get(T, R, 'destructive'), g = get(T, R, ground);
+      const [a, b] = [hex(ink), hex(g)];
+      const wash = `#${a.map((v, i) => Math.round(v * 0.1 + b[i] * 0.9).toString(16).padStart(2, '0')).join('')}`;
+      const r = ratio(ink, wash), ok = r >= MIN;
+      if (ok) pass++; else fail++;
+      if (!ok) console.log(`  FAIL destructive on destructive/10 over ${ground}  ${r.toFixed(2)}:1 (needs ${MIN})  (${ink} on ${wash})`);
     }
     for (const [list, min] of [[TEXT, MIN], [MARKS, 3]]) {
       for (const [ink, grounds, own] of list) for (const ground of grounds) {

@@ -13,6 +13,8 @@ export type HoldingItem = {
   /** "22k", "Sterling" for a metal; the currency code for a pot. */
   badge: string;
   value: number | null;
+  /** Its rate could not be refreshed today and an older fetched one is in use. */
+  stale: boolean;
 };
 
 /** The figures for one choice of whose net worth: Household, a member, or Joint. */

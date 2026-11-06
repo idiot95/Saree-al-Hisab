@@ -10,7 +10,7 @@ import { Icon } from '../Icon';
 import { haptic } from '../haptics';
 import { createHolding, type Result } from './actions';
 import { PhotoField, withPhotos } from './PhotoField';
-import { Field, OwnerSelect, Problem } from './fields';
+import { Field, OwnerSelect, Problem, keepFields } from './fields';
 
 type Kind = 'fx_cash' | 'gold' | 'silver';
 const KINDS: { key: Kind; word: string }[] = [
@@ -50,7 +50,8 @@ export default function AddHolding({ base, members }: { base: string; members: {
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-[var(--gutter)] pb-[calc(16px+env(safe-area-inset-bottom))]">
           <DrawerTitle className="pt-3 text-xl font-bold">Add to Wealth</DrawerTitle>
           <DrawerDescription className="sr-only">A pot in another currency, gold or silver.</DrawerDescription>
-          <form action={act} className="flex flex-col gap-4 pt-4">
+          {/* JS-only on purpose: the drawer cannot open without script, so wrapping the action in a client closure loses no no-JS path. */}
+          <form noValidate onSubmit={keepFields(act)} className="flex flex-col gap-4 pt-4">
             <ToggleGroup type="single" value={kind} aria-label="What is it"
               onValueChange={(v) => { if (v) { setKind(v as Kind); setPurity(v === 'silver' ? 'sterling' : '22k'); } }}
               className="flex w-full flex-wrap gap-2">

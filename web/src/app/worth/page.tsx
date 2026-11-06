@@ -89,6 +89,8 @@ export default async function Worth({ searchParams }: { searchParams: Promise<{ 
       id: h.id, kind: h.kind, name: h.name, owner, ownerName: nameOf(owner), native,
       badge: h.kind === 'fx_cash' ? h.currency! : purityLabel(h.metal, h.purity_permille),
       value: h.value_minor === null ? null : Number(h.value_minor),
+      stale: !!h.rate_as_of && h.rate_source !== 'override'
+        && stale.includes(h.kind === 'fx_cash' ? h.currency! : h.metal === 'gold' ? 'XAU' : 'XAG'),
     };
   });
 

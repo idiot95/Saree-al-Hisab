@@ -1,6 +1,6 @@
 'use client';
 
-import { useId, useState } from 'react';
+import { startTransition, useId, useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Icon } from '../Icon';
@@ -19,15 +19,19 @@ export function Field({ label, hint, ...rest }: { label: string; hint?: string }
 
 /** Whose it is: Joint, or one member. Radix's select cannot hold an empty value, so the choice is mirrored into
  *  a hidden `owner` field the action reads ('' is joint). */
-export function OwnerSelect({ members, defaultValue = null, label = 'Whose is it' }: {
+export function OwnerSelect({ members, defaultValue = null, label = 'Whose is it', keepUnlessChanged = false }: {
   members: { id: string; name: string }[]; defaultValue?: string | null; label?: string;
+  /** Send `owner` only once the choice is changed, so a stored owner the list cannot show (someone who has
+   *  left) is kept as it is rather than quietly rewritten to Joint by an unrelated edit. */
+  keepUnlessChanged?: boolean;
 }) {
   const id = useId();
-  const [v, setV] = useState(defaultValue && members.some((m) => m.id === defaultValue) ? defaultValue : 'joint');
+  const initial = defaultValue && members.some((m) => m.id === defaultValue) ? defaultValue : 'joint';
+  const [v, setV] = useState(initial);
   return (
     <div className="flex flex-col gap-1.5">
       <span id={id} className="text-sm font-medium text-muted-foreground">{label}</span>
-      <input type="hidden" name="owner" value={v === 'joint' ? '' : v} />
+      {(!keepUnlessChanged || v !== initial) && <input type="hidden" name="owner" value={v === 'joint' ? '' : v} />}
       <Select value={v} onValueChange={setV}>
         <SelectTrigger aria-labelledby={id} className="h-12 w-full rounded-xl bg-card px-3.5 text-[length:var(--field)] data-[size=default]:h-12">
           <SelectValue />
@@ -47,4 +51,15 @@ export function Problem({ children }: { children: React.ReactNode }) {
       <Icon name="error" size={18} />{children}
     </p>
   );
+}
+
+/** Submit a form to an action WITHOUT React's reset of uncontrolled fields: a `<form action>` clears every
+ *  field once the action settles, even when it comes back refused, which wiped what was typed exactly when the
+ *  person needs to correct it. Only for forms that need script anyway (a drawer cannot open without it). */
+export function keepFields(act: (fd: FormData) => void) {
+  return (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const fd = new FormData(e.currentTarget);
+    startTransition(() => act(fd));
+  };
 }

@@ -10,7 +10,7 @@ import { editAccount, archiveAccount } from './actions';
 import CardIdentityFields from './CardIdentityFields';
 import { bankFromName } from '@/lib/card-brand';
 import { startPending } from '../pending';
-import { OwnerSelect } from '../worth/fields';
+import { OwnerSelect, keepFields } from '../worth/fields';
 
 /* Tap the row and it becomes its own form; save and it becomes a row again.
    The same move as a category, because a person who has learnt one should
@@ -24,7 +24,7 @@ export type Editable = {
   limit: number | null; statement_day: number | null; due_day: number | null;
   /** Live payment methods drawing on it — what stands between it and Archive. */
   methods: number;
-  /** Whose it is: a current member's id, or null for joint. */
+  /** Whose it is as stored: a member id (perhaps someone who has left), or null for joint. */
   owner: string | null;
   /** Who it could belong to: the household's members. */
   owners: { id: string; name: string }[];
@@ -94,7 +94,8 @@ export function AccountForm({ account: a, last = true, onDone }: {
       padding: '16px 0', display: 'flex', flexDirection: 'column', gap: 13,
       borderBottom: last ? undefined : '1px solid var(--border)',
     }}>
-      <form action={act} style={{ display: 'flex', flexDirection: 'column', gap: 13 }}>
+      {/* JS-only: this form replaces the row only after a tap, so the client closure loses no no-JS path. */}
+      <form onSubmit={keepFields(act)} style={{ display: 'flex', flexDirection: 'column', gap: 13 }}>
         <input type="hidden" name="id" value={a.id} />
         <Field label="Name" name="name" required maxLength={60} defaultValue={a.name} autoFocus />
         {a.kind !== 'cash' && (
@@ -135,7 +136,7 @@ export function AccountForm({ account: a, last = true, onDone }: {
         )}
         {/* Whose it is, for each person's net worth on Wealth. A person's account (money lent) never has an
             owner — it is the household's — and is never edited here anyway. */}
-        {a.kind !== 'person' && <OwnerSelect members={a.owners} defaultValue={a.owner} />}
+        {a.kind !== 'person' && <OwnerSelect members={a.owners} defaultValue={a.owner} keepUnlessChanged />}
         {state && !state.ok && <ErrorNote>{state.error}</ErrorNote>}
         <div style={{ display: 'flex', gap: 9 }}>
           <button type="button" onClick={onDone} style={ghost}>Cancel</button>
