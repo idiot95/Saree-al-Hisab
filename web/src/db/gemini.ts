@@ -1,5 +1,5 @@
 import 'server-only';
-import { PROMPT, readScan, type Scanned } from '@/lib/receipt';
+import { PROMPT, SMS_PROMPT, readScan, type Scanned } from '@/lib/receipt';
 
 /* The call out to Gemini. Lives in src/db rather than src/lib because it is not
    pure: it reaches the network and it holds a household's key.
@@ -107,5 +107,38 @@ export async function testKey(key: string): Promise<{ ok: true } | { ok: false; 
       : 'Google would not accept that key.' };
   } catch {
     return { ok: false, error: 'Could not reach Google to check the key.' };
+  }
+}
+
+/** A bank text the SMS parser could not place, read by the model on the
+ *  household's own key. Four seconds and no retry: the phone that forwarded it
+ *  is waiting, and the regex result is kept whenever this fails. The reply is
+ *  untrusted and goes through readScan exactly as a receipt's does. Nothing
+ *  about the message or the upstream reply is logged — only a reason code. */
+export async function readSmsWithModel(key: string, text: string): Promise<Scanned | null> {
+  try {
+    const res = await fetch(ENDPOINT, {
+      method: 'POST',
+      headers: { 'x-goog-api-key': key, 'Content-Type': 'application/json' },
+      signal: AbortSignal.timeout(4_000),
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: SMS_PROMPT }, { text }] }],
+        generationConfig: { responseMimeType: 'application/json', temperature: 0 },
+      }),
+    });
+    if (!res.ok) {
+      console.error('capture: model refused', res.status);
+      return null;
+    }
+    const json = await res.json().catch(() => null) as {
+      candidates?: { content?: { parts?: { text?: string }[] } }[];
+    } | null;
+    const reply = json?.candidates?.[0]?.content?.parts?.map((p) => p.text ?? '').join('') ?? '';
+    if (!reply.trim()) return null;
+    const scan = readScan(reply, 'INR');
+    return 'error' in scan ? null : scan;
+  } catch (e) {
+    console.error('capture: model failed', (e as Error)?.name ?? 'unknown');
+    return null;
   }
 }

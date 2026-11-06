@@ -24,3 +24,9 @@ export function newLinkToken() {
  *  opens anything is the database's to say. */
 export const looksLikeLinkToken = (v: unknown): v is string =>
   typeof v === 'string' && /^[A-Za-z0-9_-]{43}$/.test(v);
+
+/** The SHA-256 of an SMS capture token, as hex. Same rule as above (full
+ *  entropy, so a fast hash is right), but in hex: capture_token.token_hash
+ *  is CHECKed as 64 hex characters, and capture_lookup takes it that way. */
+export const hashCaptureToken = (token: string) =>
+  createHash('sha256').update(token).digest('hex');
