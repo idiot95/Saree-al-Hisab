@@ -1083,6 +1083,10 @@ try {
         as_of: tomorrow, rate: '5' })}`));
     ok(await scoped(elsewhere.id, (tx) => n(tx`select count(*)::int as n from price_quote where base = 'XTS'`)) >= 2,
       'a quote is a market price: every household reads it');
+    await refusesWith('the app cannot rewrite a quote\'s rate', /permission denied/,
+      () => app`update price_quote set rate = 1 where base = 'XTS'`);
+    await allows('the app may refresh a quote\'s fetched_at (and only that)',
+      () => app`update price_quote set fetched_at = now() where base = 'XTS'`);
     await allows('the app may record a fetched quote',
       () => scoped(elsewhere.id, (tx) => tx`insert into price_quote ${sql({ base: 'XTS', quote: 'INR', as_of: yesterday,
         rate: '1', source: 'invariant-test' })}`));

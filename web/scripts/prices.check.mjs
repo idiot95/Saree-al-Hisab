@@ -80,6 +80,13 @@ try {
   await ensureRates('h', ['USD', 'AED', 'XAU'], Q, f3);
   ok(f3.calls.length === 1 && f3.calls[0].endsWith('/v6/latest/ZZZ'), 'only the stale base is refetched (one FX call, no metals)');
 
+  // Same provider date again: the PK conflicts, fetched_at is refreshed, the rate is untouched.
+  const f3b = fakeFetch({});
+  const r3b = await ensureRates('h', ['USD', 'AED', 'XAU'], Q, f3b);
+  ok(f3b.calls.length === 0 && r3b.stale.length === 0, 'unchanged provider date: the refetch refreshed fetched_at, so the next render makes no fetch');
+  const [aed] = await sql`select rate::text, fetched_at > now() - interval '1 minute' as fresh from price_quote where quote = ${Q} and base = 'AED'`;
+  ok(aed.fresh && aed.rate === (1 / 0.04375).toFixed(10), 'fetched_at moved, the stored rate did not');
+
   const f4 = fakeFetch({ '/v6/latest/ZZZ': 'fail' });
   await sql`update price_quote set fetched_at = now() - interval '25 hours' where quote = ${Q}`;
   const r4 = await ensureRates('h', ['USD', 'XAU'], Q, f4);

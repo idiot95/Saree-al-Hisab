@@ -6,8 +6,10 @@ import 'server-only';
    under 24 hours old is left alone. There is no scheduler, on purpose.
 
    Not rate-limited by IP (tooMany buckets by caller): the guard is the table
-   itself. Two first renders at once may both fetch; the insert is
-   `on conflict do nothing`, so the second is harmless.
+   itself. Two first renders at once may both fetch; the upsert is harmless.
+   When the provider's date has not moved (a weekend), the same quote is
+   written again: only fetched_at is refreshed (the one column the app role may
+   update), the rate stays what was first stored, so the guard holds.
 
    Uses the pool (price_quote is global, no row policy) rather than the
    household transaction, so a slow provider never holds that transaction open
@@ -52,11 +54,12 @@ async function store(q: Omit<Quote, 'asOf'> & { asOf: string | null }) {
     insert into price_quote (base, quote, as_of, rate, source, fetched_at)
     values (${q.base}, ${q.quote}, coalesce(${q.asOf}::date, current_date),
             ${q.rate}::numeric, 'api', now())
-    on conflict do nothing`;
+    on conflict (base, quote, as_of, source) do update set fetched_at = now()`;
 }
 
 export async function ensureRates(
-  _householdId: string, bases: string[], quote: string,
+  _householdId: string, // kept for the plan's signature; the pool is used, see above
+  bases: string[], quote: string,
   fetchImpl: typeof fetch = fetch,
 ): Promise<{ stale: string[] }> {
   const wanted = [...new Set(bases)].filter((b) => /^[A-Z]{3}$/.test(b) && b !== quote);

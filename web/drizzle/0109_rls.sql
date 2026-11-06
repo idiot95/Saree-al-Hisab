@@ -236,6 +236,9 @@ grant execute on all functions in schema public to saree_app;
 revoke all on _migration from saree_app;
 -- A quote is evidence of what the market said on a day: read it, add one, never rewrite it.
 revoke update, delete, truncate on price_quote from saree_app;
+-- One exception: fetched_at, so a re-fetch that finds the provider's date unchanged can say "checked again"
+-- (db/prices.ts). The rate, the date and the source stay unrewritable.
+grant update (fetched_at) on price_quote to saree_app;
 -- A table a later migration adds is granted the same way, without a new line here.
 alter default privileges in schema public grant select, insert, update, delete on tables to saree_app;
 alter default privileges in schema public grant usage, select on sequences to saree_app;
