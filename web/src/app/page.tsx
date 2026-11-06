@@ -1,3 +1,5 @@
+import { Suspense } from 'react';
+import { SkeletonFor } from './Skeleton';
 import Link from '@/app/NavLink';
 import { redirect } from 'next/navigation';
 import { actorOrNull, claimsFor, entriesFor, inboxCount, reviewCount, monthTotals, peopleFor, schedulesFor, setupProgress } from '@/db/queries';
@@ -28,8 +30,20 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ s
   const actor = await actorOrNull();
   if (!actor) redirect('/signin');
   if (!actor.household_id) redirect('/no-household');
-
   const { saved } = await searchParams;
+  /* Home's frame, from here rather than a loading.tsx: one at the root would also stand in front of sign-in,
+     the terms and every other screen that has none of its own. The redirects above stay outside it, so a
+     signed-out visit is still a redirect and not a frame. */
+  return (
+    <Suspense fallback={<SkeletonFor path="/" />}>
+      <HomeScreen saved={saved} />
+    </Suspense>
+  );
+}
+
+async function HomeScreen({ saved }: { saved?: string }) {
+  const actor = await actorOrNull();
+  if (!actor?.household_id) redirect('/no-household');
   const savedId = saved && /^[0-9a-f-]{36}$/.test(saved) ? saved : null;
   const name = actor.household_name;
   const month = monthKey(new Date());

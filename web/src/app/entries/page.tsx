@@ -1,3 +1,5 @@
+import { Suspense } from 'react';
+import { SkeletonFor } from '../Skeleton';
 import Link from '@/app/NavLink';
 import { redirect } from 'next/navigation';
 import { actorOrNull, budgetFor, entriesFor, inboxCount, monthTotals, purgeSmsBodies, searchEntries } from '@/db/queries';
@@ -35,8 +37,20 @@ export default async function Activity({ searchParams }: { searchParams: Promise
   const actor = await actorOrNull();
   if (!actor) redirect('/signin');
   if (!actor.household_id) redirect('/no-household');
-
   const sp = await searchParams;
+  /* loading.tsx cannot see the address's query, so on its own it would draw All's frame over every chip. The
+     chip is known here before anything is read, so the frame the server streams is the chip's own. */
+  const view = FILTERS.has(sp.f as ActivityFilter) ? sp.f : 'all';
+  return (
+    <Suspense fallback={<SkeletonFor path={`/entries?f=${view}`} />}>
+      <ActivityScreen sp={sp} />
+    </Suspense>
+  );
+}
+
+async function ActivityScreen({ sp }: { sp: Params }) {
+  const actor = await actorOrNull();
+  if (!actor?.household_id) redirect('/no-household');
   const f: ActivityFilter = FILTERS.has(sp.f as ActivityFilter) ? sp.f as ActivityFilter : 'all';
   const hh = actor.household_id;
   const canWrite = actor.role !== 'viewer';

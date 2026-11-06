@@ -15,7 +15,8 @@ export function startPending(href: string) {
   try {
     const url = new URL(href, window.location.href);
     if (url.origin !== window.location.origin || url.pathname === window.location.pathname) return;
-    target = url.pathname;
+    // The query rides along: Activity's chips each have a frame of their own (`/entries?f=review`).
+    target = url.pathname + url.search;
   } catch { return; }
   tell();
 }
