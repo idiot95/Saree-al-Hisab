@@ -24,7 +24,9 @@ import { isCurrency } from '@/lib/money';
 
 const INVITE_DAYS = 7;
 
-export type Result = { ok: true; message?: string; until?: string } | { ok: false; error: string };
+export type Result =
+  | { ok: true; message?: string; until?: string; email?: string; role?: 'adult' | 'viewer' }
+  | { ok: false; error: string };
 
 /* Every one takes (previous state, form data) so it can be handed straight to
    useActionState. That is not a formality: an action passed through a client
@@ -82,7 +84,8 @@ export async function createInvite(_prev: Result | null, formData: FormData): Pr
     revalidatePath('/household');
     // The expiry the database actually set, so the message quotes the same day.
     const until = new Date(made.expires_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'long' });
-    return { ok: true, message: token, until };
+    // The address and role the invite row was written with, so the message is about this invite and no other.
+    return { ok: true, message: token, until, email, role };
   });
 }
 

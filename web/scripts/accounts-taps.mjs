@@ -19,6 +19,9 @@
       rule and listed; the form closes and a new one opens on the defaults. Then it is Stopped from its swipe grip.
    4. /categories: rename the top-level spending category with the most entries and see the row follow; rename it
       back.
+   5. /household: invite a throwaway address as a Viewer. The message names that address and what a viewer can do,
+      and the invite row says the same; then the form is edited (another address, Contributing member) and the
+      message does not change, because its link is still the first invite's.
    Everything the run made is removed, and every name and balance it touched is put back, even on a failure. */
 import { createRequire } from 'node:module';
 import fs from 'node:fs';
@@ -73,6 +76,7 @@ const TAG = Date.now().toString(36);
 const SCHEDULE = `Accounts taps ${TAG}`;
 const CARD = `Taps card ${TAG}`;
 const CARD2 = `${CARD} 2`;
+const INVITEE = `taps-${TAG}@example.com`;
 let hh = null;
 let acc = null;          // { id, name, opening }
 let madeRecon = null;    // the reconciliation this run made, and its adjustment entry, for the cleanup
@@ -366,6 +370,26 @@ try {
   const [{ name: back }] = await sql`select name from category where id = ${cat.id}`;
   assert.equal(back, cat.name);
   ok(`renamed back to "${cat.name}"`);
+
+  /* ── 5. an invitation's message is the invite that was made ───────── */
+  await page.goto(`${BASE}/household`);
+  await page.getByRole('heading', { name: 'Invite' }).waitFor();
+  await page.getByLabel('Email address').fill(INVITEE);
+  await page.getByRole('radio', { name: /^Viewer/ }).check();
+  await page.getByRole('button', { name: 'Create invitation' }).click();
+  const msg = page.locator('pre').filter({ hasText: '/join/' });
+  await msg.waitFor({ timeout: 20000 });
+  const first = await msg.innerText();
+  assert.ok(first.includes(`(${INVITEE})`), 'the message names the address invited');
+  assert.ok(first.includes('read everything but change nothing'), 'the message says what a viewer can do');
+  const [made] = await sql`select email, role from invite where household_id = ${hh} and email = ${INVITEE} and status = 'open'`;
+  assert.deepEqual({ ...made }, { email: INVITEE, role: 'viewer' }, 'the invite row is a viewer at that address');
+  ok(`invited ${INVITEE} as a Viewer: the message and the invite row agree`);
+  await page.getByLabel('Email address').fill(`other-${INVITEE}`);
+  await page.getByRole('radio', { name: /^Contributing member/ }).check();
+  await page.waitForTimeout(300);
+  assert.equal(await msg.innerText(), first, 'editing the form after create leaves the message as it was');
+  ok('the form edited afterwards (another address, Contributing member): the message is unchanged');
 } finally {
   if (hh) {
     await sql.begin(async (tx) => {
@@ -388,6 +412,7 @@ try {
         await tx`delete from account where id = ${c.id}`;
       }
       if (cat) await tx`update category set name = ${cat.name} where id = ${cat.id} and name <> ${cat.name}`;
+      await tx`delete from invite where household_id = ${hh} and email in (${INVITEE}, ${`other-${INVITEE}`})`;
     });
   }
   await browser.close();

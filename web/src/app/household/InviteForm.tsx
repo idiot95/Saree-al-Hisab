@@ -22,12 +22,15 @@ export default function InviteForm({ origin, household, inviter, passwordOpen }:
   const keep = useKeepOnRefusal(state);
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<'adult' | 'viewer'>('adult');
-  /* Created: the message below is written from this email and role, so they stay; the form is redrawn (a new key)
-     so React's reset after a success cannot leave its radios and the role in state disagreeing. */
+  /* Created: the message below is written from what the action returned — the invite actually made — so editing the
+     fields afterwards cannot rewrite a message whose link still points at the first invite. The form is redrawn (a
+     new key) so React's reset after a success cannot leave its radios and the role in state disagreeing. */
   const [round, setRound] = useState(0);
   useOnSuccess(state, () => setRound((r) => r + 1));
   const token = state?.ok ? state.message : undefined;
   const until = state?.ok ? state.until ?? '' : '';
+  const sentTo = state?.ok ? state.email ?? '' : '';
+  const sentRole = state?.ok && state.role === 'viewer' ? 'viewer' : 'adult';
 
   return (
     <div className="flex flex-col gap-4 rounded-[18px] bg-card p-[var(--pad)]">
@@ -58,7 +61,7 @@ export default function InviteForm({ origin, household, inviter, passwordOpen }:
       </form>
 
       {token && (
-        <InviteMessage url={`${origin}/join/${token}`} email={email} role={role}
+        <InviteMessage url={`${origin}/join/${token}`} email={sentTo} role={sentRole}
           household={household} inviter={inviter} until={until} passwordOpen={passwordOpen} />
       )}
     </div>
