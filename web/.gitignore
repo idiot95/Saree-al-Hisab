@@ -42,3 +42,4 @@ next-env.d.ts
 
 # compiled by scripts/lib.test.mjs
 .libbuild/
+.sweep-state.json
