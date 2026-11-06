@@ -22,4 +22,6 @@ const tests = readdirSync(join(root, 'src/lib'), { withFileTypes: true, recursiv
 for (const f of tests) await import(pathToFileURL(f).href);
 /* The offline queue lives in src/app (it touches localStorage), so it runs through tsx rather than this compile. */
 execFileSync('npx', ['tsx', join(root, 'scripts/queue.test.mjs')], { cwd: root, stdio: 'inherit' });
+/* Back (safeBack and the session's trail) too: src/app, through tsx. */
+execFileSync('npx', ['tsx', join(root, 'scripts/back.test.mjs')], { cwd: root, stdio: 'inherit' });
 console.log('\n  all library assertions passed\n');

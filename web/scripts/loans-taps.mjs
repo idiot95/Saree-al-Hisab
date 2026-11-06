@@ -248,9 +248,21 @@ try {
   ok('a throwaway tab: New tab creates it and lands on it, the menu renames it, closes it and deletes it');
 
   /* ── 6. a person: lend, then take it back ─────────────────────────── */
-  const [who] = await sql`select cp.id, cp.name, cp.account_id from counterparty cp
-    where cp.household_id = ${hh} and cp.archived_at is null order by cp.name limit 1`;
+  /* A person picked by what the page will show, not by the seed: owed nothing by them on balance (balance ≥ 0, so
+     the hero is the one Figure, never "owes you" and "you owe" side by side), and with a Figure on their page. */
+  const people = await sql`select cp.id, cp.name, cp.account_id from counterparty cp
+    join account_balance b on b.id = cp.account_id
+    where cp.household_id = ${hh} and cp.archived_at is null and b.balance >= 0 order by cp.name`;
+  let who = null;
+  for (const p of people) {
+    await page.goto(`${BASE}/people/${p.id}`);
+    await page.getByRole('heading', { name: p.name, level: 1 }).waitFor();
+    if (await page.locator('main section').first().getByRole('img').count()) { who = p; break; }
+  }
+  assert.ok(who, 'a person with a balance of zero or more and a Figure for a hero');
   personAcc = who.account_id;
+  /* This step's own entries are the ones made from here on (the database's clock, as created_at is). */
+  const [{ now: stepStarted }] = await sql`select now()`;
   const heroFigure = async () => {
     const v = await page.locator('main section').first().getByRole('img').first().getAttribute('aria-label');
     return minor(v);
@@ -276,23 +288,38 @@ try {
     return el && Math.round(Number(el.getAttribute('aria-label').replace(/[^0-9.]/g, '')) * 100) === want;
   }, p0, { timeout: 20000 });
   const moved = await sql`select kind, amount::bigint as amount from txn
-    where household_id = ${hh} and created_at >= ${started} and deleted_at is null
+    where household_id = ${hh} and created_at >= ${stepStarted} and deleted_at is null
       and (account_id = ${personAcc} or counter_account_id = ${personAcc})`;
-  assert.equal(moved.length, 2, 'one loan and one repayment in the books');
+  assert.equal(moved.length, 2, `one loan and one repayment in the books (${moved.map((r) => r.kind).join(', ')})`);
   ok(`Got ₹50 back from ${who.name}: the figure is back at ${p0 / 100}, and both transfers are in the books`);
 } finally {
+  /* Cleanup never masks the failure that got us here: each part reports its own error and marks the run failed,
+     and the one in flight (if any) is what is thrown. */
+  const tidy = async (what, fn) => {
+    try { await fn(); } catch (e) { process.exitCode = 1; console.error(`  cleanup failed (${what}): ${e.message}`); }
+  };
   if (!KEEP && hh && tabId) {
-    await sql`delete from txn t using claim c, txn o
+    await tidy('money back', () => sql`delete from txn t using claim c, txn o
       where c.id = t.claim_id and o.id = c.txn_id and o.book_id = ${tabId}
-        and t.household_id = ${hh} and t.kind = 'claim_receipt' and t.created_at >= ${started}`;
+        and t.household_id = ${hh} and t.kind = 'claim_receipt' and t.created_at >= ${started}`);
   }
   if (!KEEP && hh) {
     if (personAcc) {
-      await sql`delete from txn where household_id = ${hh} and created_at >= ${started}
-        and (account_id = ${personAcc} or counter_account_id = ${personAcc})`;
+      await tidy('the loan', () => sql`delete from txn where household_id = ${hh} and created_at >= ${started}
+        and (account_id = ${personAcc} or counter_account_id = ${personAcc})`);
     }
-    /* Normally already deleted by step 5; a run that stopped part way leaves its tab here. */
-    await sql`delete from ledger_book where household_id = ${hh} and name like ${`${TAB}%`}`;
+    /* Normally already deleted by step 5; a run that stopped part way leaves its tab here. What hangs off it goes
+       first (members cascade; entries and regular payments do not), so the tab's delete cannot fail on a key. */
+    await tidy('the throwaway tab', () => sql.begin(async (tx) => {
+      const tabs = await tx`select id from ledger_book where household_id = ${hh} and name like ${`${TAB}%`}`;
+      for (const { id } of tabs) {
+        await tx`delete from claim where txn_id in (select id from txn where book_id = ${id} and created_at >= ${started})`;
+        await tx`delete from txn where book_id = ${id} and created_at >= ${started}`;
+        await tx`delete from occurrence where schedule_id in (select id from schedule where book_id = ${id})`;
+        await tx`delete from schedule where book_id = ${id}`;
+        await tx`delete from ledger_book where id = ${id}`;
+      }
+    }));
   }
   await browser.close();
   await sql.end();

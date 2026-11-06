@@ -115,7 +115,11 @@ function InviteMessage({ heading, url, email, role, household, inviter, until, p
     '',
     `Already have an account? Sign in with ${email || 'this address'} first, then open the link.`,
     '',
-    `The link works once${until ? ` and expires on ${until}` : ''}. Keep it to yourself — whoever opens it takes your place.`,
+    /* Only while a password can still accept it can a stranger use the link; after that it is bound to the
+       Google account at the address it was sent to. */
+    `The link works once${until ? ` and expires on ${until}` : ''}.${passwordOpen
+      ? ' Keep it to yourself — whoever opens it takes your place.'
+      : ` It works only for the Google account at ${email || 'this address'}.`}`,
   ].join('\n');
 
   const copy = async (text: string, what: 'message' | 'link') => {
@@ -134,8 +138,10 @@ function InviteMessage({ heading, url, email, role, household, inviter, until, p
         Invitation ready
       </h3>
       <p className="text-sm leading-normal">
-        Send this to {email || 'them'} privately — it says what to do. <b>Anyone who opens the
-        link can take that place in the household.</b>
+        Send this to {email || 'them'} privately — it says what to do.
+        {passwordOpen
+          ? <> <b>Anyone who opens the link can take that place in the household.</b></>
+          : ' Only their Google account can accept it.'}
       </p>
       <pre className="m-0 select-all rounded-lg border border-border bg-card px-3 py-3 font-[inherit] text-sm leading-normal whitespace-pre-wrap break-words text-foreground">{message}</pre>
       <div className="flex gap-2">

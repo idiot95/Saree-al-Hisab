@@ -28,8 +28,9 @@ export default function BooksSwitcher({ books, canRename, currency, currencyFixe
   const keepNew = useKeepOnRefusal(newState);
   const keepName = useKeepOnRefusal(renameState);
   const keepCcy = useKeepOnRefusal(ccyState);
-  /* Saved: these two stay open to say Done, so each is redrawn (a new key) and its field starts again from the
-     saved name or currency, rather than from what React's post-success reset left in the DOM. */
+  /* Saved: these two stay open, saying Done beside their buttons (and on the row once shut), and each is redrawn
+     (a new key) so its field starts again from the saved name or currency, rather than from what React's
+     post-success reset left in the DOM. */
   const [nameRound, setNameRound] = useState(0);
   const [ccyRound, setCcyRound] = useState(0);
   useOnSuccess(renameState, () => setNameRound((r) => r + 1));
@@ -70,6 +71,7 @@ export default function BooksSwitcher({ books, canRename, currency, currencyFixe
           <Field label="Household name" name="name"
             defaultValue={books.find((b) => b.active)?.name} required maxLength={60} autoFocus />
           {renameState && !renameState.ok && <ErrorNote>{renameState.error}</ErrorNote>}
+          {renameState?.ok && <p role="status"><DoneWord /></p>}
           <div className="flex gap-2">
             <button type="button" onClick={() => setEditing(false)} className={ghost}>Cancel</button>
             <button type="submit" disabled={renaming} className={solid}>
@@ -94,6 +96,7 @@ export default function BooksSwitcher({ books, canRename, currency, currencyFixe
           <CurrencyField defaultValue={currency} autoFocus
             hint="Every entry is recorded in this. It is fixed the moment the books hold one." />
           {ccyState && !ccyState.ok && <ErrorNote>{ccyState.error}</ErrorNote>}
+          {ccyState?.ok && <p role="status"><DoneWord /></p>}
           <div className="flex gap-2">
             <button type="button" onClick={() => setChoosing(false)} className={ghost}>Cancel</button>
             <button type="submit" disabled={changingCcy} className={solid}>

@@ -11,8 +11,8 @@ export const TINTS = [
   'green', 'orange', 'blue', 'purple', 'pink', 'cyan', 'rust', 'indigo',
 ] as const;
 
-/** The glyphs a household may choose from — a broad set rather than every
- *  icon in Tabler, because a picker of five thousand is not a choice. */
+/** The glyphs a household may choose from (our names; icon-names.ts maps each to a Material Symbol) — a broad
+ *  set rather than every Material Symbol, because a picker of three thousand is not a choice. */
 export const ICONS = [
   'house2', 'cart', 'cutlery', 'car', 'bulb', 'bag', 'child', 'health',
   'phone', 'gift', 'plane', 'fuel', 'book', 'coffee', 'scissors', 'tools',

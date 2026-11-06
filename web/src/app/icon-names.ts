@@ -86,7 +86,7 @@ export const UI_NAMES = [
   'currency_exchange', 'sms', 'rule', 'event_upcoming', 'trending_up', 'chevron_right',
   'chevron_left', 'expand_more', 'expand_less', 'close', 'photo_camera', 'search', 'tune',
   'check_circle', 'event_repeat', 'info', 'arrow_back', 'handshake', 'warning', 'error', 'progress_activity',
-  'calendar_month', 'event', 'done_all', 'check', 'circle', 'sell', 'sms', 'more_horiz',
+  'calendar_month', 'event', 'done_all', 'check', 'circle', 'sell', 'more_horiz',
   'picture_as_pdf', 'add_photo_alternate', 'archive', 'sync_problem', 'account_balance', 'edit', 'photo_library',
   'schedule', 'north_east', 'south_west', 'help', 'content_copy', 'phone_iphone', 'android', 'smartphone', 'lock',
   'trending_down', 'trending_flat', 'logout', 'person_add', 'wifi_off', 'visibility',

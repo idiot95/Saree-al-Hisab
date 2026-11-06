@@ -72,7 +72,7 @@ export default async function ReconcileAccount({ params, searchParams }: {
           {canWrite ? (
             /* Keyed by the latest match, so a Finish (or an Undo) redraws the form from scratch: the statement, the ticks
              and the DOM start again together instead of carrying the last statement's figure. */
-          <Reconcile key={last?.id ?? 'none'}
+            <Reconcile key={last?.id ?? 'none'}
               accountId={account.id} credit={credit} today={today} lastOn={last?.on ?? null}
               cleared={Number(account.cleared)}
               entries={entries.map((e) => ({ id: e.id, on: e.on, what: e.what, via: e.via, signed: Number(e.signed) }))}

@@ -28,6 +28,25 @@ function themes(file) {
   return { light: vars(light), dark: vars(dark) };
 }
 
+/* Dark is written twice in each stylesheet: under the system's dark setting (unless the household chose light) and
+   under data-theme="dark" (the household chose dark). The pairs are measured on the second, so the first must say
+   exactly the same, or a phone left on its own setting would wear a dark palette nobody measured. Every custom
+   property, colour or not, is compared both ways. */
+let pass = 0, fail = 0;
+function sameDarkTwice(file) {
+  const css = readFileSync(join(root, 'src/app', file), 'utf8');
+  const decls = (text) => Object.fromEntries([...text.matchAll(/--([\w-]+)\s*:\s*([^;]+);/g)].map((m) => [m[1], m[2].trim()]));
+  const after = (from) => { const a = css.indexOf(from); return a < 0 ? null : css.slice(a, css.indexOf('}', a)); };
+  const media = after(':root:not([data-theme="light"])'), chosen = after(':root[data-theme="dark"]');
+  if (media === null || chosen === null) { fail++; console.log(`  MISS ${file}: a dark block is missing`); return; }
+  const a = decls(media), b = decls(chosen);
+  for (const k of new Set([...Object.keys(a), ...Object.keys(b)])) {
+    if (a[k] === b[k]) pass++;
+    else { fail++; console.log(`  FAIL ${file} --${k}: ${a[k] ?? '(absent)'} under the system's dark, ${b[k] ?? '(absent)'} under data-theme=dark`); }
+  }
+}
+for (const f of ['tokens.css', 'globals.css', 'ql.css']) sameDarkTwice(f);
+
 const tok = themes('tokens.css');
 const glob = themes('globals.css');
 const P = {
@@ -104,7 +123,6 @@ const PAIRS = [
 
 
 const MIN = 4.5;
-let pass = 0, fail = 0;
 for (const theme of ['light', 'dark']) {
   console.log(`\n  ${theme.toUpperCase()}`);
   for (const [ink, grounds, min = MIN] of PAIRS) {
@@ -141,13 +159,17 @@ for (const theme of ['light', 'dark']) {
       accent: '#F0E4EE', 'accent-foreground': '#3B1C37', hero: '#3A1D36',
       attention: '#D9A38C', 'attention-foreground': '#1E161D', 'attention-ink': '#9A5B45',
       'attention-soft': '#FBEDE6', 'attention-soft-foreground': '#8A4A2E',
-      'money-in': '#157F3C', destructive: '#B91C1C', 'chart-1': '#4A2545', 'chart-2': '#9A5B45' },
+      'money-in': '#157F3C', destructive: '#B91C1C', 'chart-1': '#4A2545', 'chart-2': '#9A5B45',
+      border: '#E6DCDE', input: '#E6DCDE', 'hero-foreground': '#FFFFFF', 'hero-muted': '#D9C3D5',
+      'hero-1': '#A8D9B8', 'hero-2': '#9CC9E8', 'hero-3': '#E8C77A', 'hero-4': '#F2B49C' },
     dark: { background: '#130E12', card: '#1D161C', foreground: '#F0E7EE', 'muted-foreground': '#B3A3AF',
       muted: '#2C2229', secondary: '#2C2229', primary: '#D9A9D0', 'primary-foreground': '#1E161D',
       accent: '#2E1F2B', 'accent-foreground': '#F0DCEB', hero: '#2D1729',
       attention: '#E3B5A0', 'attention-foreground': '#1E161D', 'attention-ink': '#E3B5A0',
       'attention-soft': '#3A241A', 'attention-soft-foreground': '#F2C9B6',
-      'money-in': '#A3E6BB', destructive: '#F2867A', 'chart-1': '#D9A9D0', 'chart-2': '#E3B5A0' },
+      'money-in': '#A3E6BB', destructive: '#F2867A', 'chart-1': '#D9A9D0', 'chart-2': '#E3B5A0',
+      border: '#3A2E37', input: '#463A43', 'hero-foreground': '#F0E7EE', 'hero-muted': '#CDB5C9',
+      'hero-1': '#A8D9B8', 'hero-2': '#9CC9E8', 'hero-3': '#E8C77A', 'hero-4': '#F2B49C' },
   };
   for (const [theme, T] of [['light', L], ['dark', D]]) {
     for (const [k, want] of Object.entries(PALETTE[theme])) {
@@ -215,5 +237,5 @@ for (const theme of ['light', 'dark']) {
   }
 }
 
-console.log(`\n  ${pass} pairs at ${MIN}:1 or better, ${fail} below\n`);
+console.log(`\n  ${pass} checks passed (pairs at ${MIN}:1 or better or 3:1 for marks, the chosen palette, dark written the same twice), ${fail} failed\n`);
 process.exit(fail ? 1 : 0);
