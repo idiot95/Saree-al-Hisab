@@ -1,7 +1,11 @@
 'use server';
 
 import { AuthError } from 'next-auth';
+import { redirect } from 'next/navigation';
 import { signIn } from '@/auth';
+import { passwordSignInOpenNow } from '@/lib/password-window';
+import { signInErrorPath } from '@/lib/signin-errors';
+import { rethrowControlFlow } from '@/lib/rethrow';
 import { findLoginUser, isLocked } from '@/db/membership';
 import { tooMany, waitMessage } from '@/db/rate-limit';
 
@@ -17,7 +21,17 @@ function waitFor(until: Date | null): string {
   return 'in about an hour';
 }
 
+/** The primary way in. signIn() redirects to Google by throwing, which is
+ *  how a Server Action hands the browser on. */
+export async function signInWithGoogle(): Promise<void> {
+  await signIn('google', { redirectTo: '/' });
+}
+
 export async function signInWithPassword(_prev: AuthResult, fd: FormData): Promise<AuthResult> {
+  // First, before anything is read or counted: after the cutoff there is no
+  // password sign-in to attempt.
+  if (!passwordSignInOpenNow()) redirect(signInErrorPath('cutoff'));
+
   const email = String(fd.get('email') ?? '').trim().toLowerCase();
   const password = String(fd.get('password') ?? '');
   if (!email || !password) return { error: 'Enter your email and password.' };
@@ -38,9 +52,10 @@ export async function signInWithPassword(_prev: AuthResult, fd: FormData): Promi
   try {
     await signIn('credentials', { email, password, redirectTo: '/' });
   } catch (e) {
+    rethrowControlFlow(e); // the redirect on success travels as a thrown error
     // One message for a wrong password and for an address with no account.
     if (e instanceof AuthError) return { error: 'That email and password do not match.' };
-    throw e; // the redirect on success travels as a thrown error; let it pass
+    throw e;
   }
   return null;
 }

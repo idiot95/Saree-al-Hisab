@@ -38,7 +38,9 @@ function policy(nonce: string, dev: boolean) {
     "img-src 'self' data: blob: https:",
     "font-src 'self' data:",
     `connect-src 'self'${dev ? ' ws: http:' : ''}`,
-    "form-action 'self'",
+    // Google sign-in posts to us and we redirect to Google; a no-JS form
+    // submission follows that redirect, and form-action governs it.
+    "form-action 'self' https://accounts.google.com",
     "frame-ancestors 'none'",
     "base-uri 'none'",
     "object-src 'none'",

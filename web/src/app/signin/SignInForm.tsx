@@ -1,7 +1,7 @@
 'use client';
 
 import { useActionState } from 'react';
-import { Field, ErrorNote, primaryBtn } from '../auth-ui';
+import { Field, ErrorNote, quietBtn } from '../auth-ui';
 import { signInWithPassword } from './actions';
 
 export default function SignInForm() {
@@ -11,7 +11,7 @@ export default function SignInForm() {
     <form action={act} style={{ display: 'flex', flexDirection: 'column', gap: 13 }}>
       <Field
         label="Email" name="email" type="email" inputMode="email"
-        autoComplete="username" placeholder="you@example.com" required autoFocus
+        autoComplete="username" placeholder="you@example.com" required
       />
       <Field
         label="Password" name="password" type="password"
@@ -19,7 +19,7 @@ export default function SignInForm() {
       />
       {state?.error && <ErrorNote>{state.error}</ErrorNote>}
       <button type="submit" disabled={pending}
-        style={{ ...primaryBtn, opacity: pending ? 0.65 : 1, marginTop: 3 }}>
+        style={{ ...quietBtn, opacity: pending ? 0.65 : 1, marginTop: 3 }}>
         {pending ? 'Signing in…' : 'Sign in'}
       </button>
     </form>
