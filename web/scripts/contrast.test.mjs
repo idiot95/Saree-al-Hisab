@@ -144,10 +144,7 @@ for (const theme of ['light', 'dark']) {
     ['attention-soft-foreground', ['attention-soft']],
     ['destructive', ['background', 'card']],
     ['destructive-foreground', ['destructive']],
-    ['money-in', ['card']],
-    // The plan's #15803D on its #F4F1EA ground is 4.45:1, 0.05 under body text. Amounts are set bold and large,
-    // so the bar here is 4.4; the plan's values are kept verbatim and the shortfall is reported, not hidden.
-    ['money-in', ['background'], 4.4],
+    ['money-in', ['card', 'background']],
     ['money-out', ['background', 'card']],
     // Forest & Brass additions
     ['foreground', ['secondary', 'attention-soft']],

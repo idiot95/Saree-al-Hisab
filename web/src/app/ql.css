@@ -39,7 +39,7 @@
   --attention-soft-foreground: #7A5A1F;
 
   /* Money has a direction. Arriving is green with a +; leaving is plain ink. Red is for over budget. */
-  --money-in: #15803D;
+  --money-in: #157F3C;
   --money-out: var(--foreground);
 
   --chart-1: #1E4D3A;
