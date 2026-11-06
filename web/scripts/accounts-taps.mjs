@@ -476,6 +476,10 @@ try {
   }
   assert.ok(query, 'a search with more than five matches that leaves the chosen icon out');
   assert.equal(await newCat.getByText('Chosen now').count(), 1, `"${chosen}" has its own slot during "${query}"`);
+  /* The slot's tile is described by its line, so a screen reader hears why it stands apart. */
+  const described = (name) => newCat.getByRole('button', { name, exact: true }).first()
+    .evaluate((el) => document.getElementById(el.getAttribute('aria-describedby') ?? '')?.textContent ?? null);
+  assert.equal(await described(chosen), 'Chosen now', `the slot's "${chosen}" is described as "Chosen now"`);
   await newCat.getByRole('button', { name: /^Show all \d+ matches$/ }).click();
   const firstInBox = newCat.getByRole('group', { name: 'All icons' }).getByRole('button').first();
   const firstName = await firstInBox.getAttribute('aria-label');
@@ -490,6 +494,7 @@ try {
   assert.equal(topAfter, topBefore, `"${firstName}" has not moved (top ${topBefore} -> ${topAfter})`);
   assert.equal(await newCat.getByText('Chosen now').count(), 0, 'the slot no longer says the old choice is chosen now');
   assert.equal(await newCat.getByText('Chosen before').count(), 1, 'the slot keeps its place, saying "Chosen before"');
+  assert.equal(await described(chosen), 'Chosen before', `and its "${chosen}" is described so`);
   assert.equal(await newCat.getByRole('button', { name: chosen, exact: true, pressed: false }).count(), 1, `"${chosen}" is still there, unpressed`);
   /* Changing the search (to the new choice's own name, which matches it and not the old one) drops the slot. */
   await newCat.getByLabel('Find an icon').fill(firstName);

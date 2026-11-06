@@ -18,8 +18,25 @@ import { replacing } from './backStack';
    entry and nothing else (closing the snack then navigates nowhere). The
    ?saved= address it leaves behind is noted as handled, so coming Back to it
    says nothing and only takes the ?saved= off (a replace, marked). */
+/* The handled ids, newest last, at most KEEP of them: one id alone forgot the first entry the moment a second was
+   saved and edited, so Back through two saves said "Entry saved." again for the first. Bounded, so the session's
+   storage never grows with the day's entries. */
 const DONE = 'ql.saved.done';
-const handled = (id: string) => { try { return sessionStorage.getItem(DONE) === id; } catch { return false; } };
+const KEEP = 20;
+const doneIds = (): string[] => {
+  try {
+    const raw = sessionStorage.getItem(DONE);
+    if (!raw) return [];
+    if (!raw.startsWith('[')) return [raw];             // an older build kept one bare id
+    const v = JSON.parse(raw);
+    return Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : [];
+  } catch { return []; }
+};
+const handled = (id: string) => doneIds().includes(id);
+const markHandled = (id: string) => {
+  try { sessionStorage.setItem(DONE, JSON.stringify([...doneIds().filter((x) => x !== id), id].slice(-KEEP))); }
+  catch { /* only costs a repeat of the snack */ }
+};
 
 /* Whether this ?saved= was dealt with, as the phone's storage says. The server (and the first render on the phone,
    which must match it) cannot know, so it says 'unknown' and nothing is drawn; only the phone's own answer, 'fresh',
@@ -57,7 +74,7 @@ export default function SavedSnack({ id }: { id: string }) {
       label: 'Edit',
       run: () => {
         editing.current = true;
-        try { sessionStorage.setItem(DONE, id); } catch { /* only costs a repeat of the snack */ }
+        markHandled(id);
         startPending(`/entries/${id}`);
         router.push(`/entries/${id}?from=/`, { transitionTypes: ['nav-forward'] });
       },

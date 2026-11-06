@@ -58,13 +58,16 @@ function Picker({ icon, tint, onIcon, onTint }: {
   };
   const [all, setAll] = useState(false);
   const allId = useId();
+  const slotNote = useId();
   const chosenHidden = !all && rest.includes(icon);
   const [ibg, iink] = tintOf(tint);
-  const tile = (n: string) => {
+  /* `describedBy` ties the slot's tile to its "Chosen now" / "Chosen before" line, so a screen reader hears why that
+     one tile stands apart from the grid. */
+  const tile = (n: string, describedBy?: string) => {
     const on = n === icon;
     return (
       <button key={n} type="button" onClick={() => { haptic('tap'); choose(n); }}
-        aria-label={n} aria-pressed={on}
+        aria-label={n} aria-pressed={on} aria-describedby={describedBy}
         className={`flex min-h-12 items-center justify-center rounded-xl border ${on ? '' : 'border-border bg-background text-muted-foreground'}`}
         style={on ? { background: ibg, color: iink, borderColor: iink } : undefined}>
         <Icon name={n} size={20} />
@@ -105,11 +108,11 @@ function Picker({ icon, tint, onIcon, onTint }: {
         )}
         {slot && (
           <div className="flex items-center gap-3">
-            <div className="grid w-[calc((100%_-_2rem)/5)] flex-none">{tile(slot)}</div>
-            <span className="text-sm text-muted-foreground">{chosenOutside ? 'Chosen now' : 'Chosen before'}</span>
+            <div className="grid w-[calc((100%_-_2rem)/5)] flex-none">{tile(slot, slotNote)}</div>
+            <span id={slotNote} className="text-sm text-muted-foreground">{chosenOutside ? 'Chosen now' : 'Chosen before'}</span>
           </div>
         )}
-        <div className="grid grid-cols-5 gap-2">{head.map(tile)}</div>
+        <div className="grid grid-cols-5 gap-2">{head.map((n) => tile(n))}</div>
         {(chosenHidden || rest.length > 0) && (
           <div className="flex items-center gap-3">
             {chosenHidden && <div className="grid w-[calc((100%_-_2rem)/5)] flex-none">{tile(icon)}</div>}
@@ -126,7 +129,7 @@ function Picker({ icon, tint, onIcon, onTint }: {
         {all && rest.length > 0 && (
           <div id={allId} role="group" aria-label="All icons"
             className="grid max-h-[232px] grid-cols-5 gap-2 overflow-y-auto overscroll-contain rounded-xl border border-border p-2">
-            {rest.map(tile)}
+            {rest.map((n) => tile(n))}
           </div>
         )}
       </fieldset>

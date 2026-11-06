@@ -253,6 +253,9 @@ ok('a link tap drops a mark nobody spent (Budget then Home push); a data-replace
       const target = what === 'history.replaceState(' ? (args[2] ?? '') : args[0];
       const mark = marks.find((mk) => {
         const [margs, end] = argsAt(window, mk.index + mk[0].length - 1);
+        /* A mark whose call does not close inside the window (an unterminated quote ran skipString to its end) is no
+           mark: otherwise the empty rest of the window would pass as "immediately before". */
+        if (end > window.length) return false;
         return firstArg(margs) === target || JUST_BEFORE.test(window.slice(end));
       });
       if (mark) spent.add(from + mark.index);
@@ -272,6 +275,8 @@ ok('a link tap drops a mark nobody spent (Budget then Home push); a data-replace
 
   /* The scan itself, on code written to slip past a looser one. Each must be caught, or (the last three) pass. */
   const caught = (code) => scan(code).found.length > 0;
+  assert.ok(caught("replacing('/x);\nrouter.replace('/y');"), 'a replacing( whose quote never closes before the call is no mark');
+  assert.ok(caught('replacing(`/x ${a}\nrouter.replace(\'/y\');'), 'nor one whose template never closes');
   assert.ok(caught(`<Link onClick={() => go(a > b)} replace href="/x">`), 'a `>` inside {…} does not end the element before `replace`');
   {
     /* The commented Link must not count, and the quoted /* must not open a comment that would hide the real one. */
