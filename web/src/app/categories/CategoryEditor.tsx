@@ -43,11 +43,19 @@ function Picker({ icon, tint, onIcon, onTint }: {
      and the search to narrow it. Choosing an icon never moves it: its button stays where it is (and keeps focus).
      The split is over the matches only, so for a given search it never depends on which icon is chosen. The chosen
      icon stays in sight: when a search does not match it, it has a slot of its own before the row (choosing a match
-     then only takes that slot away, and no match moves); when it sits in the shut box it is shown again as a sixth
-     tile ahead of "Show all". */
+     then keeps that slot where it is, now holding the icon chosen before, unpressed and still choosable, so nothing
+     under the finger moves; the slot goes only when the search text changes or is cleared); when it sits in the shut
+     box it is shown again as a sixth tile ahead of "Show all". */
   const head = matches.slice(0, 5);
   const rest = matches.slice(5);
   const chosenOutside = !!q && !matches.includes(icon);
+  /* The icon the slot held when a match was chosen, for this exact search text. */
+  const [held, setHeld] = useState<{ find: string; icon: string } | null>(null);
+  const slot = chosenOutside ? icon : held && held.find === find && q ? held.icon : null;
+  const choose = (n: string) => {
+    if (chosenOutside && n !== icon) setHeld({ find, icon });
+    onIcon(n);
+  };
   const [all, setAll] = useState(false);
   const allId = useId();
   const chosenHidden = !all && rest.includes(icon);
@@ -55,7 +63,7 @@ function Picker({ icon, tint, onIcon, onTint }: {
   const tile = (n: string) => {
     const on = n === icon;
     return (
-      <button key={n} type="button" onClick={() => { haptic('tap'); onIcon(n); }}
+      <button key={n} type="button" onClick={() => { haptic('tap'); choose(n); }}
         aria-label={n} aria-pressed={on}
         className={`flex min-h-12 items-center justify-center rounded-xl border ${on ? '' : 'border-border bg-background text-muted-foreground'}`}
         style={on ? { background: ibg, color: iink, borderColor: iink } : undefined}>
@@ -89,16 +97,16 @@ function Picker({ icon, tint, onIcon, onTint }: {
 
       <fieldset className="flex flex-col gap-2">
         <legend className={`mb-2 ${fieldLabel}`}>Icon</legend>
-        <input type="search" value={find} onChange={(e) => setFind(e.target.value)}
+        <input type="search" value={find} onChange={(e) => { setFind(e.target.value); setHeld(null); }}
           placeholder="Find an icon" aria-label="Find an icon" autoComplete="off"
           className="h-12 w-full rounded-xl border border-input bg-card px-3.5 text-[length:var(--field)] text-foreground" />
         {matches.length === 0 && (
           <span className="py-2 text-sm text-muted-foreground">Nothing called that. Try another word.</span>
         )}
-        {chosenOutside && (
+        {slot && (
           <div className="flex items-center gap-3">
-            <div className="grid w-[calc((100%_-_2rem)/5)] flex-none">{tile(icon)}</div>
-            <span className="text-sm text-muted-foreground">Chosen now</span>
+            <div className="grid w-[calc((100%_-_2rem)/5)] flex-none">{tile(slot)}</div>
+            <span className="text-sm text-muted-foreground">{chosenOutside ? 'Chosen now' : 'Chosen before'}</span>
           </div>
         )}
         <div className="grid grid-cols-5 gap-2">{head.map(tile)}</div>

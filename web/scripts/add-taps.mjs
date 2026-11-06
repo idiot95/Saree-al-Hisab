@@ -148,8 +148,29 @@ try {
     /* Edit on the saved snack is one navigation, a push to the entry: closing the snack no longer also replaces the
        address (that replace's Back mark could be spent by the push). Back from the entry says nothing again and
        only takes ?saved= off, and the trail ends where the history does: at Home. */
+    /* Every address change from the Edit tap on is logged: Edit must be exactly one push, with no replace of Home
+       under it (under `next dev`'s StrictMode the snack's re-render once re-read storage, saw its own "handled"
+       mark and fired the tidy replace('/') on top of the push). */
+    await page.evaluate(() => {
+      window.__navs = [];
+      for (const kind of ['pushState', 'replaceState']) {
+        const real = history[kind].bind(history);
+        history[kind] = (s, t, u) => {
+          if (u != null) {
+            const to = new URL(String(u), location.href);
+            const from = location.pathname + location.search;
+            if (to.pathname + to.search !== from) window.__navs.push(`${kind === 'pushState' ? 'push' : 'replace'} ${to.pathname}`);
+          }
+          return real(s, t, u);
+        };
+      }
+    });
     await page.getByRole('button', { name: 'Edit', exact: true }).click();
     await page.waitForURL((u) => u.pathname === `/entries/${row.id}`, { timeout: 15000 });
+    await page.waitForTimeout(1500);
+    assert.equal(new URL(page.url()).pathname, `/entries/${row.id}`, 'still on the entry after Edit settles');
+    const navs = await page.evaluate(() => window.__navs);
+    assert.deepEqual(navs, [`push /entries/${row.id}`], `Edit is a single push and nothing else (${JSON.stringify(navs)})`);
     /* Watch the whole way back, not only the end: any "Entry saved." put into the page from the Back press until the
        clean address (even for one frame, before the ?saved= comes off) is caught by the observer. The page is not
        reloaded on Back, so the observer lives through it. */
@@ -167,7 +188,26 @@ try {
     const trailNow = await page.evaluate(() => JSON.parse(sessionStorage.getItem('ql.trail.v1') ?? '[]'));
     assert.equal(trailNow.at(-1), '/', `the trail ends at Home (${JSON.stringify(trailNow)})`);
     assert.ok(!trailNow.some((u) => u.startsWith('/?saved=')), `and holds no ?saved= step (${JSON.stringify(trailNow)})`);
+    /* Back itself is a pop, not a push; the only address change after it is the one tidy replace that takes ?saved=
+       off (StrictMode's second effect run must not send a second one). */
+    const navsAfter = await page.evaluate(() => window.__navs);
+    assert.deepEqual(navsAfter, [`push /entries/${row.id}`, 'replace /'], `Back then one tidy replace of Home (${JSON.stringify(navsAfter)})`);
     ok('Edit on the saved snack opens the entry; Back returns to a clean Home, the trail in step');
+    /* Two fresh saves in a row on the same Home (no reload): each says "Entry saved.", the second while the first's
+       snack is still up. The answer is kept per instance, so a handled ?saved= earlier in the visit cannot quiet them. */
+    for (const minor of [234100, 234200]) {
+      await page.locator('a[href="/add"]').first().click();
+      const d = page.locator('[data-slot=drawer-content]');
+      await d.getByLabel(/^Amount in/).waitFor();
+      await page.waitForFunction(() => document.activeElement?.getAttribute('aria-label')?.startsWith('Amount in'));
+      await page.keyboard.type(keysFor(minor));
+      await d.locator('[data-category-tile]').first().click();
+      await d.locator('[data-save]').click();
+      const [r] = await waitRows((x) => x.kind === 'expense' && Number(x.amount) === minor, `${minor} expense`);
+      await page.waitForURL((u) => u.pathname === '/' && u.searchParams.get('saved') === r.id, { timeout: 15000 });
+      await page.getByText('Entry saved.').waitFor({ timeout: 5000 });
+    }
+    ok('two fresh saves in a row on the same Home each say "Entry saved."');
     await ctx.close();
   }
 

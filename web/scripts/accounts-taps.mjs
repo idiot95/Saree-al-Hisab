@@ -447,14 +447,24 @@ try {
   const firstInBox = newCat.getByRole('group', { name: 'All icons' }).getByRole('button').first();
   const firstName = await firstInBox.getAttribute('aria-label');
   await firstInBox.focus();
+  const topBefore = await firstInBox.evaluate((el) => el.getBoundingClientRect().top);
   await page.keyboard.press('Enter');
   await page.waitForTimeout(200);
   assert.ok(await firstInBox.evaluate((el) => el === document.activeElement && el.isConnected), `focus stays on "${firstName}"`);
   assert.equal(await firstInBox.getAttribute('aria-pressed'), 'true', `"${firstName}" is pressed`);
-  assert.equal(await newCat.getByText('Chosen now').count(), 0, 'the separate slot for the old choice is gone');
-  await newCat.getByRole('button', { name: 'Fewer icons' }).click();
+  /* Nothing moves under the finger: the slot keeps its place for this search, holding the old choice unpressed. */
+  const topAfter = await firstInBox.evaluate((el) => el.getBoundingClientRect().top);
+  assert.equal(topAfter, topBefore, `"${firstName}" has not moved (top ${topBefore} -> ${topAfter})`);
+  assert.equal(await newCat.getByText('Chosen now').count(), 0, 'the slot no longer says the old choice is chosen now');
+  assert.equal(await newCat.getByText('Chosen before').count(), 1, 'the slot keeps its place, saying "Chosen before"');
+  assert.equal(await newCat.getByRole('button', { name: chosen, exact: true, pressed: false }).count(), 1, `"${chosen}" is still there, unpressed`);
+  /* Changing the search (to the new choice's own name, which matches it and not the old one) drops the slot. */
+  await newCat.getByLabel('Find an icon').fill(firstName);
+  await page.waitForTimeout(100);
+  assert.equal(await newCat.getByText(/^Chosen (now|before)$/).count(), 0, 'once the search changes, the old choice has no slot');
+  assert.equal(await newCat.getByRole('button', { name: chosen, exact: true }).count(), 0, `"${chosen}" is no longer shown`);
   await newCat.getByLabel('Find an icon').fill('');
-  ok(`searching "${query}" (the chosen "${chosen}" not among the matches), the first icon in Show all chosen by Enter keeps focus and is pressed`);
+  ok(`searching "${query}" (the chosen "${chosen}" not among the matches), the first icon in Show all chosen by Enter keeps focus, is pressed and does not move; the old choice keeps its slot until the search changes`);
   await newCat.getByLabel('Name').fill(NEWCAT);
   await newCat.getByRole('button', { name: 'Add category' }).click();
   await newCat.waitFor({ state: 'detached', timeout: 20000 });

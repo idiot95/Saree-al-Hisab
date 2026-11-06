@@ -25,25 +25,31 @@ const handled = (id: string) => { try { return sessionStorage.getItem(DONE) === 
    which must match it) cannot know, so it says 'unknown' and nothing is drawn; only the phone's own answer, 'fresh',
    draws the snack. Back on a handled ?saved= therefore never shows "Entry saved." even for a frame. */
 const noSub = () => () => {};
-/* Read once per visit: Edit itself marks the id handled, and the snack showing then must not turn into the tidy-up
-   (which would replace the address under Edit's own push). Forgotten when the snack's Home goes, so coming Back
-   reads it afresh. */
-const seen = new Map<string, 'handled' | 'fresh'>();
-const once = (id: string) => {
-  if (!seen.has(id)) seen.set(id, handled(id) ? 'handled' : 'fresh');
-  return seen.get(id)!;
-};
 
 export default function SavedSnack({ id }: { id: string }) {
   const router = useRouter();
   const editing = useRef(false);
-  const state = useSyncExternalStore(noSub, () => once(id), () => 'unknown');
-  useEffect(() => () => { seen.delete(id); }, [id]);
+  /* The phone's answer is read once per instance and kept: Edit itself marks the id handled, and the snack showing
+     then must not turn into the tidy-up (which would replace the address under Edit's own push). A ref, not a module
+     cache cleared on unmount, because StrictMode's simulated unmount in `next dev` runs that cleanup straight after
+     mount, and the next re-render (Edit's close) would have read 'handled'. A ref survives the simulated remount; a
+     real one (coming Back to this ?saved=) is a new instance and reads afresh. Keyed by id, so a new ?saved= on the
+     same instance is read for itself. */
+  const answer = useRef<{ id: string; v: 'handled' | 'fresh' } | null>(null);
+  const read = useCallback(() => {
+    if (answer.current?.id !== id) answer.current = { id, v: handled(id) ? 'handled' : 'fresh' };
+    return answer.current.v;
+  }, [id]);
+  const state = useSyncExternalStore(noSub, read, () => 'unknown');
   const [closed, setClosed] = useState(false);
+  /* One tidy per id: StrictMode runs the effect below twice, and the second must not send a second replace. */
+  const tidied = useRef<string | null>(null);
   const tidy = useCallback(() => {
+    if (tidied.current === id) return;
+    tidied.current = id;
     replacing('/');
     router.replace('/', { scroll: false });
-  }, [router]);
+  }, [router, id]);
   const snack = useMemo<SnackState>(() => (state !== 'fresh' || closed ? null : {
     text: 'Entry saved.',
     check: true,

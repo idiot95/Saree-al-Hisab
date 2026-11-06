@@ -207,7 +207,7 @@ async function HomeScreen({ saved }: { saved?: string }) {
             How the app works
           </Link>
         </div>
-        {savedId && <SavedSnack id={savedId} />}
+        {savedId && <SavedSnack key={savedId} id={savedId} />}
         <TabBar current="/" />
       </main>
     </Screen>
