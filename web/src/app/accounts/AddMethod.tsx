@@ -4,8 +4,8 @@ import { useActionState, useState } from 'react';
 import { Icon, RAIL_ICON } from '../Icon';
 import { Field, ErrorNote } from '../auth-ui';
 import { addMethod } from './actions';
-import { useKeepOnRefusal, useOnSuccess } from '../worth/fields';
-import { AddRow, fieldLabel, formCard, ghost, selectCls, solid } from '../form-bits';
+import { useFocusSoon, useKeepOnRefusal, useOnSuccess } from '../worth/fields';
+import { AddRow, fieldLabel, formCard, ghost, selectCls, solid, Said } from '../form-bits';
 
 type Acc = { id: string; name: string; kind: string };
 
@@ -30,16 +30,20 @@ export default function AddMethod({ accounts, startOpen = false }: { accounts: A
   const [open, setOpen] = useState(startOpen);
   const [accountId, setAccountId] = useState(accounts[0]?.id ?? '');
   // Added: close, so React's reset after a success never leaves "Takes money from" and the type disagreeing with state.
-  useOnSuccess(state, () => { setOpen(false); setAccountId(accounts[0]?.id ?? ''); });
+  // ...and focus goes back to the add row (the form held it), while the live region says what was added.
+  const [opener, focusOpener] = useFocusSoon<HTMLButtonElement>();
+  useOnSuccess(state, () => { setOpen(false); setAccountId(accounts[0]?.id ?? ''); focusOpener(); });
+  const said = <Said>{state?.ok ? state.message : ''}</Said>;
 
   const account = accounts.find((a) => a.id === accountId);
   const allowed = RAILS.filter((r) => account && (r.on as readonly string[]).includes(account.kind));
 
   if (!open) {
-    return <AddRow onClick={() => setOpen(true)}>Add a way to pay — GPay, a debit card, net banking</AddRow>;
+    return <>{said}<AddRow ref={opener} onClick={() => setOpen(true)}>Add a way to pay — GPay, a debit card, net banking</AddRow></>;
   }
 
-  return (
+  return (<>
+    {said}
     <form action={act} {...keep} aria-label="Add a way to pay" className={formCard}>
       <label className="flex flex-col gap-1.5">
         <span className={fieldLabel}>Takes money from</span>
@@ -82,11 +86,11 @@ export default function AddMethod({ accounts, startOpen = false }: { accounts: A
       {state && !state.ok && <ErrorNote>{state.error}</ErrorNote>}
 
       <div className="flex gap-2">
-        <button type="button" onClick={() => setOpen(false)} className={ghost}>Cancel</button>
+        <button type="button" onClick={() => { setOpen(false); focusOpener(); }} className={ghost}>Cancel</button>
         <button type="submit" disabled={pending || allowed.length === 0} className={solid}>
           {pending ? 'Saving…' : 'Add way to pay'}
         </button>
       </div>
     </form>
-  );
+  </>);
 }

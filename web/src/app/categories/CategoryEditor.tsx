@@ -3,7 +3,7 @@
 import { useActionState, useCallback, useRef, useState, useTransition } from 'react';
 import { Icon, Chip, tintOf } from '../Icon';
 import { ErrorNote, Field } from '../auth-ui';
-import { fieldLabel, formCard, ghost, selectCls, solid, AddRow as AddButton } from '../form-bits';
+import { fieldLabel, formCard, ghost, selectCls, solid, AddRow as AddButton, Said } from '../form-bits';
 import SwipeRow from '../SwipeRow';
 import Snack, { type SnackState } from '../Snack';
 import { haptic } from '../haptics';
@@ -14,7 +14,7 @@ import { ICONS, TINTS } from './options';
 import { Segmented } from '../DatePick';
 import { SCOPE_LABEL, type Scope } from '@/lib/scope';
 import Suggested from './Suggested';
-import { keepFields, useOnSuccess } from '../worth/fields';
+import { keepFields, useFocusSoon, useOnSuccess } from '../worth/fields';
 
 type Cat = {
   id: string; name: string; icon: string; tint: string; scope: Scope; parent_id: string | null;
@@ -237,6 +237,10 @@ export default function CategoryEditor({ categories, canEdit }: {
 }) {
   const [editing, setEditing] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
+  /* The add form closed (a save or Cancel): focus back on "Add a category", and a save said in the live region —
+     "Groceries added." — since the row it made arrives in the list far above, out of sight of the form. */
+  const [added, setAdded] = useState('');
+  const [addOpener, focusAddOpener] = useFocusSoon<HTMLButtonElement>();
   const [snack, setSnack] = useState<SnackState>(null);
   const [hidden, setHidden] = useState<Set<string>>(() => new Set());
   const [order, setOrder] = useState<string[] | null>(null);   // set by a drag, until the server agrees
@@ -334,9 +338,13 @@ export default function CategoryEditor({ categories, canEdit }: {
 
       {canEdit && (
         <div className="px-[var(--gutter)]">
+          <Said>{added}</Said>
           {adding
-            ? <AddRow parents={parents} takes={takes} onDone={() => setAdding(false)} />
-            : <AddButton onClick={() => setAdding(true)}>Add a category</AddButton>}
+            ? <AddRow parents={parents} takes={takes} onDone={(message) => { setAdding(false); setAdded(message ?? ''); focusAddOpener(); }} />
+            : <AddButton ref={addOpener} onClick={() => { setAdded(''); setAdding(true); }}
+                done={added ? <span className="flex items-center gap-1 text-sm font-semibold text-primary"><Icon name="check" size={16} />Added</span> : null}>
+                Add a category
+              </AddButton>}
         </div>
       )}
 
@@ -482,11 +490,11 @@ function EditRow({ cat, first, last, parents, onDone }: {
 }
 
 function AddRow({ parents, takes, onDone }: {
-  parents: Parent[]; takes: (p: Parent, scope: Scope) => boolean; onDone: () => void;
+  parents: Parent[]; takes: (p: Parent, scope: Scope) => boolean; onDone: (message?: string) => void;
 }) {
   const [state, act, pending] = useActionState(addCategory, null);
   // Added: close, so the next one starts from the defaults rather than this one's name, colour and icon.
-  useOnSuccess(state, onDone);
+  useOnSuccess(state, () => onDone(state?.ok ? state.message : undefined));
   const [icon, setIcon] = useState<string>('tag');
   const [tint, setTint] = useState<string>('blue');
   const [scope, setScope] = useState<Scope>('expense');
@@ -507,7 +515,7 @@ function AddRow({ parents, takes, onDone }: {
       <Picker icon={icon} tint={tint} onIcon={setIcon} onTint={setTint} />
       {state && !state.ok && <ErrorNote>{state.error}</ErrorNote>}
       <div className="flex gap-2">
-        <button type="button" onClick={onDone} className={ghost}>Cancel</button>
+        <button type="button" onClick={() => onDone()} className={ghost}>Cancel</button>
         <button type="submit" disabled={pending} className={solid}>
           {pending ? 'Adding…' : 'Add category'}
         </button>

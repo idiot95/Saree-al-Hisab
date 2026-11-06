@@ -19,9 +19,14 @@
       rule and listed; the form closes and a new one opens on the defaults. Then it is Stopped from its swipe grip.
    4. /categories: rename the top-level spending category with the most entries and see the row follow; rename it
       back.
+   Every form that closes on a success (Task 30) gives focus back to the button it replaced — or, for an invitation,
+   to the message's heading — and says what happened in a polite live region (role=status): the cards, a way to
+   pay, the regular payment, a throwaway category (2b, 3, 4) and the invitation (5).
    5. /household: invite a throwaway address as a Viewer. The message names that address and what a viewer can do,
       and the invite row says the same; then the form is edited (another address, Contributing member) and the
       message does not change, because its link is still the first invite's.
+   6. An expense's "Owed back to you": a throwaway claim for the first person offered; focus is back on the button
+      and the live region names the person. The claim is removed after.
    Everything the run made is removed, and every name and balance it touched is put back, even on a failure. */
 import { createRequire } from 'node:module';
 import fs from 'node:fs';
@@ -77,6 +82,21 @@ const SCHEDULE = `Accounts taps ${TAG}`;
 const CARD = `Taps card ${TAG}`;
 const CARD2 = `${CARD} 2`;
 const INVITEE = `taps-${TAG}@example.com`;
+const METHOD = `Taps method ${TAG}`;
+const NEWCAT = `Taps cat ${TAG}`;
+let claimTxn = null;     // the entry step 6 put a claim on
+/** What has focus, as a person hears it: its label, or its text. */
+const focused = () => page.evaluate(() => {
+  const a = document.activeElement;
+  return (a?.getAttribute('aria-label') || a?.textContent || '').replace(/\s+/g, ' ').trim();
+});
+/** A form closed on a success: focus is on `where`, and a live region (role=status) says `text`. */
+async function closedWell(where, text) {
+  await page.getByRole('status').filter({ hasText: text }).first().waitFor({ state: 'attached', timeout: 10000 });
+  for (let i = 0; i < 50 && !(await focused()).includes(where); i++) await page.waitForTimeout(100);
+  const now = await focused();
+  assert.ok(now.includes(where), `focus is on "${where}" (it is on "${now}")`);
+}
 let hh = null;
 let acc = null;          // { id, name, opening }
 let madeRecon = null;    // the reconciliation this run made, and its adjustment entry, for the cleanup
@@ -174,10 +194,12 @@ try {
   }
   assert.deepEqual({ ...card[0] }, { kind: 'credit', bank_key: 'hdfc', card_network: 'visa', statement_day: 5 });
   ok('corrected and sent again, it is saved as a credit card on HDFC and Visa, statement day 5');
+  await add.waitFor({ state: 'detached', timeout: 20000 });
+  await closedWell('Add an account', `${CARD} added.`);
+  ok(`the form closes: focus is back on "Add an account", and "${CARD} added." is said in a live region`);
   /* A second card from the same flow, without a reload. React resets a <form action> after a success too, which
      used to leave the open form showing Credit card while the DOM held Bank account, so the second add was saved
      as a bank account with "Currently owed" as a positive balance. The form closes on success now; open it again. */
-  await add.waitFor({ state: 'detached', timeout: 20000 });
   await page.getByRole('button', { name: /^Add an account/ }).click();
   await add.getByText('Credit card', { exact: true }).click();
   await add.getByLabel('Name').fill(CARD2);
@@ -196,6 +218,17 @@ try {
   assert.deepEqual(both.map((r) => r.kind), ['credit', 'credit'], 'both cards are credit cards');
   assert.ok(Number(both[1].opening) < 0, `the second card owes ₹500 (opening ${both[1].opening}), not a positive balance`);
   ok('a second card added from the same screen without a reload is a credit card too, owing ₹500');
+  await add.waitFor({ state: 'detached', timeout: 20000 });
+  await closedWell('Add an account', `${CARD2} added.`);
+  /* A way to pay drawing on the first card: the same close, focus and live region. */
+  await page.getByRole('button', { name: /^Add a way to pay/ }).click();
+  const way = page.getByRole('form', { name: 'Add a way to pay' });
+  await way.getByLabel('Takes money from').selectOption({ label: CARD });
+  await way.getByLabel('Name', { exact: true }).fill(METHOD);
+  await way.getByRole('button', { name: 'Add way to pay' }).click();
+  await way.waitFor({ state: 'detached', timeout: 20000 });
+  await closedWell('Add a way to pay', `${METHOD} added, drawing on ${CARD}.`);
+  ok(`a way to pay added: focus is back on "Add a way to pay", and "${METHOD} added, drawing on ${CARD}." is said`);
 
   /* ── 2c. the cards are a carousel whose dots are buttons ──────────── */
   await page.goto(`${BASE}/accounts`);
@@ -298,6 +331,8 @@ try {
   /* Saved, the form closes (React's post-success reset can then never leave its switches and the DOM apart), and
      a new one starts from the defaults on screen and in the DOM alike. */
   await form.waitFor({ state: 'detached', timeout: 20000 });
+  await closedWell('Add a payment or income that comes round', `${SCHEDULE} added.`);
+  ok(`saved, focus is back on the add row and "${SCHEDULE} added." is said in a live region`);
   await page.getByRole('button', { name: 'Add a payment or income that comes round' }).click();
   for (const [name, on] of [['Every month', true], ['Once a year', false], ['English', true], ['Hijri', false], ['Expense', true]]) {
     assert.equal(await form.getByRole('radio', { name }).isChecked(), on, `a fresh form: ${name} ${on ? 'ticked' : 'not ticked'}`);
@@ -370,6 +405,13 @@ try {
   const [{ name: back }] = await sql`select name from category where id = ${cat.id}`;
   assert.equal(back, cat.name);
   ok(`renamed back to "${cat.name}"`);
+  await page.getByRole('button', { name: /^Add a category/ }).click();
+  const newCat = page.getByRole('form', { name: 'Add a category' });
+  await newCat.getByLabel('Name').fill(NEWCAT);
+  await newCat.getByRole('button', { name: 'Add category' }).click();
+  await newCat.waitFor({ state: 'detached', timeout: 20000 });
+  await closedWell('Add a category', `${NEWCAT} added.`);
+  ok(`a category added: focus is back on "Add a category", and "${NEWCAT} added." is said (it was never announced)`);
 
   /* ── 5. an invitation's message is the invite that was made ───────── */
   await page.goto(`${BASE}/household`);
@@ -385,11 +427,26 @@ try {
   const [made] = await sql`select email, role from invite where household_id = ${hh} and email = ${INVITEE} and status = 'open'`;
   assert.deepEqual({ ...made }, { email: INVITEE, role: 'viewer' }, 'the invite row is a viewer at that address');
   ok(`invited ${INVITEE} as a Viewer: the message and the invite row agree`);
+  await closedWell('Invitation ready', `Invitation ready for ${INVITEE}.`);
+  ok('focus is on the message\'s heading, "Invitation ready", and the live region says so');
   await page.getByLabel('Email address').fill(`other-${INVITEE}`);
   await page.getByRole('radio', { name: /^Contributing member/ }).check();
   await page.waitForTimeout(300);
   assert.equal(await msg.innerText(), first, 'editing the form after create leaves the message as it was');
   ok('the form edited afterwards (another address, Contributing member): the message is unchanged');
+
+  /* ── 6. someone owes me for this ──────────────────────────────────── */
+  [claimTxn] = await sql`select t.id from txn t where t.household_id = ${hh} and t.kind = 'expense' and t.deleted_at is null
+    and t.book_id is null and not exists (select 1 from claim c where c.txn_id = t.id) order by t.occurred_on desc, t.id limit 1`;
+  assert.ok(claimTxn, 'an expense with nobody owing for it');
+  await page.goto(`${BASE}/entries/${claimTxn.id}`);
+  await page.getByRole('button', { name: 'Someone owes me for this' }).click();
+  const owed = page.getByRole('form', { name: 'Someone owes me for this' });
+  const who = (await owed.getByLabel('Who owes you').locator('option:checked').innerText()).trim();
+  await owed.getByRole('button', { name: 'Someone owes me', exact: true }).click();
+  await owed.waitFor({ state: 'detached', timeout: 20000 });
+  await closedWell('Add someone else', `${who} owes you for this.`);
+  ok(`a claim on an expense: focus is back on "Add someone else", and "${who} owes you for this." is said`);
 } finally {
   if (hh) {
     await sql.begin(async (tx) => {
@@ -413,6 +470,8 @@ try {
       }
       if (cat) await tx`update category set name = ${cat.name} where id = ${cat.id} and name <> ${cat.name}`;
       await tx`delete from invite where household_id = ${hh} and email in (${INVITEE}, ${`other-${INVITEE}`})`;
+      await tx`delete from category where household_id = ${hh} and name = ${NEWCAT}`;
+      if (claimTxn) await tx`delete from claim where txn_id = ${claimTxn.id} and created_at >= now() - interval '1 hour'`;
     });
   }
   await browser.close();

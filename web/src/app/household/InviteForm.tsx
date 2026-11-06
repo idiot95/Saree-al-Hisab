@@ -6,7 +6,8 @@ import { haptic } from '../haptics';
 import { Icon } from '../Icon';
 import { ErrorNote, Field } from '../auth-ui';
 import { solid } from './rows';
-import { useKeepOnRefusal, useOnSuccess } from '../worth/fields';
+import { useFocusSoon, useKeepOnRefusal, useOnSuccess } from '../worth/fields';
+import { Said } from '../form-bits';
 
 /* Say plainly what this link is. Accepted with Google it is bound to the
    address it was sent to; but until the password window closes it can also be
@@ -26,7 +27,10 @@ export default function InviteForm({ origin, household, inviter, passwordOpen }:
      fields afterwards cannot rewrite a message whose link still points at the first invite. The form is redrawn (a
      new key) so React's reset after a success cannot leave its radios and the role in state disagreeing. */
   const [round, setRound] = useState(0);
-  useOnSuccess(state, () => setRound((r) => r + 1));
+  /* The redraw takes the Create button, and focus with it: focus goes to the message's heading, the thing to act
+     on next, and the live region says the invitation is ready. */
+  const [ready, focusReady] = useFocusSoon<HTMLElement>();
+  useOnSuccess(state, () => { setRound((r) => r + 1); focusReady(); });
   const token = state?.ok ? state.message : undefined;
   const until = state?.ok ? state.until ?? '' : '';
   const sentTo = state?.ok ? state.email ?? '' : '';
@@ -34,6 +38,7 @@ export default function InviteForm({ origin, household, inviter, passwordOpen }:
 
   return (
     <div className="flex flex-col gap-4 rounded-[18px] bg-card p-[var(--pad)]">
+      <Said>{token ? `Invitation ready for ${sentTo}. The message to send is below.` : ''}</Said>
       <form key={round} action={act} {...keep} className="flex flex-col gap-3">
         <Field label="Email address" name="email" type="email" inputMode="email" autoComplete="off"
           placeholder="name@example.com" required
@@ -61,7 +66,7 @@ export default function InviteForm({ origin, household, inviter, passwordOpen }:
       </form>
 
       {token && (
-        <InviteMessage url={`${origin}/join/${token}`} email={sentTo} role={sentRole}
+        <InviteMessage heading={ready} url={`${origin}/join/${token}`} email={sentTo} role={sentRole}
           household={household} inviter={inviter} until={until} passwordOpen={passwordOpen} />
       )}
     </div>
@@ -92,8 +97,8 @@ function Choice({ name, value, title, what, checked, onPick }: {
 const noSub = () => () => {};
 const canShare = () => typeof navigator !== 'undefined' && typeof navigator.share === 'function';
 
-function InviteMessage({ url, email, role, household, inviter, until, passwordOpen }: {
-  passwordOpen: boolean; url: string; email: string; role: 'adult' | 'viewer'; household: string; inviter: string; until: string;
+function InviteMessage({ heading, url, email, role, household, inviter, until, passwordOpen }: {
+  heading: React.Ref<HTMLElement>; passwordOpen: boolean; url: string; email: string; role: 'adult' | 'viewer'; household: string; inviter: string; until: string;
 }) {
   const [copied, setCopied] = useState<'idle' | 'message' | 'link' | 'failed'>('idle');
   const share = useSyncExternalStore(noSub, canShare, () => false);
@@ -124,10 +129,10 @@ function InviteMessage({ url, email, role, household, inviter, until, passwordOp
 
   return (
     <div className="flex flex-col gap-2.5 rounded-2xl bg-accent p-3.5 text-accent-foreground">
-      <span className="flex items-center gap-1.5 text-sm font-bold">
+      <h3 ref={heading as React.Ref<HTMLHeadingElement>} tabIndex={-1} className="flex items-center gap-1.5 text-sm font-bold outline-none">
         <Icon name="check_circle" size={18} />
         Invitation ready
-      </span>
+      </h3>
       <p className="text-sm leading-normal">
         Send this to {email || 'them'} privately — it says what to do. <b>Anyone who opens the
         link can take that place in the household.</b>

@@ -136,3 +136,13 @@ export function useOnSuccess(state: object | null | undefined, fn: () => void) {
     run();
   }, [state]);
 }
+
+/** A form that closes on success (or Cancel) unmounts the button that had focus, and focus falls to the page's
+ *  top. `focusSoon()` puts it on `ref` — the row or button that is on screen once the form has gone — after that
+ *  render has landed. */
+export function useFocusSoon<T extends HTMLElement>() {
+  const ref = useRef<T>(null);
+  const [asked, setAsked] = useState(0);
+  useEffect(() => { if (asked) ref.current?.focus(); }, [asked]);
+  return [ref, () => setAsked((n) => n + 1)] as const;
+}

@@ -30,9 +30,11 @@ export function Info({ children }: { children: React.ReactNode }) {
 }
 
 /** "Add an account": the dashed row a list ends with, which opens its form in place. */
-export function AddRow({ onClick, children, done }: { onClick: () => void; children: React.ReactNode; done?: React.ReactNode }) {
+export function AddRow({ onClick, children, done, ref }: {
+  onClick: () => void; children: React.ReactNode; done?: React.ReactNode; ref?: React.Ref<HTMLButtonElement>;
+}) {
   return (
-    <button type="button" onClick={onClick}
+    <button ref={ref} type="button" onClick={onClick}
       className="press flex min-h-14 w-full items-center gap-3 rounded-[18px] border border-dashed border-input bg-card px-[var(--pad)] py-2 text-left text-[15px] font-semibold text-foreground">
       <span className="grid size-8 flex-none place-items-center rounded-full bg-accent text-accent-foreground"><Icon name="add" size={18} /></span>
       <span className="min-w-0 flex-1">{children}</span>
@@ -40,3 +42,11 @@ export function AddRow({ onClick, children, done }: { onClick: () => void; child
     </button>
   );
 }
+
+/** What just happened, for a screen reader: a polite live region that is always in the page (one that appears with
+ *  its text already in it is often not read), so "Groceries added." is announced when it changes. Sighted people
+ *  see the row arrive; this says it. */
+export function Said({ children }: { children?: React.ReactNode }) {
+  return <p role="status" aria-live="polite" className="sr-only">{children}</p>;
+}
+

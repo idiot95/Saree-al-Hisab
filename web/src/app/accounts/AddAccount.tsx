@@ -2,10 +2,10 @@
 
 import { useActionState, useState } from 'react';
 import { Chip, Icon, ACCOUNT_ICON, ACCOUNT_TINT } from '../Icon';
-import { AddRow, Info, fieldLabel, formCard, ghost, solid } from '../form-bits';
+import { AddRow, Info, Said, fieldLabel, formCard, ghost, solid } from '../form-bits';
 import { Field, ErrorNote } from '../auth-ui';
 import { addAccount } from './actions';
-import { useKeepOnRefusal, useOnSuccess } from '../worth/fields';
+import { useFocusSoon, useKeepOnRefusal, useOnSuccess } from '../worth/fields';
 import CardIdentityFields from './CardIdentityFields';
 
 const KINDS = [
@@ -23,20 +23,25 @@ export default function AddAccount({ startOpen = false }: { startOpen?: boolean 
   const [kind, setKind] = useState<string>('spending');
   // Added: close, and start the next one from Bank account, so React's reset after a success never leaves the
   // kind on screen (state) and the kind sent (DOM) disagreeing.
-  useOnSuccess(state, () => { setOpen(false); setKind('spending'); });
+  // ...and focus goes back to "Add an account" (the form held it), while the live region says what was added.
+  const [opener, focusOpener] = useFocusSoon<HTMLButtonElement>();
+  useOnSuccess(state, () => { setOpen(false); setKind('spending'); focusOpener(); });
+  const said = <Said>{state?.ok ? state.message : ''}</Said>;
 
   if (!open) {
-    return (
-      <AddRow onClick={() => setOpen(true)}
+    return (<>
+      {said}
+      <AddRow ref={opener} onClick={() => setOpen(true)}
         done={state?.ok && state.message
           ? <span className="flex items-center gap-1 text-sm font-semibold text-primary"><Icon name="check" size={16} />Added</span>
           : null}>
         Add an account
       </AddRow>
-    );
+    </>);
   }
 
-  return (
+  return (<>
+    {said}
     <form action={act} {...keep} aria-label="Add an account" className={formCard}>
       <fieldset className="flex flex-col gap-2">
         <legend className={`mb-2 ${fieldLabel}`}>Type</legend>
@@ -87,9 +92,9 @@ export default function AddAccount({ startOpen = false }: { startOpen?: boolean 
       {state && !state.ok && <ErrorNote>{state.error}</ErrorNote>}
 
       <div className="flex gap-2">
-        <button type="button" onClick={() => setOpen(false)} className={ghost}>Cancel</button>
+        <button type="button" onClick={() => { setOpen(false); focusOpener(); }} className={ghost}>Cancel</button>
         <button type="submit" disabled={pending} className={solid}>{pending ? 'Saving…' : 'Add account'}</button>
       </div>
     </form>
-  );
+  </>);
 }

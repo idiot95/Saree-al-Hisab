@@ -4,9 +4,9 @@ import { useActionState, useState } from 'react';
 import { Field, ErrorNote } from '../../auth-ui';
 import { addClaim, abandonClaim } from '../../people/actions';
 import { useMoney } from '@/app/currency';
-import { useKeepOnRefusal, useOnSuccess } from '../../worth/fields';
+import { useFocusSoon, useKeepOnRefusal, useOnSuccess } from '../../worth/fields';
 import { Icon } from '../../Icon';
-import { fieldLabel, ghost, selectCls, solid } from '../../form-bits';
+import { Said, fieldLabel, ghost, selectCls, solid } from '../../form-bits';
 import { cn } from '@/lib/utils';
 
 type Person = { id: string; name: string };
@@ -36,13 +36,16 @@ export default function OwedFor({ txnId, entryAmount, people, claims, canEdit }:
   const [, drop] = useActionState(abandonClaim, null);
   const [open, setOpen] = useState(false);
   // Added: close, so React's reset after a success never leaves the person and the amount disagreeing with the screen.
-  useOnSuccess(state, () => setOpen(false));
+  // ...and focus goes back to the button the form replaced, while the live region says who now owes what.
+  const [opener, focusOpener] = useFocusSoon<HTMLButtonElement>();
+  useOnSuccess(state, () => { setOpen(false); focusOpener(); });
 
   if (people.length === 0 && claims.length === 0) return null;
 
   return (
     <section aria-labelledby="owed-for" className="mx-[var(--gutter)] mb-4 flex flex-col gap-3 rounded-[18px] bg-card p-[var(--pad)]">
       <h2 id="owed-for" className="text-[15px] font-semibold">Owed back to you</h2>
+      <Said>{state?.ok ? state.message : ''}</Said>
 
       {claims.length > 0 && (
         <ul className="flex flex-col">
@@ -95,14 +98,14 @@ export default function OwedFor({ txnId, entryAmount, people, claims, canEdit }:
           <Field label="Note (optional)" name="note" maxLength={200} />
           {state && !state.ok && <ErrorNote>{state.error}</ErrorNote>}
           <div className="flex gap-2">
-            <button type="button" onClick={() => setOpen(false)} className={ghost}>Cancel</button>
+            <button type="button" onClick={() => { setOpen(false); focusOpener(); }} className={ghost}>Cancel</button>
             <button type="submit" disabled={pending} className={solid}>
               {pending ? 'Saving…' : 'Someone owes me'}
             </button>
           </div>
         </form>
       ) : (
-        <button type="button" onClick={() => setOpen(true)}
+        <button ref={opener} type="button" onClick={() => setOpen(true)}
           className="press flex min-h-12 items-center justify-center gap-2 rounded-xl bg-muted px-4 text-base font-semibold text-foreground">
           <Icon name="person_add" size={19} />
           {claims.length ? 'Add someone else' : 'Someone owes me for this'}

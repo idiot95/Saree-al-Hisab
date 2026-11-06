@@ -6,7 +6,7 @@ import { buildRule, describeRule, friendlyDay, maxDay, nextDates, type Calendar 
 import { HIJRI_MONTHS_SHORT, formatHijri, toHijri } from '@/lib/hijri';
 import { DateChips, DayOfMonth, MonthOfYear, Segmented } from '../DatePick';
 import { createSchedule } from './actions';
-import { useKeepOnRefusal, useOnSuccess } from '../worth/fields';
+import { useFocusSoon, useKeepOnRefusal, useOnSuccess } from '../worth/fields';
 import PayPicker, { CHIP, CHIP_TEXT } from '../PayPicker';
 import CategoryPick from '../CategoryPick';
 import type { Category } from '../CategoryFinder';
@@ -14,7 +14,7 @@ import { defaultRef, type Way } from '@/lib/pay';
 import { fits } from '@/lib/scope';
 import { choice } from '../choice';
 import { Icon } from '../Icon';
-import { AddRow, fieldLabel, formCard, ghost, solid } from '../form-bits';
+import { AddRow, Said, fieldLabel, formCard, ghost, solid } from '../form-bits';
 
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -37,25 +37,31 @@ export default function NewSchedule({ startOpen = false, ...form }: {
   /* The form is its own component, so closing it (Cancel, or a success) drops every choice with it: the next
      one starts from the defaults in React's state and in the DOM alike. */
   const [open, setOpen] = useState(startOpen);
-  if (!open) {
-    return (
-      <div className="mx-[var(--gutter)]">
-        <AddRow onClick={() => setOpen(true)}>Add a payment or income that comes round</AddRow>
-      </div>
-    );
-  }
-  return <ScheduleForm {...form} onClose={() => setOpen(false)} />;
+  /* Closed (a save or Cancel), focus goes back to the add row the form replaced; a save is said in the live
+     region, which stays here because the form that knew the message has gone. */
+  const [said, setSaid] = useState('');
+  const [opener, focusOpener] = useFocusSoon<HTMLButtonElement>();
+  return (<>
+    <Said>{said}</Said>
+    {open
+      ? <ScheduleForm {...form} onClose={(message) => { setOpen(false); setSaid(message ?? ''); focusOpener(); }} />
+      : (
+        <div className="mx-[var(--gutter)]">
+          <AddRow ref={opener} onClick={() => { setSaid(''); setOpen(true); }}>Add a payment or income that comes round</AddRow>
+        </div>
+      )}
+  </>);
 }
 
 function ScheduleForm({ ways, categories, tabs, onClose }: {
-  ways: Way[]; categories: Category[]; tabs: { id: string; name: string }[]; onClose: () => void;
+  ways: Way[]; categories: Category[]; tabs: { id: string; name: string }[]; onClose: (message?: string) => void;
 }) {
   const [state, act, pending] = useActionState(createSchedule, null);
   /* It can open itself (?new=1, a plain link), so it posts directly and works without script; with script, a
      refusal's form reset is undone so Income, Once a year, Hijri and the rest stay as chosen for the resubmit. */
   const keep = useKeepOnRefusal(state);
   // Saved: close, so the reset React does after a success never leaves this form's switches and DOM disagreeing.
-  useOnSuccess(state, onClose);
+  useOnSuccess(state, () => onClose(state?.ok ? state.message : undefined));
   const [freq, setFreq] = useState<'MONTHLY' | 'YEARLY'>('MONTHLY');
   const [kind, setKind] = useState<'expense' | 'income'>('expense');
   const [counts, setCounts] = useState(true);
@@ -255,7 +261,7 @@ function ScheduleForm({ ways, categories, tabs, onClose }: {
 
       {state && !state.ok && <ErrorNote>{state.error}</ErrorNote>}
       <div className="flex gap-2">
-        <button type="button" onClick={onClose} className={ghost}>Cancel</button>
+        <button type="button" onClick={() => onClose()} className={ghost}>Cancel</button>
         <button type="submit" disabled={pending} className={solid}>{pending ? 'Saving…' : 'Add it'}</button>
       </div>
     </form>
