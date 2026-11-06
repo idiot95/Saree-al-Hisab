@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
+import { platformOf } from '@/lib/platform';
 import { forcedTheme, THEME_COOKIE } from '@/lib/theme';
 import { actorOrNull } from '@/db/queries';
 import { CurrencyProvider } from './currency';
@@ -67,7 +68,7 @@ export const metadata: Metadata = {
 
 /* The header colour in each scheme: what the iOS status bar and the Android
    task-switcher paint behind the app. */
-const HEADER = { light: '#F6F4EF', dark: '#0F151D' } as const;
+const HEADER = { light: '#F4F1EA', dark: '#0F1512' } as const;
 
 async function chosenTheme() {
   return forcedTheme((await cookies()).get(THEME_COOKIE)?.value);
@@ -102,10 +103,12 @@ export default async function RootLayout({ children, modal }: { children: React.
      components through context, and the layout is the one place above all
      of them. Nobody signed in, or no household yet, and it is rupees. */
   const actor = await actorOrNull();
+  const h = await headers();
+  const platform = platformOf(h.get('user-agent') ?? '', h.get('sec-ch-ua-platform'));
   return (
-    <html lang="en" className={`${inter.variable} ${display.variable} ${icons.variable}`} data-theme={forced ?? undefined}
+    <html lang="en" className={`${inter.variable} ${display.variable} ${icons.variable}`} data-theme={forced ?? undefined} data-platform={platform}
       style={forced ? { colorScheme: forced } : undefined}>
-      <body>
+      <body className="group/app">
         <CurrencyProvider currency={actor?.currency ?? 'INR'}>
           {children}
           {/* Add Entry as a drawer over the screen it was opened from (app/@modal). */}
