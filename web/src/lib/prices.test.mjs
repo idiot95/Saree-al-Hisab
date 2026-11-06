@@ -8,30 +8,40 @@ const { parseFx, parseMetal, CURRENCY_DIGITS_SQL_3, CURRENCY_DIGITS_SQL_0, fxAsO
 const d = '2026-11-05';
 
 // FX: rates are OTHER per 1 INR, so the price of a USD in INR is 1/rate.
-assert.deepEqual(parseFx({ result: 'success', rates: { USD: 0.012 } }, 'INR', ['USD'], d),
+assert.deepEqual(parseFx({ result: 'success', base_code: 'INR', rates: { USD: 0.012 } }, 'INR', ['USD'], d),
   [{ base: 'USD', quote: 'INR', rate: '83.3333333333', asOf: d }]);
-const bad = parseFx({ result: 'success', rates: { USD: 0.012, AED: 0, GBP: -1, EUR: NaN, SAR: Infinity, JPY: '1.2' } },
+const bad = parseFx({ result: 'success', base_code: 'INR', rates: { USD: 0.012, AED: 0, GBP: -1, EUR: NaN, SAR: Infinity, JPY: '1.2' } },
   'INR', ['USD', 'AED', 'GBP', 'EUR', 'SAR', 'JPY', 'CAD'], d);
 assert.deepEqual(bad.map((q) => q.base), ['USD']);                       // zero, negative, NaN, Infinity, string, missing
 for (const j of [null, undefined, 5, 'x', [], {}, { rates: { USD: 1 } }, { result: 'error', rates: { USD: 1 } },
   { result: 'success', rates: null }, { result: 'success', rates: [1] }]) assert.deepEqual(parseFx(j, 'INR', ['USD'], d), []);
-assert.deepEqual(parseFx({ result: 'success', rates: { USD: 1e-10 } }, 'INR', ['USD'], d), []);   // 1e10 ≥ 1e9
-assert.deepEqual(parseFx({ result: 'success', rates: { USD: 1e12 } }, 'INR', ['USD'], d), []);    // rounds to 0
-assert.deepEqual(parseFx({ result: 'success', rates: { constructor: 2, USD: 2 } }, 'INR', ['constructor', 'toString', 'USD', 'lower', 'INR'], d)
+assert.deepEqual(parseFx({ result: 'success', base_code: 'INR', rates: { USD: 1e-10 } }, 'INR', ['USD'], d), []);   // 1e10 ≥ 1e9
+assert.deepEqual(parseFx({ result: 'success', base_code: 'INR', rates: { USD: 1e12 } }, 'INR', ['USD'], d), []);    // rounds to 0
+assert.deepEqual(parseFx({ result: 'success', base_code: 'INR', rates: { constructor: 2, USD: 2 } }, 'INR', ['constructor', 'toString', 'USD', 'lower', 'INR'], d)
   .map((q) => q.base), ['USD']);                                          // own keys, valid codes, not the quote itself
-for (const q of parseFx({ result: 'success', rates: { USD: 0.0119137 } }, 'INR', ['USD'], d))
+for (const q of parseFx({ result: 'success', base_code: 'INR', rates: { USD: 0.0119137 } }, 'INR', ['USD'], d))
   assert.match(q.rate, /^\d+\.\d{10}$/);
 
 // Metals: USD per troy ounce → per gram × quote-per-USD.
-const m = parseMetal({ price: 2488.2 }, 'XAU', '84', d, 'INR');
+const m = parseMetal({ price: 2488.2, symbol: 'XAU' }, 'XAU', '84', d, 'INR');
 assert.equal(m.base, 'XAU'); assert.equal(m.quote, 'INR'); assert.equal(m.asOf, d);
 assert.equal(Number(m.rate).toFixed(4), (2488.2 / 31.1034768 * 84).toFixed(4));
 assert.match(m.rate, /^6719\.\d{1,10}$/);
 assert.equal(parseMetal({}, 'XAU', '84', d), null);
-for (const j of [null, 3, [], { price: 0 }, { price: -1 }, { price: '5' }, { price: NaN }, { price: 1e12 }, { price: 10, currency: 'EUR' }])
+// The expected pair: a wrong base_code, or a missing/wrong symbol, is discarded.
+assert.deepEqual(parseFx({ result: 'success', base_code: 'USD', rates: { USD: 0.012 } }, 'INR', ['USD'], d), []);
+assert.deepEqual(parseFx({ result: 'success', rates: { USD: 0.012 } }, 'INR', ['USD'], d), []);
+assert.equal(parseMetal({ price: 2488.2 }, 'XAU', '84', d), null);
+assert.equal(parseMetal({ price: 2488.2, symbol: 'XAG' }, 'XAU', '84', d), null);
+assert.equal(parseMetal({ price: 2488.2, symbol: 'xau' }, 'XAU', '84', d), null);
+const { isCurrency } = await import(`${process.env.LIB}/money.js`);
+assert.equal(isCurrency('INR'), true);
+assert.equal(isCurrency('toString'), false);
+assert.equal(isCurrency('constructor'), false);
+for (const j of [null, 3, [], { price: 0 }, { price: -1 }, { price: '5' }, { price: NaN }, { price: 1e12 }, { price: 10, currency: 'EUR' }].map((x) => (x && typeof x === 'object' && !Array.isArray(x) ? { symbol: 'XAG', ...x } : x)))
   assert.equal(parseMetal(j, 'XAG', '84', d), null);
-assert.equal(parseMetal({ price: 10 }, 'XAG', '0', d), null);
-assert.equal(parseMetal({ price: 10 }, 'XAG', 'abc', d), null);
+assert.equal(parseMetal({ price: 10, symbol: 'XAG' }, 'XAG', '0', d), null);
+assert.equal(parseMetal({ price: 10, symbol: 'XAG' }, 'XAG', 'abc', d), null);
 
 // Real-shaped fixtures from each provider (extra fields ignored).
 const erApi = { result: 'success', provider: 'https://www.exchangerate-api.com', time_last_update_unix: 1793836951,

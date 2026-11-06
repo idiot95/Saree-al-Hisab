@@ -32,7 +32,7 @@ function rateString(x: number): string | null {
 /** open.er-api.com /v6/latest/<quote>: rates are units of OTHER per 1 quote,
  *  so the price of one OTHER in quote is 1 / rate. */
 export function parseFx(json: unknown, quote: string, bases: string[], asOf: string): Quote[] {
-  if (!isObject(json) || json.result !== 'success' || !isObject(json.rates)) return [];
+  if (!isObject(json) || json.result !== 'success' || json.base_code !== quote || !isObject(json.rates)) return [];
   const rates = json.rates;
   const out: Quote[] = [];
   for (const base of new Set(bases)) {
@@ -53,6 +53,7 @@ export function parseMetal(
   quote = '',
 ): Quote | null {
   if (!isObject(json)) return null;
+  if (json.symbol !== metal) return null;                      // the expected pair, strictly
   if (json.currency !== undefined && json.currency !== 'USD') return null;
   const price = json.price;
   if (typeof price !== 'number' || !Number.isFinite(price) || price <= 0) return null;

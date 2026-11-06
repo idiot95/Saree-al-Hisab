@@ -19,21 +19,42 @@ import { identity as sql } from './client';
 import {
   parseFx, parseMetal, fxAsOf, metalAsOf, type Quote,
 } from '@/lib/prices';
+import { isCurrency } from '@/lib/money';
 
-const TIMEOUT_MS = 4000;
+/* One budget for a whole ensureRates call (the FX request and the metal
+   requests share it), so a render waits about this long at worst. */
+const BUDGET_MS = 4000;
+const MAX_BODY = 256 * 1024;
+/* A provider that failed is left alone for this long, so an outage costs the
+   first render a few seconds and the rest nothing. Per process, in memory:
+   a cold start forgets it, which only means one more try. */
+const RETRY_AFTER_MS = 15 * 60 * 1000;
+const failedAt = new Map<string, number>();
+export const _resetRateFailures = () => failedAt.clear();
+const recentlyFailed = (key: string) => Date.now() - (failedAt.get(key) ?? 0) < RETRY_AFTER_MS;
+const fail = (key: string) => { failedAt.set(key, Date.now()); };
+
 const METALS = ['XAU', 'XAG'] as const;
 type Metal = (typeof METALS)[number];
 const isMetal = (b: string): b is Metal => (METALS as readonly string[]).includes(b);
 
-async function getJson(url: string, fetchImpl: typeof fetch): Promise<unknown | null> {
+async function getJson(url: string, fetchImpl: typeof fetch, signal: AbortSignal): Promise<unknown | null> {
+  // Raced against the signal as well, so a fetch that ignores it cannot hold the render.
+  const aborted = new Promise<never>((_, rej) => {
+    const e = () => rej(Object.assign(new Error('budget'), { name: 'TimeoutError' }));
+    if (signal.aborted) e(); else signal.addEventListener('abort', e, { once: true });
+  });
+  aborted.catch(() => {});
   try {
-    const res = await fetchImpl(url, {
-      signal: AbortSignal.timeout(TIMEOUT_MS),
-      headers: { accept: 'application/json' },
-      cache: 'no-store',
-    });
-    if (!res.ok) return null;
-    return await res.json();
+    const res = await Promise.race([
+      fetchImpl(url, { signal, headers: { accept: 'application/json' }, cache: 'no-store' }),
+      aborted,
+    ]);
+    if (!res.ok) { console.error('rates: http', res.status); return null; }
+    if (Number(res.headers.get('content-length')) > MAX_BODY) { console.error('rates: body too large'); return null; }
+    const text = await Promise.race([res.text(), aborted]);
+    if (text.length > MAX_BODY) { console.error('rates: body too large'); return null; }
+    return JSON.parse(text);
   } catch (e) {
     // The name only: a URL or message could carry more than a log should.
     console.error('rates: fetch failed', e instanceof Error ? e.name : 'Error');
@@ -49,10 +70,13 @@ async function freshBases(quote: string, bases: string[]): Promise<Set<string>> 
   return new Set(rows.map((r) => r.base));
 }
 
+/* as_of is the provider's date, but the database's today is the authority:
+   least() keeps a provider that runs ahead from writing a date holding_value
+   would never see. */
 async function store(q: Omit<Quote, 'asOf'> & { asOf: string | null }) {
   await sql`
     insert into price_quote (base, quote, as_of, rate, source, fetched_at)
-    values (${q.base}, ${q.quote}, coalesce(${q.asOf}::date, current_date),
+    values (${q.base}, ${q.quote}, least(coalesce(${q.asOf}::date, current_date), current_date),
             ${q.rate}::numeric, 'api', now())
     on conflict (base, quote, as_of, source) do update set fetched_at = now()`;
 }
@@ -62,32 +86,40 @@ export async function ensureRates(
   bases: string[], quote: string,
   fetchImpl: typeof fetch = fetch,
 ): Promise<{ stale: string[] }> {
-  const wanted = [...new Set(bases)].filter((b) => /^[A-Z]{3}$/.test(b) && b !== quote);
-  if (!/^[A-Z]{3}$/.test(quote) || wanted.length === 0) return { stale: [] };
+  if (!/^[A-Z]{3}$/.test(quote) || !isCurrency(quote)) return { stale: [] };
+  const wanted = [...new Set(bases)].filter(
+    (b) => b !== quote && /^[A-Z]{3}$/.test(b) && (isCurrency(b) || isMetal(b)));
+  if (wanted.length === 0) return { stale: [] };
   try {
     const fresh = await freshBases(quote, wanted);
     const due = wanted.filter((b) => !fresh.has(b));
     if (due.length === 0) return { stale: [] };
 
+    const signal = AbortSignal.timeout(BUDGET_MS);
     // One FX call per quote currency serves every currency base and the USD
     // rate the metals need.
     const fxBases = due.filter((b) => !isMetal(b));
     const metals = due.filter(isMetal);
-    const fxJson = await getJson(`https://open.er-api.com/v6/latest/${quote}`, fetchImpl);
-    const fxDate = fxAsOf(fxJson);
     const got = new Set<string>();
-    const fx = parseFx(fxJson, quote, [...fxBases, 'USD'], fxDate ?? '');
-    for (const q of fx) if (fxBases.includes(q.base)) { await store({ ...q, asOf: fxDate }); got.add(q.base); }
+    let usd: string | undefined = quote === 'USD' ? '1' : undefined;
 
-    if (metals.length) {
-      const usd = quote === 'USD' ? '1' : fx.find((q) => q.base === 'USD')?.rate;
-      if (usd) {
-        await Promise.all(metals.map(async (m) => {
-          const json = await getJson(`https://api.gold-api.com/price/${m}`, fetchImpl);
-          const q = parseMetal(json, m, usd, '', quote);
-          if (q) { await store({ ...q, asOf: metalAsOf(json) }); got.add(m); }
-        }));
-      }
+    if ((fxBases.length || (metals.length && quote !== 'USD')) && !recentlyFailed(`FX:${quote}`)) {
+      const fxJson = await getJson(`https://open.er-api.com/v6/latest/${quote}`, fetchImpl, signal);
+      const fxDate = fxAsOf(fxJson);
+      const fx = parseFx(fxJson, quote, [...fxBases, 'USD'], fxDate ?? '');
+      if (fx.length === 0) { console.error('rates: nothing parsed (fx)'); fail(`FX:${quote}`); }
+      usd ??= fx.find((q) => q.base === 'USD')?.rate;
+      for (const q of fx) if (fxBases.includes(q.base)) { await store({ ...q, asOf: fxDate }); got.add(q.base); }
+    }
+
+    if (usd) {
+      await Promise.all(metals.filter((m) => !recentlyFailed(`${m}:${quote}`)).map(async (m) => {
+        const json = await getJson(`https://api.gold-api.com/price/${m}`, fetchImpl, signal);
+        const q = parseMetal(json, m, usd, '', quote);
+        if (!q) { console.error('rates: nothing parsed (metal)'); fail(`${m}:${quote}`); return; }
+        await store({ ...q, asOf: metalAsOf(json) });
+        got.add(m);
+      }));
     }
     return { stale: due.filter((b) => !got.has(b)) };
   } catch (e) {

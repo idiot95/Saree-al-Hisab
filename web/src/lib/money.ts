@@ -101,7 +101,7 @@ export const CURRENCIES: readonly Currency[] = [
 const BY_CODE: Record<string, Currency> = Object.fromEntries(CURRENCIES.map((x) => [x.code, x]));
 const LOCALE = { lakh: 'en-IN', thousand: 'en-US' } as const;
 
-export const isCurrency = (code: string) => code in BY_CODE;
+export const isCurrency = (code: string) => Object.hasOwn(BY_CODE, code);
 
 /* Which currency a bare format() means. Every call site could name it, and
    client components do (through useMoney, which reads it from context). On
