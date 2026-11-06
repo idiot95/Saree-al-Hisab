@@ -31,7 +31,7 @@ const SECTIONS: { title: string; lines: React.ReactNode[] }[] = [
     title: 'Who can see your books',
     lines: [
       'The members of your household, at the role its owner gave them, and no one else. No other household, no advertiser, no analytics service — none is connected.',
-      'Someone who is invited sees the books only after they have opened the invitation and signed in with a Google account whose address is the one the invitation was sent to.',
+      'Someone who is invited sees the books only after they have opened the invitation and signed in with a Google account whose address is the one the invitation was sent to — or, only until the password window the person running this copy sets has closed, made a password account from it.',
       'Whoever runs this copy of the app can, in principle, reach the database it stores. That is true of every service that keeps anything for you, and it is worth saying plainly here rather than leaving you to assume.',
     ],
   },
@@ -57,7 +57,7 @@ const SECTIONS: { title: string; lines: React.ReactNode[] }[] = [
     title: 'The source is public',
     lines: [
       <>The whole app is at <a href={REPO} style={link}>github.com/idiot95/Saree-al-Hisab</a>. You can read exactly what it does with your data rather than take this page’s word for it.</>,
-      'You can also run your own copy against your own database. A Postgres connection string and one secret are all it needs; the README in the repository says how. Then nobody but you holds the books.',
+      'You can also run your own copy against your own database. It needs a Postgres connection string, one secret and a Google OAuth client for sign-in; the README in the repository says how. Then nobody but you holds the books.',
     ],
   },
   {

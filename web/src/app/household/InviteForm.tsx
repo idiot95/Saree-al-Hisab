@@ -4,13 +4,14 @@ import { useActionState, useState, useSyncExternalStore } from 'react';
 import { createInvite } from './actions';
 import { haptic } from '../haptics';
 
-/* Say plainly what this link is. Sign-in is an address and a password we hold
-   ourselves, so there is no outside identity for an invitation to lean on:
-   whoever opens the link can take the place it was meant for. The link is
-   therefore a credential, and the copy here treats it as one. */
+/* Say plainly what this link is. Accepted with Google it is bound to the
+   address it was sent to; but until the password window closes it can also be
+   used to make a password account, and then whoever opens the link can take
+   the place it was meant for. The link is a credential, and the copy here
+   treats it as one. */
 
-export default function InviteForm({ origin, household, inviter }: {
-  origin: string; household: string; inviter: string;
+export default function InviteForm({ origin, household, inviter, passwordOpen }: {
+  origin: string; household: string; inviter: string; passwordOpen: boolean;
 }) {
   const [state, act, pending] = useActionState(createInvite, null);
   const [email, setEmail] = useState('');
@@ -86,7 +87,7 @@ export default function InviteForm({ origin, household, inviter }: {
 
         {token && (
           <InviteMessage url={`${origin}/join/${token}`} email={email} role={role}
-            household={household} inviter={inviter} until={until} />
+            household={household} inviter={inviter} until={until} passwordOpen={passwordOpen} />
         )}
       </section>
     </>
@@ -121,8 +122,8 @@ function Choice({ name, value, title, what, checked, onPick }: {
 const noSub = () => () => {};
 const canShare = () => typeof navigator !== 'undefined' && typeof navigator.share === 'function';
 
-function InviteMessage({ url, email, role, household, inviter, until }: {
-  url: string; email: string; role: 'adult' | 'viewer'; household: string; inviter: string; until: string;
+function InviteMessage({ url, email, role, household, inviter, until, passwordOpen }: {
+  passwordOpen: boolean; url: string; email: string; role: 'adult' | 'viewer'; household: string; inviter: string; until: string;
 }) {
   const [copied, setCopied] = useState<'idle' | 'message' | 'link' | 'failed'>('idle');
   const share = useSyncExternalStore(noSub, canShare, () => false);
@@ -131,7 +132,8 @@ function InviteMessage({ url, email, role, household, inviter, until }: {
     `${inviter || 'Someone'} has invited you to ${household} on Saree al-Hisab — the household's books, on the phone.`,
     '',
     `1. Open this link: ${url}`,
-    '2. Put in your name and choose a password. That is your account made — nothing else to set up.',
+    `2. Tap Accept with Google, using the address this was sent to${email ? ` (${email})` : ''}.${passwordOpen
+      ? ' Or, for now, choose a password instead.' : ''} That is your account made — nothing else to set up.`,
     `3. You land in ${household} straight away, ${role === 'adult'
       ? 'where you can add and edit entries and set budgets.'
       : 'where you can read everything but change nothing.'}`,

@@ -350,8 +350,10 @@ direct POST.
 
 ### Links are credentials, and the copy says so
 
-An invitation link used to mean **whoever opened it took that place**. Google
-closes that: "Accept with Google" on `/join` sets `ql.invite`, and the Google
+An invitation link used to mean **whoever opened it took that place**. That
+risk is closed for anyone who uses "Accept with Google", and for everyone once
+the password window ends; until then a link can still make a password account
+(`joinWithNewAccount`), so it stays a credential. "Accept with Google" on `/join` sets `ql.invite`, and the Google
 email must equal the invited address, case-insensitively, or the sign-in is
 refused. Invites are consumed atomically (`FOR UPDATE`), and a person created
 from an invite, their Google identity, their place and the spent invitation
@@ -379,8 +381,9 @@ abandoned with the back button reaches neither.
 **What the owner sends is a message, not a link.** A bare link in a chat is
 a puzzle — where does it go, what happens there, is it safe — so
 `InviteForm` composes the whole thing: who is inviting, into which household,
-the two steps that follow (open it; continue with Google, using the address
-it was sent to), what to do if you already have an account, and what the link is and
+the steps that follow (open it; tap Accept with Google using the address it
+was sent to — while the password window is open, with a clause saying a
+password will do instead; `InviteForm` takes `passwordOpen` from the server), what to do if you already have an account, and what the link is and
 when it dies — the expiry quoted from the row the database wrote, not
 re-derived on the phone. Share hands it to whichever app the phone offers
 (`navigator.share`, detected through `useSyncExternalStore` so the server

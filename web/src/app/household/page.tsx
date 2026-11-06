@@ -6,6 +6,7 @@ import { actorOrNull, entryCount, membersOf, openInvitesOf, scanningState } from
 import { withHousehold } from '@/db/client';
 import { householdsOf } from '@/db/membership';
 import InviteForm from './InviteForm';
+import { passwordSignInOpenNow } from '@/lib/password-window';
 import MemberRow from './MemberRow';
 import RevokeButton from './RevokeButton';
 import TabBar from '../TabBar';
@@ -85,7 +86,7 @@ export default async function Household() {
           ))}
         </Card>
 
-        {canManage && <InviteForm origin={origin} household={name} inviter={actor.user_name} />}
+        {canManage && <InviteForm origin={origin} household={name} inviter={actor.user_name} passwordOpen={passwordSignInOpenNow()} />}
 
         <Head>Your households</Head>
         <BooksSwitcher books={books} canRename={canManage}
