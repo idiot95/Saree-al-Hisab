@@ -20,11 +20,10 @@
    BYPASSRLS is covered without a second thought. The invariants test checks
    the app role has no such attribute.
 
-   Four tables are keyed by a household but read before one is known —
+   Three tables are keyed by a household but read before one is known —
    `household`, `member` and `invite` are how a sign-in FINDS its household
-   and how a link finds its invitation, and `capture_token` is how the SMS
-   capture endpoint finds the household a bearer token belongs to — so their
-   policies are open when no household is set and scoped once one is. The tables keyed by a person or
+   and how a link finds its invitation — so their policies are open when no
+   household is set and scoped once one is. The tables keyed by a person or
    a token (app_user, password_reset, rate_limit, device) carry no policy.
 
    Views run as their caller (security_invoker), or a view owned by the
@@ -178,17 +177,16 @@ create policy invite_scope on invite
   using (app_household() is null or household_id = app_household())
   with check (app_household() is null or household_id = app_household());
 
-/* capture_token: the SMS endpoint has only a bearer token, and has to look it up by
-   its hash to learn the household, so (like invite) it is readable while unscoped
-   and pinned once a household is named. What that exposes is a SHA-256 of a 256-bit
-   random token; it cannot be turned back into a usable token. sms_draft is not
-   like that: it holds message bodies, so it is household-only. */
+/* capture_token is household-only, with NO unscoped branch: an open branch would
+   let any unscoped connection list, un-revoke or delete every household's tokens.
+   The endpoint finds a token's household through capture_lookup(hash) (0112), a
+   security-definer function that returns one live row. sms_draft holds message
+   bodies and is household-only too. */
 alter table capture_token enable row level security;
 alter table capture_token force row level security;
 drop policy if exists capture_token_scope on capture_token;
 create policy capture_token_scope on capture_token
-  using (app_household() is null or household_id = app_household())
-  with check (app_household() is null or household_id = app_household());
+  using (household_id = app_household()) with check (household_id = app_household());
 
 alter table sms_draft enable row level security;
 alter table sms_draft force row level security;

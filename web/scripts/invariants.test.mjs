@@ -1297,7 +1297,7 @@ try {
   ok(cleared === null && still === hh.id, 'deleting an entry a non-accepted draft names clears only the link, not the household');
 
   await allows('a token is stored by its hash', () => token());
-  await refusesWith('two tokens cannot share a hash', /token_hash_unique|token_hash_key|duplicate/, () => token());
+  await refusesWith('two tokens cannot share a hash', /capture_token_token_hash_unique/, () => token());
   await refusesWith('a token hash that is not 64 hex is refused', /capture_token_hash_hex/, () => token({ token_hash: 'plaintext-token' }));
   await refusesWith('an empty label is refused', /capture_token_label_len/, () => token({ token_hash: HEX('2'), label: '' }));
   await refusesWith('a label over 40 characters is refused', /capture_token_label_len/, () => token({ token_hash: HEX('2'), label: 'x'.repeat(41) }));
@@ -1309,8 +1309,22 @@ try {
     const app = postgres(appUrl, { ssl: 'require', max: 1, onnotice: () => {} });
     const scoped = (id, fn) => app.begin(async (tx) => { await tx`select set_config('app.household_id', ${id}, true)`; return fn(tx); });
     const n = (q) => q.then((r) => r[0].n);
-    ok(await n(app`select count(*)::int as n from capture_token where token_hash = ${HEX('b')}`) === 1,
-      'with no household named, a token can be found by its hash — that is how the endpoint finds its household');
+    ok(await n(app`select count(*)::int as n from capture_token`) === 0,
+      'with no household named, no token can be listed');
+    await refuses('nor inserted', () => app`insert into capture_token ${sql({ user_id: user.id, household_id: hh.id, token_hash: HEX('7'), label: 'x' })}`);
+    ok((await app`update capture_token set revoked_at = null where token_hash = ${HEX('b')} returning id`).length === 0,
+      'nor updated (a revoked token cannot be revived)');
+    ok((await app`delete from capture_token where token_hash = ${HEX('b')} returning id`).length === 0, 'nor deleted');
+    const live = await app`select * from capture_lookup(${HEX('b')})`;
+    ok(live.length === 1 && live[0].household_id === hh.id && live[0].user_id === user.id && Object.keys(live[0]).sort().join() === 'household_id,id,user_id',
+      'capture_lookup(hash) returns the one row (id, user, household) for a live token');
+    ok((await app`select * from capture_lookup(${HEX('9')})`).length === 0, 'and none for an unknown hash');
+    await sql`update capture_token set revoked_at = now() where token_hash = ${HEX('b')}`;
+    ok((await app`select * from capture_lookup(${HEX('b')})`).length === 0, 'and none for a revoked token');
+    await sql`update capture_token set revoked_at = null where token_hash = ${HEX('b')}`;
+    ok((await app`select count(*)::int as n from pg_proc p join pg_roles r on r.oid = p.proowner
+      where p.proname = 'capture_lookup' and p.prosecdef and r.rolname <> current_user`)[0].n === 1,
+      'capture_lookup is a security-definer function owned by the owner, not the app role');
     ok(await n(app`select count(*)::int as n from sms_draft`) === 0, 'with no household named, no draft can be read');
     ok(await scoped(hh.id, (tx) => n(tx`select count(*)::int as n from sms_draft where household_id = ${hh.id}`)) === 4,
       'named, the household sees its own drafts');
