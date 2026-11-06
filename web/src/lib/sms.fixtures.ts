@@ -137,6 +137,17 @@ export const OTP_FIXTURES: string[] = [
   'Your MPIN is 4829',
   '482913 - use this to complete payment of Rs 500 at SHOP',
   'Rs 500 debited from A/c XX1234. OTP is 482913',
+  // Code-only shapes. "Use code 4829 for 10% off" (a promo code) reads as an OTP too: out of scope.
+  'Use 4829 to verify your mobile number', 'Your Swiggy verification is 482913', '482913 – your login code for Paytm', 'Code: 482913',
+  'PIN 482913 for card activation', 'Verify 482913 now', 'Login code 482913', '482913 to log in', 'Enter 482913 to confirm',
+  '482913 is your Swiggy verification', '482913 is your Zomato login', 'Your Amazon verification number is 482913',
+  'Your verification no. is 482913', 'Your Paytm login key: 482913', 'Your token is 482913', 'Your secret key is 482913',
+  'Enter 482913 on the app', 'Enter 482913 in the app to continue', 'Use 482913 as your password for netbanking',
+  'Your authorisation number is 482913', 'Dear user, 482913 is your activation key', '<#> 482913 is your Flipkart verification. abc123XYZ',
+  'Your login PIN 4829. Valid for 5 mins', '482913 is valid for 10 minutes', 'Use 482913 to sign in to Uber', 'Use 482913 to login',
+  'Swiggy: 482913 is your verification', 'Your temporary password is 482913', 'Your one time code is 482913', 'Confirmation code 482913',
+  'Your security key 482913 expires in 5 min', 'Do not share 482913', 'Verification: 482913', 'Your code - 482913',
+  'Authentication 482913 for login',
 ];
 
 export const PROMO_FIXTURES: string[] = [
@@ -198,5 +209,18 @@ export const EDGE_FIXTURES: SmsFixture[] = [
   E('Your mandate for NETFLIX executed successfully. Rs 649 debited from A/c XX1234', 64900, 'INR', 'debit', '1234', null, null),
   E('Rs 649 debited from A/c XX1234 for NETFLIX. Next payment is due on 05-12-26', 64900, 'INR', 'debit', '1234', null, '2026-12-05'),
   E('Rs 50 cashback added to your Paytm wallet', 5000, 'INR', 'credit', null, null, null),
+  // Footers that name an OTP carry no code, so the debit above them is kept.
+  E('Rs 500 debited from A/c XX1234 on 01-11-26. Never share your OTP with anyone', 50000, 'INR', 'debit', '1234', null, '2026-11-01'),
+  E('Rs 500 spent on card XX1234 at SHOP. Do not share your verification code', 50000, 'INR', 'debit', '1234', 'SHOP', null),
+  E('Rs 500 debited from A/c XX1234 at 1430 hrs. Never share your one-time password', 50000, 'INR', 'debit', '1234', null, null),
+  E('Rs 500 debited at SHOP on card XX 1234 expires 12/28', 50000, 'INR', 'debit', '1234', 'SHOP', null),
+  E('Rs 500 debited from A/c XX1234. Reply 4829 to confirm dispute', 50000, 'INR', 'debit', '1234', null, null),
+  E('Rs 500 debited for order 48291312 to confirm', 50000, 'INR', 'debit', null, null, null),
+  // Executed autopays are debits; only a mandate being set up is not.
+  E('Rs.649.00 debited from A/c XX1234 for NETFLIX via UPI Mandate', 64900, 'INR', 'debit', '1234', null, null),
+  E('UPI Mandate: Rs 199 debited from A/c XX1234 for SPOTIFY', 19900, 'INR', 'debit', '1234', null, null),
+  E('Rs 199 debited towards e-mandate for SPOTIFY', 19900, 'INR', 'debit', null, null, null),
+  // A fee's "of" amount never outranks a plain nearest amount.
+  E('Rs 500 debited for GST of Rs 90', 50000, 'INR', 'debit', null, null, null),
   E('Rs.500 debited A/cXX1234 on 01Nov26', 50000, 'INR', 'debit', '1234', null, '2026-11-01'),
 ];

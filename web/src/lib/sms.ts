@@ -36,20 +36,28 @@ const OTP_WORDS = new RegExp([
 /* Past the keywords above, a 4-8 digit number is a code only when a
    code-phrase sits directly beside it (three tokens). "Never share your PIN"
    in a bank's footer, or "Ref 4829131", is not enough. */
-const STANDALONE_NUM = /(?<![\w.,₹-])\d{4,8}(?!\d|[.,]\d)/g;
-const CODE_BEFORE = /\b(?:code|pin|mpin|password|passcode)(?: is| are)?[:-]?$|\b(?:do not|don't|never) share$/i;
-const CODE_AFTER = /^(?:is(?: \S+){0,3}? (?:code|pin|mpin|password|passcode)\b|(?:is )?valid (?:for|till)\b|expires?\b|(?:to|for) (?:authori[sz]e|verify|login|log in|approve|confirm|complete)\b)/i;
-// A number after these is an account, reference or phone number.
-const NOT_A_CODE_BEFORE = /\b(?:a\/c|ac|acct|account|card|ref|refno|txn|id|call|no|number)\b[:.]?$/i;
+const STANDALONE_NUM = /(?<![\w.,₹/-])\d{4,8}(?!\d|[.,]\d|[-/]\d| ?(?:hrs?|hours|am|pm|%|days?|mins?)\b)/gi;
+const ATTACHED_OTP = /otp\d{4,8}/i;                 // "OTP482913" has no gap to be standalone in
+const CODE_BEFORE = /\b(?:code|pin|mpin|password|passcode|verification|authori[sz]ation|verify|key|token)(?: (?:no\.?|number))?(?: is| are)?(?: ?[:-])?$|\b(?:do not|don't|never) share$/i;
+const CODE_AFTER = /^(?:is(?: \S+){0,3}? (?:code|pin|mpin|password|passcode|verification|login|key|token)\b|(?:is )?valid (?:for|till)\b|expires?\b|(?:to|for) (?:authori[sz]e|verify|login|log in|sign in|signin|approve)\b|as your (?:password|pin|code)\b)/i;
+// "Use/Enter N to confirm" and "Enter N on the app" need the verb; "Reply 4829 to confirm dispute" does not count.
+const USE_BEFORE = /\b(?:use|enter)$/i;
+const USE_AFTER = /^(?:(?:to|for) (?:confirm|complete)\b|(?:on|in) the app\b)/i;
+// A number after these is an account, reference or phone number; "XX 1234" is a masked account.
+const NOT_A_CODE_BEFORE = /(?:\b(?:a\/c|ac|acct|account|card|ref|refno|txn|id|call|no|number)\b[:.]?|[Xx*]{2,}) ?$/i;
 const CURRENCY_TAIL = /(?:\brs\.?|\binr|₹|\b([A-Z]{3})) ?:? ?$/i;
 
 /** True for a one-time password however it is phrased. Checked before any
  *  parsing: "OTP for txn of Rs 500" is an OTP, whatever amount it carries.
- *  A missed OTP costs more than a lost draft, so this leans to true. */
+ *  A missed OTP costs more than a lost draft, so this leans to true.
+ *  An OTP keyword alone is not enough: a bank's "never share your OTP"
+ *  footer carries no code, so the debit above it is kept. A code is a
+ *  standalone 4-8 digit number that is not an account, reference, phone,
+ *  amount, date or time. */
 export function isOtp(text: string): boolean {
   const t = squeeze(text);
-  if (OTP_WORDS.test(t)) return true;
   if (/^\d{4,8} ?[-:–]/.test(t)) return true;
+  let candidate = ATTACHED_OTP.test(t);
   for (const m of t.matchAll(STANDALONE_NUM)) {
     const at = m.index!, end = at + m[0].length;
     const beforeToks = t.slice(Math.max(0, at - 40), at).trimEnd().split(' ');
@@ -59,9 +67,12 @@ export function isOtp(text: string): boolean {
     const before = beforeToks.slice(-3).join(' ');
     if (NOT_A_CODE_BEFORE.test(before)) continue;
     if (/^\d{3,4}$/.test(beforeToks[beforeToks.length - 1] ?? '') || /^\d{3,}/.test(afterToks[0] ?? '')) continue;  // "1800 2662"
-    if (CODE_BEFORE.test(before) || CODE_AFTER.test(afterToks.slice(0, 5).join(' '))) return true;
+    candidate = true;
+    const after = afterToks.slice(0, 5).join(' ');
+    if (CODE_BEFORE.test(before) || CODE_AFTER.test(after)) return true;
+    if (USE_BEFORE.test(before) && USE_AFTER.test(after)) return true;
   }
-  return false;
+  return candidate && OTP_WORDS.test(t);
 }
 
 /* ── amount ──────────────────────────────────────────────────────────── */
@@ -70,7 +81,7 @@ type Amount = {
   start: number; end: number; minor: number; currency: string;
   /** Where the "of/for/amt" phrase that introduces it begins, or null. */
   phrase: number | null;
-  /** 0 "txn/transaction of", 1 "amt/of/for", 2 "charges/fee of", 3 none. */
+  /** 0 "txn/transaction of", 1 "amt/of/for", 3 none, 4 "charges/fee/GST of" (below a plain amount). */
   rank: number;
 };
 
@@ -97,7 +108,7 @@ function toAmount(whole: string, code: string, start: number, end: number, text:
     // Both "Charges of Rs 20 debited for txn of Rs 500" amounts follow "of";
     // the transaction's own ("txn of") outranks a fee's ("charges of").
     const lead = head.slice(0, p.index).trimEnd();
-    rank = /\b(?:txn|transaction|purchase|payment)$/i.test(lead) ? 0 : /\b(?:charges?|fees?|gst|tax)$/i.test(lead) ? 2 : 1;
+    rank = /\b(?:txn|transaction|purchase|payment)$/i.test(lead) ? 0 : /\b(?:charges?|fees?|gst|tax)$/i.test(lead) ? 4 : 1;
   }
   return { start, end, minor: fromKeys(f ? `${w}.${f}` : w, code), currency: code, phrase: p ? start - 20 + p.index - (rank === 0 ? (/\b(?:txn|transaction|purchase|payment) $/i.exec(head.slice(0, p.index))?.[0].length ?? 0) : 0) : null, rank };
 }
@@ -125,7 +136,10 @@ function amounts(text: string): Amount[] {
 // A transaction that did not happen. "failed" and the like colour the whole
 // message; "will be debited" and "mandate" only the sentence they sit in.
 const FAILED = /\b(?:failed|declined|unsuccessful)\b/i;
-const NOT_YET = /\b(?:not (?:been )?debited|will be debited|is due|mandate)\b/i;
+const NOT_YET = /\b(?:not (?:been )?debited|will be debited|is due)\b/i;
+// An executed autopay says "debited ... via UPI Mandate"; only a mandate being set up or awaited is not done.
+const MANDATE = /\b(?:e-?)?mandate\b/i;
+const MANDATE_PENDING = /\b(?:will be|registered|created|set up|setup|is due)\b/i;
 const REVERSAL = /\brevers(?:ed|al)\b/i;
 const DEBIT = /\b(?:debited|debit(?! card)|spent|sent(?! you\b)|paid(?! you\b)|withdrawn|withdrawal|purchased?|used for|(?:transferred|trf) to)\b/gi;
 const CREDIT = /\b(?:credited|credit alert|received|deposited|refunded|refund\b(?!@)|revers(?:ed|al)|(?:sent|paid) you|cashback (?:added|credited|received))\b/gi;
@@ -149,7 +163,8 @@ function verbs(text: string, sents: [number, number][]): Verb[] {
   const out: Verb[] = [];
   const live = (i: number) => {
     const s = sents.find(([a, b]) => i >= a && i <= b)!;
-    return !NOT_YET.test(text.slice(s[0], s[1]));
+    const sent = text.slice(s[0], s[1]);
+    return !(NOT_YET.test(sent) || (MANDATE.test(sent) && MANDATE_PENDING.test(sent)));
   };
   if (!REVERSAL.test(text))                      // a reversal puts the money back, whatever else it says
     for (const m of text.matchAll(DEBIT)) if (live(m.index!)) out.push({ start: m.index!, end: m.index! + m[0].length, direction: 'debit' });
@@ -181,7 +196,7 @@ function pair(vs: Verb[], amts: Amount[], sents: [number, number][]): { v: Verb;
 
 /* ── last4, date, merchant ───────────────────────────────────────────── */
 
-const LAST4 = /\b(?:a\/c|ac\b|acct\b|account\b|card\b)\.?(?: ?(?:no\.?|number))?(?: ?ending(?: (?:in|with))?)? ?[:-]? ?[Xx*.]*(\d{4,})(?!\d)/i;
+const LAST4 = /\b(?:a\/c|ac\b|acct\b|account\b|card\b)\.?(?: ?(?:no\.?|number))?(?: ?ending(?: (?:in|with))?)? ?[:-]? ?(?:[Xx*.]+ ?)?(\d{4,})(?!\d)/i;
 
 const MONTHS: Record<string, number> = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12 };
 
@@ -211,7 +226,7 @@ const VPA = /^[\w.\-]+@[A-Za-z][\w]*$/;
 const NAME_STOP = new Set(['on', 'via', 'using', 'ref', 'refno', 'upi', 'txn', 'from', 'to', 'at', 'with', 'for', 'by', 'in', 'is', 'utr', 'imps', 'neft',
   'initiated', 'declined', 'failed', 'reversed', 'has', 'been', 'was', 'successful', 'successfully', 'processed', 'not']);
 const ACCOUNT_WORD = new Set(['a/c', 'ac', 'acct', 'account', 'card', 'bank']);
-const NOT_A_NAME = new Set(['block', 'your', 'my', 'the', 'a', 'an', 'atm']);
+const NOT_A_NAME = new Set(['block', 'confirm', 'your', 'my', 'the', 'a', 'an', 'atm']);
 
 /** The name after one to/at/from, or null when what follows is an account, a number or nothing. */
 function nameAfter(rest: string): string | null {
