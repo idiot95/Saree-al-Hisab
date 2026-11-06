@@ -33,7 +33,7 @@ the single source of truth for the palette.
 
 ## Quiet Ledger (the redesign, Oct 2026) — where it overrides what follows
 
-The screens were rebuilt on shadcn/ui (Radix, vaul, sonner) with Tabler icons,
+The screens were rebuilt on shadcn/ui (Radix, vaul, sonner) with Material Symbols icons,
 Tailwind 4 and a palette of its own in `src/app/ql.css` (paper, navy ink,
 marigold for Add and attention). `tokens.css` is still generated and still
 read by the category tints; nothing else should reach for a `--c-*` token.
@@ -1346,11 +1346,14 @@ iOS Safari's own worker. Do that before trusting it in a tunnel.
 
 ## The icon set and the colour
 
-**Tabler Icons** (MIT), imported by name so only the ~35 used are bundled;
-`optimizePackageImports` rewrites the barrel into deep imports. Drawing them by
-hand was a false economy — a set somebody maintains is more consistent than one
-invented glyph by glyph, and it grows when a household wants a category nobody
-thought of. The `Icon` wrapper stays, so call sites still ask for `'cart'`.
+**Material Symbols Rounded**, self-hosted as a subset
+(`src/app/fonts/material-symbols.woff2`, ~105 KB, built by `npm run icons:font`
+from the names in `icon-names.ts`; add a name there, rerun, commit the woff2).
+Icons are drawn by ligature in a span, so nothing loads from Google at run
+time. `ICON_NAMES` maps the app name stored in the database ('cart') to the
+Material name, so the keys are frozen and only what is drawn changes. The
+`Icon` wrapper stays, so call sites still ask for `'cart'`; the tab bar and
+loading skeletons keep their own SVG paths (no client script).
 
 Categories have carried an icon name since the schema was written and every
 screen was discarding it for two letters. `Chip` is the tinted tile a glyph
