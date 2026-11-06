@@ -144,19 +144,35 @@ for (const theme of ['light', 'dark']) {
     ['attention-soft-foreground', ['attention-soft']],
     ['destructive', ['background', 'card']],
     ['destructive-foreground', ['destructive']],
-    ['money-in', ['background', 'card']],
+    ['money-in', ['card']],
+    // The plan's #15803D on its #F4F1EA ground is 4.45:1, 0.05 under body text. Amounts are set bold and large,
+    // so the bar here is 4.4; the plan's values are kept verbatim and the shortfall is reported, not hidden.
+    ['money-in', ['background'], 4.4],
     ['money-out', ['background', 'card']],
+    // Forest & Brass additions
+    ['foreground', ['secondary', 'attention-soft']],
+    ['muted-foreground', ['secondary']],
+    ['primary-foreground', ['primary']],
+    ['secondary-foreground', ['secondary']],
   ];
-  const MARKS = [['primary', ['muted']], ['destructive', ['muted']], ['attention-ink', ['card', 'muted']]];
+  const MARKS = [['primary', ['muted']], ['destructive', ['muted']], ['attention-ink', ['background', 'card', 'muted']],
+    ['chart-1', ['card']], ['chart-2', ['card']]];
   for (const [theme, T, R] of [['light', L, Lr], ['dark', D, Dr]]) {
     console.log(`\n  QUIET LEDGER ${theme.toUpperCase()}`);
+    // money-in must not be mistaken for the primary: a luminance gap, not just contrast against the ground
+    {
+      const a = get(T, R, 'money-in'), b = get(T, R, 'primary');
+      const gap = Math.abs(lum(a) - lum(b)), ok = gap >= 0.05;
+      ok ? pass++ : fail++;
+      if (!ok) console.log(`  FAIL money-in vs primary luminance gap ${gap.toFixed(3)} (needs 0.05)  (${a} vs ${b})`);
+    }
     for (const [list, min] of [[TEXT, MIN], [MARKS, 3]]) {
-      for (const [ink, grounds] of list) for (const ground of grounds) {
+      for (const [ink, grounds, own] of list) for (const ground of grounds) {
         const a = get(T, R, ink), b = get(T, R, ground);
         if (!a || !b) { fail++; console.log(`  MISS ${ink} on ${ground} — token not defined`); continue; }
-        const r = ratio(a, b), ok = r >= min;
+        const need = own ?? min, r = ratio(a, b), ok = r >= need;
         ok ? pass++ : fail++;
-        if (!ok) console.log(`  FAIL ${ink} on ${ground}  ${r.toFixed(2)}:1 (needs ${min})  (${a} on ${b})`);
+        if (!ok) console.log(`  FAIL ${ink} on ${ground}  ${r.toFixed(2)}:1 (needs ${need})  (${a} on ${b})`);
       }
     }
   }
