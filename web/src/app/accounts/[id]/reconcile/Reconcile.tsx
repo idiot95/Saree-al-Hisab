@@ -9,7 +9,7 @@ import { haptic } from '../../../haptics';
 import { DateChips } from '../../../DatePick';
 import { useMoney } from '@/app/currency';
 import { finishReconcile, undoReconcile } from '../../reconcile/actions';
-import { useKeepOnRefusal } from '../../../worth/fields';
+import { useKeepOnRefusal } from '../../../form-hooks';
 
 type Entry = { id: string; on: string; what: string; via: string | null; signed: number };
 

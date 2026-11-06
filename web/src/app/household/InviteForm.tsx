@@ -6,7 +6,7 @@ import { haptic } from '../haptics';
 import { Icon } from '../Icon';
 import { ErrorNote, Field } from '../auth-ui';
 import { solid } from './rows';
-import { useFocusSoon, useKeepOnRefusal, useOnSuccess } from '../worth/fields';
+import { useFocusSoon, useKeepOnRefusal, useOnSuccess } from '../form-hooks';
 import { Said } from '../form-bits';
 
 /* Say plainly what this link is. Accepted with Google it is bound to the

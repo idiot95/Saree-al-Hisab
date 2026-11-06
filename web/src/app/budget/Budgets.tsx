@@ -7,7 +7,8 @@ import { Icon, Chip } from '../Icon';
 import { haptic } from '../haptics';
 import { useMoney } from '@/app/currency';
 import SwipeRow, { type SwipeAction } from '../SwipeRow';
-import { Problem, keepFields } from '../worth/fields';
+import { ErrorNote as Problem } from '../auth-ui';
+import { keepFields } from '../form-hooks';
 import {
   createBudgetSet, updateBudgetSet, useBudgetSet, deleteBudgetSet,
 } from './actions';

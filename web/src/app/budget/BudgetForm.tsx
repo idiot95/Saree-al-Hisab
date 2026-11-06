@@ -4,7 +4,7 @@ import { useActionState, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Chip, Icon } from '../Icon';
 import { Figure } from '../Figure';
-import { Problem } from '../worth/fields';
+import { ErrorNote as Problem } from '../auth-ui';
 import { saveBudget } from './actions';
 import { useMoney } from '@/app/currency';
 import { haptic } from '../haptics';

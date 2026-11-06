@@ -5,7 +5,7 @@ import { Chip, Icon, ACCOUNT_ICON, ACCOUNT_TINT } from '../Icon';
 import { AddRow, Info, Said, fieldLabel, formCard, ghost, solid } from '../form-bits';
 import { Field, ErrorNote } from '../auth-ui';
 import { addAccount } from './actions';
-import { useFocusSoon, useKeepOnRefusal, useOnSuccess } from '../worth/fields';
+import { useFocusSoon, useKeepOnRefusal, useOnSuccess } from '../form-hooks';
 import CardIdentityFields from './CardIdentityFields';
 
 const KINDS = [

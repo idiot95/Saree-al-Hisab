@@ -10,7 +10,8 @@ import { haptic } from '../../haptics';
 import { useMoney } from '../../currency';
 import { addHoldingPhotos, archiveHolding, setRateOverride, updateSnapshot, type Result } from '../actions';
 import { PhotoField, withPhotos } from '../PhotoField';
-import { Field, Problem, keepFields } from '../fields';
+import { Field, Problem } from '../fields';
+import { keepFields } from '../../form-hooks';
 import { replacing } from '../../backStack';
 
 /* What can be done to one holding. Each drawer posts to its server action, says what went wrong in a

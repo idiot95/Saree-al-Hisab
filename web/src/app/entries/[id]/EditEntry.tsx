@@ -12,7 +12,7 @@ import type { Category } from '@/app/CategoryFinder';
 import { accountRef, railRef, type Way } from '@/lib/pay';
 import { fits } from '@/lib/scope';
 import { DateChips } from '@/app/DatePick';
-import { useKeepOnRefusal } from '@/app/worth/fields';
+import { useKeepOnRefusal } from '@/app/form-hooks';
 
 export default function EditEntry({ entry, categories, ways, canEdit, back = '/entries' }: {
   entry: {

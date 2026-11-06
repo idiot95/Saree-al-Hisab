@@ -4,7 +4,7 @@ import { useActionState, useState } from 'react';
 import { Icon, RAIL_ICON } from '../Icon';
 import { Field, ErrorNote } from '../auth-ui';
 import { addMethod } from './actions';
-import { useFocusSoon, useKeepOnRefusal, useOnSuccess } from '../worth/fields';
+import { useFocusSoon, useKeepOnRefusal, useOnSuccess } from '../form-hooks';
 import { AddRow, fieldLabel, formCard, ghost, selectCls, solid, Said } from '../form-bits';
 
 type Acc = { id: string; name: string; kind: string };

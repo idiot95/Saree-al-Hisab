@@ -3,7 +3,7 @@
 import { useActionState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Icon } from '../Icon';
-import { Problem } from '../worth/fields';
+import { ErrorNote as Problem } from '../auth-ui';
 import { copyPreviousMonth } from './actions';
 import { useMoney } from '@/app/currency';
 

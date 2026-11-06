@@ -10,7 +10,8 @@ import { editAccount, archiveAccount } from './actions';
 import CardIdentityFields from './CardIdentityFields';
 import { bankFromName } from '@/lib/card-brand';
 import { startPending } from '../pending';
-import { OwnerSelect, keepFields } from '../worth/fields';
+import { OwnerSelect } from '../worth/fields';
+import { keepFields } from '../form-hooks';
 import { Info, ghost, solid } from '../form-bits';
 
 /* Tap the row and it becomes its own form; save and it becomes a row again.

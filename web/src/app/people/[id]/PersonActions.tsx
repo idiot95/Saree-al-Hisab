@@ -2,7 +2,8 @@
 
 import { useActionState, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Field, Problem } from '../../worth/fields';
+import { ErrorNote as Problem } from '../../auth-ui';
+import { Field } from '../../worth/fields';
 import { Icon } from '../../Icon';
 import { lend, recordRepayment, writeOff } from '../actions';
 import { useMoney } from '@/app/currency';

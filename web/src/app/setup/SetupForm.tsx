@@ -3,7 +3,7 @@
 import { useActionState } from 'react';
 import { CurrencyField, Field, ErrorNote, primaryBtn } from '../auth-ui';
 import { setUpHousehold } from './actions';
-import { useKeepOnRefusal } from '../worth/fields';
+import { useKeepOnRefusal } from '../form-hooks';
 import { cn } from '@/lib/utils';
 
 export default function SetupForm() {

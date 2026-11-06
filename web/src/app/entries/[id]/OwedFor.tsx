@@ -4,7 +4,7 @@ import { useActionState, useState } from 'react';
 import { Field, ErrorNote } from '../../auth-ui';
 import { addClaim, abandonClaim } from '../../people/actions';
 import { useMoney } from '@/app/currency';
-import { useFocusSoon, useKeepOnRefusal, useOnSuccess } from '../../worth/fields';
+import { useFocusSoon, useKeepOnRefusal, useOnSuccess } from '../../form-hooks';
 import { Icon } from '../../Icon';
 import { Said, fieldLabel, ghost, selectCls, solid } from '../../form-bits';
 import { cn } from '@/lib/utils';

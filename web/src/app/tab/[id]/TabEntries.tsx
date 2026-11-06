@@ -7,7 +7,7 @@ import SwipeRow, { type SwipeAction } from '../../SwipeRow';
 import Snack, { type SnackState } from '../../Snack';
 import BottomDrawer from '../../BottomDrawer';
 import { Button } from '@/components/ui/button';
-import { Problem } from '../../worth/fields';
+import { ErrorNote as Problem } from '../../auth-ui';
 import { Chip, Icon } from '../../Icon';
 import { Empty } from '../../entries/parts';
 import { haptic } from '../../haptics';

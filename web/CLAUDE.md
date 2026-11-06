@@ -170,8 +170,9 @@ capture_token, sms_draft). Where an older section disagrees, this wins.
   wrap instead of truncating. Balances that an edit or a match moves are `Figure`s (the account row, Net worth on
   `/accounts`, "In the books today" on a reconciliation). The in-place forms share `src/app/form-bits.tsx`
   (`fieldLabel`, `selectCls`, `formCard`, `Info`, `AddRow`, and the `solid`/`ghost`/`danger` buttons household's rows re-export)
-  with auth-ui's `Field`/`ErrorNote` (the one error note; worth/fields' `Problem` is it re-exported). A form that
-  posts straight to its action (it works without script) spreads `useKeepOnRefusal(state)` from worth/fields, which puts
+  with auth-ui's `Field`/`ErrorNote` (the one error note; forms import it as `ErrorNote as Problem`, and only Wealth's own
+  forms take worth/fields' re-export of it). A form that
+  posts straight to its action (it works without script) spreads `useKeepOnRefusal(state)` from `form-hooks`, which puts
   back what React's post-action reset undid after a refusal; one that opens only after a tap uses `keepFields`. A form that stays
   mounted after a success closes or is redrawn with a new key through `useOnSuccess(state, fn)`, because the reset runs
   after a success too and would leave its radios and selects on the defaults while its state keeps the last choice. CardDeck and the schedules Calendar/MonthGrid moved to library components in Task 28 (below).
@@ -216,7 +217,7 @@ gets the same cap and grip from it. Every month grid is `src/app/HijriCalendar.t
 first, the Hijri day under each date, `min`/`max` as disabled days and paging bounds, 44px cells (48 on Android),
 `marksFor` for Upcoming's dots.
 
-**Form state after an action** (`src/app/worth/fields.tsx`). React resets a `<form action>` after it settles —
+**Form state after an action** (`src/app/form-hooks.tsx`; it was in worth/fields until the final review). React resets a `<form action>` after it settles —
 refusals and successes alike — which put radios and selects back to their defaults while the component's state kept
 the choice. Three rules:
 - A form that posts straight to its action (a page-level form, which works without script) spreads

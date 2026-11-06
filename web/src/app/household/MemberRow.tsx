@@ -5,7 +5,7 @@ import { changeRole, issueReset, removeMember } from './actions';
 import { Icon } from '../Icon';
 import { ErrorNote } from '../auth-ui';
 import { Avatar } from './rows';
-import { keepFields } from '../worth/fields';
+import { keepFields } from '../form-hooks';
 
 type Role = 'owner' | 'adult' | 'viewer';
 const LABEL: Record<Role, string> = {

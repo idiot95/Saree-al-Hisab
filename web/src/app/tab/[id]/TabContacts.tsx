@@ -3,7 +3,8 @@
 import Link from '@/app/NavLink';
 import { useActionState, useCallback, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Problem, keepFields } from '../../worth/fields';
+import { ErrorNote as Problem } from '../../auth-ui';
+import { keepFields } from '../../form-hooks';
 import { Icon } from '../../Icon';
 import { haptic } from '../../haptics';
 import BottomDrawer from '../../BottomDrawer';

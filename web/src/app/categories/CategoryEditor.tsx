@@ -14,7 +14,7 @@ import { ICONS, TINTS } from './options';
 import { Segmented } from '../DatePick';
 import { SCOPE_LABEL, type Scope } from '@/lib/scope';
 import Suggested from './Suggested';
-import { keepFields, useFocusSoon, useOnSuccess } from '../worth/fields';
+import { keepFields, useFocusSoon, useOnSuccess } from '../form-hooks';
 
 type Cat = {
   id: string; name: string; icon: string; tint: string; scope: Scope; parent_id: string | null;

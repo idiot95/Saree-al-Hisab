@@ -2,7 +2,9 @@
 
 import { useActionState, useCallback, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Field, Problem, keepFields } from '../../worth/fields';
+import { ErrorNote as Problem } from '../../auth-ui';
+import { Field } from '../../worth/fields';
+import { keepFields } from '../../form-hooks';
 import { Icon } from '../../Icon';
 import { haptic } from '../../haptics';
 import BottomDrawer from '../../BottomDrawer';

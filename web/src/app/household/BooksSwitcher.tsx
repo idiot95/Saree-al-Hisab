@@ -6,7 +6,7 @@ import { CURRENCIES } from '@/lib/money';
 import { setCurrency, startAnotherHousehold, switchTo, renameHousehold } from './actions';
 import { Icon } from '../Icon';
 import { Card, Chevron, ghost, Glyph, row, solid, Words } from './rows';
-import { useKeepOnRefusal, useOnSuccess } from '../worth/fields';
+import { useKeepOnRefusal, useOnSuccess } from '../form-hooks';
 import { Said } from '../form-bits';
 
 type Book = { id: string; name: string; role: 'owner' | 'adult' | 'viewer'; active: boolean; people: number };

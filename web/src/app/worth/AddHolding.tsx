@@ -10,7 +10,8 @@ import { Icon } from '../Icon';
 import { haptic } from '../haptics';
 import { createHolding, type Result } from './actions';
 import { PhotoField, withPhotos } from './PhotoField';
-import { Field, OwnerSelect, Problem, keepFields } from './fields';
+import { Field, OwnerSelect, Problem } from './fields';
+import { keepFields } from '../form-hooks';
 
 type Kind = 'fx_cash' | 'gold' | 'silver';
 const KINDS: { key: Kind; word: string }[] = [
