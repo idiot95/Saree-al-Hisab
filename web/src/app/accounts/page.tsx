@@ -2,7 +2,7 @@ import Link from '@/app/NavLink';
 import { redirect } from 'next/navigation';
 import { Chip, RAIL_ICON, RAIL_TINT, ACCOUNT_ICON, ACCOUNT_TINT } from '../Icon';
 import {
-  actorOrNull, accountsWithBalances, allBalances, methodsWithFunding, openCyclesFor, owedByPerson, tabHeldOwed,
+  actorOrNull, accountsWithBalances, allBalances, membersOf, methodsWithFunding, openCyclesFor, owedByPerson, tabHeldOwed,
 } from '@/db/queries';
 import { netWorth } from '@/lib/worth';
 import PageHead from '../PageHead';
@@ -32,16 +32,17 @@ export default async function Accounts() {
 
   const name = actor.household_name;
   const hh = actor.household_id;
-  const [accounts, methods, cycles, balances, owedTo, held] = await withHousehold(hh, () => Promise.all([
+  const [accounts, methods, cycles, balances, owedTo, held, members] = await withHousehold(hh, () => Promise.all([
     accountsWithBalances(hh),
     methodsWithFunding(hh),
     openCyclesFor(hh),
     allBalances(hh),
     owedByPerson(hh),
     tabHeldOwed(hh),
+    membersOf(hh),
   ]));
   /* The same figure the Net worth screen shows, from the same helper. */
-  const { worth, receivable, assetTotal, debtTotal } = netWorth({ accounts: balances, claimed: owedTo.reduce((n, o) => n + Number(o.claimed), 0), held: Number(held) });
+  const { worth, receivable, assetTotal, debtTotal } = netWorth({ accounts: balances, claimed: owedTo.reduce((n, o) => n + Number(o.claimed), 0), held: Number(held), members: members.map((m) => m.id) });
 
   const canWrite = actor.role !== 'viewer';
   const holdings = accounts.filter((a) => a.kind !== 'credit');

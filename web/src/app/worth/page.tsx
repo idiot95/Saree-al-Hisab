@@ -1,6 +1,6 @@
 import { Chip, Icon, ACCOUNT_ICON, ACCOUNT_TINT } from '../Icon';
 import { redirect } from 'next/navigation';
-import { actorOrNull, allBalances, monthlySeries, owedByPerson, tabHeldOwed, worthSeries } from '@/db/queries';
+import { actorOrNull, allBalances, membersOf, monthlySeries, owedByPerson, tabHeldOwed, worthSeries } from '@/db/queries';
 import { withHousehold } from '@/db/client';
 import { netWorth } from '@/lib/worth';
 import { format } from '@/lib/money';
@@ -23,12 +23,13 @@ export default async function Worth() {
   if (!actor.household_id) redirect('/no-household');
 
   const hh = actor.household_id;
-  const [accounts, owed, allSeries, held, months] = await withHousehold(hh, () => Promise.all([
+  const [accounts, owed, allSeries, held, months, members] = await withHousehold(hh, () => Promise.all([
     allBalances(hh),
     owedByPerson(hh),
     worthSeries(hh, 6),
     tabHeldOwed(hh),
     monthlySeries(hh, 6),
+    membersOf(hh),
   ]));
   /* The line starts at the first month anything was recorded: before that the figure is only the opening
      balances, and "more than six months ago" would be measuring against months the books were not kept. */
@@ -44,8 +45,8 @@ export default async function Worth() {
      that has lent a lot should see that as a line, not have it folded in
      silently. */
   // Plus what the tabs are owed with nobody named — no person's row carries it.
-  const { worth, assets, debts, assetTotal, debtTotal, receivable, claims, savings, lent } =
-    netWorth({ accounts, claimed: owed.reduce((n, o) => n + Number(o.claimed), 0), held: Number(held) });
+  const { worth, assets, debts, assetTotal, accountAssetTotal, debtTotal, receivable, claims, savings, lent } =
+    netWorth({ accounts, claimed: owed.reduce((n, o) => n + Number(o.claimed), 0), held: Number(held), members: members.map((m) => m.id) });
 
   const points = series.map((p) => Number(p.held));
   const lo = Math.min(...points, 0), hi = Math.max(...points, 1);
@@ -117,7 +118,7 @@ export default async function Worth() {
                 icon: ACCOUNT_ICON[a.kind] ?? 'tag',
                 tint: ACCOUNT_TINT[a.kind] ?? 'neutral',
               })),
-            ]} total={assetTotal} />
+            ]} total={accountAssetTotal} />
           </Section>
 
           {receivable !== 0 && (
