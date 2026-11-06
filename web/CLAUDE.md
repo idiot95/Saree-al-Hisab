@@ -321,7 +321,7 @@ A repayment is `kind = 'claim_receipt'` — money in, but explicitly not income.
 
     npm run migrate            # in filename order; --reset drops and rebuilds
     node scripts/app-role.mjs  # rotate the app role's password; --verify proves a policy bites
-    npm run test:invariants    # 357 assertions against real Postgres
+    npm run test:invariants    # 367 assertions against real Postgres
     npm run test:lib           # the pure library, the offline queue and Back (safeBack, the trail)
     npm run test:contrast      # every ink/ground pair, both themes, WCAG; the palette; dark written the same twice
     npm run lint               # 0 errors, 0 warnings
@@ -355,7 +355,7 @@ transaction USE; those still run statement by statement.
 ## Proven, not assumed
 
 `npm run test:invariants` tries to BREAK each rule and expects Postgres to
-refuse. 357 assertions currently pass (143 when this was first written), covering, among the rest: a move can never look like
+refuse. 367 assertions currently pass (143 when this was first written), covering, among the rest: a move can never look like
 spending, `spend_txn` is the only definition of spending, refunds net off in
 the month they land, a card purchase files itself into the right cycle, a
 payment method is a rail and not a balance, lending never touches the budget,
@@ -818,7 +818,13 @@ security** — Neon's `neondb_owner` has `BYPASSRLS`. On a copy whose owner
 lacks it, `FORCE` applies to the owner too, the function sees no
 `capture_token` row, and every forwarded message is refused: it fails
 closed, never open. Give that owner `BYPASSRLS` (or own the function by a
-role that has it) if SMS capture is wanted there.
+role that has it) if SMS capture is wanted there. The invariants check both the function owner's and
+the migrating role's `rolbypassrls`, and that PUBLIC cannot execute it.
+**A key does not outlive its holder's place**: `removeMember`, and `changeRole`
+to viewer, revoke that person's capture keys for the household in the same
+transaction (`src/lib/member-change.ts`, run as written by the invariants and
+by `capture.test.mjs`), so a re-invited or re-raised member's old phone stays
+at 401 and needs a new key.
 
 In code, `withHousehold(householdId, fn)` in `src/db/client.ts` opens a
 transaction, sets the household, runs `fn`, and commits — every action and

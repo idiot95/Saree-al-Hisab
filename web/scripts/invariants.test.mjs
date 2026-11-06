@@ -20,6 +20,8 @@ const { createFromInviteGoogleIn } = await import(pathToFileURL(join(root, '.lib
 const { hashLinkToken, newLinkToken } = await import(pathToFileURL(join(root, '.libbuild/link-token.js')).href);
 /* What becomes of a forwarded bank message — accepted, dismissed, undone, its text purged — run as written. */
 const { acceptDraftIn, dismissDraftIn, restoreDraftIn, purgeSmsBodiesIn } = await import(pathToFileURL(join(root, '.libbuild/sms-draft.js')).href);
+/* What removeMember and changeRole run (the member row and the person's capture keys, together), run as written. */
+const { removeMemberIn, changeRoleIn } = await import(pathToFileURL(join(root, '.libbuild/member-change.js')).href);
 /* The same database the app runs against, as its OWNER: the app connects as
    `saree_app` (APP_DATABASE_URL), which cannot bypass row security, and a
    script that saw only one household would be no use to anyone. */
@@ -1344,6 +1346,43 @@ try {
     ok((await app`select count(*)::int as n from pg_proc p join pg_roles r on r.oid = p.proowner
       where p.proname = 'capture_lookup' and p.prosecdef and r.rolname <> current_user`)[0].n === 1,
       'capture_lookup is a security-definer function owned by the owner, not the app role');
+    /* It can find a token across households only because its owner bypasses row security: FORCE applies to the
+       owner too otherwise, and every phone would get a 401 with nothing said. A role attribute, not inherited. */
+    const [lookupOwner] = await sql`select r.rolname, r.rolbypassrls, r.rolsuper from pg_proc p
+      join pg_roles r on r.oid = p.proowner where p.proname = 'capture_lookup'`;
+    ok(lookupOwner?.rolbypassrls === true,
+      `capture_lookup's owner (${lookupOwner?.rolname}) has BYPASSRLS, so it can find a token in any household${lookupOwner?.rolsuper ? ' (a superuser here)' : ''}`);
+    ok((await sql`select rolbypassrls from pg_roles where rolname = current_user`)[0].rolbypassrls === true,
+      'the owner role the migrations run as has BYPASSRLS');
+    ok((await sql`select has_function_privilege('public', 'capture_lookup(text)', 'execute') as x`)[0].x === false,
+      'PUBLIC cannot execute capture_lookup');
+    ok((await sql`select has_function_privilege('saree_app', 'capture_lookup(text)', 'execute') as x`)[0].x === true,
+      'the app role can');
+
+    /* A key does not outlive its holder's place: removeMember and changeRole (to viewer) revoke it in the same
+       transaction, so re-inviting the person, or raising them back, does not revive an old phone's key. */
+    const [sara] = await sql`insert into app_user ${sql({ phone: '+910000000005', name: 'Sara' })} returning id`;
+    await sql`insert into member ${sql({ household_id: hh.id, user_id: sara.id, role: 'adult' })}`;
+    await sql`insert into capture_token ${sql({ user_id: sara.id, household_id: hh.id, token_hash: HEX('6'), label: 'Sara phone' })}`;
+    ok((await app`select * from capture_lookup(${HEX('6')})`).length === 1, "a contributing member's key answers");
+    await scoped(hh.id, (tx) => removeMemberIn(tx, hh.id, sara.id));
+    ok((await app`select * from capture_lookup(${HEX('6')})`).length === 0, 'removed, it does not');
+    await sql`insert into member ${sql({ household_id: hh.id, user_id: sara.id, role: 'adult' })}`;
+    ok((await app`select * from capture_lookup(${HEX('6')})`).length === 0,
+      're-invited as a contributing member, her old key still does not answer (it was revoked as she left)');
+    await sql`insert into capture_token ${sql({ user_id: sara.id, household_id: hh.id, token_hash: HEX('e'), label: 'Sara new' })}`;
+    ok((await app`select * from capture_lookup(${HEX('e')})`).length === 1, 'a key issued after she came back answers');
+    await scoped(hh.id, (tx) => changeRoleIn(tx, hh.id, sara.id, 'viewer'));
+    await scoped(hh.id, (tx) => changeRoleIn(tx, hh.id, sara.id, 'adult'));
+    ok((await app`select * from capture_lookup(${HEX('e')})`).length === 0,
+      'dropped to viewer and raised back, that key does not answer either');
+    await scoped(hh.id, (tx) => changeRoleIn(tx, hh.id, sara.id, 'owner'));
+    ok((await sql`select count(*)::int as n from capture_token where user_id = ${sara.id} and revoked_at is null`)[0].n === 0
+      && (await sql`select count(*)::int as n from capture_token where user_id = ${sara.id}`)[0].n === 2,
+      'both keys are revoked, not deleted; a role change that is not to viewer revokes nothing');
+    await sql`delete from member where household_id = ${hh.id} and user_id = ${sara.id}`;
+    await sql`delete from capture_token where user_id = ${sara.id}`;
+    await sql`delete from app_user where id = ${sara.id}`;
     ok(await n(app`select count(*)::int as n from sms_draft`) === 0, 'with no household named, no draft can be read');
     ok(await scoped(hh.id, (tx) => n(tx`select count(*)::int as n from sms_draft where household_id = ${hh.id}`)) === 4,
       'named, the household sees its own drafts');

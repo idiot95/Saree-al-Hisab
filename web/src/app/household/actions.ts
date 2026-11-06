@@ -17,6 +17,7 @@ import { seal, hint } from '@/lib/secretbox';
 import { testKey } from '@/db/gemini';
 import { THEMES, THEME_COOKIE } from '@/lib/theme';
 import { isCurrency } from '@/lib/money';
+import { changeRoleIn, removeMemberIn } from '@/lib/member-change';
 
 /* Every one of these is reachable by direct POST, so each re-establishes who
    is asking and what they are allowed to do. Hiding a button is presentation;
@@ -120,8 +121,9 @@ export async function changeRole(_prev: Result | null, formData: FormData): Prom
       }
     }
 
-    await sql`update member set role = ${role}
-              where household_id = ${actor.household_id} and user_id = ${userId}`;
+    /* One transaction (withHousehold): dropped to viewer, their phones' capture keys are revoked with it, so
+       raising them back later does not bring an old key back to life. */
+    await changeRoleIn(sql, actor.household_id, userId, role as 'owner' | 'adult' | 'viewer');
     revalidatePath('/household');
     return { ok: true };
   });
@@ -137,8 +139,8 @@ export async function removeMember(_prev: Result | null, formData: FormData): Pr
     }
     // Their entries stay. The ledger is the household's, not the person's —
     // removing someone must never silently change what the month cost.
-    await sql`delete from member
-              where household_id = ${actor.household_id} and user_id = ${userId}`;
+    // Their capture keys go in the same transaction, so a re-invitation never revives an old phone's key.
+    await removeMemberIn(sql, actor.household_id, userId);
     revalidatePath('/household');
     return { ok: true };
   });

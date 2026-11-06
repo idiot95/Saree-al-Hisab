@@ -14,11 +14,19 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHash, randomBytes } from 'node:crypto';
 import postgres from 'postgres';
+import { execFileSync } from 'node:child_process';
+import { writeFileSync } from 'node:fs';
+import { pathToFileURL } from 'node:url';
 import { localOwnerUrl, assertLocal } from './local-only.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const envFile = readFileSync(join(root, '.env.local'), 'utf8');
 const url = assertLocal(localOwnerUrl(root));
+/* removeMember and changeRole run these statements (src/lib/member-change.ts); compiled as the lib tests compile
+   them, so what is proved here is the action's own code. */
+execFileSync('npx', ['tsc', '-p', 'tsconfig.lib.json'], { cwd: root, stdio: 'inherit' });
+writeFileSync(join(root, '.libbuild/package.json'), '{"type":"module"}\n');
+const { removeMemberIn, changeRoleIn } = await import(pathToFileURL(join(root, '.libbuild/member-change.js')).href);
 const sql = postgres(url, { ssl: 'require', max: 1, onnotice: () => {} });
 const B = process.env.BASE_URL ?? 'http://localhost:3000';
 const EP = B + '/api/capture/sms';
@@ -47,9 +55,9 @@ const tag = randomBytes(4).toString('hex');
 const [hh] = await sql`insert into household (name) values (${'capture test ' + tag}) returning id`;
 const mk = async (who) => (await sql`
   insert into app_user (email, name) values (${`${who}.${tag}@capture.test`}, ${who}) returning id`)[0].id;
-const owner = await mk('owner'), viewer = await mk('viewer'), gone = await mk('gone');
+const owner = await mk('owner'), viewer = await mk('viewer'), gone = await mk('gone'), sara = await mk('sara');
 await sql`insert into member (household_id, user_id, role) values
-  (${hh.id}, ${owner}, 'owner'), (${hh.id}, ${viewer}, 'viewer')`;
+  (${hh.id}, ${owner}, 'owner'), (${hh.id}, ${viewer}, 'viewer'), (${hh.id}, ${sara}, 'adult')`;
 
 const issue = async (userId, label, revoked = false) => {
   const t = newToken();
@@ -62,6 +70,11 @@ const burst = await issue(owner, 'burst phone');
 const revoked = await issue(owner, 'old phone', true);
 const view = await issue(viewer, 'viewer phone');
 const removed = await issue(gone, 'removed phone');   // never a member of hh
+const saraOld = await issue(sara, 'sara old phone');   // removed with her, then she is re-invited
+const saraTwo = await issue(sara, 'sara phone two');   // dropped to viewer with her, then she is raised back
+/* As the action runs them: inside one household-scoped transaction. */
+const scoped = (fn) => sql.begin(async (tx) => { await tx`select set_config('app.household_id', ${hh.id}, true)`; return fn(tx); });
+const saraKeys = [];
 const drafts = async () => (await sql`select count(*)::int as n from sms_draft where household_id = ${hh.id}`)[0].n;
 
 try {
@@ -81,6 +94,25 @@ try {
   ok((await post(json, { token: view.t })).status === 401, "a viewer's token → 401");
   ok((await post(json, { token: removed.t })).status === 401, "the token of someone no longer a member → 401");
   ok(await drafts() === 0, 'and none of those stored anything');
+
+  // ── a removed member's key stays dead when they come back ─────────────
+  const saraMsg = (n) => JSON.stringify({ text: `Sent Rs.${n}.00 From HDFC Bank A/c XX1234 To ZOMATO On 06/11/26 Ref 7${tag}${n}.`, sender: 'HDFCBK' });
+  ok((await post(saraMsg(11), { token: saraOld.t })).status === 202, "a contributing member's key → 202");
+  await scoped((tx) => removeMemberIn(tx, hh.id, sara));
+  ok((await post(saraMsg(12), { token: saraOld.t })).status === 401, 'removed (removeMember): her key → 401');
+  await sql`insert into member (household_id, user_id, role) values (${hh.id}, ${sara}, 'adult')`;
+  ok((await post(saraMsg(13), { token: saraOld.t })).status === 401, 're-invited as a contributing member: the old key is still 401');
+  ok((await post(saraMsg(14), { token: saraTwo.t })).status === 401, 'and so is her other phone, revoked with her');
+  ok((await sql`select count(*)::int as n from capture_token where user_id = ${sara} and household_id = ${hh.id} and revoked_at is null`)[0].n === 0,
+    'removeMember revoked every key she held here');
+  const saraThree = await issue(sara, 'sara new phone');
+  ok((await post(saraMsg(15), { token: saraThree.t })).status === 202, 'a new key issued after she came back → 202');
+  await scoped((tx) => changeRoleIn(tx, hh.id, sara, 'viewer'));
+  await scoped((tx) => changeRoleIn(tx, hh.id, sara, 'adult'));
+  ok((await post(saraMsg(16), { token: saraThree.t })).status === 401, 'dropped to viewer (changeRole) and raised back: that key → 401');
+  ok(await drafts() === 2, 'only the two posts made while a key was good stored a draft');
+  await sql`delete from sms_draft where household_id = ${hh.id}`;
+  saraKeys.push(saraOld, saraTwo, saraThree);
 
   // ── what may be sent ──────────────────────────────────────────────────
   ok((await post('{"text":', { token: main.t })).status === 400, 'bad JSON → 400');
@@ -204,9 +236,9 @@ try {
   ok(/nonce-/.test(near.headers.get('content-security-policy') ?? ''),
     `/api/captureX is still under the proxy: it carries the page CSP (${near.status})`);
 } finally {
-  await sql`delete from rate_limit where bucket in ${sql([main, burst, revoked, view, removed].map((t) => `capture:${t.id}`))}`;
+  await sql`delete from rate_limit where bucket in ${sql([main, burst, revoked, view, removed, saraOld, saraTwo, ...saraKeys].map((t) => `capture:${t.id}`))}`;
   await sql`delete from household where id = ${hh.id}`;            // cascades tokens and drafts
-  await sql`delete from app_user where id in ${sql([owner, viewer, gone])}`;
+  await sql`delete from app_user where id in ${sql([owner, viewer, gone, sara])}`;
   await sql.end();
 }
 
