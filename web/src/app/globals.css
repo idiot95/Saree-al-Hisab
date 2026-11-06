@@ -88,9 +88,6 @@
      which card this is, the network is a footnote. Inverted in the dark theme
      so a navy wordmark does not vanish into the panel. */
   --brand-grey: grayscale(1) opacity(.55);
-  /* The hero's ground: the card, warmed towards the brand teal so the one
-     figure that matters is not sitting on the same white as everything else. */
-  --g-hero: linear-gradient(152deg, var(--c-card) 8%, var(--c-teal-l) 104%);
   --c-on-warn: #233D4D;
   --c-on-danger: #3B120E;
 }
@@ -109,7 +106,6 @@
     --card-logo-bg: #FFFFFF;
     --card-logo-edge: rgba(255, 255, 255, .16);
     --brand-grey: grayscale(1) invert(1) opacity(.62);
-    --g-hero: linear-gradient(152deg, var(--c-card) 8%, var(--c-teal-l) 104%);
   }
 }
 :root[data-theme="dark"] {
@@ -126,7 +122,6 @@
   --card-logo-bg: #FFFFFF;
   --card-logo-edge: rgba(255, 255, 255, .16);
   --brand-grey: grayscale(1) invert(1) opacity(.62);
-  --g-hero: linear-gradient(152deg, var(--c-card) 8%, var(--c-teal-l) 104%);
 }
 
 /* Amiri, for the one line of Arabic this app carries.
@@ -451,23 +446,6 @@
   .deck-slide { display: flex; }
   .deck-slide > * { flex: 1; min-width: 0; }
 
-}
-:root {
-  /* The three grounds of the home deck. The month is the brand's own teal
-     wash; net worth takes the cyan it wears on its own screen; loans take the
-     indigo that Lending wears everywhere else.
-
-     The colour has to land INSIDE the card. The first pass put its stop at
-     168%, copying the hero's proportions, which meant the only part on screen
-     was --c-card interpolating towards --c-sunk2 — #FFFFFF to #F3F6F5, a
-     gradient nobody can see. The tint now arrives by the bottom corner.
-
-     Still pale washes over --c-card rather than colours in their own right,
-     because the red and green inside them are semantic: an over-budget bar
-     and a figure in the ink of money have to keep their contrast, and they
-     are measured against these grounds in contrast.test.mjs. */
-  --g-deck-worth: linear-gradient(152deg, var(--c-card) 8%, var(--cat-cyan) 104%);
-  --g-deck-loan: linear-gradient(152deg, var(--c-card) 8%, var(--cat-indigo) 104%);
 }
 @layer components {
 

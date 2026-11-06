@@ -257,7 +257,7 @@ function BillBody({ entry, bills, fresh, tabName, editHref, onDone, onSkip }: {
             <span style={{
               width: 40, height: 40, flex: 'none', borderRadius: 999, display: 'flex', alignItems: 'center',
               justifyContent: 'center', background: 'var(--accent)', color: 'var(--primary)',
-            }}><Icon name="check" size={20} className="check-draw" /></span>
+            }}><Icon name="check" size={20} /></span>
             <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
               <span style={{ fontSize: 'var(--step-1)', fontWeight: 600 }}>Saved on {tabName}</span>
               <span style={{ fontSize: 'var(--step--1)', color: 'var(--muted-foreground)' }}>

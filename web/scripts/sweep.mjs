@@ -396,7 +396,8 @@ async function sweepEngine(args, engine, hasState) {
         try {
           await page.goto(route, { waitUntil: 'load', timeout: 30000 });
           const landed = norm(new URL(page.url()).pathname);
-          if (landed !== norm(route)) {
+          // A route may carry a query (/?saved=…); the pathname is what must match.
+          if (landed !== norm(new URL(route, BASE).pathname)) {
             found.push({ kind: 'load', reason: `landed on ${landed}, not the requested route`, where: route });
           } else {
             if (!(await settle(page))) found.push({ kind: 'load', reason: 'page did not settle within 8s (measured anyway)', where: route });

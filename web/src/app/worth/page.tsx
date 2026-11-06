@@ -1,7 +1,6 @@
 import { redirect } from 'next/navigation';
-import { actorOrNull, allBalances, membersOf, monthlySeries, owedByPerson, tabHeldOwed, worthSeries } from '@/db/queries';
-import { holdingBases, holdingsFor } from '@/db/holdings';
-import { ensureRates } from '@/db/prices';
+import { actorOrNull, monthlySeries, worthSeries } from '@/db/queries';
+import { worthInput } from '@/db/worth';
 import { withHousehold } from '@/db/client';
 import { netWorth, type Owner } from '@/lib/worth';
 import { format, unitOf } from '@/lib/money';
@@ -30,25 +29,12 @@ export default async function Worth({ searchParams }: { searchParams: Promise<{ 
   if (!actor.household_id) redirect('/no-household');
   const hh = actor.household_id;
 
-  /* Rates first: a pair older than a day is fetched now, so the values read below are today's. A provider
-     that fails leaves the last known rate in place and is named in `stale`. */
-  const bases = await holdingBases(hh);
-  const { stale } = await ensureRates(hh, bases, actor.currency);
-
-  const [accounts, owed, allSeries, held, months, members, holdings] = await withHousehold(hh, () => Promise.all([
-    allBalances(hh),
-    owedByPerson(hh),
-    worthSeries(hh, 6),
-    tabHeldOwed(hh),
-    monthlySeries(hh, 6),
-    membersOf(hh),
-    holdingsFor(hh),
-  ]));
-
-  const memberIds = members.map((m) => m.id);
-  const input = {
-    accounts, claimed: owed.reduce((n, o) => n + Number(o.claimed), 0), held: Number(held), members: memberIds, holdings,
-  };
+  /* Rates first, then the inputs netWorth() reads — worthInput is the one path, shared with Home's row, so the
+     two figures cannot disagree. A provider that fails leaves the last known rate in place, named in `stale`. */
+  const { input, members, holdings, stale } = await worthInput(hh, actor.currency);
+  // After the rates, so the line's last point is valued at today's rates too.
+  const [allSeries, months] = await withHousehold(hh, () => Promise.all([worthSeries(hh, 6), monthlySeries(hh, 6)]));
+  const memberIds = input.members;
   const fx = holdings.filter((h) => h.kind === 'fx_cash');
   const metal = holdings.filter((h) => h.kind === 'metal');
 

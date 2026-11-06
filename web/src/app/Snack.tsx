@@ -42,7 +42,7 @@ export default function Snack({ snack, onClose, ttl = 6000 }: {
       boxShadow: '0 8px 24px -8px rgba(35,61,77,.45)',
     }}>
       {snack.check && (
-        <svg className="check-draw" width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="var(--primary)"
+        <svg className="check-draw" width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor"
           strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round" aria-hidden style={{ flex: 'none' }}>
           <path d="M5 12.5l4.5 4.5L19 7.5" />
         </svg>

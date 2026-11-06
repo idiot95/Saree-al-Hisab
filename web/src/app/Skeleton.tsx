@@ -155,7 +155,7 @@ export default function Skeleton({
   );
 }
 
-/** Home: the month and household, the ring card, the two tiles, today's list. */
+/** Home: the household and month, Left to spend, the two tiles, the net-worth row, today's list. */
 export function HomeSkeleton({ stillBar = true }: { stillBar?: boolean }) {
   return (
     <main style={{ minHeight: '100dvh', background: 'var(--background)', paddingBottom: TAB_BAR_SPACE }}>
@@ -169,22 +169,23 @@ export function HomeSkeleton({ stillBar = true }: { stillBar?: boolean }) {
       <div style={{ padding: '0 var(--gutter)', display: 'flex', flexDirection: 'column', gap: 14 }}
         aria-busy="true" aria-live="polite">
         <span className="sr-only">Loading home</span>
-        <div style={{ ...CARD, borderRadius: 22, padding: 16, display: 'flex', alignItems: 'center', gap: 16, minHeight: 150 }}>
-          <span className="shim" style={{ width: 96, height: 96, borderRadius: 999, flex: 'none' }} />
-          <span style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 9 }}>
-            <Bar w="44%" h={10} o={.7} />
-            <Bar w="78%" h={36} r={9} />
-            <Bar w="64%" h={10} o={.6} />
-          </span>
+        <div style={{ ...CARD, borderRadius: 22, padding: 18, display: 'flex', flexDirection: 'column', gap: 12, minHeight: 150 }}>
+          <Bar w="34%" h={11} o={.7} />
+          <Bar w="58%" h={38} r={9} />
+          <Bar w="100%" h={10} r={99} o={.6} />
+          <Bar w="70%" h={10} o={.6} />
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 10 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 12 }}>
           {[0, 1].map((i) => (
-            <span key={i} style={{ ...CARD, minHeight: 72, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <span key={i} style={{ ...CARD, borderRadius: 18, minHeight: 96, padding: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <Bar w={22} h={22} />
               <Bar w="54%" h={10} o={.6} />
               <Bar w="70%" h={16} />
             </span>
           ))}
         </div>
+        {/* The net-worth row, on its own dark ground. */}
+        <div style={{ borderRadius: 18, minHeight: 68, background: 'var(--hero)' }} />
         <div style={{ ...CARD, padding: '0 16px' }}>
           {[0, 1, 2].map((i) => (
             <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, minHeight: 68, borderBottom: i === 2 ? undefined : '1px solid var(--border)' }}>

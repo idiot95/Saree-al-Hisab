@@ -65,8 +65,9 @@ paragraph below says otherwise. Where an older section disagrees, this wins:
   paid, so `card_bill` (0104) caps each cycle's outstanding by the card's debt
   after newer cycles — payments clear the oldest bills first, and a card in
   credit owes no bill. `billsDue` and `inboxCount` read it. Four invariants.
-- **Net worth has one definition**, `lib/worth.ts` `netWorth()`, used by Money
-  and Net worth alike. (Home's old figure counted money lent twice.)
+- **Net worth has one definition**, `lib/worth.ts` `netWorth()`, fed by one read,
+  `db/worth.ts` `worthInput()` (rates first, then accounts, owed, members, holdings),
+  used by Wealth and Home's dark net-worth row alike. (Home's old figure counted money lent twice.)
 - **Trends** takes `?m=`; the running month is compared day for day with last
   month (`categoryTrend(…, days)`), the average is of finished months only.
 - **Back returns to where you were** (`backStack.ts`): `NavTrail` in the root
