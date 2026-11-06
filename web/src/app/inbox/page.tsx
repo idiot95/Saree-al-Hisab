@@ -10,8 +10,8 @@ import DuplicateCard from './DuplicateCard';
 import Screen from '../Screen';
 import PageHead, { Label } from '../PageHead';
 import ActivityNav from '../entries/ActivityNav';
-import { IconCalendarDue, IconChevronRight, IconCircleCheck } from '@tabler/icons-react';
 import Swipeable from '../Swipeable';
+import { Icon } from '../Icon';
 
 export const metadata = { title: 'To review · Saree al-Hisab' };
 export const dynamic = 'force-dynamic';
@@ -46,7 +46,7 @@ export default async function Inbox() {
 
         {count === 0 ? (
           <div className="mx-[var(--gutter)] flex flex-col items-center gap-3 rounded-2xl border border-border bg-card px-6 py-8 text-center">
-            <IconCircleCheck size={34} className="text-money-in" aria-hidden />
+            <Icon name="check_circle" size={34} className="text-money-in" />
             <p className="max-w-[30ch] text-sm leading-relaxed text-muted-foreground">
               No card bills waiting and no possible duplicates. This fills itself when something wants deciding.
             </p>
@@ -142,10 +142,10 @@ export default async function Inbox() {
         {dues.length > 0 && (
           <Link href="/schedules" transitionTypes={['nav-lateral']}
             className="mx-[var(--gutter)] mt-5 flex min-h-14 items-center gap-3 rounded-2xl border border-border bg-card px-4">
-            <IconCalendarDue size={20} className="text-muted-foreground" aria-hidden />
+            <Icon name="event_upcoming" size={20} className="text-muted-foreground" />
             <span className="flex-1 text-sm"><b className="font-semibold">{dues.length} due this week</b>
               <span className="text-muted-foreground"> · under Upcoming</span></span>
-            <IconChevronRight size={17} className="text-muted-foreground" aria-hidden />
+            <Icon name="chevron_right" size={17} className="text-muted-foreground" />
           </Link>
         )}
         <TabBar current="/inbox" />

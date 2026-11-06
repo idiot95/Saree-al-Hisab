@@ -45,7 +45,7 @@ function ChoiceSet({ legend, name, value, choices }: {
               {choice.logo
                 ? <Image src={choice.logo} alt="" width={42} height={34} unoptimized
                     style={{ display: 'block', width: '100%', height: '100%', objectFit: 'contain' }} />
-                : <Icon name="bank" size={20} strokeWidth={1.8} />}
+                : <Icon name="bank" size={20} />}
             </span>
             <span style={{ minWidth: 0, fontSize: 'var(--step--1)', fontWeight: 650, lineHeight: 1.2 }}>
               {choice.short ?? choice.label}

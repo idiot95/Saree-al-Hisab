@@ -13,10 +13,10 @@
     "test:invariants": "node scripts/invariants.test.mjs",
     "seed": "node scripts/seed.mjs",
     "test:lib": "node scripts/lib.test.mjs",
-    "icons": "node scripts/make-icons.mjs"
+    "icons": "node scripts/make-icons.mjs",
+    "icons:font": "node scripts/icons-font.mjs"
   },
   "dependencies": {
-    "@tabler/icons-react": "^3.46.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",

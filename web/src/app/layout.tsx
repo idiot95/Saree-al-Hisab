@@ -9,6 +9,7 @@ import RegisterSW from './RegisterSW';
 import SyncQueue from './SyncQueue';
 import PendingSkeleton from './PendingSkeleton';
 import { Inter, Instrument_Serif } from 'next/font/google';
+import localFont from 'next/font/local';
 import './globals.css';
 
 /* Inter, for a ledger, for two reasons that are not taste.
@@ -38,6 +39,12 @@ const inter = Inter({
 /* Quiet Ledger's display face: page titles and the one big figure a screen exists to give. Inter stays for
    everything else, for the tabular figures and slashed zero above. One weight, latin only. */
 const display = Instrument_Serif({ subsets: ['latin'], weight: '400', variable: '--font-display-loaded', display: 'swap' });
+
+/* The icon font: Material Symbols Rounded, subset to the glyphs the app names
+   (scripts/icons-font.mjs), committed and served from this origin. `block`,
+   not `swap`: until it arrives an icon's ligature text would show as the word
+   "shopping_cart", which is worse than a moment of nothing. */
+const icons = localFont({ src: './fonts/material-symbols.woff2', variable: '--font-icons', display: 'block' });
 
 export const metadata: Metadata = {
   title: 'Saree al-Hisab',
@@ -96,7 +103,7 @@ export default async function RootLayout({ children, modal }: { children: React.
      of them. Nobody signed in, or no household yet, and it is rupees. */
   const actor = await actorOrNull();
   return (
-    <html lang="en" className={`${inter.variable} ${display.variable}`} data-theme={forced ?? undefined}
+    <html lang="en" className={`${inter.variable} ${display.variable} ${icons.variable}`} data-theme={forced ?? undefined}
       style={forced ? { colorScheme: forced } : undefined}>
       <body>
         <CurrencyProvider currency={actor?.currency ?? 'INR'}>

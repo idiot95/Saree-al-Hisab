@@ -50,11 +50,11 @@ export default function DueRow({
       borderBottom: '1px solid var(--border)',
     }}>
       <SwipeRow actions={open ? [] : [
-        { label: 'Skip', icon: <Icon name="skip" size={20} strokeWidth={2} />, act: skipNow },
-        ...(canMove ? [{ label: 'Move', icon: <Icon name="move" size={20} strokeWidth={2} />,
+        { label: 'Skip', icon: <Icon name="skip" size={20} />, act: skipNow },
+        ...(canMove ? [{ label: 'Move', icon: <Icon name="move" size={20} />,
           act: () => setMode('move') }] : []),
         ...(canRecord ? [{ label: income ? 'Came in' : 'Record', tone: 'primary' as const,
-          icon: <Icon name="check" size={20} strokeWidth={2} />, act: () => setMode('record') }] : []),
+          icon: <Icon name="check" size={20} />, act: () => setMode('record') }] : []),
       ]}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, minHeight: 44 }}>
         <span style={{
@@ -63,7 +63,7 @@ export default function DueRow({
           background: overdue ? 'color-mix(in srgb, var(--destructive) 12%, transparent)' : 'var(--attention-soft)',
           color: overdue ? 'var(--destructive)' : 'var(--attention-soft-foreground)',
         }}>
-          <Icon name={icon ?? 'autodebit'} size={19} strokeWidth={1.9} />
+          <Icon name={icon ?? 'autodebit'} size={19} />
         </span>
         <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
           <span style={{ fontSize: 'var(--step-0)', fontWeight: 600, overflowWrap: 'anywhere' }}>{name}</span>

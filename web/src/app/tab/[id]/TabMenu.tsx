@@ -40,7 +40,7 @@ export default function TabMenu({ tabId, name, note, closed, held }: {
       <span style={{
         width: 36, height: 36, flex: 'none', borderRadius: 10, display: 'flex', alignItems: 'center',
         justifyContent: 'center', background: 'var(--muted)',
-      }}><Icon name={icon} size={18} strokeWidth={2} /></span>
+      }}><Icon name={icon} size={18} /></span>
       <span style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
         <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>{label}</span>
         <span style={{ fontSize: 'var(--step--2)', color: 'var(--muted-foreground)' }}>{sub}</span>
@@ -54,7 +54,7 @@ export default function TabMenu({ tabId, name, note, closed, held }: {
         width: 44, height: 44, marginRight: -11, borderRadius: 999, display: 'flex',
         alignItems: 'center', justifyContent: 'center', color: 'var(--foreground)',
       }}>
-        <Icon name="dots" size={22} strokeWidth={2} />
+        <Icon name="dots" size={22} />
       </button>
 
       <Sheet open={open} onClose={close} label="Tab settings">

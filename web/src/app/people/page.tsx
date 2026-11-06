@@ -110,7 +110,7 @@ export default async function LoanCentre() {
                 <span style={{
                   width: 40, height: 40, flex: 'none', borderRadius: 11, display: 'flex',
                   alignItems: 'center', justifyContent: 'center', background: 'var(--muted)', color: 'var(--muted-foreground)',
-                }}><Icon name="check" size={19} strokeWidth={2.2} /></span>
+                }}><Icon name="check" size={19} /></span>
                 <span style={{ flex: 1, fontSize: 'var(--step-0)', fontWeight: 500 }}>
                   {done.length} settled or closed {done.length === 1 ? 'tab' : 'tabs'}
                 </span>

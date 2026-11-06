@@ -32,7 +32,7 @@ export default function NewTab() {
           alignItems: 'center', justifyContent: 'center',
           background: 'var(--muted)', color: 'var(--muted-foreground)',
         }}>
-          <Icon name="plus" size={16} strokeWidth={2.2} />
+          <Icon name="plus" size={16} />
         </span>
         New tab
       </button>
@@ -64,7 +64,7 @@ export default function NewTab() {
               flex: 1, minHeight: 50, borderRadius: 13, fontSize: 'var(--step-0)', fontWeight: 600,
               background: 'var(--primary)', color: 'var(--primary-foreground)', opacity: pending ? 0.65 : 1,
             }}>
-              <Icon name="folder" size={18} strokeWidth={2} />
+              <Icon name="folder" size={18} />
               {pending ? 'Opening…' : 'Open the tab'}
             </button>
           </div>

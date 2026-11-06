@@ -1,5 +1,5 @@
-import { IconAlertTriangle, IconCircleCheck, IconTrendingUp } from '@tabler/icons-react';
 import { format } from '@/lib/money';
+import { Icon } from '../Icon';
 
 /* Quiet Ledger's answer to "how is this month going": what is left to spend, large, beside a ring of how much of
    the budget has gone. A tick on the ring marks how far through the month it is, so "am I going too fast" is
@@ -52,7 +52,7 @@ export default function MonthRing({ month, budget, spent }: { month: string; bud
       {/* A status carries an icon and a word, never colour alone. */}
       <p className="mt-3 flex items-center gap-2 border-t border-border pt-3 text-sm"
         style={{ color: over ? 'var(--destructive)' : ahead ? 'var(--attention-soft-foreground)' : 'var(--muted-foreground)' }}>
-        {over ? <IconAlertTriangle size={17} aria-hidden /> : ahead ? <IconTrendingUp size={17} aria-hidden /> : <IconCircleCheck size={17} aria-hidden />}
+        {over ? <Icon name="warning" size={17} /> : ahead ? <Icon name="trending_up" size={17} /> : <Icon name="check_circle" size={17} />}
         {over ? 'Over the budget for the month.' : ahead ? 'Going a little fast for this point in the month.'
           : early ? 'Early in the month. The pace shows from the 7th.' : 'On pace for the month.'}
       </p>

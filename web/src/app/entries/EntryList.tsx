@@ -3,13 +3,13 @@
 import Link from '@/app/NavLink';
 import { useRouter } from 'next/navigation';
 import { useCallback, useMemo, useState, useTransition } from 'react';
-import { IconSearch, IconX } from '@tabler/icons-react';
 import { Chip } from '../Icon';
 import SwipeRow from '../SwipeRow';
 import Snack, { type SnackState } from '../Snack';
 import { useMoney } from '@/app/currency';
 import { removeEntry, restoreEntry } from './actions';
 import { startPending } from '../pending';
+import { Icon } from '../Icon';
 
 export type Row = {
   id: string; kind: string; amount: string; merchant: string | null;
@@ -98,18 +98,18 @@ export default function EntryList({ days, canEdit, tools = false, flat = false, 
             router.push(words ? `/entries?q=${encodeURIComponent(words)}` : '/entries');
           }}>
             <label className="flex min-h-11 items-center gap-2 rounded-xl border border-border bg-card px-3 text-muted-foreground focus-within:border-ring">
-              <IconSearch size={18} aria-hidden />
+              <Icon name="search" size={18} />
               <input type="search" name="q" value={q} onChange={(e) => setQ(e.target.value)}
                 placeholder={everyMonth ? 'Search every month' : 'Search, or press Enter for every month'}
                 aria-label="Search entries" enterKeyHint="search"
                 className="min-w-0 flex-1 bg-transparent py-2 text-foreground outline-none placeholder:text-muted-foreground" />
-              {q && <button type="button" onClick={() => setQ('')} aria-label="Clear search" className="grid size-8 place-items-center rounded-full bg-muted"><IconX size={15} /></button>}
+              {q && <button type="button" onClick={() => setQ('')} aria-label="Clear search" className="grid size-8 place-items-center rounded-full bg-muted"><Icon name="close" size={15} /></button>}
             </label>
           </form>
           {!everyMonth && q.trim() && (
             <Link href={`/entries?q=${encodeURIComponent(q.trim())}`} transitionTypes={['nav-forward']}
               className="flex min-h-11 items-center gap-2 self-start px-1 text-sm font-semibold text-primary">
-              <IconSearch size={16} aria-hidden /> Search every month for “{q.trim()}”
+              <Icon name="search" size={16} /> Search every month for “{q.trim()}”
             </Link>
           )}
           <div role="group" aria-label="Show" className="flex flex-wrap gap-1.5">

@@ -85,7 +85,7 @@ export default function AddMethod({ accounts, startOpen = false }: { accounts: A
             }}>
               <input type="radio" name="kind" value={r.id} defaultChecked={i === 0}
                 style={{ width: 17, height: 17, accentColor: 'var(--chart-1)' }} />
-              <Icon name={RAIL_ICON[r.id]} size={17} strokeWidth={1.8} />
+              <Icon name={RAIL_ICON[r.id]} size={17} />
               <span style={{ display: 'flex', flexDirection: 'column' }}>
                 <span style={{ fontSize: 'var(--step--1)', fontWeight: 600 }}>{r.label}</span>
                 <span style={{ fontSize: 'var(--step--2)', color: 'var(--muted-foreground)' }}>{r.hint}</span>

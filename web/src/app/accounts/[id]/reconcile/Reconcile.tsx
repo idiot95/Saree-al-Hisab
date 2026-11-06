@@ -92,7 +92,7 @@ export default function Reconcile({ accountId, credit, today, lastOn, cleared, e
           fontSize: 'var(--step-0)', fontWeight: 600,
           color: !typed ? 'var(--muted-foreground)' : matches ? 'var(--primary)' : 'var(--attention-soft-foreground)',
         }}>
-          {typed && <Icon name={matches ? 'check' : 'receivable'} size={17} strokeWidth={2.3} />}
+          {typed && <Icon name={matches ? 'check' : 'receivable'} size={17} />}
           <span style={{ flex: 1 }}>{!typed ? 'Enter the statement balance' : matches ? 'It matches' : 'Difference'}</span>
           {typed && !matches && <span className="t">{shown(difference)}</span>}
         </div>
@@ -160,7 +160,7 @@ export default function Reconcile({ accountId, credit, today, lastOn, cleared, e
             minHeight: 54, borderRadius: 15, fontSize: 'var(--step-0)', fontWeight: 600,
             background: 'var(--primary)', color: 'var(--primary-foreground)', opacity: !matches || pending ? 0.55 : 1,
           }}>
-            <Icon name="check" size={18} strokeWidth={2.2} />
+            <Icon name="check" size={18} />
             {pending ? 'Saving…' : 'Finish — it matches'}
           </button>
         ) : (
@@ -174,7 +174,7 @@ export default function Reconcile({ accountId, credit, today, lastOn, cleared, e
               minHeight: 52, borderRadius: 15, fontSize: 'var(--step-0)', fontWeight: 600, textDecoration: 'none',
               background: 'var(--primary)', color: 'var(--primary-foreground)',
             }}>
-              <Icon name="plus" size={18} strokeWidth={2.2} />
+              <Icon name="plus" size={18} />
               Add the missing entry
             </Link>
             <button type="submit" name="adjust" value="yes" disabled={pending} className="cta" style={{

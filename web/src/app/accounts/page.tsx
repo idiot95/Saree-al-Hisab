@@ -4,7 +4,6 @@ import { Chip, RAIL_ICON, RAIL_TINT, ACCOUNT_ICON, ACCOUNT_TINT } from '../Icon'
 import {
   actorOrNull, accountsWithBalances, allBalances, methodsWithFunding, openCyclesFor, owedByPerson, tabHeldOwed,
 } from '@/db/queries';
-import { IconChevronRight, IconChecks } from '@tabler/icons-react';
 import { netWorth } from '@/lib/worth';
 import MoneyNav from './MoneyNav';
 import { withHousehold } from '@/db/client';
@@ -17,6 +16,7 @@ import EditAccount, { type Editable } from './EditAccount';
 import { MethodControls } from './Retire';
 import CardDeck, { type CardInfo } from './CardDeck';
 import Screen from '../Screen';
+import { Icon } from '../Icon';
 
 export const metadata = { title: 'Accounts · Saree al-Hisab' };
 export const dynamic = 'force-dynamic';
@@ -87,7 +87,7 @@ export default async function Accounts() {
             className="flex flex-col gap-3 rounded-[22px] border border-border bg-card p-4">
             <span className="flex items-center justify-between">
               <span className="text-xs text-muted-foreground">Net worth</span>
-              <IconChevronRight size={17} className="text-muted-foreground" aria-hidden />
+              <Icon name="chevron_right" size={17} className="text-muted-foreground" />
             </span>
             <span className="font-display text-[40px] leading-none tabular-nums" style={worth < 0 ? { color: 'var(--destructive)' } : undefined}>
               {format(worth)}
@@ -147,12 +147,12 @@ export default async function Accounts() {
           {canWrite && accounts.length > 0 && (
             <Link href="/accounts/reconcile" transitionTypes={['nav-forward']}
               className="flex min-h-14 items-center gap-3 rounded-2xl border border-border bg-card px-4">
-              <IconChecks size={20} className="text-primary" aria-hidden />
+              <Icon name="done_all" size={20} className="text-primary" />
               <span className="flex min-w-0 flex-1 flex-col">
                 <span className="text-[15px] font-semibold">Reconcile with a statement</span>
                 <span className="text-xs text-muted-foreground">Match an account or card to what its statement says</span>
               </span>
-              <IconChevronRight size={17} className="text-muted-foreground" aria-hidden />
+              <Icon name="chevron_right" size={17} className="text-muted-foreground" />
             </Link>
           )}
           {canWrite && (

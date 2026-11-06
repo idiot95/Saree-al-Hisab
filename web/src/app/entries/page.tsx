@@ -9,8 +9,8 @@ import Screen from '../Screen';
 import EntryList from './EntryList';
 import ActivityNav from './ActivityNav';
 import { byDay } from './rows';
-import { IconX } from '@tabler/icons-react';
 import MonthPill from '../MonthPill';
+import { Icon } from '../Icon';
 
 export const metadata = { title: 'Entries · Saree al-Hisab' };
 export const dynamic = 'force-dynamic';
@@ -67,7 +67,7 @@ export default async function Entries({ searchParams }: {
           {!filtered && <ActivityNav current="entries" review={inbox.duplicates + inbox.bills} />}
           {filtered && (
             <Link href={`/entries?m=${month}`} className="flex min-h-11 items-center gap-1.5 self-start rounded-full bg-accent px-3.5 text-sm font-semibold text-accent-foreground">
-              <IconX size={14} aria-hidden /> Showing one category
+              <Icon name="close" size={14} /> Showing one category
             </Link>
           )}
         </header>
@@ -109,7 +109,7 @@ async function Search({ householdId, words, currency, canEdit }: {
           </div>
           <ActivityNav current="entries" review={inbox.duplicates + inbox.bills} />
           <Link href="/entries" className="flex min-h-11 items-center gap-1.5 self-start rounded-full bg-accent px-3.5 text-sm font-semibold text-accent-foreground">
-            <IconX size={14} aria-hidden /> Back to this month
+            <Icon name="close" size={14} /> Back to this month
           </Link>
         </header>
         <EntryList days={days} canEdit={canEdit} tools initialQ={words} everyMonth />

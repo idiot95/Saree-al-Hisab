@@ -97,7 +97,7 @@ export default function Suggested({ have, canEdit, onResult }: {
                         alignItems: 'center', gap: 5, fontSize: 'var(--step--2)', fontWeight: 600,
                         ...(has ? { background: `var(--cat-${g.tint})`, color: `var(--cat-${g.tint}-ink)` } : OFF),
                       }}>
-                        <Icon name={c.icon} size={14} strokeWidth={1.9} />
+                        <Icon name={c.icon} size={14} />
                         {c.name}
                       </span>
                     );

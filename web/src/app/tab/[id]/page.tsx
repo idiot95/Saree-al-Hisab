@@ -148,7 +148,7 @@ export default async function Tab({ params, searchParams }: {
                 flex: 1.3, minHeight: 54, borderRadius: 15, fontSize: 'var(--step-0)', fontWeight: 600,
                 background: 'var(--primary)', color: 'var(--primary-foreground)', textDecoration: 'none',
               }}>
-                <Icon name="plus" size={18} strokeWidth={2.2} />
+                <Icon name="plus" size={18} />
                 Add cost
               </Link>
             )}

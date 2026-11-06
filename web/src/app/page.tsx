@@ -2,7 +2,6 @@ import Link from '@/app/NavLink';
 import { redirect } from 'next/navigation';
 import { actorOrNull, claimsFor, entriesFor, inboxCount, monthTotals, peopleFor, schedulesFor, setupProgress } from '@/db/queries';
 import { owedToYou } from '@/lib/worth';
-import { IconChevronRight, IconUsers } from '@tabler/icons-react';
 import { withHousehold } from '@/db/client';
 import { format, monthKey } from '@/lib/money';
 import { outstandingDues, ruleOf } from '@/lib/recur';
@@ -15,6 +14,7 @@ import TabBar from './TabBar';
 import { TAB_BAR_SPACE } from './tabs';
 import Screen from './Screen';
 import SavedSnack from './SavedSnack';
+import { Icon } from './Icon';
 
 export const dynamic = 'force-dynamic';
 
@@ -103,10 +103,10 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ s
           {owed > 0 && (
             <Link href="/people" transitionTypes={['nav-lateral']}
               className="press flex min-h-14 items-center gap-3 rounded-2xl border border-border bg-card px-3.5">
-              <IconUsers size={20} className="text-muted-foreground" aria-hidden />
+              <Icon name="group" size={20} className="text-muted-foreground" />
               <span className="flex-1 text-sm text-muted-foreground">Owed to you</span>
               <span className="text-base font-semibold tabular-nums">{format(owed)}</span>
-              <IconChevronRight size={17} className="text-muted-foreground" aria-hidden />
+              <Icon name="chevron_right" size={17} className="text-muted-foreground" />
             </Link>
           )}
 

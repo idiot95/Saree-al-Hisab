@@ -224,7 +224,7 @@ export default function NewSchedule({ ways, categories, tabs, startOpen = false 
                 <button key={t.id} type="button" aria-pressed={on}
                   onClick={() => setBookId(on ? null : t.id)}
                   style={{ ...CHIP, ...choice(on, 'var(--cat-purple-ink)') }}>
-                  <Icon name="tab" size={16} strokeWidth={1.9} />
+                  <Icon name="tab" size={16} />
                   <span style={CHIP_TEXT}>{t.name}</span>
                 </button>
               );
@@ -254,7 +254,7 @@ export default function NewSchedule({ ways, categories, tabs, startOpen = false 
                   display: 'flex', alignItems: 'center', gap: 9,
                   ...choice(counts === v),
                 }}>
-                <Icon name={icon} size={17} strokeWidth={1.9} />
+                <Icon name={icon} size={17} />
                 <span style={{ display: 'flex', flexDirection: 'column', gap: 1, minWidth: 0 }}>
                   <span style={{ fontSize: 'var(--step--1)', fontWeight: 600 }}>{label}</span>
                   <span style={{ fontSize: 'var(--step--2)', opacity: 0.82, lineHeight: 1.3 }}>{what}</span>

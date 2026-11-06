@@ -69,7 +69,7 @@ export function WayTile({ icon, ink, title, sub, on, onClick, disabled }: {
         justifyContent: 'center', background: on ? 'color-mix(in srgb, currentColor 16%, transparent)' : 'var(--card)',
         color: on ? 'inherit' : 'var(--muted-foreground)',
       }}>
-        <Icon name={icon} size={18} strokeWidth={1.9} />
+        <Icon name={icon} size={18} />
       </span>
       <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1 }}>
         <span style={{ fontSize: 'var(--step--1)', fontWeight: 700, lineHeight: 1.2, ...TWO_LINES }}>{title}</span>

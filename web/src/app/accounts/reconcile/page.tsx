@@ -43,7 +43,7 @@ export default async function ReconcilePicker() {
                     {a.name}{a.last4 ? <span style={{ fontWeight: 500, color: 'var(--muted-foreground)' }}> · {a.last4}</span> : null}
                   </span>
                   <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 'var(--step--2)', color: 'var(--muted-foreground)' }}>
-                    {a.last_on ? <Icon name="check" size={13} strokeWidth={2.4} /> : null}
+                    {a.last_on ? <Icon name="check" size={13} /> : null}
                     {a.last_on
                       ? `Matched ${new Date(`${a.last_on}T00:00:00`).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}`
                       : 'Never matched'}

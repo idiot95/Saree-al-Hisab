@@ -138,7 +138,7 @@ function CardBlock({ card, canWrite }: { card: CardInfo; canWrite: boolean }) {
                 fontWeight: 700, background: 'var(--primary)', color: 'var(--primary-foreground)',
                 textDecoration: 'none',
               }}>
-              <Icon name="move" size={17} strokeWidth={2} />
+              <Icon name="move" size={17} />
               Pay {format(payable)}
             </Link>
           )}
@@ -150,7 +150,7 @@ function CardBlock({ card, canWrite }: { card: CardInfo; canWrite: boolean }) {
               fontSize: 'var(--step--1)', fontWeight: 600,
               background: 'var(--muted)', color: 'var(--foreground)',
             }}>
-            <Icon name="pencil" size={16} strokeWidth={2} />
+            <Icon name="pencil" size={16} />
             Edit
           </button>
           <Link href={`/accounts/${account.id}/reconcile`} transitionTypes={['nav-forward']}
@@ -161,7 +161,7 @@ function CardBlock({ card, canWrite }: { card: CardInfo; canWrite: boolean }) {
               fontSize: 'var(--step--1)', fontWeight: 600, textDecoration: 'none',
               background: 'var(--muted)', color: 'var(--foreground)',
             }}>
-            <Icon name="check" size={16} strokeWidth={2.2} />
+            <Icon name="check" size={16} />
             Match
           </Link>
         </div>

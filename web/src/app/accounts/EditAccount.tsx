@@ -49,11 +49,11 @@ export default function EditAccount({ account, canWrite, last, block = false, ch
     const move = credit ? `/add?kind=transfer&to=${account.id}` : `/add?kind=transfer&from=${account.id}`;
     return (
       <SwipeRow actions={[
-        { label: 'Edit', icon: <Icon name="pencil" size={20} strokeWidth={2} />, act: () => setOpen(true) },
+        { label: 'Edit', icon: <Icon name="pencil" size={20} />, act: () => setOpen(true) },
         { label: credit ? 'Pay it' : 'Move', tone: 'primary',
-          icon: <Icon name="move" size={20} strokeWidth={2} />,
+          icon: <Icon name="move" size={20} />,
           act: () => { startPending(move); router.push(move, { transitionTypes: ['nav-forward'] }); } },
-        { label: 'Reconcile', icon: <Icon name="check" size={20} strokeWidth={2} />,
+        { label: 'Reconcile', icon: <Icon name="check" size={20} />,
           act: () => { startPending(`/accounts/${account.id}/reconcile`); router.push(`/accounts/${account.id}/reconcile`, { transitionTypes: ['nav-forward'] }); } },
       ]} commit={false}>
         <button type="button" onClick={() => { haptic('select'); setOpen(true); }}

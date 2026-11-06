@@ -100,7 +100,7 @@ export default async function Entry({ params, searchParams }: {
                     alignItems: 'center', gap: 10, background: 'var(--card)',
                     color: 'var(--foreground)', textDecoration: 'none',
                   }}>
-                  <Icon name={b.mime === 'application/pdf' ? 'invoice' : 'camera'} size={17} strokeWidth={1.9} />
+                  <Icon name={b.mime === 'application/pdf' ? 'invoice' : 'camera'} size={17} />
                   <span style={{
                     flex: 1, minWidth: 0, fontSize: 'var(--step--1)', fontWeight: 600,
                     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',

@@ -87,7 +87,7 @@ export default function Bills({ staged, onChange }: {
               minHeight: 46, padding: '6px 6px 6px 12px', borderRadius: 12, display: 'flex',
               alignItems: 'center', gap: 10, background: 'var(--background)',
             }}>
-              <Icon name={s.mime === 'application/pdf' ? 'invoice' : 'camera'} size={17} strokeWidth={1.9} />
+              <Icon name={s.mime === 'application/pdf' ? 'invoice' : 'camera'} size={17} />
               <span style={{
                 flex: 1, minWidth: 0, fontSize: 'var(--step--1)', fontWeight: 600,
                 overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
@@ -111,7 +111,7 @@ export default function Bills({ staged, onChange }: {
             padding: '0 14px', border: '1px dashed var(--input)', background: 'var(--card)',
             color: 'var(--foreground)', fontSize: 'var(--step--1)', fontWeight: 600,
           }}>
-          <Icon name="camera" size={17} strokeWidth={1.9} />
+          <Icon name="camera" size={17} />
           {busy ? 'Adding…' : staged.length ? 'Add another bill' : 'Attach a bill or photo'}
         </button>
       )}

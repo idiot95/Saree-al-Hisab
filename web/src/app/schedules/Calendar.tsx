@@ -147,7 +147,7 @@ export default function Calendar({ schedules, canWrite, today }: {
           background: overdue ? 'color-mix(in srgb, var(--destructive) 12%, transparent)' : 'var(--muted)',
           color: overdue ? 'var(--destructive)' : 'var(--primary)',
         }}>
-          <Icon name="autodebit" size={19} strokeWidth={1.9} />
+          <Icon name="autodebit" size={19} />
         </span>
         <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
           <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>
@@ -279,7 +279,7 @@ export default function Calendar({ schedules, canWrite, today }: {
                     background: settled ? 'var(--muted)' : 'var(--attention-soft)',
                     color: settled ? 'var(--muted-foreground)' : 'var(--attention-soft-foreground)',
                   }}>
-                    <Icon name={it.s.icon ?? 'autodebit'} size={19} strokeWidth={1.9} />
+                    <Icon name={it.s.icon ?? 'autodebit'} size={19} />
                   </span>
                   <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
                     <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>{it.s.name}</span>
@@ -289,7 +289,7 @@ export default function Calendar({ schedules, canWrite, today }: {
                     </span>
                     <span style={{ fontSize: 'var(--step--1)', display: 'flex', alignItems: 'center', gap: 5,
                       color: it.status === 'paid' ? 'var(--money-in)' : it.status === 'overdue' ? 'var(--destructive)' : 'var(--muted-foreground)' }}>
-                      <Icon name={it.status === 'paid' ? 'check' : it.status === 'skipped' ? 'skip' : 'autodebit'} size={14} strokeWidth={2.2} />
+                      <Icon name={it.status === 'paid' ? 'check' : it.status === 'skipped' ? 'skip' : 'autodebit'} size={14} />
                       {it.status === 'paid' ? (income ? 'Came in' : 'Paid') : it.status === 'skipped' ? 'Skipped'
                         : it.status === 'overdue' ? 'Overdue' : it.status === 'today' ? 'Due today' : 'Coming'}
                       {it.status === 'paid' && it.txn && (

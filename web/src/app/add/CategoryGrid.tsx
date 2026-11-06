@@ -99,7 +99,7 @@ export default function CategoryGrid({ categories, value, onChange, label }: {
                         pick(isOn ? c.parent_id ?? null : c.id);
                         setExpanded(c.parent_id ?? c.id);
                       }} style={{ ...CHIP, ...(isOn ? on(ink) : OFF) }}>
-                      <Icon name={c.icon} size={16} strokeWidth={1.9} />
+                      <Icon name={c.icon} size={16} />
                       <span style={CHIP_TEXT}>{c.name}</span>
                     </button>
                   );
@@ -132,7 +132,7 @@ export default function CategoryGrid({ categories, value, onChange, label }: {
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     background: activeFamily ? 'rgba(255,255,255,.16)' : 'var(--background)',
                     color: activeFamily ? 'inherit' : ink,
-                  }}><Icon name={c.icon} size={19} strokeWidth={1.9} /></span>
+                  }}><Icon name={c.icon} size={19} /></span>
                   <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
                     <span style={{
                       fontSize: 'var(--step--1)', fontWeight: 700, lineHeight: 1.15,
@@ -182,12 +182,12 @@ export default function CategoryGrid({ categories, value, onChange, label }: {
                         display: 'flex', alignItems: 'center', gap: 8, textAlign: 'left',
                         ...(isOn ? on(ink) : OFF),
                       }}>
-                      <Icon name={c.icon} size={18} strokeWidth={1.85} />
+                      <Icon name={c.icon} size={18} />
                       <span style={{
                         flex: 1, minWidth: 0, fontSize: 'var(--step--2)', fontWeight: 650,
                         lineHeight: 1.18, overflowWrap: 'anywhere',
                       }}>{c.name}</span>
-                      {isOn && <Icon name="check" size={15} strokeWidth={2.5} />}
+                      {isOn && <Icon name="check" size={15} />}
                     </button>
                   );
                 })}
@@ -229,7 +229,7 @@ function SearchResults({ hits, value, onPick }: {
               <span style={{ fontSize: 'var(--step--1)', fontWeight: 700 }}>{c.name}</span>
               <span style={{ fontSize: 'var(--step--2)', color: 'var(--muted-foreground)' }}>{blurb}</span>
             </span>
-            {isOn && <Icon name="check" size={18} strokeWidth={2.5} />}
+            {isOn && <Icon name="check" size={18} />}
           </button>
         );
       })}

@@ -91,7 +91,7 @@ export default function TabEntries({
   };
 
   const owedOn = (txnId: string) => claims.filter((c) => c.txnId === txnId && c.outstanding > 0);
-  const glyph = (name: string) => <Icon name={name} size={20} strokeWidth={2} />;
+  const glyph = (name: string) => <Icon name={name} size={20} />;
   const edit = (id: string) => `/entries/${id}?from=/tab/${tabId}`;
   const actionsFor = (e: TabEntry): SwipeAction[] => [
     { label: 'Edit', icon: glyph('pencil'), tone: 'neutral' as const,
@@ -160,7 +160,7 @@ export default function TabEntries({
                       {!e.incoming && <span>· {e.outstanding > 0 ? `${format(e.outstanding)} owed` : 'settled'}</span>}
                       {e.bills > 0 ? (
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: 'var(--primary)', fontWeight: 600 }}>
-                          · <Icon name="clip" size={12} strokeWidth={2.2} />{e.bills} {e.bills === 1 ? 'bill' : 'bills'}
+                          · <Icon name="clip" size={12} />{e.bills} {e.bills === 1 ? 'bill' : 'bills'}
                         </span>
                       ) : !e.incoming ? <span style={{ color: 'var(--muted-foreground)' }}>· no bill</span> : null}
                     </span>
@@ -244,7 +244,7 @@ function BillBody({ entry, bills, fresh, tabName, editHref, onDone, onSkip }: {
       <span style={{
         width: 46, height: 46, borderRadius: 999, display: 'flex', alignItems: 'center',
         justifyContent: 'center', background: 'var(--card)', color: 'var(--primary)',
-      }}><Icon name={icon} size={22} strokeWidth={1.9} /></span>
+      }}><Icon name={icon} size={22} /></span>
       {label}
     </label>
   );
@@ -257,7 +257,7 @@ function BillBody({ entry, bills, fresh, tabName, editHref, onDone, onSkip }: {
             <span style={{
               width: 40, height: 40, flex: 'none', borderRadius: 999, display: 'flex', alignItems: 'center',
               justifyContent: 'center', background: 'var(--accent)', color: 'var(--primary)',
-            }}><Icon name="check" size={20} strokeWidth={2.4} className="check-draw" /></span>
+            }}><Icon name="check" size={20} className="check-draw" /></span>
             <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
               <span style={{ fontSize: 'var(--step-1)', fontWeight: 600 }}>Saved on {tabName}</span>
               <span style={{ fontSize: 'var(--step--1)', color: 'var(--muted-foreground)' }}>
@@ -269,7 +269,7 @@ function BillBody({ entry, bills, fresh, tabName, editHref, onDone, onSkip }: {
               minHeight: 44, padding: '0 14px', borderRadius: 11, fontSize: 'var(--step--1)', fontWeight: 600,
               background: 'var(--muted)', color: 'var(--foreground)', textDecoration: 'none', flex: 'none',
             }}>
-              <Icon name="pencil" size={15} strokeWidth={2} />
+              <Icon name="pencil" size={15} />
               Edit
             </Link>
           </div>
@@ -298,7 +298,7 @@ function BillBody({ entry, bills, fresh, tabName, editHref, onDone, onSkip }: {
                 minHeight: 48, padding: '0 12px', borderRadius: 12, display: 'flex', alignItems: 'center', gap: 10,
                 background: 'var(--background)', color: 'var(--foreground)', textDecoration: 'none',
               }}>
-                <Icon name="clip" size={17} strokeWidth={1.9} />
+                <Icon name="clip" size={17} />
                 <span style={{
                   flex: 1, minWidth: 0, fontSize: 'var(--step--1)', fontWeight: 600,
                   overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
@@ -429,7 +429,7 @@ function RemindBody({ entry, tabId, tabName, claims, bills }: {
                   background: done ? 'var(--muted)' : 'var(--primary)',
                   color: done ? 'var(--muted-foreground)' : 'var(--primary-foreground)',
                 }}>
-                  <Icon name={done ? 'check' : 'bell'} size={16} strokeWidth={2.2} />
+                  <Icon name={done ? 'check' : 'bell'} size={16} />
                   {done ? 'Sent' : 'Send'}
                 </button>
               </li>
@@ -448,7 +448,7 @@ function RemindBody({ entry, tabId, tabName, claims, bills }: {
                 display: 'flex', alignItems: 'center', gap: 10, minHeight: 44, paddingTop: 8,
                 borderTop: '1px solid var(--border)', cursor: 'pointer', fontSize: 'var(--step--1)',
               }}>
-                <Icon name="clip" size={16} strokeWidth={2} />
+                <Icon name="clip" size={16} />
                 <span style={{ flex: 1 }}>Send the bills with it</span>
                 <input type="checkbox" checked={withBills} onChange={(e) => setWithBills(e.target.checked)}
                   style={{ width: 20, height: 20, margin: 0, accentColor: 'var(--primary)' }} />

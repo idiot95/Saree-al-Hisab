@@ -1,6 +1,6 @@
 import Link from '@/app/NavLink';
-import { IconChevronLeft, IconChevronRight } from '@tabler/icons-react';
 import { monthKey } from '@/lib/money';
+import { Icon } from './Icon';
 
 const shift = (m: string, by: number) => {
   const d = new Date(m);
@@ -14,11 +14,11 @@ export default function MonthPill({ month, path, keep = '' }: { month: string; p
   return (
     <div className="flex flex-none items-center rounded-full border border-border bg-card">
       <Link href={`${path}?m=${shift(month, -1)}${keep}`} aria-label="Previous month" className="grid size-11 place-items-center">
-        <IconChevronLeft size={18} aria-hidden />
+        <Icon name="chevron_left" size={18} />
       </Link>
       <span className="min-w-[76px] text-center text-sm font-semibold">{name}</span>
       <Link href={`${path}?m=${shift(month, 1)}${keep}`} aria-label="Next month" className="grid size-11 place-items-center">
-        <IconChevronRight size={18} aria-hidden />
+        <Icon name="chevron_right" size={18} />
       </Link>
     </div>
   );

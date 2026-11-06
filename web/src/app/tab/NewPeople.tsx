@@ -121,7 +121,7 @@ export default function NewPeople() {
             minHeight: 48, padding: '0 14px', borderRadius: 13, fontSize: 'var(--step--1)', fontWeight: 600,
             background: 'var(--muted)', color: 'var(--foreground)',
           }}>
-            <Icon name="phone" size={17} strokeWidth={1.9} />
+            <Icon name="phone" size={17} />
             Contacts
           </button>
         )}

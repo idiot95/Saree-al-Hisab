@@ -48,7 +48,7 @@ export default function TabContacts({ tabId, people, canEdit }: {
             <Face name={p.name} tint={p.tint} size={30} />
             {first(p.name)}
             <span style={{ fontWeight: 500, color: 'var(--muted-foreground)', display: 'flex', alignItems: 'center', gap: 3 }}>
-              {p.owed > 0 ? format(p.owed) : p.inAll > 0 ? <><Icon name="check" size={13} strokeWidth={2.6} />settled</> : null}
+              {p.owed > 0 ? format(p.owed) : p.inAll > 0 ? <><Icon name="check" size={13} />settled</> : null}
             </span>
           </button>
         ))}
@@ -58,7 +58,7 @@ export default function TabContacts({ tabId, people, canEdit }: {
             border: '1px dashed var(--input)', color: 'var(--muted-foreground)',
             fontSize: 'var(--step--1)', fontWeight: 600,
           }}>
-            <Icon name="plus" size={15} strokeWidth={2.2} />
+            <Icon name="plus" size={15} />
             {people.length === 0 ? 'Add a contact' : 'Contact'}
           </button>
         )}

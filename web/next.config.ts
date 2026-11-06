@@ -24,11 +24,7 @@ const SECURITY_HEADERS = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
-  /* Rewrites `import { IconHome2 } from '@tabler/icons-react'` into a deep
-     import, so a set of five thousand icons costs only the thirty-five that
-     are actually used. */
   experimental: {
-    optimizePackageImports: ['@tabler/icons-react'],
     /* Keep a page the phone has just shown for 30 seconds, so going back to
        it — the Loan centre after a tab, Home after an entry — is instant
        instead of another round trip. Every write goes through a Server Action

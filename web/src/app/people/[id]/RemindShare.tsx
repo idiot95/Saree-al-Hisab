@@ -33,7 +33,7 @@ export default function RemindShare({ person, what, amount, on, bills }: {
         fontSize: 'var(--step--2)', fontWeight: 700,
         background: 'var(--muted)', color: 'var(--foreground)',
       }}>
-        <Icon name="bell" size={15} strokeWidth={2} />
+        <Icon name="bell" size={15} />
         {busy ? 'Preparing…' : bills.length > 0 ? `Remind · ${bills.length} bill${bills.length === 1 ? '' : 's'}` : 'Remind'}
       </button>
       {said && (

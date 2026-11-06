@@ -50,7 +50,7 @@ export default function MoneyBack({ tabId, ways, today, owing }: {
           background: 'var(--card)', border: '1px solid var(--border)', color: 'var(--foreground)',
           opacity: owing.length === 0 ? 0.5 : 1,
         }}>
-        <Icon name="receivable" size={18} strokeWidth={2} />
+        <Icon name="receivable" size={18} />
         Money back
       </button>
 
@@ -117,7 +117,7 @@ export default function MoneyBack({ tabId, ways, today, owing }: {
               minHeight: 52, borderRadius: 13, fontSize: 'var(--step-0)', fontWeight: 600,
               background: 'var(--primary)', color: 'var(--primary-foreground)', opacity: pending ? 0.65 : 1,
             }}>
-              <Icon name="check" size={18} strokeWidth={2.2} />
+              <Icon name="check" size={18} />
               {pending ? 'Recording…' : 'Record what came back'}
             </button>
             <p style={{ margin: 0, fontSize: 'var(--step--2)', lineHeight: 1.45, color: 'var(--muted-foreground)' }}>

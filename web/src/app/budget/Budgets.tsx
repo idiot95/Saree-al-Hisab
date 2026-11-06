@@ -112,12 +112,12 @@ function Row({ budget, lines, spentBy, open, onToggle, onEdit }: {
   const actions: SwipeAction[] = [
     ...(budget.current ? [] : [{
       label: 'Make current', tone: 'primary' as const,
-      icon: <Icon name="check" size={20} strokeWidth={2.4} />,
+      icon: <Icon name="check" size={20} />,
       act: () => { haptic('select'); useRef_.current?.requestSubmit(); },
     }]),
     {
       label: 'Delete', tone: 'danger' as const,
-      icon: <Icon name="trash" size={20} strokeWidth={2} />,
+      icon: <Icon name="trash" size={20} />,
       act: () => { haptic('warn'); setSure(true); dropRef.current?.requestSubmit(); },
     },
   ];
@@ -224,7 +224,7 @@ function Row({ budget, lines, spentBy, open, onToggle, onEdit }: {
               justifyContent: 'center', gap: 7, fontSize: 'var(--step--1)', fontWeight: 600,
               background: 'var(--muted)', color: 'var(--foreground)',
             }}>
-              <Icon name="pencil" size={16} strokeWidth={2} />
+              <Icon name="pencil" size={16} />
               Edit
             </button>
             {!budget.current && (
@@ -327,13 +327,13 @@ function BudgetForm({ categories, budget, lines, thisMonth, onDone, showCancel }
                       ? { background: ink, color: 'var(--c-on-tint)', border: `1px solid ${ink}` }
                       : { background: 'var(--muted)', color: 'var(--muted-foreground)', border: '1px solid transparent' }),
                   }}>
-                  <Icon name={c.icon} size={19} strokeWidth={1.9} />
+                  <Icon name={c.icon} size={19} />
                   <span style={{
                     flex: 1, minWidth: 0, fontSize: 'var(--step--1)', fontWeight: 700, lineHeight: 1.2,
                     overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2,
                     WebkitBoxOrient: 'vertical', overflowWrap: 'anywhere',
                   }}>{c.name}</span>
-                  {on && <Icon name="check" size={15} strokeWidth={2.6} />}
+                  {on && <Icon name="check" size={15} />}
                 </button>
               );
             })}

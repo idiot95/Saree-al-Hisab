@@ -429,7 +429,7 @@ export default function AddEntry({
                     alignItems: 'center', gap: 10, textAlign: 'left',
                     background: 'var(--accent)', border: '1px solid var(--primary)', color: 'var(--foreground)',
                   }}>
-                  <Icon name="receivable" size={18} strokeWidth={1.9} />
+                  <Icon name="receivable" size={18} />
                   <span style={{ flex: 1, minWidth: 0, fontSize: 'var(--step--1)', lineHeight: 1.35 }}>
                     {exactIds.size === 1
                       ? <>This is exactly what one open loan is owed. <b>Tick it?</b></>
@@ -463,7 +463,7 @@ export default function AddEntry({
                         border: `1px solid ${isOn ? 'var(--primary)' : 'var(--border)'}`,
                         color: 'var(--primary-foreground)',
                       }}>
-                        {isOn && <Icon name="check" size={15} strokeWidth={2.6} />}
+                        {isOn && <Icon name="check" size={15} />}
                       </span>
                       <span style={{
                         width: 30, height: 30, flex: 'none', borderRadius: 999, display: 'flex',
@@ -580,7 +580,7 @@ export default function AddEntry({
                       onClick={() => { haptic('select'); setTabId(isOn ? null : t.id); }}
                       style={{ ...CHIP, ...choice(isOn, 'var(--cat-purple-ink)') }}
                     >
-                      <Icon name="tab" size={16} strokeWidth={1.9} />
+                      <Icon name="tab" size={16} />
                       <span style={CHIP_TEXT}>{t.name}</span>
                     </button>
                   );
@@ -626,7 +626,7 @@ export default function AddEntry({
                             display: 'flex', alignItems: 'center', gap: 9,
                             ...choice(isOn, 'var(--cat-purple-ink)'),
                           }}>
-                          <Icon name={icon} size={17} strokeWidth={1.9} />
+                          <Icon name={icon} size={17} />
                           <span style={{ display: 'flex', flexDirection: 'column', gap: 1, minWidth: 0 }}>
                             <span style={{ fontSize: 'var(--step--1)', fontWeight: 600 }}>{label}</span>
                             <span style={{ fontSize: 'var(--step--2)', opacity: isOn ? 0.82 : 0.8, lineHeight: 1.3 }}>{what}</span>

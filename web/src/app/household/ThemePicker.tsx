@@ -47,7 +47,7 @@ export default function ThemePicker({ current }: { current: Theme }) {
                 boxShadow: on ? '0 1px 2px rgba(0,0,0,.10), 0 0 0 1px var(--border)' : 'none',
                 transition: 'background .18s, color .18s, box-shadow .18s',
               }}>
-              <Icon name={o.icon} size={17} strokeWidth={2} />
+              <Icon name={o.icon} size={17} />
               {o.label}
             </button>
           );

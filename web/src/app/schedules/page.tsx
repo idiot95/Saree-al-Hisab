@@ -13,8 +13,8 @@ import { archiveSchedule } from './actions';
 import Screen from '../Screen';
 import PageHead, { Label } from '../PageHead';
 import ActivityNav from '../entries/ActivityNav';
-import { IconCalendarRepeat } from '@tabler/icons-react';
 import Swipeable from '../Swipeable';
+import { Icon } from '../Icon';
 
 export const metadata = { title: 'Upcoming · Saree al-Hisab' };
 export const dynamic = 'force-dynamic';
@@ -71,7 +71,7 @@ export default async function Schedules() {
         <div className="flex flex-col">
           {schedules.length === 0 && (
             <div className="mx-[var(--gutter)] mb-4 flex flex-col items-start gap-2 rounded-2xl border border-border bg-card p-4">
-              <IconCalendarRepeat size={24} className="text-primary" aria-hidden />
+              <Icon name="event_repeat" size={24} className="text-primary" />
               <p className="text-[15px] font-semibold">Rent, fees, an EMI, a salary</p>
               <p className="text-sm leading-relaxed text-muted-foreground">
                 The things that come round whether you look or not. Add one and it shows up here, on the calendar,

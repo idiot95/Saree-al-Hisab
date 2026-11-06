@@ -1,6 +1,5 @@
 import Link from '@/app/NavLink';
 import { redirect } from 'next/navigation';
-import { IconAdjustments, IconAlertTriangle, IconChevronDown, IconChevronRight, IconTag } from '@tabler/icons-react';
 import {
   actorOrNull, budgetFor, budgetLinesFor, budgetSetsFor, categoriesFor, monthTotals, previousBudget,
 } from '@/db/queries';
@@ -15,6 +14,7 @@ import CopyPrevious from './CopyPrevious';
 import Budgets from './Budgets';
 import PlanNav from './PlanNav';
 import Screen from '../Screen';
+import { Icon } from '../Icon';
 
 export const metadata = { title: 'Budget · Saree al-Hisab' };
 export const dynamic = 'force-dynamic';
@@ -91,7 +91,7 @@ export default async function Budget({ searchParams }: {
                 label={`${Math.round((spent / budget) * 100)}% of the budget spent`} className="mt-3.5 h-2" />
               {left < 0 && (
                 <p className="mt-3 flex items-center gap-2 text-sm text-destructive">
-                  <IconAlertTriangle size={16} aria-hidden /> Over the budget for {label(month)}.
+                  <Icon name="warning" size={16} /> Over the budget for {label(month)}.
                 </p>
               )}
             </section>
@@ -139,9 +139,9 @@ export default async function Budget({ searchParams }: {
             {canEdit && sets.length > 0 && (
               <details className="border-b border-border">
                 <summary className="flex min-h-12 cursor-pointer items-center gap-2.5 px-4 text-sm font-semibold">
-                  <IconAdjustments size={17} className="text-muted-foreground" aria-hidden />
+                  <Icon name="tune" size={17} className="text-muted-foreground" />
                   <span className="flex-1">Adjust {label(month)} only</span>
-                  <IconChevronDown size={17} className="text-muted-foreground" aria-hidden />
+                  <Icon name="expand_more" size={17} className="text-muted-foreground" />
                 </summary>
                 <div className="pb-3">
                   <BudgetForm month={month} rows={rows} canEdit={canEdit} />
@@ -154,9 +154,9 @@ export default async function Budget({ searchParams }: {
             )}
             <Link transitionTypes={['nav-forward']} href="/categories"
               className="flex min-h-12 items-center gap-2.5 px-4 text-sm font-semibold">
-              <IconTag size={17} className="text-muted-foreground" aria-hidden />
+              <Icon name="sell" size={17} className="text-muted-foreground" />
               <span className="flex-1">Edit categories</span>
-              <IconChevronRight size={17} className="text-muted-foreground" aria-hidden />
+              <Icon name="chevron_right" size={17} className="text-muted-foreground" />
             </Link>
           </div>
         </div>
@@ -206,7 +206,7 @@ function CategoryLine({ row, month, first }: { row: Row; month: string; first: b
               )}
             </span>
             <span className={`flex flex-none items-center gap-1 text-sm font-semibold tabular-nums ${over ? 'text-destructive' : ''}`}>
-              {over && <IconAlertTriangle size={14} aria-hidden />}
+              {over && <Icon name="warning" size={14} />}
               {cap === 0 ? format(used) : over ? `${format(used - cap)} over` : `${format(cap - used)} left`}
             </span>
           </span>
