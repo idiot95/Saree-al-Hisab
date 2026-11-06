@@ -13,6 +13,8 @@
    3. Make it current from its open row; it wears "In use" and the month's figures appear with its category bar.
    4. Open "Adjust <month> only", save a smaller figure for that category, and the bar on the page changes —
       over budget, with the word.
+   5. Create another budget with "Make this my current budget" ticked: no 5xx, budget_set.current_at is set (and it is
+      the only current set), its row wears "In use", and this month's budget rows equal its lines.
    The budget set this run made is deleted and this month's and later budget rows are put back as they were,
    unless --keep.                                                                                              */
 import { createRequire } from 'node:module';
@@ -45,6 +47,7 @@ const ctx = await browser.newContext({ ...IOS, storageState: STATE });
 const page = await ctx.newPage();
 
 const NAME = `Plan taps ${Date.now().toString(36)}`;
+const NAME2 = `${NAME} current`;
 const now = new Date();
 const MONTH = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
 const monthLong = now.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
@@ -145,10 +148,40 @@ try {
     where b.household_id = ${hh} and c.name = ${catName} and b.month = ${MONTH}::date`;
   assert.equal(Number(amount), figure * 100);
   ok(`"Adjust ${monthLong} only" saved ${figure}, and the bar changed to "${after}"`);
+
+  /* ── 5. create with "Make this my current budget" ticked ──────────── */
+  /* The box ticked used to crash the create (a JS Date bound as current_at): a 500 and the error screen. Now the
+     set is current on arrival, wears "In use", and this month's budget rows are exactly its lines. */
+  const failures = [];
+  const watch = (r) => { if (r.status() >= 500) failures.push(`${r.status()} ${r.url()}`); };
+  page.on('response', watch);
+  await page.getByRole('button', { name: 'Create another budget' }).click();
+  const group2 = page.getByRole('group', { name: 'Which categories to budget' });
+  const pick = group2.getByRole('button').first();
+  const pickName = (await pick.locator('span.min-w-0').innerText()).trim();
+  await pick.click();
+  await page.getByRole('button', { name: /^Next · 1 chosen$/ }).click();
+  await page.getByLabel(`Budget for ${pickName}`).fill('3000');
+  await page.getByLabel('Name this budget').fill(NAME2);
+  const current2 = page.getByRole('checkbox', { name: /Make this my current budget/ });
+  await current2.check();
+  assert.equal(await current2.isChecked(), true, 'the box is ticked');
+  await page.getByRole('button', { name: 'Create the budget' }).click();
+  await page.getByRole('button', { name: new RegExp(`${NAME2}.*In use`) }).waitFor({ timeout: 20000 });
+  page.off('response', watch);
+  assert.deepEqual(failures, [], 'no 5xx while creating it');
+  const [set2] = await sql`select id, current_at from budget_set where household_id = ${hh} and name = ${NAME2}`;
+  assert.ok(set2?.current_at, 'current_at is set in the database');
+  const others = await sql`select count(*)::int as n from budget_set where household_id = ${hh} and current_at is not null and id <> ${set2.id}`;
+  assert.equal(others[0].n, 0, 'it is the only current set');
+  const rowsNow = await sql`select category_id, amount::text from budget where household_id = ${hh} and month = ${MONTH}::date order by category_id`;
+  const lines = await sql`select category_id, amount::text from budget_line where set_id = ${set2.id} order by category_id`;
+  assert.deepEqual(rowsNow, lines, "this month's budget rows are the set's lines");
+  ok(`created with the box ticked: no 5xx, "${NAME2}" is current in the database and wears "In use", and ${monthLong}'s rows are its ${lines.length} line(s)`);
 } finally {
   if (!KEEP && hh) {
     await sql.begin(async (tx) => {
-      await tx`delete from budget_set where household_id = ${hh} and name = ${NAME}`;
+      await tx`delete from budget_set where household_id = ${hh} and name in (${NAME}, ${NAME2})`;
       await tx`delete from budget where household_id = ${hh} and month >= ${MONTH}::date`;
       for (const c of wasCurrent) await tx`update budget_set set current_at = ${c.current_at} where id = ${c.id}`;
       for (const r of saved) {

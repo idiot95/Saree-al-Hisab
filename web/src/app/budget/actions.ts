@@ -212,7 +212,8 @@ export async function createBudgetSet(_prev: Result | null, fd: FormData): Promi
       const [set] = await tx`
         insert into budget_set (household_id, name, starts_on, ends_on, current_at)
         values (${actor.household_id}, ${head.name}, ${head.starts}::date, ${head.ends}::date,
-                ${makeCurrent ? new Date() : null})
+                -- now() from the database, as Make current does: a JS Date is not a value this driver will bind.
+                case when ${makeCurrent}::boolean then now() end)
         returning id`;
       for (const l of body.lines) {
         await tx`insert into budget_line (set_id, category_id, amount)
