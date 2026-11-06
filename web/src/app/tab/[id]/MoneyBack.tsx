@@ -1,13 +1,13 @@
 'use client';
 
 import { useActionState, useCallback, useState } from 'react';
-import { Field, ErrorNote } from '../../auth-ui';
-import { Icon, tintOf } from '../../Icon';
+import { Button } from '@/components/ui/button';
+import { Field, Problem, keepFields } from '../../worth/fields';
+import { Icon } from '../../Icon';
 import { haptic } from '../../haptics';
 import Sheet from '../../Sheet';
 import PayPicker from '../../PayPicker';
 import { DateChips } from '../../DatePick';
-import { choice } from '../../choice';
 import { useMoney } from '@/app/currency';
 import { defaultRef, type Way } from '@/lib/pay';
 import { settleTab } from '../actions';
@@ -42,39 +42,36 @@ export default function MoneyBack({ tabId, ways, today, owing }: {
   const chosen = from ? from.claims.filter((c) => ticked.has(c.id)) : [];
   const target = chosen.length ? chosen.reduce((n, c) => n + c.outstanding, 0) : from?.owed ?? 0;
 
+  const short = (on: string) => new Date(`${on}T00:00:00`).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+
   return (
     <>
-      <button type="button" className="cta" disabled={owing.length === 0}
-        onClick={() => { haptic('select'); setWho(0); setTicked(new Set()); setOpen(true); }} style={{
-          flex: 1, minHeight: 54, borderRadius: 15, fontSize: 'var(--step-0)', fontWeight: 600,
-          background: 'var(--card)', border: '1px solid var(--border)', color: 'var(--foreground)',
-          opacity: owing.length === 0 ? 0.5 : 1,
-        }}>
+      <button type="button" disabled={owing.length === 0}
+        onClick={() => { haptic('select'); setWho(0); setTicked(new Set()); setOpen(true); }}
+        className="press flex min-h-[54px] flex-1 items-center justify-center gap-2 rounded-2xl border border-border bg-card text-base font-semibold text-foreground disabled:opacity-50">
         <Icon name="receivable" size={18} />
         Money back
       </button>
 
       <Sheet open={open} onClose={close} label="Money back">
         {from && (
-          <form action={act} style={{ display: 'flex', flexDirection: 'column', gap: 14, paddingTop: 2 }}>
-            <h2 style={{ fontSize: 'var(--step-2)', fontWeight: 600 }}>Money back</h2>
+          /* In a drawer, which needs script to open: keepFields keeps the amount and the ticks after a refusal. */
+          <form noValidate onSubmit={keepFields(act)} className="flex flex-col gap-4 pt-0.5">
+            <h2 className="text-xl font-bold">Money back</h2>
             <input type="hidden" name="tabId" value={tabId} />
             <input type="hidden" name="counterpartyId" value={from.id ?? ''} />
             <input type="hidden" name="occurred_on" value={on} />
 
             {owing.length > 1 && (
-              <div role="group" aria-label="From" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--muted-foreground)' }}>From</span>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              <div role="group" aria-label="From" className="flex flex-col gap-2">
+                <span className="text-sm font-medium text-muted-foreground">From</span>
+                <div className="flex flex-wrap gap-2">
                   {owing.map((o, i) => (
                     <button key={o.id ?? 'tab'} type="button" aria-pressed={i === who}
-                      onClick={() => { haptic('select'); setWho(i); setTicked(new Set()); }} style={{
-                        minHeight: 44, padding: '0 14px', borderRadius: 999, display: 'flex', alignItems: 'center',
-                        gap: 6, fontSize: 'var(--step--1)', fontWeight: 600,
-                        ...choice(i === who, tintOf(o.tint)[1]),
-                      }}>
+                      onClick={() => { haptic('select'); setWho(i); setTicked(new Set()); }}
+                      className="press flex min-h-11 items-center gap-1.5 rounded-full border border-border bg-card px-3.5 text-sm font-semibold aria-pressed:border-primary aria-pressed:bg-primary aria-pressed:text-primary-foreground">
                       {o.name}
-                      <span style={{ fontWeight: 500, opacity: 0.9 }}>{format(o.owed)}</span>
+                      <span className="font-medium opacity-90">{format(o.owed)}</span>
                     </button>
                   ))}
                 </div>
@@ -82,23 +79,21 @@ export default function MoneyBack({ tabId, ways, today, owing }: {
             )}
 
             {from.claims.length > 1 && (
-              <fieldset style={{ border: 0, padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
-                <legend style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--muted-foreground)', padding: 0, marginBottom: 6 }}>
+              <fieldset className="flex flex-col gap-0.5">
+                <legend className="mb-1.5 text-sm font-medium text-muted-foreground">
                   For which costs — none ticked means all of them
                 </legend>
                 {from.claims.map((c) => (
-                  <label key={c.id} style={{
-                    display: 'flex', alignItems: 'center', gap: 10, minHeight: 44, cursor: 'pointer', fontSize: 'var(--step--1)',
-                  }}>
+                  <label key={c.id} className="flex min-h-11 cursor-pointer items-center gap-2.5 text-sm">
                     <input type="checkbox" name="claimId" value={c.id} checked={ticked.has(c.id)}
                       onChange={(e) => setTicked((s) => {
                         const n = new Set(s); if (e.target.checked) n.add(c.id); else n.delete(c.id); return n;
                       })}
-                      style={{ width: 18, height: 18, margin: 0, flex: 'none', accentColor: 'var(--chart-1)' }} />
-                    <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {c.what} <span style={{ color: 'var(--muted-foreground)' }}>· {new Date(`${c.on}T00:00:00`).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</span>
+                      className="size-[18px] flex-none accent-primary" />
+                    <span className="min-w-0 flex-1 leading-snug [overflow-wrap:anywhere]">
+                      {c.what} <span className="text-muted-foreground">· {short(c.on)}</span>
                     </span>
-                    <span className="t">{format(c.outstanding)}</span>
+                    <span className="tabular-nums">{format(c.outstanding)}</span>
                   </label>
                 ))}
               </fieldset>
@@ -106,21 +101,18 @@ export default function MoneyBack({ tabId, ways, today, owing }: {
 
             <Field label={`Amount — blank is all ${format(target)}`} name="amount"
               inputMode="decimal" placeholder={format(target)} />
-            <div role="group" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--muted-foreground)' }}>Where it arrived</span>
+            <div role="group" className="flex flex-col gap-1.5">
+              <span className="text-sm font-medium text-muted-foreground">Where it arrived</span>
               <PayPicker name="paidWith" ways={ways} defaultValue={defaultRef(ways)} />
             </div>
             <DateChips value={on} onChange={setOn} today={today} dir="past" label="When did it come back" />
 
-            {state && !state.ok && <ErrorNote>{state.error}</ErrorNote>}
-            <button className="cta" type="submit" disabled={pending} style={{
-              minHeight: 52, borderRadius: 13, fontSize: 'var(--step-0)', fontWeight: 600,
-              background: 'var(--primary)', color: 'var(--primary-foreground)', opacity: pending ? 0.65 : 1,
-            }}>
+            {state && !state.ok && <Problem>{state.error}</Problem>}
+            <Button type="submit" disabled={pending} className="h-12 rounded-xl text-base font-semibold">
               <Icon name="check" size={18} />
               {pending ? 'Recording…' : 'Record what came back'}
-            </button>
-            <p style={{ margin: 0, fontSize: 'var(--step--2)', lineHeight: 1.45, color: 'var(--muted-foreground)' }}>
+            </Button>
+            <p className="text-xs leading-snug text-muted-foreground">
               {chosen.length ? 'Goes against the costs ticked, oldest first.' : 'Goes against the oldest costs first.'}
               {' '}Recorded as money coming back, not income — the spending stays in the month it happened.
             </p>

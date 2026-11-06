@@ -229,9 +229,14 @@ export default function SwipeRow({ actions, commit = true, grip = true, flush = 
       position: 'relative', overflow: 'hidden',
       margin: flush ? 0 : '0 calc(var(--pad) * -1)',
     }}>
+      {/* At rest and shut, the actions are not drawn at all: the row over them sits on a fractional pixel at some
+          widths, and on the dark ground a sliver of a filled action showed at its edge. Hidden only once the row
+          has slid home (the visibility change waits out the slide), and shown at once when it moves. */}
       <div aria-hidden={!open} style={{
         position: 'absolute', top: 0, bottom: 0, right: 0, display: 'flex',
         width: Math.max(W, -x),
+        visibility: x === 0 && !drag ? 'hidden' : 'visible',
+        transition: x === 0 && !drag ? 'visibility 0s linear .24s' : 'none',
       }}>
         {actions.map((a, i) => {
           const [bg, ink] = TONE[a.tone ?? 'neutral'];

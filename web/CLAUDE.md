@@ -97,6 +97,17 @@ paragraph below says otherwise. Where an older section disagrees, this wins:
   and a chart's caption is drawn by the page outside it, so nothing moves when the chart arrives.
   `scripts/plan-taps.mjs` drives the redirect, a two-step create with the box unticked, Make current, and an
   "Adjust this month only" save that changes the bar.
+- **Loans is one list and a pushed tab** (`/people`, Task 26; mock N2). The header is the title and a **New tab** pill
+  (`tab/NewTab.tsx`, the same `createTab` drawer). The card under it is the net — "Owed to you" (`owedToYou()` less
+  what you owe) as a `Figure` in money-in with a +, or "You owe" in plain ink when it is the other way; both halves
+  are spelled out under it whenever both exist, so with nothing owed back it is Home's figure exactly. Then *Open
+  tabs* as one list card: the tab's folder in its tint, the name, "n costs · last cost <day>", and what is still
+  owed as a `Figure` (Settled with a check). Rows still swipe to Remind and Add cost. `/people/[id]` and
+  `/tab/[id]` are pushed screens (back arrow to `/people`) with the balance as a `Figure` hero; every action and
+  server action is as before. Drawer forms (New tab, Money back, the tab menu, People on this tab) submit through
+  `keepFields`; the person page's forms stay direct `useActionState` forms. Names wrap rather than truncate.
+  `scripts/loans-taps.mjs` opens a tab from the list, records ₹100 of Money back and watches both figures drop,
+  then swipes a row open and shut with real touch events.
 - **Back returns to where you were** (`backStack.ts`): `NavTrail` in the root
   layout records each in-app address for the session; the header arrow
   (`BackLink`) and the edge swipe step back through history when there is an
@@ -1578,7 +1589,9 @@ also the twin — tapping it opens the actions, tapping again closes — so
 nothing is gesture-only and a row needs no second set of buttons repeating
 what the swipe offers. The first swipe row a device sees peeks its actions
 out and back once (`localStorage 'swipe-peeked'`, coarse pointers only,
-reduced motion respected). Where a row's every action is in the swipe (a due
+reduced motion respected). Shut and at rest, the action layer is `visibility: hidden` (after
+the slide home), because a row on a fractional pixel showed a sliver of a filled action
+at its edge on the dark ground. Where a row's every action is in the swipe (a due
 row, a schedule row), there are no buttons under it.
 
 Where they live. Entries: Edit, Delete. Categories: Edit, Retire, plus a grip

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { Button } from '@/components/ui/button';
 import { Icon } from '../../Icon';
 import { haptic } from '../../haptics';
 import { reminderText, shareReminder, type ReminderBill } from '../../remind';
@@ -26,21 +27,12 @@ export default function RemindShare({ person, what, amount, on, bills }: {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-      <button type="button" onClick={go} disabled={busy} style={{
-        minHeight: 44, padding: '0 13px', borderRadius: 11, display: 'flex',
-        alignItems: 'center', justifyContent: 'center', gap: 7,
-        fontSize: 'var(--step--2)', fontWeight: 700,
-        background: 'var(--muted)', color: 'var(--foreground)',
-      }}>
-        <Icon name="bell" size={15} />
+    <div className="flex flex-col gap-1">
+      <Button type="button" variant="secondary" onClick={go} disabled={busy} className="h-11 rounded-xl text-[13px] font-semibold">
+        <Icon name="bell" size={16} />
         {busy ? 'Preparing…' : bills.length > 0 ? `Remind · ${bills.length} bill${bills.length === 1 ? '' : 's'}` : 'Remind'}
-      </button>
-      {said && (
-        <span role="status" style={{ fontSize: 'var(--step--2)', lineHeight: 1.4, color: 'var(--muted-foreground)' }}>
-          {said}
-        </span>
-      )}
+      </Button>
+      {said && <span role="status" className="text-xs leading-snug text-muted-foreground">{said}</span>}
     </div>
   );
 }

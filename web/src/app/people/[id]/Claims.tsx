@@ -2,7 +2,9 @@
 
 import Link from '@/app/NavLink';
 import { useActionState, useState } from 'react';
-import { Field, ErrorNote } from '../../auth-ui';
+import { Button } from '@/components/ui/button';
+import { Field, Problem } from '../../worth/fields';
+import { Icon } from '../../Icon';
 import { settleClaim, abandonClaim } from '../actions';
 import { useMoney } from '@/app/currency';
 import PayPicker from '../../PayPicker';
@@ -29,112 +31,90 @@ export default function Claims({ claims, ways, canEdit, person, bills = [] }: {
   if (claims.length === 0) return null;
   const live = claims.filter((c) => c.status === 'open' || c.status === 'part_paid');
 
+  const word = (status: string) => status === 'settled' ? { icon: 'check_circle', text: 'settled', tone: 'text-primary' }
+    : status === 'written_off' ? { icon: 'delete', text: 'written off', tone: 'text-muted-foreground' }
+    : null;
+
+  /* Page-level forms: settleClaim and abandonClaim go straight into useActionState and post without script. */
   return (
-    <>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0 20px 11px' }}>
-        <h2 style={{ margin: 0, fontSize: 'var(--step-1)', fontWeight: 600 }}>Owed for shared costs</h2>
-        <span style={{ flex: 1, height: 1, background: 'var(--border)' }} />
-      </div>
-      <p style={{ margin: '-4px 20px 12px', fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--muted-foreground)' }}>
+    <section aria-label="Owed for shared costs" className="mx-[var(--gutter)] flex flex-col gap-1.5">
+      <h2 className="px-0.5 text-[13px] font-semibold text-muted-foreground">Owed for shared costs</h2>
+      <p className="px-0.5 pb-1 text-[13px] leading-relaxed text-muted-foreground">
         Things you paid for that they owe part of. Already counted in the month you bought
         them — this is only what is coming back.
       </p>
 
-      <section className="border border-border" style={{
-        margin: '0 var(--gutter) 22px', background: 'var(--card)', borderRadius: 18, padding: '0 var(--pad)',
-      }}>
-        {claims.map((c, i) => (
-          <div key={c.id} style={{
-            padding: '14px 0', display: 'flex', flexDirection: 'column', gap: 10,
-            borderBottom: i === claims.length - 1 ? undefined : '1px solid var(--border)',
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <Link transitionTypes={['nav-forward']} href={`/entries/${c.txn_id}`} style={{
-                flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3,
-                textDecoration: 'none', color: 'var(--foreground)',
-              }}>
-                <span style={{
-                  fontSize: 'var(--step-0)', fontWeight: 600, overflow: 'hidden',
-                  textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                }}>{c.merchant || c.category || 'Entry'}</span>
-                <span style={{ fontSize: 'var(--step--2)', color: 'var(--muted-foreground)' }}>
-                  {new Date(c.occurred_on).toLocaleDateString('en-IN',
-                    { day: 'numeric', month: 'short' })}
-                  {c.status === 'part_paid' && ` · ${format(Number(c.received))} in`}
-                  {c.status === 'settled' && ' · settled'}
-                  {c.status === 'written_off' && ' · written off'}
-                  {c.note ? ` · ${c.note}` : ''}
+      <ul className="overflow-hidden rounded-[18px] bg-card">
+        {claims.map((c) => {
+          const done = word(c.status);
+          const live = c.status === 'open' || c.status === 'part_paid';
+          return (
+            <li key={c.id} className="flex flex-col gap-2.5 border-b border-border px-3.5 py-3 last:border-b-0">
+              <div className="flex items-center gap-3">
+                <Link transitionTypes={['nav-forward']} href={`/entries/${c.txn_id}`}
+                  className="flex min-h-11 min-w-0 flex-1 flex-col justify-center gap-0.5 text-foreground">
+                  <span className="text-[15px] font-medium leading-snug [overflow-wrap:anywhere]">{c.merchant || c.category || 'Entry'}</span>
+                  <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                    {new Date(c.occurred_on).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                    {c.status === 'part_paid' && ` · ${format(Number(c.received))} in`}
+                    {done && <span className={`inline-flex items-center gap-0.5 ${done.tone}`}>· <Icon name={done.icon} size={13} />{done.text}</span>}
+                    {c.note ? ` · ${c.note}` : ''}
+                  </span>
+                </Link>
+                <span className={`flex-none text-[15px] font-semibold tabular-nums ${done ? 'text-muted-foreground' : 'text-money-in'}`}>
+                  {live ? '+' : ''}{format(Number(live ? c.outstanding : c.expected_amount))}
                 </span>
-              </Link>
-              <span className="t amt" style={{
-                fontSize: 'var(--step-0)',
-                color: c.status === 'settled' ? 'var(--primary)'
-                  : c.status === 'written_off' ? 'var(--muted-foreground)'
-                  : c.status === 'part_paid' ? 'var(--attention-soft-foreground)' : 'var(--foreground)',
-              }}>
-                {format(Number(c.status === 'open' || c.status === 'part_paid'
-                  ? c.outstanding : c.expected_amount))}
-              </span>
-            </div>
+              </div>
 
-            {canEdit && (c.status === 'open' || c.status === 'part_paid') && (
-              settling === c.id ? (
-                <form action={act} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  <input type="hidden" name="claimId" value={c.id} />
-                  <Field label="How much came back" name="amount" inputMode="decimal" required
-                    autoFocus defaultValue={toKeys(Number(c.outstanding))} />
-                  <Field label="Date" name="occurred_on" type="date" defaultValue={today} required />
-                  <div role="group" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--muted-foreground)' }}>How it came back</span>
-                    <PayPicker name="paidWith" ways={ways} defaultValue={defaultRef(ways)} />
+              {canEdit && live && (
+                settling === c.id ? (
+                  <form action={act} className="flex flex-col gap-2.5">
+                    <input type="hidden" name="claimId" value={c.id} />
+                    <Field label="How much came back" name="amount" inputMode="decimal" required
+                      autoFocus defaultValue={toKeys(Number(c.outstanding))} />
+                    <Field label="Date" name="occurred_on" type="date" defaultValue={today} required />
+                    <div role="group" className="flex flex-col gap-1.5">
+                      <span className="text-sm font-medium text-muted-foreground">How it came back</span>
+                      <PayPicker name="paidWith" ways={ways} defaultValue={defaultRef(ways)} />
+                    </div>
+                    {state && !state.ok && <Problem>{state.error}</Problem>}
+                    <div className="flex gap-2">
+                      <Button type="button" variant="secondary" onClick={() => setSettling(null)}
+                        className="h-12 rounded-xl px-3.5 font-semibold">Cancel</Button>
+                      <Button type="submit" disabled={pending} className="h-12 flex-1 rounded-xl text-base font-semibold">
+                        {pending ? 'Saving…' : 'Record it'}
+                      </Button>
+                    </div>
+                  </form>
+                ) : (
+                  <div className="flex flex-col gap-2">
+                    <div className="flex gap-2">
+                      <Button type="button" variant="secondary" onClick={() => setSettling(c.id)}
+                        className="h-11 flex-1 rounded-xl font-semibold">They paid me</Button>
+                      <form action={drop}>
+                        <input type="hidden" name="claimId" value={c.id} />
+                        <Button type="submit" variant="ghost" className="h-11 rounded-xl px-3.5 font-semibold text-muted-foreground">
+                          Write off
+                        </Button>
+                      </form>
+                    </div>
+                    {/* Asking for it back, with the bill attached where the phone can carry one. Sent through the
+                        share sheet, so it goes to whoever they already talk to. */}
+                    <RemindShare person={person} amount={format(Number(c.outstanding))}
+                      what={c.merchant || c.category || 'a shared cost'}
+                      on={new Date(c.occurred_on).toISOString().slice(0, 10)}
+                      bills={bills.filter((b) => b.txn_id === c.txn_id)
+                        .map((b) => ({ id: b.id, name: b.name, mime: b.mime }))} />
                   </div>
-                  {state && !state.ok && <ErrorNote>{state.error}</ErrorNote>}
-                  <div style={{ display: 'flex', gap: 9 }}>
-                    <button className="cta" type="button" onClick={() => setSettling(null)} style={{
-                      minHeight: 46, padding: '0 14px', borderRadius: 11, fontSize: 'var(--step--1)',
-                      fontWeight: 600, background: 'var(--muted)', color: 'var(--muted-foreground)',
-                    }}>Cancel</button>
-                    <button className="cta" type="submit" disabled={pending} style={{
-                      flex: 1, minHeight: 46, borderRadius: 11, fontSize: 'var(--step-0)', fontWeight: 600,
-                      background: 'var(--primary)', color: 'var(--primary-foreground)',
-                      opacity: pending ? 0.6 : 1,
-                    }}>{pending ? 'Saving…' : 'Record it'}</button>
-                  </div>
-                </form>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <button className="cta" type="button" onClick={() => setSettling(c.id)} style={{
-                      flex: 1, minHeight: 44, borderRadius: 11, fontSize: 'var(--step--1)', fontWeight: 600,
-                      background: 'var(--muted)', color: 'var(--foreground)',
-                    }}>They paid me</button>
-                    <form action={drop}>
-                      <input type="hidden" name="claimId" value={c.id} />
-                      <button className="cta" type="submit" style={{
-                        minHeight: 44, padding: '0 14px', borderRadius: 11, fontSize: 'var(--step--1)',
-                        fontWeight: 600, background: 'transparent', color: 'var(--muted-foreground)',
-                      }}>Write off</button>
-                    </form>
-                  </div>
-                  {/* Asking for it back, with the bill attached where the phone
-                      can carry one. Sent through the share sheet, so it goes
-                      to whoever they already talk to. */}
-                  <RemindShare person={person} amount={format(Number(c.outstanding))}
-                    what={c.merchant || c.category || 'a shared cost'}
-                    on={new Date(c.occurred_on).toISOString().slice(0, 10)}
-                    bills={bills.filter((b) => b.txn_id === c.txn_id)
-                      .map((b) => ({ id: b.id, name: b.name, mime: b.mime }))} />
-                </div>
-              )
-            )}
-          </div>
-        ))}
-      </section>
+                )
+              )}
+            </li>
+          );
+        })}
+      </ul>
       {live.length === 0 && (
-        <p style={{ margin: '-14px 20px 22px', fontSize: 'var(--step--1)', color: 'var(--muted-foreground)' }}>
-          Nothing outstanding on shared costs.
-        </p>
+        <p className="px-0.5 text-[13px] text-muted-foreground">Nothing outstanding on shared costs.</p>
       )}
-    </>
+    </section>
   );
 }
