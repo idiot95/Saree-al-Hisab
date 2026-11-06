@@ -54,6 +54,18 @@ assert.deepEqual(gramsToMg('1,000.5'), { ok: true, mg: 1000500 });
 assert.deepEqual(gramsToMg('12,50,000'), { ok: true, mg: 1250000000 });
 assert.deepEqual(fxQuantity('12,50,000.50', 'USD'), { ok: true, minor: 125000050 });
 assert.deepEqual(parseRate('1,234.5'), { ok: true, rate: '1234.5' });
+// a grouping never starts with a zero group: 0,001 is not a thousandth, it is a typo
+for (const f of [gramsToMg, (v) => fxQuantity(v, 'USD'), parseRate]) {
+  for (const bad of ['0,001', '0,000', '00,001', '01,000', '0,00,000', '0,000.5']) {
+    const r = f(bad);
+    assert.equal(r.ok, false, `leading-zero group ${bad}`);
+    assert.match(r.error, /Use a point for decimals, like 12\.5/);
+  }
+}
+assert.deepEqual(gramsToMg('1,000'), { ok: true, mg: 1000000 });
+assert.deepEqual(parseRate('1,000'), { ok: true, rate: '1000' });
+assert.deepEqual(gramsToMg('10,00,000'), { ok: true, mg: 1000000000 });
+assert.deepEqual(gramsToMg('999,999'), { ok: true, mg: 999999000 });
 for (const bad of ['12,5', '1,2,3', '1,00', '1234,567', ',5', '5,', '1.000,5', '1,000,00', '12,5.5']) {
   for (const r of [gramsToMg(bad), fxQuantity(bad, 'USD'), parseRate(bad)]) {
     assert.equal(r.ok, false, `comma rejects ${bad}`);

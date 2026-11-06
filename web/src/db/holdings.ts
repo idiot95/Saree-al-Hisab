@@ -1,5 +1,7 @@
 import 'server-only';
+import type { TransactionSql } from 'postgres';
 import { sql, withHousehold } from './client';
+import type { Bill } from '@/lib/bills';
 import type { HoldingValue } from '@/lib/worth';
 
 /* Holdings, read. Money figures arrive as strings, as postgres.js returns
@@ -72,4 +74,34 @@ export async function resolveOwner(
     ? await sql`select user_id from member where household_id = ${householdId} and user_id = ${v}`
     : [];
   return m ? { ok: true, id: v } : { ok: false, error: 'That person is not in this household.' };
+}
+
+export type PhotoRow = { id: string; name: string; mime: string; snapshot_id: string | null; created_at: string };
+
+/** The photos and PDFs kept with a holding, newest first. NEVER the bytes: a
+ *  list of thumbnails must not drag megabytes through the query. The bytes
+ *  come out one at a time through /attachment/h/[id]. */
+export async function photosFor(householdId: string, holdingId: string): Promise<PhotoRow[]> {
+  if (!/^[0-9a-f-]{36}$/i.test(holdingId)) return [];
+  return withHousehold(householdId, async () => {
+    return sql`
+      select id, name, mime, snapshot_id, created_at::text as created_at
+      from holding_attachment
+      where holding_id = ${holdingId} and household_id = ${householdId}
+      order by created_at desc, id
+    ` as unknown as Promise<PhotoRow[]>;
+  });
+}
+
+/** Write already-validated photos inside the caller's transaction, so a photo
+ *  never outlives a failed save. The composite keys make the database refuse a
+ *  holding from another household or a snapshot from another holding. */
+export async function insertPhotos(
+  tx: TransactionSql, householdId: string, holdingId: string, snapshotId: string | null, userId: string, photos: Bill[],
+): Promise<void> {
+  for (const p of photos) {
+    await tx`
+      insert into holding_attachment (household_id, holding_id, snapshot_id, name, mime, bytes, data, created_by)
+      values (${householdId}, ${holdingId}, ${snapshotId}, ${p.name}, ${p.mime}, ${p.buf.length}, ${p.buf}, ${userId})`;
+  }
 }

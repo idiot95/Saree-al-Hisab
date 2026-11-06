@@ -246,6 +246,13 @@
       "when": 1793965922563,
       "tag": "0035_wealth",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1793967940654,
+      "tag": "0036_holding_attachment",
+      "breakpoints": true
     }
   ]
 }

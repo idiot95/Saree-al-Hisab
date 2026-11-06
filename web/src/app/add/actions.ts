@@ -6,6 +6,7 @@ import { currentActor, possibleDuplicate } from '@/db/queries';
 import { resolvePayment } from '@/db/payment';
 import { shares } from '../tab/splits';
 import { fits, misfit } from '@/lib/scope';
+import { BILL_MAX_FILES, billFromBase64 } from '@/lib/bills';
 
 /* A Server Action is reachable by direct POST, not only through the UI, so
    every value the client sends is treated as untrusted: the household and the
@@ -14,11 +15,8 @@ import { fits, misfit } from '@/lib/scope';
    anyway, but it would not stop one household writing into another's. */
 
 /* Five bills to an entry and two megabytes each, the same ceiling the table's
-   own CHECK enforces. Both are stated here so a refusal is a sentence rather
-   than a constraint violation, and there so no writer can get around it. */
-const MAX_FILES = 5;
-const MAX_BYTES = 2 * 1024 * 1024;
-const ALLOWED_MIME = new Set(['image/jpeg', 'image/png', 'image/webp', 'application/pdf']);
+   own CHECK enforces. The rule is src/lib/bills.ts, shared with addBills and
+   the holdings forms. */
 
 export type Draft = {
   kind: 'expense' | 'income' | 'transfer';
@@ -293,14 +291,13 @@ export async function saveEntry(d: Draft): Promise<SaveResult> {
         /* The bills, in the same transaction as the entry: an attachment that
            outlived a failed save would be evidence for nothing. */
         if (entry && d.attachments?.length) {
-          for (const a of d.attachments.slice(0, MAX_FILES)) {
-            if (!ALLOWED_MIME.has(a.mime)) continue;
-            const buf = Buffer.from(a.data, 'base64');
-            if (buf.length === 0 || buf.length > MAX_BYTES) continue;
+          for (const a of d.attachments.slice(0, BILL_MAX_FILES)) {
+            const bill = billFromBase64(a);
+            if (!bill) continue;
             await tx`
               insert into attachment (household_id, txn_id, name, mime, bytes, data, created_by)
-              values (${household_id}, ${entry.id}, ${String(a.name).slice(0, 120) || 'Bill'},
-                      ${a.mime}, ${buf.length}, ${buf}, ${user_id})`;
+              values (${household_id}, ${entry.id}, ${bill.name},
+                      ${bill.mime}, ${bill.buf.length}, ${bill.buf}, ${user_id})`;
           }
         }
         return entry;

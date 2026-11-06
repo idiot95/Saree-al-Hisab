@@ -846,7 +846,9 @@ is a drawer with one Send per person — a share has to come from a tap — and
 `remind.ts` composes and shares the sentence with the bills, the same helper
 the person page uses; a tab's own claim has nobody to name, so its message
 names nobody. Bills after the fact go through `addBills` (the same five-bill,
-2 MB, image-or-PDF ceilings as `saveEntry`), shrunk on the phone by the same
+2 MB, image-or-PDF ceilings as `saveEntry`; the rule is one helper,
+`src/lib/bills.ts`, which holdings' photos use too: table `holding_attachment`,
+served by `/attachment/h/[id]`), shrunk on the phone by the same
 `shrink()` Add Entry uses. **After a cost is saved on a tab, Add Entry lands on
 that tab with `?saved=<entry>`**, which opens "Attach the bill?" when no bill
 came with it; the query comes off the address when the drawer closes. The Loan

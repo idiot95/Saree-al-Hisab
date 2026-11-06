@@ -8,8 +8,9 @@ import { digitsOf, fromKeys } from './money.ts';
 export type Parsed<K extends string, V> = ({ ok: true } & { [P in K]: V }) | { ok: false; error: string };
 
 const COMMA_HELP = 'Use a point for decimals, like 12.5.';
-const INTL = /^\d{1,3}(,\d{3})+$/;
-const INDIAN = /^\d{1,2}(,\d{2})*,\d{3}$/;
+// The first group never starts with 0: '0,001' is a typo, not a thousandth.
+const INTL = /^[1-9]\d{0,2}(,\d{3})+$/;
+const INDIAN = /^[1-9]\d?(,\d{2})*,\d{3}$/;
 
 /** Trim, and let a comma through only as a grouping separator in the whole
  *  part (1,250 or 12,50,000). '12,5' is not 125: a comma anywhere else is

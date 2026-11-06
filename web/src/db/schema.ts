@@ -734,12 +734,48 @@ export const holdingSnapshot = pgTable('holding_snapshot', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [
   unique('holding_snapshot_one_a_day').on(t.holdingId, t.asOf),
+  // The key a photo's composite foreign key points at, so a photo of a figure
+  // can never sit on a different holding than the figure.
+  uniqueIndex('holding_snapshot_holding_key').on(t.id, t.holdingId),
   index('holding_snapshot_household').on(t.householdId),
   foreignKey({
     name: 'holding_snapshot_same_household',
     columns: [t.holdingId, t.householdId], foreignColumns: [holding.id, holding.householdId],
   }).onDelete('cascade'),
   check('holding_snapshot_quantity_not_negative', sql`${t.quantity} >= 0`),
+]);
+
+/* A photo or a PDF kept with a holding: the jewellery on the scale, a jeweller's
+   valuation slip, a statement for a foreign pot. A table of its own rather
+   than a wider `attachment`, whose txn_id is NOT NULL and whose columns stay as
+   they are. Same caps as an entry's bills (src/lib/bills.ts). snapshot_id NULL
+   is a photo of the holding itself; set, it is evidence for that day's figure.
+   Photos are kept when a holding is archived. */
+export const holdingAttachment = pgTable('holding_attachment', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  householdId: uuid('household_id').notNull().references(() => household.id, { onDelete: 'cascade' }),
+  holdingId: uuid('holding_id').notNull(),
+  snapshotId: uuid('snapshot_id'),
+  name: text('name').notNull(),
+  mime: text('mime').notNull(),
+  bytes: integer('bytes').notNull(),
+  data: customBytea('data').notNull(),
+  createdBy: uuid('created_by').references(() => appUser.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  index('holding_attachment_holding').on(t.holdingId),
+  index('holding_attachment_household').on(t.householdId),
+  foreignKey({
+    name: 'holding_attachment_same_household',
+    columns: [t.holdingId, t.householdId], foreignColumns: [holding.id, holding.householdId],
+  }).onDelete('cascade'),
+  // MATCH SIMPLE: with snapshot_id NULL this is not checked, as intended.
+  foreignKey({
+    name: 'holding_attachment_snapshot_same_holding',
+    columns: [t.snapshotId, t.holdingId], foreignColumns: [holdingSnapshot.id, holdingSnapshot.holdingId],
+  }).onDelete('cascade'),
+  check('holding_attachment_size', sql`${t.bytes} > 0 AND ${t.bytes} <= 2097152`),
+  check('holding_attachment_mime', sql`${t.mime} IN ('image/jpeg','image/png','image/webp','application/pdf')`),
 ]);
 
 /* A market price, the same for every household: no household_id, no row

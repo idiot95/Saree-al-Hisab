@@ -1138,6 +1138,46 @@ try {
   await refusesWith('a household cannot move its books into the currency of one of its pots', /Use an account for USD: a pot already holds it/,
     () => sql`update household set base_currency = 'USD' where id = ${aed.id}`);
 
+  console.log('\nHOLDING PHOTOS — a valuation slip, the jewellery on the scale');
+  const JPEG = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0, 0x10, 0x4a, 0x46]);
+  const photo = (o = {}) => sql`insert into holding_attachment ${sql({
+    household_id: hh.id, holding_id: kwd, name: 'slip.jpg', mime: 'image/jpeg', bytes: JPEG.length, data: JPEG,
+    created_by: user.id, ...o })} returning id`;
+  const [kwdSnap] = await sql`select id from holding_snapshot where holding_id = ${kwd} limit 1`;
+  const [goldSnap] = await sql`select id from holding_snapshot where holding_id = ${gold.id} limit 1`;
+  ok(!!kwdSnap && !!goldSnap, 'two holdings, each with a snapshot, to hang photos on');
+  await allows('a photo can belong to the holding itself (snapshot NULL)', () => photo());
+  await allows('or be evidence for one of its own snapshots', () => photo({ snapshot_id: kwdSnap.id }));
+  for (const mime of ['image/png', 'image/webp', 'application/pdf']) {
+    await allows(`${mime} is kept`, () => photo({ mime }));
+  }
+  await allows('exactly 2 MB is kept', () => photo({ bytes: 2097152, data: Buffer.alloc(2097152, 1) }));
+  await refusesWith('a photo over 2 MB is refused', /holding_attachment_size/,
+    () => photo({ bytes: 2097153, data: Buffer.alloc(2097153, 1) }));
+  await refusesWith('an empty photo is refused', /holding_attachment_size/, () => photo({ bytes: 0, data: Buffer.alloc(0) }));
+  for (const mime of ['image/gif', 'text/html', 'image/svg+xml', 'IMAGE/JPEG']) {
+    await refusesWith(`${mime} is refused`, /holding_attachment_mime/, () => photo({ mime }));
+  }
+  await refusesWith('a snapshot of ANOTHER holding is refused', /holding_attachment_snapshot_same_holding/,
+    () => photo({ snapshot_id: goldSnap.id }));
+  await refusesWith('a holding of another household is refused (composite key)', /holding_attachment_same_household/,
+    () => photo({ household_id: elsewhere.id }));
+  await refusesWith('a photo needs a holding', /null value|holding_id/, () => photo({ holding_id: null }));
+  ok(Number((await sql`select count(*)::int as n from holding_attachment where holding_id = ${kwd}`)[0].n) === 6,
+    'only the six valid photos were stored');
+  const swept = await sql`select count(*)::int as n from pg_policies where tablename = 'holding_attachment'`;
+  ok(swept[0].n === 1, 'holding_attachment is under a household policy');
+  // Replacing a day's figure keeps the snapshot row, so its photos stay attached.
+  await sql`insert into holding_snapshot (holding_id, household_id, as_of, quantity, created_by)
+    select holding_id, household_id, as_of, quantity + 1, created_by from holding_snapshot where id = ${kwdSnap.id}
+    on conflict (holding_id, as_of) do update set quantity = excluded.quantity`;
+  ok(Number((await sql`select count(*)::int as n from holding_attachment where snapshot_id = ${kwdSnap.id}`)[0].n) === 1,
+    'saving the day\'s figure again leaves its photo attached');
+  const [{ id: gonePhoto }] = await photo({ holding_id: gold.id, snapshot_id: goldSnap.id });
+  await sql`delete from holding where id = ${gold.id}`;
+  ok(Number((await sql`select count(*)::int as n from holding_attachment where id = ${gonePhoto}`)[0].n) === 0,
+    'deleting a holding takes its photos (archiving, which the app uses, keeps them)');
+
   // Row security, as the app.
   if (appUser === 'saree_app') {
     const app = postgres(appUrl, { ssl: 'require', max: 1, onnotice: () => {} });
@@ -1152,6 +1192,18 @@ try {
       'another household cannot read the holding, asked for by id');
     ok(await scoped(elsewhere.id, (tx) => n(tx`select count(*)::int as n from holding_snapshot where holding_id = ${kwd}`)) === 0,
       'nor its snapshots');
+    ok(await scoped(hh.id, (tx) => n(tx`select count(*)::int as n from holding_attachment where holding_id = ${kwd}`)) === 6,
+      'named, the household sees its own photos');
+    ok(await scoped(elsewhere.id, (tx) => n(tx`select count(*)::int as n from holding_attachment where holding_id = ${kwd}`)) === 0,
+      'another household cannot read its photos, asked for by holding');
+    ok(await scoped(elsewhere.id, (tx) => n(tx`select count(*)::int as n from holding_attachment`)) === 0,
+      'nor list any photo at all');
+    await refusesWith('another household cannot write a photo onto it', /row-level security|same_household/,
+      () => scoped(elsewhere.id, (tx) => tx`insert into holding_attachment ${sql({ household_id: hh.id, holding_id: kwd,
+        name: 'x', mime: 'image/png', bytes: 1, data: Buffer.from([1]) })}`));
+    await refusesWith('nor write one under its own id onto this holding', /same_household/,
+      () => scoped(elsewhere.id, (tx) => tx`insert into holding_attachment ${sql({ household_id: elsewhere.id, holding_id: kwd,
+        name: 'x', mime: 'image/png', bytes: 1, data: Buffer.from([1]) })}`));
     ok(await scoped(elsewhere.id, (tx) => n(tx`select count(*)::int as n from price_override where household_id = ${hh.id}`)) === 0,
       'nor its overrides');
     ok(await scoped(elsewhere.id, (tx) => n(tx`select count(*)::int as n from holding_value where household_id = ${hh.id}`)) === 0,

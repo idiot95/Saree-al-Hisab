@@ -8,6 +8,7 @@ import { resolvePayment } from '@/db/payment';
 import { fromKeys } from '@/lib/money';
 import { rethrowControlFlow } from '@/lib/rethrow';
 import { fits, misfit } from '@/lib/scope';
+import { BILL_MAX_FILES, billFromBase64, type Bill } from '@/lib/bills';
 
 /** Where an edit may send you back to: a screen of ours, never a URL from the form. */
 const BACK = /^\/(?:|entries|accounts|people|tab\/[0-9a-f-]{36}|people\/[0-9a-f-]{36})$/;
@@ -225,9 +226,6 @@ export async function restoreEntry(id: unknown): Promise<Result> {
    five to an entry, two megabytes each, images and PDFs only, checked here
    because the client is not a gatekeeper. The entry is checked to be this
    household's and not deleted before a byte is written. */
-const BILL_MIME = new Set(['image/jpeg', 'image/png', 'image/webp', 'application/pdf']);
-const BILLS_PER_ENTRY = 5;
-const BILL_BYTES = 2 * 1024 * 1024;
 
 export async function addBills(txnId: unknown, files: unknown): Promise<Result> {
   let actor;
@@ -243,16 +241,13 @@ export async function addBills(txnId: unknown, files: unknown): Promise<Result> 
       from txn t
       where t.id = ${txnId} and t.household_id = ${actor.household_id} and t.deleted_at is null`;
     if (!t) return { ok: false, error: 'That entry is not one of yours.' };
-    const room = BILLS_PER_ENTRY - Number(t.bills);
+    const room = BILL_MAX_FILES - Number(t.bills);
     if (room <= 0) return { ok: false, error: 'An entry keeps five bills at most.' };
 
-    const good: { name: string; mime: string; buf: Buffer }[] = [];
+    const good: Bill[] = [];
     for (const f of files.slice(0, room)) {
-      const { name, mime, data } = (f ?? {}) as { name?: unknown; mime?: unknown; data?: unknown };
-      if (typeof mime !== 'string' || !BILL_MIME.has(mime) || typeof data !== 'string') continue;
-      const buf = Buffer.from(data, 'base64');
-      if (buf.length === 0 || buf.length > BILL_BYTES) continue;
-      good.push({ name: String(name ?? '').slice(0, 120) || 'Bill', mime, buf });
+      const bill = billFromBase64(f);
+      if (bill) good.push(bill);
     }
     if (good.length === 0) return { ok: false, error: 'That file could not be attached — images and PDFs under 2 MB.' };
 
