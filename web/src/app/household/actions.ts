@@ -9,7 +9,7 @@ import { actorOrNull, currentActor } from '@/db/queries';
 import { signIn } from '@/auth';
 import { hasGoogle } from '@/db/identity';
 import { sealLinkIntent } from '@/lib/link-intent';
-import { LINK_COOKIE, LINK_MAX_AGE, flowCookieOptions } from '@/lib/flow-cookies';
+import { LINK_COOKIE, LINK_MAX_AGE, clearOtherFlowCookies, flowCookieOptions } from '@/lib/flow-cookies';
 import { createHousehold, revokeSessions, switchHousehold } from '@/db/membership';
 import { newLinkToken } from '@/lib/link-token';
 import { hashPassword, passwordProblem, verifyPassword } from '@/lib/password';
@@ -362,6 +362,7 @@ export async function startLinkGoogle(_prev: Result | null, _fd: FormData): Prom
   if (!secret) return { ok: false, error: 'Google cannot be linked right now.' };
 
   const jar = await cookies();
+  clearOtherFlowCookies(jar, LINK_COOKIE);
   jar.set(LINK_COOKIE, sealLinkIntent(actor.user_id, secret, Date.now()),
     flowCookieOptions(LINK_MAX_AGE, (await headers()).get('x-forwarded-proto')));
   // Redirects to Google by throwing; it must not be caught here.

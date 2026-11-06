@@ -5,7 +5,15 @@ import GoogleButton from '../../signin/GoogleButton';
 import { linkGoogleWithReset } from '../actions';
 import ResetForm from './ResetForm';
 
-export const metadata = { title: 'Set a new password · Saree al-Hisab' };
+/* Read per request, like the page: after the cutoff this link sets no
+   password, and the tab should not say it does. */
+export function generateMetadata() {
+  return {
+    title: passwordSignInOpenNow()
+      ? 'Set a new password · Saree al-Hisab'
+      : 'Link your Google account · Saree al-Hisab',
+  };
+}
 export const dynamic = 'force-dynamic';
 
 export default async function Reset({ params, searchParams }: {

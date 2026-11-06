@@ -8,7 +8,7 @@ import { spendResetForLink, usePasswordReset } from '@/db/membership';
 import { passwordSignInOpenNow } from '@/lib/password-window';
 import { looksLikeLinkToken } from '@/lib/link-token';
 import { sealLinkIntent } from '@/lib/link-intent';
-import { RESET_COOKIE, RESET_MAX_AGE, flowCookieOptions } from '@/lib/flow-cookies';
+import { RESET_COOKIE, RESET_MAX_AGE, clearOtherFlowCookies, flowCookieOptions } from '@/lib/flow-cookies';
 import { hashPassword, passwordProblem } from '@/lib/password';
 import { tooMany, waitMessage } from '@/db/rate-limit';
 
@@ -68,7 +68,9 @@ export async function linkGoogleWithReset(fd: FormData): Promise<void> {
   // Used or expired: the page says which.
   if (!userId) redirect(`/reset/${token}`);
 
-  (await cookies()).set(RESET_COOKIE, sealLinkIntent(userId, secret, Date.now(), 'reset'),
+  const jar = await cookies();
+  clearOtherFlowCookies(jar, RESET_COOKIE);
+  jar.set(RESET_COOKIE, sealLinkIntent(userId, secret, Date.now(), 'reset'),
     flowCookieOptions(RESET_MAX_AGE, (await headers()).get('x-forwarded-proto')));
   await signIn('google', { redirectTo: '/' });
 }

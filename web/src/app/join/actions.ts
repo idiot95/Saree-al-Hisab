@@ -7,7 +7,7 @@ import { auth, signIn } from '@/auth';
 import { acceptInviteAs, createFromInvite, openInviteEmail } from '@/db/membership';
 import { passwordSignInOpenNow } from '@/lib/password-window';
 import { looksLikeLinkToken } from '@/lib/link-token';
-import { INVITE_COOKIE, INVITE_MAX_AGE, flowCookieOptions } from '@/lib/flow-cookies';
+import { INVITE_COOKIE, INVITE_MAX_AGE, clearOtherFlowCookies, flowCookieOptions } from '@/lib/flow-cookies';
 import { hashPassword, passwordProblem } from '@/lib/password';
 import { tooMany, waitMessage } from '@/db/rate-limit';
 
@@ -65,7 +65,9 @@ export async function acceptWithGoogle(fd: FormData): Promise<void> {
   if (!looksLikeLinkToken(token) || !(await openInviteEmail(token))) {
     redirect(looksLikeLinkToken(token) ? `/join/${token}?e=1` : '/signin');
   }
-  (await cookies()).set(INVITE_COOKIE, token,
+  const jar = await cookies();
+  clearOtherFlowCookies(jar, INVITE_COOKIE);
+  jar.set(INVITE_COOKIE, token,
     flowCookieOptions(INVITE_MAX_AGE, (await headers()).get('x-forwarded-proto')));
   await signIn('google', { redirectTo: '/' });
 }

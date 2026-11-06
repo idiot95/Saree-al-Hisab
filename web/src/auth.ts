@@ -7,7 +7,7 @@ import {
   recordFailedAttempt, recordSuccessfulLogin,
 } from '@/db/membership';
 import {
-  createGoogleUser, hasGoogle, identityUser, linkGoogle, sessionUser, userIdByEmail,
+  createGoogleUser, hasGoogle, identityUser, linkGoogle, sessionRevoked, sessionUser, userIdByEmail,
 } from '@/db/identity';
 import { verifyPassword, needsRehash, hashPassword, decoyHash } from '@/lib/password';
 import { passwordSignInOpenNow } from '@/lib/password-window';
@@ -15,7 +15,7 @@ import { decideGoogleSignIn, type GoogleClaims } from '@/lib/google-signin';
 import { gatherSignInFacts } from '@/lib/google-facts';
 import { signInErrorPath } from '@/lib/signin-errors';
 import { rethrowControlFlow } from '@/lib/rethrow';
-import { INVITE_COOKIE, LINK_COOKIE, RESET_COOKIE } from '@/lib/flow-cookies';
+import { INVITE_COOKIE, LINK_COOKIE, RESET_COOKIE, clearOtherFlowCookies } from '@/lib/flow-cookies';
 import { looksLikeLinkToken } from '@/lib/link-token';
 
 /* Two ways in: Google (the primary one), and an address and a password we
@@ -172,9 +172,7 @@ async function googleSignIn(user: User, profile: Profile | undefined): Promise<b
       (e as Error)?.name ?? '');
     return false;
   } finally {
-    jar.delete(LINK_COOKIE);
-    jar.delete(INVITE_COOKIE);
-    jar.delete(RESET_COOKIE);
+    clearOtherFlowCookies(jar);
   }
 }
 
@@ -230,17 +228,33 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         // Only a sign-in that googleSignIn resolved to an app_user gets a token.
         if (!user || !resolvedGoogle.has(user) || !user.id) return null;
         token.userId = user.id;
+        token.authAt = Math.floor(Date.now() / 1000);
         return token;
       }
-      if (user?.id) token.userId = user.id;
+      if (user?.id) {
+        token.userId = user.id;
+        token.authAt = Math.floor(Date.now() / 1000);
+        return token;
+      }
+      /* Not a sign-in: an existing cookie being read, and re-encoded. Auth.js
+         stamps a fresh iat on every re-encode, and GET /api/auth/session
+         re-encodes, so iat says when the cookie was last refreshed rather
+         than when the person signed in. Revocation is judged against
+         authAt, set once at sign-in. A cookie from before authAt existed
+         arrives here still carrying its original iat, so that is its
+         authAt. A revoked session ends here and is not refreshed. */
+      token.authAt ??= token.iat;
+      const authAt = typeof token.authAt === 'number' ? token.authAt : 0;
+      const userId = typeof token.userId === 'string' ? token.userId : '';
+      if (!userId || await sessionRevoked(userId, authAt)) return null;
       return token;
     },
     async session({ session, token }) {
       session.user.id = token.userId as string;
-      /* Auth.js stamps iat on the token. Passing it through is what lets the
-         server refuse a cookie that was issued before the account's session
-         epoch — see sessionsValidFrom. */
-      session.issuedAt = typeof token.iat === 'number' ? token.iat : 0;
+      /* When the person signed in, not when the cookie was last re-encoded
+         (iat moves on every refresh). This is what lets the server refuse a
+         session begun before the account's session epoch — see contextFor. */
+      session.issuedAt = typeof token.authAt === 'number' ? token.authAt : 0;
       return session;
     },
   },

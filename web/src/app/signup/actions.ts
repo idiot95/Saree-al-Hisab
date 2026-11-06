@@ -1,6 +1,8 @@
 'use server';
 
+import { cookies } from 'next/headers';
 import { signIn } from '@/auth';
+import { clearOtherFlowCookies } from '@/lib/flow-cookies';
 
 /* Anyone may sign up. What that gets you is an account and, on the next
    screen, your OWN household — never a way into somebody else's books, which
@@ -18,5 +20,6 @@ import { signIn } from '@/auth';
    and someone who was invited never answers it at all. /setup sends anyone
    who already has books straight on to them. */
 export async function signUpWithGoogle(): Promise<void> {
+  clearOtherFlowCookies(await cookies());
   await signIn('google', { redirectTo: '/setup' });
 }

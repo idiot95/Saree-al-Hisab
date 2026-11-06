@@ -54,6 +54,21 @@ export async function createGoogleUser(
   });
 }
 
+/** Whether a session that began at `authAt` (whole seconds, as a token
+ *  carries it) predates the account's session epoch — revoked by a password
+ *  change, a reset, a link or "Sign out everywhere". Judged in whole seconds:
+ *  a session begun in the epoch's own second is honoured, one from any
+ *  earlier second is not. contextFor and the jwt callback both use this one
+ *  expression. Expects app_user aliased as `u`. */
+export const staleAgainst = (authAt: number) =>
+  sql`extract(epoch from date_trunc('second', u.sessions_valid_from)) > ${authAt}`;
+
+/** True when this person's session is revoked — or the person is gone. */
+export async function sessionRevoked(userId: string, authAt: number): Promise<boolean> {
+  const [r] = await sql`select ${staleAgainst(authAt)} as stale from app_user u where u.id = ${userId}`;
+  return !r || r.stale === true;
+}
+
 /** What a Google sign-in puts in the session: the person as we hold them,
  *  not as Google describes them. */
 export async function sessionUser(userId: string) {

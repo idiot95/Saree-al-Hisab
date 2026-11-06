@@ -2,7 +2,9 @@
 
 import { AuthError } from 'next-auth';
 import { redirect } from 'next/navigation';
+import { cookies } from 'next/headers';
 import { signIn } from '@/auth';
+import { clearOtherFlowCookies } from '@/lib/flow-cookies';
 import { passwordSignInOpenNow } from '@/lib/password-window';
 import { signInErrorPath } from '@/lib/signin-errors';
 import { rethrowControlFlow } from '@/lib/rethrow';
@@ -24,6 +26,7 @@ function waitFor(until: Date | null): string {
 /** The primary way in. signIn() redirects to Google by throwing, which is
  *  how a Server Action hands the browser on. */
 export async function signInWithGoogle(): Promise<void> {
+  clearOtherFlowCookies(await cookies());
   await signIn('google', { redirectTo: '/' });
 }
 

@@ -768,9 +768,10 @@ console.log('\nINVITED WITH GOOGLE — one transaction, one use, one place');
   const [ident] = await sql`select count(*)::int as n from auth_identity
     where user_id = ${made?.userId ?? null} and provider = 'google' and subject = 'inv-sub-1'`;
   ok(ident.n === 1, 'and their Google account linked in the same stroke');
-  /* Staleness, as contextFor (src/db/membership.ts) judges it: in whole
-     seconds, since that is all a token's iat carries. The expression below is
-     contextFor's own. A token minted in the second the account was made is
+  /* Staleness, as contextFor and the jwt callback judge it: in whole
+     seconds, since that is all a token carries. The expression below is
+     staleAgainst's (src/db/identity.ts), which both use. The cookie-refresh
+     side of revocation is scripts/revocation.check.mjs, against a server. A token minted in the second the account was made is
      honoured; one from an earlier second than a revocation is refused. */
   const stale = async (id, iat) => (await sql`
     select extract(epoch from date_trunc('second', u.sessions_valid_from)) > ${iat} as stale

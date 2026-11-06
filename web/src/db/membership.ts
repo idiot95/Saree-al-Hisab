@@ -1,6 +1,7 @@
 import 'server-only';
 import type { TransactionSql } from 'postgres';
 import { identity as sql } from './client';
+import { staleAgainst } from './identity';
 import { hashLinkToken } from '@/lib/link-token';
 import { createFromInviteGoogleIn, lockOpenInvite, openInviteEmailIn } from '@/lib/invite-accept';
 import { starterKitFor } from './starter';
@@ -47,7 +48,7 @@ export type PageContext = {
 export async function contextFor(userId: string, tokenIssuedAt: number): Promise<PageContext | null> {
   const [row] = await sql`
     select m.household_id, m.role, h.name as household_name, h.base_currency as currency,
-           extract(epoch from date_trunc('second', u.sessions_valid_from)) > ${tokenIssuedAt} as stale
+           ${staleAgainst(tokenIssuedAt)} as stale
     from app_user u
     left join member m
       on m.user_id = u.id

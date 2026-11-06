@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { auth } from '@/auth';
-import { INVITE_COOKIE, LINK_COOKIE, RESET_COOKIE } from '@/lib/flow-cookies';
+import { clearOtherFlowCookies } from '@/lib/flow-cookies';
 
 /* Two jobs, and one chore.
 
@@ -77,9 +77,7 @@ export default async function proxy(req: NextRequest) {
      invite cookies, so they would outlive the attempt they were set for. It
      always lands here with ?error=, and a page cannot set cookies; this can. */
   if (pathname === '/signin' && req.nextUrl.searchParams.has('error')) {
-    res.cookies.delete(LINK_COOKIE);
-    res.cookies.delete(INVITE_COOKIE);
-    res.cookies.delete(RESET_COOKIE);
+    clearOtherFlowCookies(res.cookies);
   }
   return res;
 }
