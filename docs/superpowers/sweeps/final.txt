@@ -1,0 +1,57 @@
+# Final device sweep — Hisab v3, Task 30 (6 Nov 2026)
+#
+# Tree: cff9c9f (every v3 change; this file's commit adds only this file), built clean (rm -rf .next && npm run build)
+# and served with `next start` on localhost:3000, local Postgres seeded --activity --wealth.
+#
+# Command: node scripts/sweep.mjs --engine all [--routes …] — five phone sizes (360×780 and 412×915 Android/Pixel,
+# 375×667, 393×852 and 430×932 iPhone), light and dark. Checks: no sideways scroll, no fixed bar over text at rest,
+# no ellipsis unless opted in, tap targets ≥44px (48 for Android icon buttons), no console error, the route lands
+# where asked; with a drawer open, overlap is measured inside it.
+#
+# WEBKIT WAS NOT AVAILABLE. Playwright's WebKit browser is not installed in this environment, and per the brief a
+# second Playwright was not installed for it. `--engine all` therefore ran the Chromium pass (all five viewports) and
+# then the "webkit" pass as Chromium with iPhone emulation on the three iPhone viewports, as the sweep itself prints.
+# Safari's own engine is left to the real-device checklist (devices.md, items 1, 2 and 8).
+#
+# Four runs, 1,008 screen-states measured in all (screenshots per run in brackets: Chromium pass / iPhone pass):
+#   1. Default routes — 17: 13 signed in as the seeded owner (Ammar), /categories with "Add a category" open among
+#      them, and /signin /signup /terms /offline measured signed out.                         [170 / 102]
+#   2. Pushed screens, not-found, search, and drawers or forms open (Ammar) — 27 routes.        [270 / 162]
+#   3. Signed in with no household yet (a throwaway user): /no-household and /setup.           [20 / 12]
+#   4. A new, empty household (the same throwaway user after /setup) — 17 routes incl. drawers
+#      open.                                                                                    [170 / 102]
+# The throwaway user and household were deleted afterwards (0 rows left for either).
+#
+# Result: 0 failures in every run.
+
+## 1. Default routes
+# sweep 2026-11-06T21:25:03.203Z base http://localhost:3000 | Task 30 final: default routes (incl. /categories with Add open), both engines asked for
+webkit unavailable; running Chromium with iPhone UA emulation for the iOS pass
+SWEEP SUMMARY: 0 failure(s)
+
+## 2. Pushed screens, not-found, search, drawers and forms open
+# routes: /household/capture /guide /scan /accounts/reconcile /accounts/<id>/reconcile /tab/<id> /people/<id>
+#   /worth/<pot> /worth/<gold> /entries/<id with claims> /entries?q=coffee /tab/not-a-tab (not found)
+#   /add|tap=^Paid with   /add|tap=^When   /add|tap=^All categories   /worth|tap=^Add a pot
+#   /worth/<pot>|tap=^Update balance$   /worth/<pot>|tap=^Add photos$   /worth/<gold>|tap=Tap to (Your rate)
+#   /people|tap=^New tab$   /tab/<id>|tap=^Tab settings$   /accounts|tap=^Add an account   /accounts|tap=^Add a way to pay
+#   /entries?f=upcoming|tap=^Add a payment   /entries/<id>|tap=^Add someone else   /categories|tap=^Edit Eating Out$
+#   /household|tap=^Rename this household
+# sweep 2026-11-06T21:27:38.306Z base http://localhost:3000 | Task 30 final: pushed screens, not-found, search, and drawers/forms open (Ammar)
+webkit unavailable; running Chromium with iPhone UA emulation for the iOS pass
+
+SWEEP SUMMARY: 0 failure(s)
+
+## 3. Signed in, no household yet
+# sweep 2026-11-06T21:34:53.109Z base http://localhost:3000 | Task 30 final: signed in, no household yet (throwaway user)
+webkit unavailable; running Chromium with iPhone UA emulation for the iOS pass
+
+SWEEP SUMMARY: 0 failure(s)
+
+## 4. A new, empty household
+# routes: / /entries and its three chips /budget /people /worth /accounts /accounts/reconcile /categories
+#   /household /household/capture /add /categories|tap=^Add a category$ /people|tap=^New tab$ /worth|tap=^Add a pot
+# sweep 2026-11-06T21:35:17.190Z base http://localhost:3000 | Task 30 final: a new, empty household (throwaway user)
+webkit unavailable; running Chromium with iPhone UA emulation for the iOS pass
+
+SWEEP SUMMARY: 0 failure(s)
