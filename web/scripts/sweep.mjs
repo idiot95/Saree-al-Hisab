@@ -5,6 +5,10 @@
  *                          [--engine chromium|webkit|all] [--login email:password]
  *                          [--selftest] [--signed-in-links]
  *
+ * A route may carry taps to make before it is measured, so a drawer or a fold can be swept open:
+ *   /add|tap=^When   — load /add, tap the first button whose accessible name matches /^When/, then measure.
+ * Several |tap= steps run in order (no commas in them: --routes splits on commas).
+ *
  * Env: SWEEP_BASE (default http://localhost:3000), SWEEP_STATE (Playwright
  * storage-state file for a signed-in user; default web/.sweep-state.json).
  *
@@ -140,15 +144,25 @@ function checkFixedOverlap(edge /* 'top' | 'bottom' */, vw, vh) {
     const mid = (r.top + r.bottom) / 2;
     return edge === 'top' ? mid < vh / 2 : mid >= vh / 2;
   });
+  /* With a modal dialog open (a drawer swept open with |tap=), the screen is the topmost dialog: what lies behind
+     it is covered by design, and a bar outside it only covers its text where the bar really paints on top (the tab
+     bar sits under a drawer, so measuring rectangles alone would report every row the drawer is drawn over). */
+  const modal = Array.from(document.querySelectorAll('[role=dialog][data-state=open]')).pop() ?? null;
   const out = [];
   for (const bar of bars) {
     const br = bar.getBoundingClientRect();
     for (const el of all) {
       if (el === bar || bar.contains(el) || el.contains(bar)) continue;
+      if (modal && !modal.contains(el)) continue;
       if (!visible(el)) continue;
       for (const tr of textRects(el)) {
         const ix = Math.min(br.right, tr.right) - Math.max(br.left, tr.left);
         const iy = Math.min(br.bottom, tr.bottom) - Math.max(br.top, tr.top);
+        if (ix > 2 && iy > 2 && modal && !modal.contains(bar)) {
+          const hit = document.elementFromPoint((Math.max(br.left, tr.left) + Math.min(br.right, tr.right)) / 2,
+            (Math.max(br.top, tr.top) + Math.min(br.bottom, tr.bottom)) / 2);
+          if (hit && modal.contains(hit)) continue;
+        }
         if (ix > 2 && iy > 2) {
           out.push({
             reason: `${edge} ${label(bar)} covers text at rest (${Math.round(iy)}px)`,
@@ -403,14 +417,22 @@ async function sweepEngine(args, engine, hasState) {
         const page = await ctx.newPage();
         const consoleErrors = wireCollectors(page);
         let found = [];
+        const [address, ...steps] = route.split('|');
         try {
-          await page.goto(route, { waitUntil: 'load', timeout: 30000 });
+          await page.goto(address, { waitUntil: 'load', timeout: 30000 });
           const landed = norm(new URL(page.url()).pathname);
           // A route may carry a query (/?saved=…); the pathname is what must match.
-          if (landed !== norm(new URL(route, BASE).pathname)) {
+          if (landed !== norm(new URL(address, BASE).pathname)) {
             found.push({ kind: 'load', reason: `landed on ${landed}, not the requested route`, where: route });
           } else {
             if (!(await settle(page))) found.push({ kind: 'load', reason: 'page did not settle within 8s (measured anyway)', where: route });
+            for (const step of steps) {
+              const tap = /^tap=(.+)$/.exec(step);
+              if (!tap) throw new Error(`unknown route step ${step}`);
+              await page.getByRole('button', { name: new RegExp(tap[1]) }).first().click({ timeout: 10000 });
+              await page.waitForTimeout(700);
+              await settle(page);
+            }
             await page.screenshot({ path: path.join(dir, `${vpName}-${theme}${slug(route)}.png`) });
             found.push(...await runChecks(page, { consoleErrors, csp: args.csp, vw: vp.w, vh: vp.h }));
           }
@@ -468,6 +490,14 @@ const SCENARIOS = [
     html: `<div style="padding:16px 16px 100px;height:1500px"><p>Top</p><p style="position:absolute;top:1490px;margin:0">Ends the page</p></div><div class="bar">Bar</div>` },
   { name: 'text that cannot scroll clear fails', expect: ['overlap'],
     html: `<div style="height:1500px;position:relative"><p style="position:absolute;top:1480px;margin:0">Last line, flush with the end</p></div><div class="bar">Bar</div>` },
+  { name: 'an open drawer drawn over the tab bar passes', expect: [],
+    html: `<p style="margin:16px">Behind the drawer</p><div class="bar" style="z-index:40">Tab bar</div>
+      <div role="dialog" data-state="open" style="position:fixed;left:0;right:0;bottom:0;height:200px;z-index:50;background:#fff">
+        <p style="position:absolute;bottom:10px;margin:0 16px">Save, at the drawer's foot</p></div>` },
+  { name: 'a bar painted over an open drawer fails', expect: ['overlap'],
+    html: `<div role="dialog" data-state="open" style="position:fixed;left:0;right:0;bottom:0;height:200px;z-index:40;background:#fff">
+        <p style="position:absolute;bottom:10px;margin:0 16px">Save, at the drawer's foot</p></div>
+      <div class="bar" style="z-index:60">Tab bar</div>` },
   { name: 'top bar over text fails', expect: ['overlap'],
     html: `<div class="top">Header</div><p style="margin:0;padding:16px">Starts under the header</p><div style="height:1000px"></div>` },
 ];

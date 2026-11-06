@@ -108,7 +108,10 @@ try {
   const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
   const grid = page.getByRole('grid', { name: `${MONTHS[m - 1]} ${y}` });
   await grid.waitFor();
-  await grid.getByRole('gridcell', { name: new RegExp(`^${d} ${MONTHS[m - 1]},`) }).click();
+  const cell = grid.getByRole('gridcell', { name: new RegExp(`^${d} ${MONTHS[m - 1]},`) });
+  // The day says what lands on it in words, not only as dots: "9 November, 28 Jumada I 1448, 1 scheduled".
+  assert.match(await cell.getByRole('button').getAttribute('aria-label'), /, \d+ scheduled$/, 'a busy day carries its count');
+  await cell.click();
   const see = page.getByRole('link', { name: 'See the entry' }).first();
   await see.waitFor();
   assert.equal(await see.getAttribute('href'), `/entries/${occ.txn_id}?from=%2Fentries%3Ff%3Dupcoming`);

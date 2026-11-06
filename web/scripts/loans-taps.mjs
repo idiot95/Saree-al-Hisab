@@ -103,6 +103,35 @@ try {
   assert.equal(got.reduce((s, r) => s + Number(r.amount), 0), 10000, 'one ₹100 of claim_receipt in the books');
   ok(`Money back ₹100: "Still to come back" rolled from ${before / 100} to ${(before - 10000) / 100}, and the receipt is in the books`);
 
+  /* ── 2b. drawers: a day picked in a nested drawer, Escape, and focus back ── */
+  /* Money back's "Another day…" opens the month as vaul's nested drawer over Money back; picking a day closes only
+     the nested one and the day becomes the chosen chip. Escape then closes Money back, nothing is sent, and the
+     keyboard is back on the button that opened it. */
+  await page.getByRole('dialog', { name: 'Money back' }).waitFor({ state: 'hidden' });
+  const opener = page.getByRole('button', { name: 'Money back' });
+  await opener.click();
+  const again = page.getByRole('dialog', { name: 'Money back' });
+  await again.getByRole('button', { name: 'Another day…' }).click();
+  const month = page.getByRole('dialog', { name: 'When did it come back' });
+  await month.getByRole('grid').waitFor();
+  assert.equal(await page.locator('[data-slot=drawer-content]').count(), 2, 'the month opens over Money back, which stays');
+  await month.getByRole('button', { name: 'Previous month' }).click();
+  const day = month.getByRole('grid').getByRole('button', { name: /^10 / });
+  const named = (await day.getAttribute('aria-label')).split(',')[0];               // "10 October"
+  await day.click();
+  await month.waitFor({ state: 'hidden' });
+  assert.ok(await again.isVisible(), 'Money back is still open');
+  await page.waitForFunction(() => document.activeElement?.textContent === 'Another day…', null, { timeout: 5000 });
+  const chip = await again.getByRole('radiogroup', { name: 'When did it come back' }).getByRole('radio', { checked: true }).innerText();
+  assert.ok(chip.includes(named.replace(/^(\d+) (\w{3})\w*$/, '$1 $2')), `the chosen chip is ${named} (${chip})`);
+  await page.keyboard.press('Escape');
+  await again.waitFor({ state: 'hidden' });
+  await page.waitForFunction(() => document.activeElement?.textContent?.includes('Money back'), null, { timeout: 5000 });
+  const sent = await sql`select count(*)::int as n from txn t join claim c on c.id = t.claim_id join txn o on o.id = c.txn_id
+    where t.household_id = ${hh} and t.kind = 'claim_receipt' and o.book_id = ${tabId} and t.created_at >= ${started}`;
+  assert.equal(sent[0].n, got.length, 'closing the drawer sent nothing');
+  ok(`Money back's "Another day…" nests the month over it; ${named} becomes the chip with focus back on "Another day…", Escape closes Money back unsent, and focus is back on its button`);
+
   /* ── 3. the list agrees ───────────────────────────────────────────── */
   await page.goto(`${BASE}/people`);
   const owedAfter = minor(await figureIn(page.getByRole('region', { name: 'Owed to you' })).getAttribute('aria-label'));

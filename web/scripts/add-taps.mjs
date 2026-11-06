@@ -90,7 +90,7 @@ async function openDrawer(page) {
 }
 
 const newRows = (extra = sql``) => sql`
-  select id, kind, amount::bigint as amount, category_id, counter_account_id, book_id, counts_as_spend, claim_id, client_ref
+  select id, kind, amount::bigint as amount, occurred_on::text as occurred_on, category_id, counter_account_id, book_id, counts_as_spend, claim_id, client_ref
   from txn where household_id = ${HH} and created_by = ${user.id} and created_at >= ${started} ${extra}
   order by created_at`;
 async function waitRows(pred, what, ms = 15000) {
@@ -293,6 +293,35 @@ try {
     assert.ok((await payRow.innerText()).includes(pick), `Paid with now says ${pick}`);
     assert.ok(await drawer.locator('[data-save]').isVisible());
     ok(`Paid with opens nested over the Add drawer; choosing "${pick}" closes it and answers the row`);
+    // When, nested the same way: the month (shadcn Calendar) offers no day after today and no month after this one;
+    // the 10th of last month, picked from the grid, answers the row and is the day the entry is saved on.
+    const whenRow = drawer.getByRole('button', { name: /^When/ });
+    await whenRow.click();
+    const month = page.getByRole('dialog', { name: 'Which day was it' });
+    await month.getByRole('grid').waitFor();
+    assert.equal(await page.locator('[data-slot=drawer-content]').count(), 2, 'the month opens nested over Add');
+    assert.equal(await month.getByRole('button', { name: 'Next month' }).getAttribute('aria-disabled'), 'true', 'no month after this one');
+    const days = await month.getByRole('grid').locator('button').evaluateAll((b) => b.map((x) => [x.getAttribute('aria-label'), x.disabled]));
+    const firstOff = days.findIndex(([, off]) => off);
+    assert.ok(firstOff === -1 || days.slice(firstOff).every(([, off]) => off), 'every day after today is disabled, none before');
+    const cell = await month.getByRole('grid').locator('button').first().boundingBox();
+    assert.ok(cell.width >= 44 && cell.height >= 44, `a day is 44px or more (${cell.width}x${cell.height})`);
+    await month.getByRole('button', { name: 'Previous month' }).click();
+    const [mName, yName] = (await month.getByRole('grid').getAttribute('aria-label')).split(' ');
+    const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    const tenth = `${yName}-${String(MONTHS.indexOf(mName) + 1).padStart(2, '0')}-10`;
+    assert.match((await month.getByRole('grid').getByRole('button', { name: /^10 / }).getAttribute('aria-label')), new RegExp(`^10 ${mName}, \\d+ .+ \\d{4}$`), 'the day says its Hijri date');
+    await month.getByRole('grid').getByRole('button', { name: /^10 / }).click();
+    await page.waitForFunction(() => document.querySelectorAll('[data-slot=drawer-content]').length === 1);
+    assert.ok((await whenRow.innerText()).includes(`10 ${mName.slice(0, 3)}`), `When now says the 10th (${await whenRow.innerText()})`);
+    // Saving an expense remembers how it was paid; put back what this step's Paid with choice overwrote.
+    const [{ last_paid_with: paidBefore }] = await sql`select last_paid_with from app_user where id = ${user.id}`;
+    await drawer.locator('[data-save]').click();
+    await page.getByText('Entry saved.').waitFor({ timeout: 15000 });
+    await sql`update app_user set last_paid_with = ${paidBefore} where id = ${user.id}`;
+    const [dated] = await waitRows((r) => r.kind === 'expense' && Number(r.amount) === 5000, '50 expense on the 10th');
+    assert.equal(dated.occurred_on, tenth);
+    ok(`When opens the month nested over Add, nothing after today; the 10th of ${mName} answers the row and the entry is dated ${tenth}`);
     await ctx.close();
   }
 

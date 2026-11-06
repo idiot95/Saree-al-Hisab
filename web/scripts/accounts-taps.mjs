@@ -37,6 +37,9 @@ const EMAIL = process.env.ACCOUNTS_EMAIL || 'ammar@example.com';
 const argv = process.argv.slice(2);
 const arg = (k) => { const i = argv.indexOf(k); return i >= 0 ? argv[i + 1] : null; };
 const STATE = arg('--state') ?? path.join(ROOT, '.sweep-state.json');
+/* --shots dir: also photographs the card carousel (three cards while this run's two exist) on an iPhone and a
+   Pixel, light and dark. */
+const SHOTS = arg('--shots');
 
 const env = fs.readFileSync(path.join(ROOT, '.env.local'), 'utf8');
 const sql = postgres(/^OWNER_DATABASE_URL="?([^"\n]+)/m.exec(env)[1], { ssl: 'require', max: 1, onnotice: () => {} });
@@ -189,6 +192,59 @@ try {
   assert.deepEqual(both.map((r) => r.kind), ['credit', 'credit'], 'both cards are credit cards');
   assert.ok(Number(both[1].opening) < 0, `the second card owes ₹500 (opening ${both[1].opening}), not a positive balance`);
   ok('a second card added from the same screen without a reload is a credit card too, owing ₹500');
+
+  /* ── 2c. the cards are a carousel whose dots are buttons ──────────── */
+  await page.goto(`${BASE}/accounts`);
+  const deck = page.getByRole('region', { name: 'Credit cards' }).and(page.locator('[data-slot=carousel]'));
+  const dots = page.getByRole('group', { name: 'Which card' }).getByRole('button');
+  const count = await dots.count();
+  assert.ok(count >= 3, `a dot per card (${count})`);
+  for (let i = 0; i < count; i++) assert.equal(await dots.nth(i).getAttribute('aria-label'), `Card ${i + 1} of ${count}`);
+  const current = async () => {
+    const c = await dots.evaluateAll((b) => b.map((x) => x.getAttribute('aria-current')));
+    assert.equal(c.filter((v) => v === 'true').length, 1, 'exactly one dot is current');
+    return c.indexOf('true');
+  };
+  assert.equal(await current(), 0, 'the first card is current');
+  for (const d of [dots.first(), dots.last()]) {
+    const b = await d.boundingBox();
+    assert.ok(b.width >= 44 && b.height >= 44, `a dot's tap target is 44px or more (${b.width}x${b.height})`);
+  }
+  const inView = async (i) => {
+    const slide = deck.locator('[data-slot=carousel-item]').nth(i);
+    await page.waitForFunction((el) => { const r = el.getBoundingClientRect(); return r.left >= 0 && r.right <= innerWidth + 1; },
+      await slide.elementHandle(), { timeout: 5000 });
+  };
+  await dots.last().click();
+  await page.waitForFunction((n) => document.querySelectorAll('[aria-label="Which card"] button')[n - 1]?.getAttribute('aria-current') === 'true', count);
+  await inView(count - 1);
+  assert.equal(await current(), count - 1);
+  await deck.locator('[data-slot=carousel-item]').nth(count - 1).getByRole('button', { name: /^Edit / }).focus();
+  await page.keyboard.press('ArrowLeft');
+  await page.waitForFunction((n) => document.querySelectorAll('[aria-label="Which card"] button')[n - 2]?.getAttribute('aria-current') === 'true', count);
+  await inView(count - 2);
+  ok(`${count} cards in a carousel: "Card N of ${count}" dots (44px targets) page it, the arrow keys page it, and aria-current follows`);
+  if (SHOTS) {
+    fs.mkdirSync(SHOTS, { recursive: true });
+    const host = new URL(BASE).hostname;
+    for (const [label, device, vp] of [['ios-393', devices['iPhone 13'], { width: 393, height: 852 }], ['android-412', devices['Pixel 7'], { width: 412, height: 915 }]]) {
+      for (const theme of ['light', 'dark']) {
+        const c = await browser.newContext({ ...strip(device), viewport: vp, screen: vp, storageState: STATE });
+        await c.addCookies([{ name: 'ql.theme', value: theme, domain: host, path: '/' }]);
+        const p = await c.newPage();
+        await p.goto(`${BASE}/accounts`);
+        await p.getByRole('heading', { name: 'Credit cards' }).scrollIntoViewIfNeeded();
+        await p.evaluate(() => window.scrollBy(0, -60));
+        await p.waitForTimeout(600);
+        await p.screenshot({ path: path.join(SHOTS, `${label}-${theme}-cards.png`) });
+        await p.getByRole('group', { name: 'Which card' }).getByRole('button').nth(1).click();
+        await p.waitForTimeout(700);
+        await p.screenshot({ path: path.join(SHOTS, `${label}-${theme}-cards-2.png`) });
+        await c.close();
+      }
+    }
+    ok(`card carousel screenshots in ${SHOTS}`);
+  }
 
   /* ── 3. a throwaway regular payment ───────────────────────────────── */
   await page.goto(`${BASE}/schedules`);
