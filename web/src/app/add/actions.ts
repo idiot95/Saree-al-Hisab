@@ -57,11 +57,13 @@ export type Draft = {
   settles?: string[];
   /* Only on an entry that waited on the phone for signal. The reference makes
      a second delivery of the same entry harmless; the household id lets the
-     server refuse an entry typed under one sign-in and sent under another.
-     An entry made from a forwarded bank message carries that draft's id here:
-     the draft is marked accepted in the same transaction as the entry, and a
-     second tap on Save finds the first entry rather than making another. */
+     server refuse an entry typed under one sign-in and sent under another. */
   clientRef?: string;
+  /** The forwarded bank message this entry is made from. It is marked accepted
+      in the same transaction as the entry (when the amounts agree). Add entry
+      also sends the draft's id as clientRef, so a second tap on Save finds the
+      first entry rather than making another. */
+  draftId?: string;
   householdId?: string;
 };
 
@@ -104,6 +106,10 @@ export async function saveEntry(d: Draft): Promise<SaveResult> {
     if (d.clientRef !== undefined && !UUID.test(d.clientRef)) {
       return { ok: false, error: 'That entry could not be read.' };
     }
+    if (d.draftId !== undefined && !UUID.test(d.draftId)) {
+      return { ok: false, error: 'That bank message could not be read.' };
+    }
+    const draftId = d.draftId ?? null;
     if (d.householdId !== undefined && d.householdId !== household_id) {
       return { ok: false, error: 'This entry was recorded under a different sign-in.' };
     }
@@ -251,7 +257,7 @@ export async function saveEntry(d: Draft): Promise<SaveResult> {
             })} returning id`;
             first ??= r.id as string;
           }
-          if (first && clientRef) accepted = await acceptDraftIn(tx, household_id, clientRef, first);
+          if (first && draftId) accepted = await acceptDraftIn(tx, household_id, draftId, first, d.amountMinor);
           return first ? { id: first } : null;
         }
         const [entry] = await tx`insert into txn ${sql({
@@ -273,10 +279,10 @@ export async function saveEntry(d: Draft): Promise<SaveResult> {
           counts_as_spend: counts,
         })} on conflict (household_id, client_ref) where client_ref is not null do nothing
            returning id`;
-        /* A draft from a bank message becomes this entry, or neither happens. A
-           client reference that names no open draft of this household (an
-           offline entry, a draft already accepted) changes nothing. */
-        if (entry && clientRef) accepted = await acceptDraftIn(tx, household_id, clientRef, entry.id);
+        /* A draft from a bank message becomes this entry, or neither happens.
+           A draft id naming no open draft of this household, or one whose
+           amount differs, changes nothing. */
+        if (entry && draftId) accepted = await acceptDraftIn(tx, household_id, draftId, entry.id, d.amountMinor);
         /* The entry and the shares land together or not at all: a cost on a tab
            with nobody down as owing for it would be a split that never happened.
            A share of zero paise is nothing owed and is not written. */

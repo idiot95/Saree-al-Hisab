@@ -91,7 +91,7 @@ export async function dismissDraft(_prev: Result | null, fd: FormData): Promise<
     revalidatePath('/entries');
     revalidatePath('/');
     // From the message's own screen, back to the list it left: that screen no longer offers anything to do.
-    if (fd.get('then') === 'inbox') redirect('/inbox');
+    if (fd.get('then') === 'inbox') redirect(`/inbox?dismissed=${id}`);
     return { ok: true, message: 'Dismissed.' };
   });
 }
@@ -107,6 +107,7 @@ export async function restoreDraft(id: unknown): Promise<Result> {
       return { ok: false, error: 'That message could not be brought back.' };
     }
     revalidatePath('/inbox');
+    revalidatePath('/entries');
     revalidatePath('/');
     return { ok: true };
   });

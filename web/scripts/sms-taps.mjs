@@ -11,7 +11,8 @@
    3. To review → From SMS shows it: the amount, Money out, the merchant, and the account its last four name.
    4. Review opens Add entry prefilled (amount, expense, the account, "From a bank message"); pick a tile, Save.
    5. One entry with client_ref = the draft's id on that account; the draft accepted, its text null, off the list.
-   6. The second draft is dismissed from its swipe; Undo brings it back; dismissed again.
+   6. The second draft is dismissed from its swipe; Undo brings it back; dismissed from its own screen, and
+      To review offers that Undo too. Then it is saved as income on the matched account itself (no rail).
    7. Revoke the phone (two taps); the same POST now answers 401.
    With --shots: To review, a message, Add prefilled and the setup screen (key shown, both guides) at iPhone
    393x852 and Pixel 412x915, light and dark. Rows this run wrote are removed unless --keep.                   */
@@ -204,9 +205,35 @@ try {
 
   await page.goto(`${BASE}/inbox/sms/${credit.id}`);
   await page.getByRole('button', { name: 'Dismiss' }).click();
-  await page.waitForURL(/\/inbox$/, { timeout: 15000 });
+  await page.waitForURL(/\/inbox\?dismissed=/, { timeout: 15000 });
   assert.equal((await sql`select status from sms_draft where id = ${credit.id}`)[0].status, 'dismissed');
   ok('dismissed again from the message screen, back to To review');
+  await page.getByRole('button', { name: 'Undo' }).click();
+  for (let i = 0; i < 50 && (await sql`select status from sms_draft where id = ${credit.id}`)[0].status !== 'open'; i++) await new Promise((r) => setTimeout(r, 200));
+  assert.equal((await sql`select status from sms_draft where id = ${credit.id}`)[0].status, 'open');
+  await page.waitForURL(/\/inbox$/, { timeout: 15000 });
+  ok('and To review offers its Undo, which reopens it');
+
+  /* ── 6b. money in lands on the account itself ─────────────────────── */
+  await page.goto(`${BASE}/add?draft=${credit.id}`);
+  await page.getByLabel(/^Amount in/).first().waitFor();
+  assert.equal(await page.getByRole('tab', { name: 'Income', selected: true }).count() > 0, true);
+  await page.getByText('Came into').first().waitFor();
+  const into = await page.getByText('Came into').first().locator('xpath=..').innerText();
+  assert.match(into, /HDFC Savings/);
+  assert.doesNotMatch(into, /·/);
+  ok(`the credit opens as income, ${into.replace(/\s+/g, ' ').trim()}`);
+  await page.locator('[data-category-tile]').first().click();
+  await page.locator('[data-save]').first().click();
+  await page.waitForURL(/\/\?saved=/, { timeout: 20000 });
+  const [inc] = await sql`select kind, amount::bigint as amount, account_id, payment_method_id from txn
+                          where household_id = ${HH} and client_ref = ${credit.id}`;
+  assert.equal(inc?.kind, 'income');
+  assert.equal(Number(inc.amount), 120000);
+  assert.equal(inc.account_id, hdfc.id);
+  assert.equal(inc.payment_method_id, null);
+  assert.equal((await sql`select status from sms_draft where id = ${credit.id}`)[0].status, 'accepted');
+  ok('saved as ₹1,200 income on HDFC Savings itself, no rail (payment_method_id null); the draft accepted');
 
   /* ── 7. revoke ────────────────────────────────────────────────────── */
   await page.goto(`${BASE}/household/capture`);

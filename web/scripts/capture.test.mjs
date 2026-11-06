@@ -158,6 +158,19 @@ try {
   const ahead = await dated('Rs 11.00 debited from A/c XX1234 at TEST CAFE', '2099-01-01T00:00:00Z');
   ok(ahead && ahead.received_at.getFullYear() < 2099, 'a received_at far in the future becomes now()');
 
+  // ── the thirty-day rule holds without anyone opening the app ─────────
+  const [stale] = await sql`insert into sms_draft (household_id, user_id, sender, body, body_hash, created_at)
+    values (${hh.id}, ${owner}, 'HDFCBK', 'Rs 12.00 debited, a month old', ${hex('stale ' + tag)}, now() - interval '31 days')
+    returning id`;
+  const [decided] = await sql`insert into sms_draft (household_id, user_id, sender, body, body_hash, status)
+    values (${hh.id}, ${owner}, 'HDFCBK', 'Rs 13.00 debited, dismissed', ${hex('decided ' + tag)}, 'dismissed')
+    returning id`;
+  ok((await post(JSON.stringify({ text: 'Rs 14.00 debited from A/c XX1234 at TEST CAFE' }), { token: main.t })).status === 202,
+    'a new message → 202');
+  const purged = await sql`select id, body from sms_draft where id in (${stale.id}, ${decided.id})`;
+  ok(purged.length === 2 && purged.every((r) => r.body === null),
+    'and its arrival deleted the text of a 30-day-old draft and a dismissed one');
+
   // ── the method ────────────────────────────────────────────────────────
   for (const m of ['GET', 'PUT', 'DELETE', 'PATCH']) {
     const r = await fetch(EP, { method: m, headers: { authorization: `Bearer ${main.t}` }, redirect: 'manual' });

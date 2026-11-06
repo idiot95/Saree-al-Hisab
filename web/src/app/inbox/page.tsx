@@ -20,7 +20,7 @@ export const dynamic = 'force-dynamic';
 /* Things that want a decision, and nothing that does not. An inbox which
    collects notices nobody can act on stops being read, and then the one item
    that mattered is missed along with the rest. */
-export default async function Inbox() {
+export default async function Inbox({ searchParams }: { searchParams: Promise<{ dismissed?: string }> }) {
   const actor = await actorOrNull();
   if (!actor) redirect('/signin');
   if (!actor.household_id) redirect('/no-household');
@@ -44,6 +44,9 @@ export default async function Inbox() {
      lives under Upcoming, and is pointed at from here rather than listed twice. */
   const count = dupes.length + bills.length + sms.length;
   const smsRows = sms.map(toRow);
+  /* Dismissed from the message's own screen: the list offers the Undo that screen could not. */
+  const { dismissed } = await searchParams;
+  const justDismissed = canWrite && typeof dismissed === 'string' && UUID.test(dismissed) ? dismissed : null;
 
   return (
     <Screen>
@@ -53,7 +56,7 @@ export default async function Inbox() {
         </PageHead>
 
         {/* Always in the tree, so the Undo on a dismissed message outlives the list it emptied. */}
-        <SmsDrafts rows={smsRows} canWrite={canWrite} />
+        <SmsDrafts rows={smsRows} canWrite={canWrite} justDismissed={justDismissed} />
 
         {count === 0 ? (
           <div className="mx-[var(--gutter)] flex flex-col items-center gap-3 rounded-2xl border border-border bg-card px-6 py-8 text-center">
@@ -166,6 +169,7 @@ export default async function Inbox() {
   );
 }
 
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const day = (iso: string) => new Date(`${iso}T00:00:00Z`).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', timeZone: 'UTC' });
 
 function toRow(d: SmsDraftRow): SmsRow {
@@ -174,7 +178,8 @@ function toRow(d: SmsDraftRow): SmsRow {
     amount: d.amount === null ? null : Number(d.amount),
     direction: d.direction,
     merchant: d.merchant,
-    when: d.on_date ? day(d.on_date) : new Date(d.received_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }),
+    when: d.on_date ? day(d.on_date)
+      : new Date(d.received_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', timeZone: 'Asia/Kolkata' }),
     account: d.account,
     last4: d.last4,
     sender: d.sender,

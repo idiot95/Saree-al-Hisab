@@ -1,4 +1,5 @@
-import { withHousehold } from '@/db/client';
+import { sql, withHousehold } from '@/db/client';
+import { purgeSmsBodiesIn } from '@/lib/sms-draft';
 import { draftExists, insertDraft, lookupCaptureToken, touchCaptureToken } from '@/db/capture';
 import { tooManyIn } from '@/db/rate-limit';
 import { geminiKeyFor } from '@/db/queries';
@@ -155,13 +156,16 @@ export async function POST(req: Request): Promise<Response> {
       if (better) { parsed = better; via = 'model'; }
     }
 
-    // 10–11. The draft (a duplicate does nothing), then the token's last use.
+    // 10–12. The draft (a duplicate does nothing), the token's last use, and the purge.
     // One transaction, scoped to the token's household.
     await withHousehold(t.household_id, async () => {
       await insertDraft(t.household_id, t.user_id, {
         sender: capture.sender, body: capture.text, receivedAt: capture.receivedAt, parsed: { ...parsed, via },
       });
       await touchCaptureToken(t.household_id, t.id);
+      /* The thirty-day rule, held even for a household that never opens the app: every arrival clears the text of
+         anything decided or older than thirty days. */
+      await purgeSmsBodiesIn(sql, t.household_id);
     });
     return bare(202);
   } catch (e) {

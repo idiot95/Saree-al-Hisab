@@ -974,15 +974,19 @@ account whose `last4` matches (`smsDrafts`, first match in pay-picker order),
 the sender — with **Review** (`/add?draft=<id>`) and a swipe to Add or
 Dismiss. The raw text is read only on `/inbox/sms/[id]`. `loadAdd` prefills
 from a household-checked open draft (credit → income, else expense; date;
-merchant → *Where*; the matched account → `fromAccountId`) and AddEntry sends
-`clientRef = draft id` once; `saveEntry` calls `acceptDraftIn` in the entry's
-own transaction, so a double tap is one entry and an accepted draft. The
+merchant → *Where*; the matched account → `fromAccountId` for money out, or
+`paidWith = a:<account>` for money in, so a credit lands on the account and
+not a rail) and AddEntry sends `draftId` and `clientRef`, both the draft id,
+once; `saveEntry` calls `acceptDraftIn` in the entry's own transaction — only
+when the entry's amount equals the amount the message read (or none was
+read) — so a double tap is one entry and an accepted draft. The
 draft statements live in `src/lib/sms-draft.ts` (handle-taking, so the
 invariants run them): accept and dismiss null the body at once and stamp
 `decided_at` (0039); `restoreDraftIn` is Undo for 15 minutes;
 `purgeSmsBodiesIn` nulls the text of anything decided or older than 30 days,
-called as `/entries`, `/inbox` and the message screen render — there is no
-scheduler. Phones get keys on `/household/capture` (shown once; owners see
+called as `/entries`, `/inbox` and the message screen render and on every
+arrival at the endpoint — there is no scheduler. Dismissing on the message
+screen redirects to `/inbox?dismissed=<id>`, which offers the Undo. Phones get keys on `/household/capture` (shown once; owners see
 and revoke everyone's, others their own; viewers add none) with the iPhone
 Shortcuts and Android forwarder guides. `scripts/sms-taps.mjs` drives the
 whole path against a running build.

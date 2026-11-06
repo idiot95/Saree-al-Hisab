@@ -105,6 +105,9 @@ export default function Guides({ endpoint }: { endpoint: string }) {
             For <b>headers</b>, enter: <Code>{'{"Authorization":"Bearer '}</Code> followed by this phone’s key, then{' '}
             <Code>{'"}'}</Code>.
           </Step>
+          <Step>
+            If your forwarder has a ‘JSON-escape’ or ‘URL-encode’ option for the message, turn it on.
+          </Step>
           <Step>Save the rule. The next message from your bank appears under To review, From SMS.</Step>
           <Step>
             If messages stop arriving after a while, open the phone’s <b>Settings › Apps › SMS to URL Forwarder › Battery</b>{' '}

@@ -13,6 +13,23 @@ import Guides from './Guides';
 export const metadata = { title: 'SMS capture · Saree al-Hisab' };
 export const dynamic = 'force-dynamic';
 
+/** Where a phone should send its messages. The configured origin when there is one (AUTH_URL); otherwise this
+ *  request's host, over https — a key must never travel in clear — except on the developer's own machine, where
+ *  the first x-forwarded-proto (or http) is kept. */
+async function origin() {
+  const configured = process.env.AUTH_URL;
+  if (configured) {
+    try { return new URL(configured).origin; } catch { /* unparsable: fall back to the request */ }
+  }
+  const h = await headers();
+  const host = h.get('host') ?? 'localhost';
+  const name = host.replace(/:\d+$/, '').replace(/^\[|\]$/g, '');
+  const local = name === 'localhost' || name === '127.0.0.1' || name === '::1';
+  const forwarded = h.get('x-forwarded-proto')?.split(',')[0]?.trim();
+  const proto = local ? (forwarded === 'https' ? 'https' : 'http') : 'https';
+  return `${proto}://${host}`;
+}
+
 const day = (d: Date) => new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
 
 /* Household → SMS capture. A phone forwards the bank's messages to this app with a key of its own; each arrives as
@@ -25,8 +42,7 @@ export default async function Capture() {
   const owner = actor.role === 'owner';
   const canAdd = actor.role !== 'viewer';
   const tokens = await captureTokensFor(actor.household_id, actor.user_id, owner);
-  const h = await headers();
-  const endpoint = `${h.get('x-forwarded-proto') ?? 'http'}://${h.get('host')}/api/capture/sms`;
+  const endpoint = `${await origin()}/api/capture/sms`;
 
   return (
     <Screen>

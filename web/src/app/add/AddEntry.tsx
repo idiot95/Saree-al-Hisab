@@ -84,6 +84,8 @@ export default function AddEntry({
     tabCoveredMinor?: number | null; countsAsSpend?: boolean | null;
     /** A transfer arriving with its ends already known — a card bill, an account. */
     toAccountId?: string | null; fromAccountId?: string | null;
+    /** How it was paid, already decided (money in from a bank message lands on the account itself). */
+    paidWith?: string | null;
   };
   /* On the offline screen nothing is sent from here at all: every save goes
      to the phone's queue, and the layout sends the queue when signal is back. */
@@ -123,6 +125,7 @@ export default function AddEntry({
      (a swipe on Money) lands on that account's usual rail; otherwise the last
      way used, resolved on the server; otherwise the first way. */
   const [paid, setPaid] = useState(() => {
+    if (draft?.paidWith && findRef(ways, draft.paidWith)) return draft.paidWith;
     const from = ways.find((w) => w.id === draft?.fromAccountId);
     if (from) return pickWay(from);
     /* The remembered way is how this person PAYS, so it opens an expense only.
@@ -206,7 +209,7 @@ export default function AddEntry({
       tabCoveredMinor: kind === 'expense' && more.tabId && more.coveredKeys ? fromKeys(more.coveredKeys) : null,
       countsAsSpend: kind === 'expense' && more.tabId ? mine : null,
       settles: settling.map((c) => c.id),
-      ...(smsRef.current ? { clientRef: smsRef.current } : {}),
+      ...(smsRef.current ? { clientRef: smsRef.current, draftId: smsRef.current } : {}),
     };
     const clear = () => {
       setKeys(''); setCategoryId(null); setDupe(null);

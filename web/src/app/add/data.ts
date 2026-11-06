@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 import { actorOrNull, categoriesFor, tabsForEntry, openClaimsFor, scanningState, topCategories, lastPaidWith, smsDraftById } from '@/db/queries';
 import { withHousehold } from '@/db/client';
 import { waysToPay } from '@/db/payment';
-import { defaultRef, findRef } from '@/lib/pay';
+import { accountRef, defaultRef, findRef } from '@/lib/pay';
 
 export type AddSearch = { amount?: string; on?: string; merchant?: string;
                           kind?: string; category?: string; tab?: string; to?: string; from?: string;
@@ -57,6 +57,7 @@ export async function loadAdd(q: AddSearch) {
     // A card bill from the inbox, or a swipe on an account: only this household's.
     toAccountId: ways.some((a) => a.id === q.to) ? q.to! : null,
     fromAccountId: ways.some((a) => a.id === q.from) ? q.from! : null,
+    paidWith: null as string | null,
   };
 
   /* A bank message: what it said becomes the form, and its id the entry's client reference, so Save marks it
@@ -67,9 +68,13 @@ export async function loadAdd(q: AddSearch) {
     const minor = sms.amount === null ? NaN : Number(sms.amount);
     draft.amountMinor = Number.isSafeInteger(minor) && minor > 0 && minor < 1e11 ? minor : null;
     draft.kind = sms.direction === 'credit' ? 'income' : 'expense';
-    draft.occurredOn = sms.on_date ?? new Date(sms.received_at).toISOString().slice(0, 10);
+    // The bank's own date when the message carries one, else the day it arrived — in India, where these banks are.
+    draft.occurredOn = sms.on_date ?? new Date(sms.received_at).toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
     draft.merchant = sms.merchant ? sms.merchant.slice(0, 60) : null;
-    draft.fromAccountId = sms.account_id && ways.some((w) => w.id === sms.account_id) ? sms.account_id : null;
+    const matched = sms.account_id && ways.some((w) => w.id === sms.account_id) ? sms.account_id : null;
+    /* Money in lands on the account itself, never a rail; money out keeps the account's usual way of paying. */
+    if (matched && sms.direction === 'credit') draft.paidWith = accountRef(matched);
+    else draft.fromAccountId = matched;
     draft.toAccountId = null;
     draft.categoryId = null;
     draft.tabId = null;

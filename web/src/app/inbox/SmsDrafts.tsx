@@ -23,12 +23,29 @@ export type SmsRow = {
 };
 
 
-export default function SmsDrafts({ rows, canWrite }: { rows: SmsRow[]; canWrite: boolean }) {
+export default function SmsDrafts({ rows, canWrite, justDismissed = null }: {
+  rows: SmsRow[]; canWrite: boolean;
+  /** Dismissed a moment ago on the message's own screen: offer its Undo here. */
+  justDismissed?: string | null;
+}) {
   const router = useRouter();
   const [gone, setGone] = useState<Set<string>>(() => new Set());
-  const [snack, setSnack] = useState<SnackState>(null);
   const [, start] = useTransition();
-  const closeSnack = useCallback(() => setSnack(null), []);
+  const [snack, setSnack] = useState<SnackState>(null);
+  /* The dismissal made on the message's own screen, offered for Undo here until the line goes. */
+  const [offer, setOffer] = useState(justDismissed);
+  const closeSnack = useCallback(() => {
+    setSnack(null);
+    setOffer(null);
+    // The ?dismissed= comes off the address, so a reload does not offer the Undo twice.
+    if (justDismissed) router.replace('/inbox', { scroll: false });
+  }, [justDismissed, router]);
+  const undoElsewhere = (id: string) => start(async () => {
+    const back = await restoreDraft(id);
+    if (back.ok) router.refresh();
+    else setSnack({ text: back.error, tone: 'error' });
+  });
+  const line: SnackState = snack ?? (offer ? { text: 'Bank message dismissed', undo: () => undoElsewhere(offer) } : null);
   const unhide = (id: string) => setGone((g) => { const n = new Set(g); n.delete(id); return n; });
   const review = (id: string) => {
     const href = `/add?draft=${id}`;
@@ -56,11 +73,11 @@ export default function SmsDrafts({ rows, canWrite }: { rows: SmsRow[]; canWrite
   }
 
   const shown = rows.filter((r) => !gone.has(r.id));
-  if (shown.length === 0) return <Snack snack={snack} onClose={closeSnack} />;
+  if (shown.length === 0) return <Snack snack={line} onClose={closeSnack} />;
   return (
     <section id="sms" aria-label="From SMS" className="mx-[var(--gutter)] mb-5 flex flex-col gap-2">
       <Label action={<Link href="/household/capture" transitionTypes={['nav-forward']}
-        className="-mr-2 flex min-h-11 min-w-11 items-center justify-center px-2 text-xs font-semibold text-primary">Set up</Link>}>
+        className="-mr-2 flex min-h-11 min-w-11 items-center justify-center px-2 text-xs font-semibold text-primary in-data-[platform=android]:min-h-12 in-data-[platform=android]:min-w-12">Set up</Link>}>
         From SMS · {shown.length}
       </Label>
       <div className="overflow-hidden rounded-2xl border border-border bg-card px-[var(--pad)]">
@@ -78,7 +95,7 @@ export default function SmsDrafts({ rows, canWrite }: { rows: SmsRow[]; canWrite
           ? 'Review opens a new entry with what the message said. Nothing is recorded until you save it.'
           : 'Only owners and contributing members can turn these into entries.'}
       </p>
-      <Snack snack={snack} onClose={closeSnack} />
+      <Snack snack={line} onClose={closeSnack} />
     </section>
   );
 }
@@ -89,7 +106,7 @@ function Row({ r, last, canWrite }: { r: SmsRow; last: boolean; canWrite: boolea
   return (
     <div className={`flex min-h-[84px] items-center gap-3 py-3 ${last ? '' : 'border-b border-border'}`}>
       <Link href={`/inbox/sms/${r.id}`} transitionTypes={['nav-forward']} draggable={false}
-        className="flex min-h-11 min-w-0 flex-1 items-center gap-3 text-foreground no-underline">
+        className="flex min-h-11 min-w-0 flex-1 items-center gap-3 text-foreground no-underline in-data-[platform=android]:min-h-12">
         <span className={`grid size-10 flex-none place-items-center rounded-[11px] ${d.tone}`}>
           <Icon name={d.icon} size={20} />
         </span>

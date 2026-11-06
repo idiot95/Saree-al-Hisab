@@ -1371,7 +1371,7 @@ try {
       const [e] = await tx`insert into txn ${sql({ household_id: hh.id, created_by: user.id, occurred_on: '2026-11-01',
         amount: 9900, currency: 'INR', kind: 'expense', account_id: a1.id, client_ref: ref })}
         on conflict (household_id, client_ref) where client_ref is not null do nothing returning id`;
-      if (e) await acceptDraftIn(tx, hh.id, ref, e.id);
+      if (e) await acceptDraftIn(tx, hh.id, ref, e.id, 9900);
       return e?.id ?? null;
     });
     const first = await save(d1), second = await save(d1);
@@ -1381,16 +1381,25 @@ try {
     const after = await body(d1);
     ok(after.status === 'accepted' && after.txn_id === first, 'the draft is accepted, pointing at that entry');
     ok(after.body === null, 'and its text is gone the moment it is accepted');
-    ok(await scoped(hh.id, (tx) => acceptDraftIn(tx, hh.id, d1, first)) === false, 'an accepted draft cannot be accepted again');
+    ok(await scoped(hh.id, (tx) => acceptDraftIn(tx, hh.id, d1, first, 9900)) === false, 'an accepted draft cannot be accepted again');
+    // A draft id sent beside an entry for another amount closes nothing; the amount the message said does.
+    const priced = await sd({ body_hash: HEX('5'), parsed: sql.json({ amountMinor: 45000, direction: 'debit' }) });
+    ok(await scoped(hh.id, (tx) => acceptDraftIn(tx, hh.id, priced, first, 9900)) === false,
+      'an entry for a different amount cannot accept a draft that read an amount');
+    ok((await body(priced)).status === 'open', 'and the draft stays open');
+    const fitting = await mkTxn(hh.id, a1.id);
+    await sql`update txn set amount = 45000 where id = ${fitting.id}`;
+    ok(await scoped(hh.id, (tx) => acceptDraftIn(tx, hh.id, priced, fitting.id, 45000)) === true,
+      'an entry for the amount it read does accept it');
 
     const d2 = await sd({ body_hash: HEX('6') });
     const [{ id: foreignTxn }] = [await mkTxn(h2.id, a2.id)];
     ok(await scoped(h2.id, (tx) => dismissDraftIn(tx, hh.id, d2)) === false,
       'another household cannot dismiss a draft, even naming its household');
     ok(await scoped(h2.id, (tx) => dismissDraftIn(tx, h2.id, d2)) === false, 'nor under its own');
-    ok(await scoped(h2.id, (tx) => acceptDraftIn(tx, hh.id, d2, foreignTxn)) === false, 'nor accept it');
+    ok(await scoped(h2.id, (tx) => acceptDraftIn(tx, hh.id, d2, foreignTxn, 1000)) === false, 'nor accept it');
     await refuses('nor accept it by naming one of its own entries from this household\'s scope',
-      () => scoped(hh.id, (tx) => acceptDraftIn(tx, hh.id, d2, foreignTxn)));
+      () => scoped(hh.id, (tx) => acceptDraftIn(tx, hh.id, d2, foreignTxn, 1000)));
     ok((await body(d2)).status === 'open' && (await body(d2)).body !== null, 'and the draft is untouched, text and all');
 
     ok(await scoped(hh.id, (tx) => dismissDraftIn(tx, hh.id, d2)) === true, 'the household can dismiss its own draft');
