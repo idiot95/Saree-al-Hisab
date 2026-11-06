@@ -11,6 +11,7 @@ import CardIdentityFields from './CardIdentityFields';
 import { bankFromName } from '@/lib/card-brand';
 import { startPending } from '../pending';
 import { OwnerSelect, keepFields } from '../worth/fields';
+import { Info, Refusal, ghost, solid } from '../form-bits';
 
 /* Tap the row and it becomes its own form; save and it becomes a row again.
    The same move as a category, because a person who has learnt one should
@@ -40,12 +41,10 @@ export default function EditAccount({ account, canWrite, last, block = false, ch
 }) {
   const [open, setOpen] = useState(false);
   const router = useRouter();
-  const shape: React.CSSProperties = block
-    ? { display: 'flex', flexDirection: 'column', gap: 10, padding: '15px 0' }
-    : { display: 'flex', alignItems: 'center', gap: 12, minHeight: 76 };
-  const rule = last ? undefined : '1px solid var(--border)';
+  /* A row: its chip, the words (which wrap rather than cut off) and the balance. Hairlines between rows. */
+  const shape = `${block ? 'flex flex-col gap-2.5 py-4' : 'flex min-h-[76px] items-center gap-3 py-3'} ${last ? '' : 'border-b border-border'}`;
 
-  if (!canWrite) return <div style={{ ...shape, borderBottom: rule }}>{children}</div>;
+  if (!canWrite) return <div className={shape}>{children}</div>;
 
   if (!open) {
     /* A swipe offers the two things done to an account: move money in or
@@ -62,8 +61,7 @@ export default function EditAccount({ account, canWrite, last, block = false, ch
           act: () => { startPending(`/accounts/${account.id}/reconcile`); router.push(`/accounts/${account.id}/reconcile`, { transitionTypes: ['nav-forward'] }); } },
       ]} commit={false}>
         <button type="button" onClick={() => { haptic('select'); setOpen(true); }}
-          aria-label={`Edit ${account.name}`}
-          style={{ ...shape, width: '100%', textAlign: 'left', borderBottom: rule, color: 'inherit' }}>
+          aria-label={`Edit ${account.name}`} className={`${shape} w-full text-left text-foreground`}>
           {children}
         </button>
       </SwipeRow>
@@ -90,12 +88,9 @@ export function AccountForm({ account: a, last = true, onDone }: {
   const [sure, setSure] = useState(false);
 
   return (
-    <div style={{
-      padding: '16px 0', display: 'flex', flexDirection: 'column', gap: 13,
-      borderBottom: last ? undefined : '1px solid var(--border)',
-    }}>
+    <div className={`flex flex-col gap-3.5 py-4 ${last ? '' : 'border-b border-border'}`}>
       {/* JS-only: this form replaces the row only after a tap, so the client closure loses no no-JS path. */}
-      <form onSubmit={keepFields(act)} style={{ display: 'flex', flexDirection: 'column', gap: 13 }}>
+      <form onSubmit={keepFields(act)} aria-label={`Edit ${a.name}`} className="flex flex-col gap-3.5">
         <input type="hidden" name="id" value={a.id} />
         <Field label="Name" name="name" required maxLength={60} defaultValue={a.name} autoFocus />
         {a.kind !== 'cash' && (
@@ -111,23 +106,16 @@ export function AccountForm({ account: a, last = true, onDone }: {
               hint="What the card already owed when you started keeping it here. Everything since is worked out from the entries." />
             <Field label="Credit limit (optional)" name="limit" inputMode="decimal"
               defaultValue={a.limit ? rupees(a.limit) : ''} placeholder="200000" />
-            <div style={{ display: 'flex', gap: 10 }}>
-              <span style={{ flex: 1 }}>
-                <Field label="Statement day" name="statement_day" inputMode="numeric" required
-                  maxLength={2} defaultValue={a.statement_day ?? ''} />
-              </span>
-              <span style={{ flex: 1 }}>
-                <Field label="Bill due day" name="due_day" inputMode="numeric" required
-                  maxLength={2} defaultValue={a.due_day ?? ''} />
-              </span>
+            <div className="grid grid-cols-2 gap-2.5">
+              <Field label="Statement day" name="statement_day" inputMode="numeric" required
+                maxLength={2} defaultValue={a.statement_day ?? ''} />
+              <Field label="Bill due day" name="due_day" inputMode="numeric" required
+                maxLength={2} defaultValue={a.due_day ?? ''} />
             </div>
-            <p style={{
-              margin: 0, padding: '11px 13px', borderRadius: 12, background: 'var(--accent)',
-              color: 'var(--foreground)', fontSize: 'var(--step--1)', lineHeight: 1.5,
-            }}>
+            <Info>
               Change the statement day and purchases on bills you have not paid yet are
               re-filed into the right cycle. Paid bills stay as they were.
-            </p>
+            </Info>
           </>
         ) : (
           <Field label="Balance before the first entry" name="opening" inputMode="decimal"
@@ -138,9 +126,9 @@ export function AccountForm({ account: a, last = true, onDone }: {
             owner — it is the household's — and is never edited here anyway. */}
         {a.kind !== 'person' && <OwnerSelect members={a.owners} defaultValue={a.owner} keepUnlessChanged />}
         {state && !state.ok && <ErrorNote>{state.error}</ErrorNote>}
-        <div style={{ display: 'flex', gap: 9 }}>
-          <button type="button" onClick={onDone} style={ghost}>Cancel</button>
-          <button type="submit" disabled={pending} style={{ ...solid, opacity: pending ? .65 : 1 }}>
+        <div className="flex gap-2">
+          <button type="button" onClick={onDone} className={ghost}>Cancel</button>
+          <button type="submit" disabled={pending} className={solid}>
             {pending ? 'Saving…' : 'Save'}
           </button>
         </div>
@@ -149,20 +137,15 @@ export function AccountForm({ account: a, last = true, onDone }: {
       {/* Archive, never delete. Entries keep pointing at it, so the months it
           appears in still add up — which is the entire reason archived_at exists. */}
       <form action={retire} onSubmit={(e) => { if (!sure) { e.preventDefault(); setSure(true); } }}
-        style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        className="flex flex-col gap-1.5">
         <input type="hidden" name="id" value={a.id} />
-        <button className="cta" type="submit" disabled={retiring} style={{
-          minHeight: 44, borderRadius: 11, fontSize: 'var(--step--1)', fontWeight: 600,
-          background: sure ? 'color-mix(in srgb, var(--destructive) 12%, transparent)' : 'transparent', color: 'var(--destructive)',
-        }}>
+        <button type="submit" disabled={retiring}
+          className={`press flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold text-destructive disabled:opacity-60 ${sure ? 'bg-destructive/10' : ''}`}>
+          <Icon name="archive" size={18} />
           {retiring ? 'Archiving…' : sure ? `Yes, archive ${a.name}` : 'Archive this account'}
         </button>
-        {retireState && !retireState.ok && (
-          <span role="alert" style={{ fontSize: 'var(--step--1)', color: 'var(--destructive)' }}>
-            {retireState.error}
-          </span>
-        )}
-        <span style={{ fontSize: 'var(--step--2)', lineHeight: 1.45, color: 'var(--muted-foreground)' }}>
+        {retireState && !retireState.ok && <Refusal>{retireState.error}</Refusal>}
+        <span className="text-xs leading-snug text-muted-foreground">
           {a.methods > 0
             ? `${a.methods === 1 ? 'One way to pay is' : `${a.methods} ways to pay are`} linked to this — archive ${a.methods === 1 ? 'it' : 'them'} first.`
             : 'It leaves the pickers. Every entry already on it stays, and no month changes value.'}
@@ -171,12 +154,3 @@ export function AccountForm({ account: a, last = true, onDone }: {
     </div>
   );
 }
-
-const ghost: React.CSSProperties = {
-  minHeight: 50, padding: '0 16px', borderRadius: 13, fontSize: 'var(--step-0)', fontWeight: 600,
-  background: 'var(--muted)', color: 'var(--muted-foreground)',
-};
-const solid: React.CSSProperties = {
-  flex: 1, minHeight: 50, borderRadius: 13, fontSize: 'var(--step-0)', fontWeight: 600,
-  background: 'var(--primary)', color: 'var(--primary-foreground)',
-};

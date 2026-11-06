@@ -2,9 +2,12 @@
 
 import Link from '@/app/NavLink';
 import { useActionState, useState } from 'react';
-import { ErrorNote } from '../auth-ui';
+import { ErrorNote, primaryBtn } from '../auth-ui';
+import { Icon } from '../Icon';
 import { scan } from './actions';
 import { useMoney } from '@/app/currency';
+
+const card = 'flex flex-col gap-3.5 rounded-[18px] bg-card p-[var(--pad)]';
 
 export default function ScanForm({ canScan }: { canScan: boolean }) {
   const [state, act, pending] = useActionState(scan, null);
@@ -12,59 +15,57 @@ export default function ScanForm({ canScan }: { canScan: boolean }) {
 
   if (!canScan) {
     return (
-      <div className="border border-border" style={card}>
-        <p style={{ margin: 0, fontSize: 'var(--step--1)', lineHeight: 1.55, color: 'var(--muted-foreground)' }}>
-          Scanning needs a Google AI key, which is free and takes a minute to get. An owner
-          adds it once under Household.
+      <div className={card}>
+        <p className="flex items-start gap-2 text-sm leading-normal text-muted-foreground">
+          <Icon name="key" size={18} className="mt-px flex-none" />
+          <span>
+            Scanning needs a Google AI key, which is free and takes a minute to get. An owner
+            adds it once under Household.
+          </span>
         </p>
-        <Link transitionTypes={['nav-forward']} href="/household" style={{
-          minHeight: 48, borderRadius: 12, display: 'flex', alignItems: 'center',
-          justifyContent: 'center', textDecoration: 'none', fontSize: 'var(--step-0)', fontWeight: 600,
-          background: 'var(--primary)', color: 'var(--primary-foreground)',
-        }}>Go to Household</Link>
+        <Link transitionTypes={['nav-forward']} href="/household" className={primaryBtn}>Go to Household</Link>
       </div>
     );
   }
 
   return (
     <>
-      <form action={act} className="border border-border" style={card}>
-        <label style={{
-          minHeight: 130, borderRadius: 15, display: 'flex', flexDirection: 'column',
-          alignItems: 'center', justifyContent: 'center', gap: 8, cursor: 'pointer',
-          background: 'var(--background)', border: '1.5px dashed var(--input)', padding: 16,
-        }}>
+      <form action={act} aria-label="Scan a receipt" className={card}>
+        <label className="flex min-h-[130px] cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-[1.5px] border-dashed border-input bg-background p-4 text-center">
           <input
             type="file" name="receipt" accept="image/png,image/jpeg,image/webp,application/pdf"
-            capture="environment" required style={{ display: 'none' }}
+            capture="environment" required className="hidden"
             onChange={(e) => setPicked(e.target.files?.[0]?.name ?? null)}
           />
-          <svg width={30} height={30} viewBox="0 0 24 24" fill="none" stroke="var(--muted-foreground)"
-            strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-            <path d="M4.5 8.5 6 6h4l1-1.5h2L14 6h4l1.5 2.5v9a1.5 1.5 0 0 1-1.5 1.5H6a1.5 1.5 0 0 1-1.5-1.5z" />
-            <circle cx="12" cy="12.5" r="3.4" />
-          </svg>
-          <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>
+          <span className="grid size-12 place-items-center rounded-full bg-accent text-accent-foreground">
+            <Icon name={picked ? 'check' : 'photo_camera'} size={24} />
+          </span>
+          <span className="text-[15px] font-semibold [overflow-wrap:anywhere]">
             {picked ?? 'Photograph the receipt'}
           </span>
-          <span style={{ fontSize: 'var(--step--1)', color: 'var(--muted-foreground)', textAlign: 'center' }}>
+          <span className="text-sm text-muted-foreground">
             Or pick a screenshot or PDF. Up to 6 MB.
           </span>
         </label>
 
         {state && !state.ok && <ErrorNote>{state.error}</ErrorNote>}
 
-        <button type="submit" disabled={pending} className="cta" style={{
-          minHeight: 54, borderRadius: 15, fontSize: 'var(--step-0)', fontWeight: 600, color: 'var(--primary-foreground)',
-          opacity: pending ? 0.6 : 1,
-          background: 'var(--primary)',
-        }}>{pending ? 'Reading it…' : 'Read the receipt'}</button>
+        <button type="submit" disabled={pending} className={primaryBtn}>
+          <Icon name="document_scanner" size={20} />
+          {pending ? 'Reading it…' : 'Read the receipt'}
+        </button>
       </form>
 
       {state?.ok && <Draft result={state} />}
     </>
   );
 }
+
+const CONFIDENCE = {
+  high: { icon: 'check_circle', cls: 'bg-accent text-accent-foreground' },
+  medium: { icon: 'warning', cls: 'bg-attention-soft text-attention-soft-foreground' },
+  low: { icon: 'error', cls: 'bg-destructive/10 text-destructive' },
+} as const;
 
 /* What was found, and what is missing. Nothing has been written: the button
    carries the draft to Add Entry, where a person saves it as they would any
@@ -82,22 +83,18 @@ function Draft({ result }: {
   if (result.suggestedCategoryId) params.set('category', result.suggestedCategoryId);
 
   const blocked = result.missing.length > 0;
+  const conf = CONFIDENCE[s.confidence as keyof typeof CONFIDENCE] ?? CONFIDENCE.low;
 
   return (
-    <section className="border border-border" style={{ ...card, marginTop: 16 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-        <span style={{
-          fontSize: 'var(--step--2)', fontWeight: 700, letterSpacing: '.04em', padding: '5px 9px',
-          borderRadius: 7,
-          background: s.confidence === 'high' ? 'var(--accent)'
-            : s.confidence === 'medium' ? 'var(--attention-soft)' : 'color-mix(in srgb, var(--destructive) 12%, transparent)',
-          color: s.confidence === 'high' ? 'var(--primary)'
-            : s.confidence === 'medium' ? 'var(--attention-soft-foreground)' : 'var(--destructive)',
-        }}>{s.confidence.toUpperCase()} CONFIDENCE</span>
-        <span style={{ fontSize: 'var(--step--1)', color: 'var(--muted-foreground)' }}>Nothing saved yet</span>
+    <section aria-label="What it read" className={card}>
+      <div className="flex flex-wrap items-center gap-2">
+        <span className={`flex items-center gap-1 rounded-md px-2 py-1 text-xs font-bold ${conf.cls}`}>
+          <Icon name={conf.icon} size={14} />{s.confidence.charAt(0).toUpperCase() + s.confidence.slice(1)} confidence
+        </span>
+        <span className="text-sm text-muted-foreground">Nothing saved yet</span>
       </div>
 
-      <dl style={{ margin: 0, display: 'flex', flexDirection: 'column', gap: 0 }}>
+      <dl className="flex flex-col">
         <Line label="Amount" value={s.amountMinor ? format(s.amountMinor) : null} />
         <Line label="Date" value={s.occurredOn} />
         <Line label="Where" value={s.merchant} />
@@ -107,41 +104,29 @@ function Draft({ result }: {
       </dl>
 
       {blocked ? (
-        <p style={{
-          margin: 0, padding: '12px 14px', borderRadius: 13, fontSize: 'var(--step--1)', lineHeight: 1.5,
-          background: 'var(--attention-soft)', color: 'var(--attention-soft-foreground)', fontWeight: 600,
-        }}>
-          Could not read {result.missing.join(', ')}. Open a blank entry and fill it in — a
-          figure guessed from a blurred receipt is worse than one you typed.
+        <p className="flex items-start gap-2 rounded-xl bg-attention-soft px-3.5 py-3 text-sm font-semibold leading-normal text-attention-soft-foreground">
+          <Icon name="warning" size={18} className="mt-px flex-none" />
+          <span>
+            Could not read {result.missing.join(', ')}. Open a blank entry and fill it in — a
+            figure guessed from a blurred receipt is worse than one you typed.
+          </span>
         </p>
       ) : null}
 
-      <Link href={blocked ? '/add' : `/add?${params.toString()}`}  style={{
-        minHeight: 52, borderRadius: 14, display: 'flex', alignItems: 'center',
-        justifyContent: 'center', textDecoration: 'none', fontSize: 'var(--step-0)', fontWeight: 600,
-        color: 'var(--primary-foreground)',
-        background: 'var(--primary)',
-      }}>{blocked ? 'Enter it myself' : 'Check it and save'}</Link>
+      <Link href={blocked ? '/add' : `/add?${params.toString()}`} className={primaryBtn}>
+        {blocked ? 'Enter it myself' : 'Check it and save'}
+      </Link>
     </section>
   );
 }
 
 function Line({ label, value }: { label: string; value: string | null }) {
   return (
-    <div style={{
-      display: 'flex', alignItems: 'center', gap: 12, minHeight: 46,
-      borderBottom: '1px solid var(--border)',
-    }}>
-      <dt style={{ flex: 1, fontSize: 'var(--step--1)', color: 'var(--muted-foreground)' }}>{label}</dt>
-      <dd style={{
-        margin: 0, fontSize: 'var(--step-0)', fontWeight: 600,
-        color: value ? 'var(--foreground)' : 'var(--destructive)',
-      }}>{value ?? 'not readable'}</dd>
+    <div className="flex min-h-[46px] items-center gap-3 border-b border-border py-2 last:border-b-0">
+      <dt className="flex-1 text-sm text-muted-foreground">{label}</dt>
+      <dd className={`flex items-center gap-1 text-right text-[15px] font-semibold [overflow-wrap:anywhere] ${value ? 'text-foreground' : 'text-destructive'}`}>
+        {!value && <Icon name="error" size={16} />}{value ?? 'not readable'}
+      </dd>
     </div>
   );
 }
-
-const card: React.CSSProperties = {
-  margin: '0 var(--gutter)', background: 'var(--card)', borderRadius: 18, padding: 16,
-  display: 'flex', flexDirection: 'column', gap: 14,
-};

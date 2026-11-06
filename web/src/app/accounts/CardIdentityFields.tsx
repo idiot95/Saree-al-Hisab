@@ -3,6 +3,7 @@
 import { Icon } from '../Icon';
 import Image from 'next/image';
 import { BANKS, CARD_NETWORKS } from '@/lib/card-brand';
+import { fieldLabel } from '../form-bits';
 
 export default function CardIdentityFields({ bank, network }: {
   bank?: string | null;
@@ -23,47 +24,29 @@ function ChoiceSet({ legend, name, value, choices }: {
   choices: readonly { key: string; label: string; logo: string | null; short?: string }[];
 }) {
   return (
-    <fieldset style={{ border: 0, padding: 0, margin: 0 }}>
-      <legend style={{ marginBottom: 7, padding: 0, fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--muted-foreground)' }}>
-        {legend}
-      </legend>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8 }}>
+    <fieldset className="flex flex-col gap-2">
+      <legend className={`mb-2 ${fieldLabel}`}>{legend}</legend>
+      <div className="grid grid-cols-2 gap-2">
         {choices.map((choice) => (
-          <label key={choice.key} style={{
-            minHeight: 54, padding: '7px 9px', borderRadius: 12, cursor: 'pointer',
-            display: 'flex', alignItems: 'center', gap: 8, background: 'var(--background)',
-            border: '1px solid var(--border)', position: 'relative', overflow: 'hidden',
-          }}>
+          /* The chosen one is plum-soft with a primary edge (the household role choice's look); the focus ring
+             follows the hidden radio. */
+          <label key={choice.key}
+            className="relative flex min-h-[54px] cursor-pointer items-center gap-2 overflow-hidden rounded-xl border border-border bg-background px-2.5 py-2 has-[:checked]:border-primary has-[:checked]:bg-accent has-[:checked]:shadow-[inset_0_0_0_1px_var(--primary)] has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-primary">
             <input type="radio" name={name} value={choice.key} required
               defaultChecked={value === choice.key}
-              style={{ position: 'absolute', opacity: 0, pointerEvents: 'none' }} />
-            <span className="card-choice-mark" style={{
-              width: 42, height: 34, flex: 'none', borderRadius: 8, background: '#fff',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 5,
-              boxShadow: 'inset 0 0 0 1px rgba(16,32,38,.08)',
-            }}>
+              className="pointer-events-none absolute opacity-0" />
+            {/* A brand mark is drawn for print on white, so it keeps a white ground in both themes; "Other" has none. */}
+            <span className={`flex h-[34px] w-[42px] flex-none items-center justify-center rounded-lg p-[5px] shadow-[inset_0_0_0_1px_var(--border)] ${choice.logo ? 'bg-white' : 'bg-muted text-muted-foreground'}`}>
               {choice.logo
-                ? <Image src={choice.logo} alt="" width={42} height={34} unoptimized
-                    style={{ display: 'block', width: '100%', height: '100%', objectFit: 'contain' }} />
+                ? <Image src={choice.logo} alt="" width={42} height={34} unoptimized className="block size-full object-contain" />
                 : <Icon name="bank" size={20} />}
             </span>
-            <span style={{ minWidth: 0, fontSize: 'var(--step--1)', fontWeight: 650, lineHeight: 1.2 }}>
+            <span className="min-w-0 text-sm font-semibold leading-tight [overflow-wrap:anywhere]">
               {choice.short ?? choice.label}
             </span>
           </label>
         ))}
       </div>
-      <style>{`
-        label:has(> input[name="${name}"]:checked) {
-          border-color: var(--chart-1) !important;
-          background: var(--accent) !important;
-          box-shadow: inset 0 0 0 1px var(--chart-1);
-        }
-        label:has(> input[name="${name}"]:focus-visible) {
-          outline: 2px solid var(--chart-1);
-          outline-offset: 2px;
-        }
-      `}</style>
     </fieldset>
   );
 }

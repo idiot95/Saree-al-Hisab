@@ -5,9 +5,12 @@ import { Icon } from '../Icon';
    where it opens something, a chevron. No hooks, so server and client parts share them. */
 
 export function Section({ label, children, note }: { label: string; children: React.ReactNode; note?: React.ReactNode }) {
+  /* Named by its own heading (aria-labelledby), so a screen reader hears the label once, not twice. No hooks here,
+     so the id comes from the label; a page never has two sections with the same name. */
+  const id = `section-${label.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
   return (
-    <section aria-label={label} className="flex flex-col gap-1.5">
-      <h2 className="px-0.5 text-[13px] font-semibold text-muted-foreground">{label}</h2>
+    <section aria-labelledby={id} className="flex flex-col gap-1.5">
+      <h2 id={id} className="px-0.5 text-[13px] font-semibold text-muted-foreground">{label}</h2>
       {children}
       {note && <p className="px-0.5 text-[13px] leading-snug text-muted-foreground">{note}</p>}
     </section>

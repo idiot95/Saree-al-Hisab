@@ -110,6 +110,14 @@ paragraph below says otherwise. Where an older section disagrees, this wins:
   `scripts/loans-taps.mjs` opens a tab from the list, records ₹100 of Money back and watches both figures drop,
   swipes a row open and shut with real touch events, creates, renames, closes and deletes a throwaway tab, and
   lends to and takes a repayment from a person, watching their figure move each time.
+- **Accounts, Reconcile, Categories, Scan and the Upcoming forms** (Task 27b) follow the same section-and-card
+  structure: a pushed `PageHead`, 13px section labels over one `bg-card` list, chips in circles, names and rails that
+  wrap instead of truncating. Balances that an edit or a match moves are `Figure`s (the account row, Net worth on
+  `/accounts`, "In the books today" on a reconciliation). The in-place forms share `src/app/form-bits.tsx`
+  (`fieldLabel`, `selectCls`, `formCard`, `Info`, `AddRow`, `Refusal`, and the household `solid`/`ghost`/`danger`
+  buttons) with auth-ui's `Field`/`ErrorNote`. CardDeck and the schedules Calendar/MonthGrid are untouched (Task 28).
+  `scripts/accounts-taps.mjs` edits a bank account's starting balance and a ₹1 reconciliation (with Undo), watching
+  the Figures move, adds and stops a throwaway regular payment, and renames a category and back.
 - **Back returns to where you were** (`backStack.ts`): `NavTrail` in the root
   layout records each in-app address for the session; the header arrow
   (`BackLink`) and the edge swipe step back through history when there is an
@@ -343,7 +351,7 @@ hidden input; there is no `<select>` of payment modes anywhere, because one
 listing every rail under every account showed "ICICI Amazon Pay" twice and
 read as nonsense. Wrap it in a `<div role="group">`, never a `<label>` — a
 label around buttons activates the first chip. The entries list shows the
-rail when there is one and the account when there is not. `sw.js` is v35 (the Household, auth and offline screens restyled; v34 was pay tiles wrapping).
+rail when there is one and the account when there is not. `sw.js` is v36 (the icon font gained the Accounts, Categories and Scan glyphs; v35 was the Household, auth and offline screens restyled).
 Before Save, a debounced
 `checkDuplicate` shows what a household member already recorded within ±1% and
 ±2 days, which is the prevention half of the duplicate rule; the Inbox card is

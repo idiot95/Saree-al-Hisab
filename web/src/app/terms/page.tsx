@@ -86,12 +86,14 @@ const SECTIONS: { title: string; lines: React.ReactNode[] }[] = [
 export default async function Terms() {
   const actor = await actorOrNull();
   const back = actor ? '/household' : '/signup';
+  /* The count is spelt out, as the copy always has been ("Seven things"), and follows the list. */
+  const COUNT = ['No', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Eleven', 'Twelve'];
 
   return (
     <Screen>
       <main className="min-h-dvh bg-background text-foreground" style={{ paddingBottom: BACK_SPACE }}>
         <PageHead back={back} title="Terms, and how your data is kept"
-          sub={`${SECTIONS.length} things, each one you can check. Dated ${DATED}; if they change, the date does.`} />
+          sub={`${COUNT[SECTIONS.length] ?? SECTIONS.length} things, each one you can check. Dated ${DATED}; if they change, the date does.`} />
 
         <div className="flex flex-col gap-4 px-[var(--gutter)] pb-8">
           <ol className="flex flex-col gap-3">

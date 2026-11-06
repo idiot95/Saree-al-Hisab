@@ -90,6 +90,7 @@ export const UI_NAMES = [
   'picture_as_pdf', 'add_photo_alternate', 'archive', 'sync_problem', 'account_balance', 'edit', 'photo_library',
   'schedule', 'north_east', 'south_west', 'help', 'content_copy', 'phone_iphone', 'android', 'smartphone', 'lock',
   'trending_down', 'trending_flat', 'logout', 'person_add', 'wifi_off', 'visibility',
+  'drag_indicator', 'arrow_upward', 'arrow_downward', 'restore', 'remove', 'document_scanner',
 ];
 
 /** Every Material name the font must contain: sorted, unique. */

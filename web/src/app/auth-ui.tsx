@@ -64,7 +64,7 @@ export function Field({ label, name, type = 'text', hint, className, ...rest }: 
     <label className="flex flex-col gap-1.5">
       <span className="text-sm font-medium text-muted-foreground">{label}</span>
       <Input name={name} type={type} {...rest}
-        className={cn('h-12 rounded-xl bg-card px-3.5 text-[length:var(--field)] shadow-none dark:bg-card', className)} />
+        className={cn('h-12 rounded-xl bg-card px-3.5 text-[length:var(--field)] shadow-none md:text-[length:var(--field)] dark:bg-card', className)} />
       {hint && <span className="text-xs leading-snug text-muted-foreground">{hint}</span>}
     </label>
   );

@@ -406,16 +406,9 @@
     .shim { animation: none; background: var(--muted); }
   }
 
-  .el  { box-shadow: inset 0 1px 0 var(--edge), var(--el); }
   .el2 { box-shadow: inset 0 1px 0 var(--edge), var(--el2); }
 
-  /* Quiet Ledger draws its surfaces with Tailwind (bg-card, border-border); the old .hero and .card face are gone.
-     .quiet stays for supporting material: recessed rather than raised, so it sits behind the rest. */
-  .quiet {
-    background: var(--background);
-    border: 1px solid var(--border);
-    box-shadow: none;
-  }
+  /* Quiet Ledger draws its surfaces with Tailwind (bg-card, border-border); the old .hero, .card and .quiet faces are gone. */
 
   /* Anything pressable gives a little under the thumb. The phone's own
      buttons do this and a control that does not feels painted on. Short on

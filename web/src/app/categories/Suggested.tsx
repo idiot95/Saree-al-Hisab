@@ -1,11 +1,11 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { Chip, Icon } from '../Icon';
+import { Chip, Icon, tintOf } from '../Icon';
+import { ghost } from '../form-bits';
 import { haptic } from '../haptics';
 import { adoptSuggested } from './actions';
 import { LIBRARY, alreadyHave } from '@/lib/taxonomy';
-import { OFF } from '../choice';
 
 /* The library, offered a group at a time. Each row is a parent with its
    children folded beneath it; open it to see them, and Add puts the ones
@@ -39,65 +39,59 @@ export default function Suggested({ have, canEdit, onResult }: {
   return (
     /* Folded shut: it is a library to browse once, not part of the household's own list, and open it was most of
        a 3,000px page. Native <details>, so it opens with no script. */
-    <details className="mx-[var(--gutter)] mb-5 overflow-hidden rounded-2xl border border-border bg-card">
-      <summary className="flex min-h-14 cursor-pointer items-center gap-3 px-4">
-        <span className="flex min-w-0 flex-1 flex-col">
-          <span className="text-[15px] font-semibold">Suggested categories</span>
-          <span className="text-xs text-muted-foreground">{groups.length} groups you could add, each with its subcategories</span>
+    <details className="group mx-[var(--gutter)] overflow-hidden rounded-[18px] bg-card">
+      <summary className="flex min-h-16 cursor-pointer list-none items-center gap-3 px-[var(--pad)] py-2.5 [&::-webkit-details-marker]:hidden">
+        <span className="grid size-[38px] flex-none place-items-center rounded-full bg-accent text-accent-foreground">
+          <Icon name="add" size={20} />
         </span>
-        <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-muted-foreground"
-          strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M6 9l6 6 6-6" /></svg>
+        <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+          <span className="text-[15px] font-semibold">Suggested categories</span>
+          <span className="text-[13px] leading-snug text-muted-foreground">{groups.length} groups you could add, each with its subcategories</span>
+        </span>
+        <Icon name="expand_more" size={20} className="flex-none text-muted-foreground transition-transform group-open:rotate-180" />
       </summary>
-      <p className="border-t border-border px-4 py-3 text-xs leading-relaxed text-muted-foreground">
+      <p className="border-t border-border px-[var(--pad)] py-3 text-[13px] leading-snug text-muted-foreground">
         Add a group and it is yours to rename or retire. Nothing you already have is changed.
       </p>
-      <section style={{ padding: '0 var(--pad)', borderTop: '1px solid var(--border)' }}>
+      <div className="border-t border-border px-[var(--pad)]">
         {groups.map(({ g, parent, children }, i) => {
           const isOpen = open === g.name;
           const own = children + (parent ? 1 : 0);
           return (
-            <div key={g.name} style={{ borderBottom: i === groups.length - 1 ? undefined : '1px solid var(--border)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, minHeight: 60 }}>
+            <div key={g.name} className={i === groups.length - 1 ? '' : 'border-b border-border'}>
+              <div className="flex min-h-[60px] items-center gap-2.5">
                 <button type="button" aria-expanded={isOpen}
                   onClick={() => { haptic('tap'); setOpen(isOpen ? null : g.name); }}
-                  style={{ flex: 1, minWidth: 0, minHeight: 52, display: 'flex', alignItems: 'center', gap: 12, color: 'var(--foreground)' }}>
-                  <Chip icon={g.icon} tint={g.tint} size={38} />
-                  <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    <span style={{ fontSize: 'var(--step-0)', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {g.name}
-                    </span>
-                    <span style={{ fontSize: 'var(--step--2)', color: 'var(--muted-foreground)' }}>
+                  className="flex min-h-[52px] min-w-0 flex-1 items-center gap-3 py-1.5 text-left text-foreground">
+                  <Chip icon={g.icon} tint={g.tint} size={38} radius={999} />
+                  <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                    <span className="text-[15px] font-semibold leading-snug [overflow-wrap:anywhere]">{g.name}</span>
+                    <span className="text-[13px] leading-snug text-muted-foreground">
                       {g.children.length} within{own ? ` · ${own} already yours` : ''}
                       {g.scope === 'income' ? ' · income' : ''}
                     </span>
                   </span>
-                  <span aria-hidden style={{ color: 'var(--muted-foreground)', transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform .15s', display: 'flex' }}>
-                    <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                      strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round"><path d="M6 9l6 6 6-6" /></svg>
-                  </span>
+                  <Icon name="expand_more" size={20} className={`flex-none text-muted-foreground transition-transform ${isOpen ? 'rotate-180' : ''}`} />
                 </button>
                 {canEdit && (
-                  <button type="button" className="cta" onClick={() => adopt(g.name)} disabled={busy !== null}
-                    aria-label={`Add ${g.name}`} style={{
-                      flex: 'none', minHeight: 44, padding: '0 16px', borderRadius: 999,
-                      fontSize: 'var(--step--1)', fontWeight: 600, ...OFF, color: 'var(--primary)',
-                      opacity: busy && busy !== g.name ? 0.5 : 1,
-                    }}>
-                    {busy === g.name ? 'Adding…' : 'Add'}
+                  <button type="button" onClick={() => adopt(g.name)} disabled={busy !== null}
+                    aria-label={`Add ${g.name}`}
+                    className={`press flex min-h-11 flex-none items-center gap-1 rounded-full border border-border bg-card px-3.5 text-sm font-semibold text-primary disabled:cursor-default ${busy && busy !== g.name ? 'opacity-50' : ''}`}>
+                    <Icon name="add" size={18} />{busy === g.name ? 'Adding…' : 'Add'}
                   </button>
                 )}
               </div>
               {isOpen && (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, padding: '0 0 14px 50px' }}>
+                <div className="flex flex-wrap gap-1.5 pb-3.5 pl-[50px]">
                   {g.children.map((c) => {
                     const has = have.some((n) => n.trim().toLowerCase() === c.name.toLowerCase());
+                    const [bg, ink] = tintOf(g.tint);
                     return (
-                      <span key={c.name} style={{
-                        minHeight: 32, padding: '0 10px 0 8px', borderRadius: 999, display: 'inline-flex',
-                        alignItems: 'center', gap: 5, fontSize: 'var(--step--2)', fontWeight: 600,
-                        ...(has ? { background: `var(--cat-${g.tint})`, color: `var(--cat-${g.tint}-ink)` } : OFF),
-                      }}>
-                        <Icon name={c.icon} size={14} />
+                      /* Already yours wears the group's tint (data, so a style) and a check; the rest are plain. */
+                      <span key={c.name}
+                        className={`inline-flex min-h-8 items-center gap-1 rounded-full px-2.5 text-xs font-semibold ${has ? '' : 'border border-border bg-card text-foreground'}`}
+                        style={has ? { background: bg, color: ink } : undefined}>
+                        <Icon name={has ? 'check' : c.icon} size={14} />
                         {c.name}
                       </span>
                     );
@@ -107,15 +101,14 @@ export default function Suggested({ have, canEdit, onResult }: {
             </div>
           );
         })}
-      </section>
+      </div>
       {canEdit && groups.length > 1 && (
-        <button type="button" className="cta" onClick={() => adopt('all')} disabled={busy !== null} style={{
-          margin: '12px var(--pad) 14px', width: 'calc(100% - 2 * var(--pad))', minHeight: 50, borderRadius: 14,
-          fontSize: 'var(--step-0)', fontWeight: 600, ...OFF, color: 'var(--foreground)',
-          opacity: busy ? 0.6 : 1,
-        }}>
-          {busy === 'all' ? 'Adding…' : `Add all ${groups.length} groups`}
-        </button>
+        <div className="border-t border-border p-[var(--pad)]">
+          <button type="button" onClick={() => adopt('all')} disabled={busy !== null}
+            className={`${ghost} w-full text-foreground ${busy ? 'opacity-60' : ''}`}>
+            <Icon name="add" size={18} />{busy === 'all' ? 'Adding…' : `Add all ${groups.length} groups`}
+          </button>
+        </div>
       )}
     </details>
   );

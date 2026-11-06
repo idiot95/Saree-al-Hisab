@@ -3,7 +3,7 @@
  *
  *   node scripts/sweep.mjs [--routes /,/add] [--out dir] [--csp]
  *                          [--engine chromium|webkit|all] [--login email:password]
- *                          [--selftest]
+ *                          [--selftest] [--signed-in-links]
  *
  * Env: SWEEP_BASE (default http://localhost:3000), SWEEP_STATE (Playwright
  * storage-state file for a signed-in user; default web/.sweep-state.json).
@@ -31,8 +31,11 @@ const DEFAULT_ROUTES = ['/', '/entries', '/budget', '/people', '/worth', '/accou
   '/add', '/household', '/categories', '/entries?f=review', '/entries?f=upcoming', '/entries?f=sms', '/signin', '/signup', '/terms', '/offline'];
 /* Public routes are measured with NO session: with one, /signin bounces to /. */
 const PUBLIC_ROUTES = new Set(['/signin', '/signup', '/terms', '/offline']);
-/* A link's own page is opened by someone not signed in yet: /join/<token> and /reset/<token> too. */
-const isPublic = (route) => PUBLIC_ROUTES.has(route) || /^\/(join|reset)\//.test(route);
+/* A link's own page is opened by someone not signed in yet: /join/<token> and /reset/<token> too, by default.
+   Their signed-in states (the right account, the wrong one, someone already in a household) are real screens as
+   well; --signed-in-links measures /join and /reset with the session instead, so those can be swept on purpose. */
+let SIGNED_IN_LINKS = false;
+const isPublic = (route) => PUBLIC_ROUTES.has(route) || (!SIGNED_IN_LINKS && /^\/(join|reset)\//.test(route));
 
 const VIEWPORTS = [
   { w: 360, h: 780, os: 'android' },
@@ -56,6 +59,7 @@ function parseArgs(argv) {
     else if (k === '--login') a.login = argv[++i];
     else if (k === '--selftest') a.selftest = true;
     else if (k === '--note') a.note = argv[++i];
+    else if (k === '--signed-in-links') a.signedInLinks = true;
     else { console.error(`unknown argument ${k}`); process.exit(2); }
   }
   if (!['chromium', 'webkit', 'all'].includes(a.engine)) { console.error('--engine must be chromium|webkit|all'); process.exit(2); }
@@ -506,6 +510,7 @@ async function selftest() {
 
 /* ---------- main ---------- */
 const args = parseArgs(process.argv.slice(2));
+SIGNED_IN_LINKS = !!args.signedInLinks;
 if (args.selftest) await selftest();
 if (args.login) await login(args.login);
 const hasState = fs.existsSync(STATE);

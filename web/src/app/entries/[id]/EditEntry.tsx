@@ -1,7 +1,9 @@
 'use client';
 
 import { useActionState, useState } from 'react';
-import { Field, ErrorNote } from '../../auth-ui';
+import { Field, ErrorNote, primaryBtn } from '../../auth-ui';
+import { Icon } from '@/app/Icon';
+import { Info, danger, fieldLabel, formCard, ghost } from '@/app/form-bits';
 import { updateEntry, deleteEntry } from '../actions';
 import { useMoney } from '@/app/currency';
 import PayPicker from '@/app/PayPicker';
@@ -43,41 +45,31 @@ export default function EditEntry({ entry, categories, ways, canEdit, back = '/e
 
   return (
     <>
-      <form action={act} className="border border-border" style={{
-        margin: '0 var(--gutter) 16px', background: 'var(--card)', borderRadius: 18, padding: 16,
-        display: 'flex', flexDirection: 'column', gap: 14,
-      }}>
+      <form action={act} className={`mx-[var(--gutter)] mb-4 ${formCard}`}>
         <input type="hidden" name="id" value={entry.id} />
         <input type="hidden" name="back" value={back} />
 
         {/* The amount is what people come here to fix, so it is the biggest
             thing on the screen and already focused. */}
-        <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--muted-foreground)' }}>Amount</span>
-          <span style={{
-            display: 'flex', alignItems: 'center', gap: 6, minHeight: 62, padding: '0 14px',
-            borderRadius: 14, background: 'var(--background)', border: '1px solid var(--border)',
-          }}>
-            <span style={{ fontSize: 26, color: 'var(--muted-foreground)' }}>{symbol}</span>
+        <label className="flex flex-col gap-1.5">
+          <span className={fieldLabel}>Amount</span>
+          <span className="flex min-h-[62px] items-center gap-1.5 rounded-xl border border-input bg-card px-3.5">
+            <span className="text-[26px] text-muted-foreground">{symbol}</span>
             {/* Grouped as it is typed, the way Add Entry does it: one figure, not a raw one with a caption under it. */}
             <input
               name="amount" inputMode="decimal" value={keysDisplay(amount)} disabled={!canEdit}
               onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ''))}
-              className="t"
-              style={{
-                flex: 1, minHeight: 58, border: 0, background: 'transparent',
-                color: 'var(--foreground)', fontSize: 'var(--step-4)', letterSpacing: '-.02em', width: '100%',
-              }}
+              className="min-h-[58px] w-full flex-1 border-0 bg-transparent text-[30px] font-semibold tracking-tight tabular-nums text-foreground outline-none"
             />
           </span>
         </label>
 
-        <div role="group" aria-label="When" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--muted-foreground)' }}>When</span>
+        <div role="group" aria-label="When" className="flex flex-col gap-1.5">
+          <span className={fieldLabel}>When</span>
           <input type="hidden" name="occurred_on" value={on} />
           {canEdit
             ? <DateChips value={on} onChange={setOn} today={today} dir="past" max={today} label="Which day was it" />
-            : <span style={{ fontSize: 'var(--step-0)' }}>{on}</span>}
+            : <span className="text-base">{on}</span>}
         </div>
 
         {wantsCategory && (
@@ -89,14 +81,14 @@ export default function EditEntry({ entry, categories, ways, canEdit, back = '/e
         )}
 
         {ways.length > 0 && (
-          <div role="group" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--muted-foreground)' }}>
+          <div role="group" className="flex flex-col gap-1.5">
+            <span className={fieldLabel}>
               {entry.kind === 'income' ? 'How it came in' : entry.kind === 'transfer' ? 'From which account' : 'How you paid'}
             </span>
             <PayPicker name="paid_with" ways={ways}
               defaultValue={entry.payment_method_id ? railRef(entry.payment_method_id) : accountRef(entry.account_id)}
               disabled={!canEdit} />
-            <span style={{ fontSize: 'var(--step--2)', lineHeight: 1.4, color: 'var(--muted-foreground)' }}>
+            <span className="text-xs leading-snug text-muted-foreground">
               Changing this moves the money to the account it names.
             </span>
           </div>
@@ -108,15 +100,12 @@ export default function EditEntry({ entry, categories, ways, canEdit, back = '/e
           disabled={!canEdit} maxLength={200} placeholder="Anything worth remembering" />
 
         {entry.owed && (
-          <label style={{
-            display: 'flex', alignItems: 'flex-start', gap: 11, minHeight: 48, padding: '0 2px',
-          }}>
+          <label className="flex min-h-12 items-start gap-3 px-0.5">
             <input type="checkbox" name="counts_as_spend" defaultChecked={entry.counts_as_spend}
-              disabled={!canEdit}
-              style={{ width: 20, height: 20, marginTop: 2, flex: 'none', accentColor: 'var(--primary)' }} />
-            <span style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>Counts as my spending</span>
-              <span style={{ fontSize: 'var(--step--2)', lineHeight: 1.4, color: 'var(--muted-foreground)' }}>
+              disabled={!canEdit} className="mt-0.5 size-5 flex-none accent-primary" />
+            <span className="flex flex-col gap-0.5">
+              <span className="text-[15px] font-semibold">Counts as my spending</span>
+              <span className="text-xs leading-snug text-muted-foreground">
                 Ticked, it sits in the month and the charts even though it comes back. Unticked,
                 it was never yours — money fronted, owed back, counted nowhere.
               </span>
@@ -124,60 +113,46 @@ export default function EditEntry({ entry, categories, ways, canEdit, back = '/e
           </label>
         )}
 
-        <label style={{
-          display: 'flex', alignItems: 'center', gap: 11, minHeight: 48, padding: '0 2px',
-        }}>
+        <label className="flex min-h-12 items-center gap-3 px-0.5">
           <input type="checkbox" name="is_shared" defaultChecked={entry.is_shared}
-            disabled={!canEdit}
-            style={{ width: 20, height: 20, accentColor: 'var(--primary)' }} />
-          <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>Shared with the household</span>
+            disabled={!canEdit} className="size-5 flex-none accent-primary" />
+          <span className="text-[15px] font-semibold">Shared with the household</span>
         </label>
 
         {entry.reconciled_on && (
-          <p style={{
-            margin: 0, padding: '11px 13px', borderRadius: 12, background: 'var(--accent)',
-            color: 'var(--foreground)', fontSize: 'var(--step--1)', lineHeight: 1.5,
-          }}>
+          <Info>
             Reconciled against the {new Date(`${entry.reconciled_on}T00:00:00`).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })} statement.
             Changing the amount, date or account takes it off that reconciliation.
-          </p>
+          </Info>
         )}
 
         {state && !state.ok && <ErrorNote>{state.error}</ErrorNote>}
 
         {canEdit && (
-          <button type="submit" disabled={pending} className="cta" style={{
-            minHeight: 54, borderRadius: 14, fontSize: 'var(--step-0)', fontWeight: 600,
-            background: 'var(--primary)', color: 'var(--primary-foreground)', opacity: pending ? 0.6 : 1,
-          }}>{pending ? 'Saving…' : 'Save changes'}</button>
+          <button type="submit" disabled={pending} className={primaryBtn}>{pending ? 'Saving…' : 'Save changes'}</button>
         )}
       </form>
 
       {canEdit && (
-        <div style={{ margin: '0 var(--gutter)' }}>
+        <div className="mx-[var(--gutter)]">
           {!confirming ? (
-            <button className="cta" type="button" onClick={() => setConfirming(true)} style={{
-              width: '100%', minHeight: 50, borderRadius: 13, fontSize: 'var(--step-0)', fontWeight: 600,
-              background: 'transparent', color: 'var(--destructive)',
-            }}>Delete this entry</button>
+            <button type="button" onClick={() => setConfirming(true)}
+              className="press flex min-h-12 w-full items-center justify-center gap-2 rounded-xl text-base font-semibold text-destructive">
+              <Icon name="delete" size={20} />Delete this entry
+            </button>
           ) : (
-            <form action={remove} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <form action={remove} className="flex flex-col gap-2.5">
               <input type="hidden" name="id" value={entry.id} />
               <input type="hidden" name="back" value={back} />
-              <p style={{ margin: 0, fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--muted-foreground)' }}>
+              <p className="text-sm leading-normal text-muted-foreground">
                 The month&rsquo;s totals and the account balance change straight away.
               </p>
               {del && !del.ok && <ErrorNote>{del.error}</ErrorNote>}
-              <div style={{ display: 'flex', gap: 9 }}>
-                <button className="cta" type="button" onClick={() => setConfirming(false)} style={{
-                  minHeight: 50, padding: '0 16px', borderRadius: 13, fontSize: 'var(--step-0)',
-                  fontWeight: 600, background: 'var(--muted)', color: 'var(--muted-foreground)',
-                }}>Cancel</button>
-                <button className="cta" type="submit" disabled={removing} style={{
-                  flex: 1, minHeight: 50, borderRadius: 13, fontSize: 'var(--step-0)', fontWeight: 600,
-                  background: 'color-mix(in srgb, var(--destructive) 12%, transparent)', color: 'var(--destructive)',
-                  opacity: removing ? 0.6 : 1,
-                }}>{removing ? 'Deleting…' : 'Delete'}</button>
+              <div className="flex gap-2">
+                <button type="button" onClick={() => setConfirming(false)} className={ghost}>Cancel</button>
+                <button type="submit" disabled={removing} className={`${danger} flex-1`}>
+                  <Icon name="delete" size={20} />{removing ? 'Deleting…' : 'Delete'}
+                </button>
               </div>
             </form>
           )}

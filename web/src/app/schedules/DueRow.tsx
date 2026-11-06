@@ -5,6 +5,8 @@ import { Icon } from '../Icon';
 import SwipeRow from '../SwipeRow';
 import { recordDue, skipDue } from './actions';
 import MoveDue from './MoveDue';
+import { ErrorNote, Field } from '../auth-ui';
+import { ghost, solid } from '../form-bits';
 import { friendlyDay, type Calendar } from '@/lib/recur';
 import { useMoney } from '@/app/currency';
 
@@ -79,19 +81,12 @@ export default function DueRow({
         <form action={record} className="flex flex-col gap-2 pb-1">
           <input type="hidden" name="scheduleId" value={scheduleId} />
           <input type="hidden" name="dueOn" value={dueOn} />
-          <label className="flex flex-col gap-1.5">
-            <span className="text-xs font-semibold text-muted-foreground">Amount — change it if this month differed</span>
-            <input name="amount" inputMode="decimal" defaultValue={toKeys(amount)}
-              className="min-h-12 rounded-xl border border-input bg-card px-3 font-semibold text-foreground" />
-          </label>
-          {recState && !recState.ok && (
-            <span role="alert" className="flex items-center gap-1.5 text-sm text-destructive"><Icon name="error" size={18} />{recState.error}</span>
-          )}
+          <Field label="Amount — change it if this month differed" name="amount" inputMode="decimal"
+            defaultValue={toKeys(amount)} />
+          {recState && !recState.ok && <ErrorNote>{recState.error}</ErrorNote>}
           <div className="flex gap-2">
-            <button type="button" onClick={idle}
-              className="press min-h-12 rounded-xl bg-muted px-4 text-sm font-semibold text-muted-foreground">Cancel</button>
-            <button type="submit" disabled={recording}
-              className="press min-h-12 flex-1 rounded-xl bg-primary text-[15px] font-semibold text-primary-foreground disabled:opacity-60">
+            <button type="button" onClick={idle} className={ghost}>Cancel</button>
+            <button type="submit" disabled={recording} className={solid}>
               {recording ? 'Saving…' : income ? 'Record that it came in' : 'Record the payment'}</button>
           </div>
         </form>

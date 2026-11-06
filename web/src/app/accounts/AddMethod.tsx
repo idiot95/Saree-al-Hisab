@@ -4,6 +4,7 @@ import { useActionState, useState } from 'react';
 import { Icon, RAIL_ICON } from '../Icon';
 import { Field, ErrorNote } from '../auth-ui';
 import { addMethod } from './actions';
+import { AddRow, fieldLabel, formCard, ghost, selectCls, solid } from '../form-bits';
 
 type Acc = { id: string; name: string; kind: string };
 
@@ -29,72 +30,40 @@ export default function AddMethod({ accounts, startOpen = false }: { accounts: A
   const allowed = RAILS.filter((r) => account && (r.on as readonly string[]).includes(account.kind));
 
   if (!open) {
-    return (
-      <button type="button" onClick={() => setOpen(true)} className="border border-border" style={{
-        margin: '0 var(--gutter) 22px', width: 'calc(100% - 36px)', minHeight: 58, borderRadius: 16,
-        display: 'flex', alignItems: 'center', gap: 11, padding: '0 var(--pad)',
-        background: 'var(--card)', border: '1px dashed var(--input)',
-        color: 'var(--foreground)', fontSize: 'var(--step-0)', fontWeight: 600,
-      }}>
-        <span style={{
-          width: 32, height: 32, flex: 'none', borderRadius: 999, display: 'flex',
-          alignItems: 'center', justifyContent: 'center',
-          background: 'var(--muted)', color: 'var(--muted-foreground)',
-        }}>
-          <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-            strokeWidth={2.2} strokeLinecap="round" aria-hidden><path d="M12 5v14M5 12h14" /></svg>
-        </span>
-        Add a way to pay — GPay, a debit card, net banking
-      </button>
-    );
+    return <AddRow onClick={() => setOpen(true)}>Add a way to pay — GPay, a debit card, net banking</AddRow>;
   }
 
   return (
-    <form action={act} className="border border-border" style={{
-      margin: '0 var(--gutter) 22px', background: 'var(--card)', borderRadius: 18, padding: 16,
-      display: 'flex', flexDirection: 'column', gap: 13,
-    }}>
-      <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-        <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--muted-foreground)' }}>
-          Takes money from
-        </span>
+    <form action={act} aria-label="Add a way to pay" className={formCard}>
+      <label className="flex flex-col gap-1.5">
+        <span className={fieldLabel}>Takes money from</span>
         <select name="funding_account_id" value={accountId}
-          onChange={(e) => setAccountId(e.target.value)}
-          style={{
-            minHeight: 52, borderRadius: 13, border: '1px solid var(--border)',
-            background: 'var(--card)', color: 'var(--foreground)', fontSize: 'var(--field)',
-            fontWeight: 600, padding: '0 12px',
-          }}>
+          onChange={(e) => setAccountId(e.target.value)} className={selectCls}>
           {accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
         </select>
-        <span style={{ fontSize: 'var(--step--2)', lineHeight: 1.45, color: 'var(--muted-foreground)' }}>
+        <span className="text-xs leading-snug text-muted-foreground">
           Spending on this method is recorded against this account.
         </span>
       </label>
 
-      <fieldset style={{ border: 0, padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 7 }}>
-        <legend style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--muted-foreground)', padding: 0 }}>
-          Type
-        </legend>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
+      <fieldset className="flex flex-col gap-2">
+        <legend className={`mb-2 ${fieldLabel}`}>Type</legend>
+        <div className="flex flex-wrap gap-2">
           {allowed.map((r, i) => (
-            <label key={r.id} style={{
-              display: 'flex', alignItems: 'center', gap: 7, minHeight: 44, padding: '9px 13px',
-              borderRadius: 12, cursor: 'pointer', background: 'var(--background)',
-              border: '1px solid var(--border)',
-            }}>
+            <label key={r.id}
+              className="flex min-h-11 cursor-pointer items-center gap-2 rounded-xl border border-border bg-background px-3 py-2 has-[:checked]:border-primary has-[:checked]:bg-accent">
               <input type="radio" name="kind" value={r.id} defaultChecked={i === 0}
-                style={{ width: 17, height: 17, accentColor: 'var(--chart-1)' }} />
-              <Icon name={RAIL_ICON[r.id]} size={17} />
-              <span style={{ display: 'flex', flexDirection: 'column' }}>
-                <span style={{ fontSize: 'var(--step--1)', fontWeight: 600 }}>{r.label}</span>
-                <span style={{ fontSize: 'var(--step--2)', color: 'var(--muted-foreground)' }}>{r.hint}</span>
+                className="size-[17px] flex-none accent-primary" />
+              <Icon name={RAIL_ICON[r.id]} size={18} />
+              <span className="flex flex-col">
+                <span className="text-sm font-semibold">{r.label}</span>
+                {r.hint && <span className="text-xs text-muted-foreground">{r.hint}</span>}
               </span>
             </label>
           ))}
         </div>
         {allowed.length === 0 && (
-          <span style={{ fontSize: 'var(--step--1)', color: 'var(--muted-foreground)' }}>
+          <span className="text-sm text-muted-foreground">
             That account is a way to pay by itself — nothing else needs linking to it.
           </span>
         )}
@@ -106,16 +75,11 @@ export default function AddMethod({ accounts, startOpen = false }: { accounts: A
 
       {state && !state.ok && <ErrorNote>{state.error}</ErrorNote>}
 
-      <div style={{ display: 'flex', gap: 9 }}>
-        <button className="cta" type="button" onClick={() => setOpen(false)} style={{
-          minHeight: 50, padding: '0 16px', borderRadius: 13, fontSize: 'var(--step-0)', fontWeight: 600,
-          background: 'var(--muted)', color: 'var(--muted-foreground)',
-        }}>Cancel</button>
-        <button className="cta" type="submit" disabled={pending || allowed.length === 0} style={{
-          flex: 1, minHeight: 50, borderRadius: 13, fontSize: 'var(--step-0)', fontWeight: 600,
-          background: 'var(--primary)', color: 'var(--primary-foreground)',
-          opacity: pending || allowed.length === 0 ? 0.65 : 1,
-        }}>{pending ? 'Saving…' : 'Add way to pay'}</button>
+      <div className="flex gap-2">
+        <button type="button" onClick={() => setOpen(false)} className={ghost}>Cancel</button>
+        <button type="submit" disabled={pending || allowed.length === 0} className={solid}>
+          {pending ? 'Saving…' : 'Add way to pay'}
+        </button>
       </div>
     </form>
   );
