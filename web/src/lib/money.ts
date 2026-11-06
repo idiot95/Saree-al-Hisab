@@ -137,6 +137,28 @@ export function format(minor: Minor, currency: string = resolver(), opts: { sign
   return `${lead}${x.symbol}${body}`;
 }
 
+/** Minor units as a whole-unit number, for a component that draws digits
+ *  itself: 234000 paise is 2340, 1500 fils is 1.5. Only for display — never
+ *  add or compare these; the ledger stays in minor units. */
+export const toMajor = (minor: Minor, currency: string = resolver()) => minor / unitOf(currency);
+
+/** What a rolling-digits component needs to draw exactly what format() writes:
+ *  `prefix + new Intl.NumberFormat(locale, format).format(value)` equals
+ *  format(minor, currency, { sign, paise }) — whole units unless `paise`, as
+ *  format() does. The sign and the symbol live in the
+ *  prefix (with the same U+2212 minus) and the value is its magnitude, so the
+ *  digits never draw a second, different minus. */
+export function figureParts(minor: Minor, currency: string = resolver(), opts: { sign?: boolean; paise?: boolean } = {}) {
+  const x = ccy(currency);
+  const lead = opts.sign ? (minor < 0 ? '\u2212' : '+') : minor < 0 ? '\u2212' : '';
+  return {
+    value: Math.abs(toMajor(minor, currency)),
+    locale: LOCALE[x.group],
+    format: { style: 'decimal', minimumFractionDigits: opts.paise ? x.digits : 0, maximumFractionDigits: opts.paise ? x.digits : 0 } as const,
+    prefix: `${lead}${x.symbol}`,
+  };
+}
+
 /* "Keys" are the digits of an amount as a person types them — "2340.5" — the
    whole part, at most one point, and the minor digits so far. They are what
    an amount field holds while it is being filled, and every helper below

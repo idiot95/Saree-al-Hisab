@@ -2,6 +2,7 @@
 
 import { useState, useTransition, useEffect, useRef } from 'react';
 import { Icon, tintOf } from '../Icon';
+import { Figure } from '../Figure';
 import { defaultRef, findRef, payLabel, pickWay, type Way } from '@/lib/pay';
 import PayPicker, { CHIP, CHIP_TEXT, TILE_GRID, WayTile, describe } from '../PayPicker';
 import Link from '@/app/NavLink';
@@ -353,6 +354,13 @@ export default function AddEntry({
                   letterSpacing: '-.036em', lineHeight: 1.15, outline: 'none',
                 }}
               />
+              {/* The typed amount, echoed as the ledger will show it: the digits
+                  roll as you type. Decoration only — the field is the control. */}
+              {minor > 0 && (
+                <span aria-hidden="true" data-figure-echo style={{ fontSize: 'var(--step--1)', color: 'var(--muted-foreground)', flex: 'none' }}>
+                  <Figure minor={minor} className="n" />
+                </span>
+              )}
               {/* The code, for a symbol that does not spell it: ₹ says INR to
                   one household and nothing to a guest. AED already says AED. */}
               {symbol.trim() !== currency && (

@@ -121,3 +121,24 @@ for (const x of CURRENCIES) {
 }
 assert.equal(new Set(CURRENCIES.map((x) => x.code)).size, CURRENCIES.length);
 console.log(`money: ${CURRENCIES.length} currencies, 52 more assertions passed`);
+
+// Figure: the rolling digits draw the same text format() writes.
+{
+  const { toMajor, figureParts } = await import(`${process.env.LIB}/money.js`);
+  assert.equal(toMajor(234000, 'INR'), 2340);
+  assert.equal(toMajor(1500, 'KWD'), 1.5);
+  assert.equal(toMajor(500, 'JPY'), 500);
+  const drawn = (minor, ccy, opts) => {
+    const p = figureParts(minor, ccy, opts);
+    return p.prefix + new Intl.NumberFormat(p.locale, p.format).format(p.value);
+  };
+  for (const [m, ccy] of [[234000, 'INR'], [12345678, 'INR'], [123456700, 'AED'], [1500, 'KWD'], [500, 'JPY'], [0, 'INR'], [-234000, 'INR']]) {
+    assert.equal(drawn(m, ccy), format(m, ccy), `${m} ${ccy}`);
+  }
+  assert.equal(drawn(12000000, 'INR', { sign: true }), format(12000000, 'INR', { sign: true }));
+  assert.equal(drawn(-50, 'USD', { sign: true }), format(-50, 'USD', { sign: true }));
+  assert.equal(drawn(12345678, 'INR', { paise: true }), format(12345678, 'INR', { paise: true }));
+  // NumberFlow draws the sign itself, so the value stays positive and the minus is in the prefix.
+  assert.ok(figureParts(-234000, 'INR').value >= 0);
+  console.log('money: Figure parts match format()');
+}
