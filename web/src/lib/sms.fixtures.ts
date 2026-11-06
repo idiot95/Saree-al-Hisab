@@ -168,6 +168,18 @@ export const OTP_FIXTURES: string[] = [
   'Your OTP for txn of Rs 500 at SHOP on card XX1234 is 482913. Valid for 10 mins. Never share your OTP with anyone',
   'OTP for txn on 01/11/26 is 482913',
   'OTP for card XX1234 is 482913',
+  // "Rs." and "A/c no." do not end the keyword's sentence, so "... is N" after them still counts.
+  'OTP for transaction of Rs. 500.00 at AMAZON on your SBI Card ending 1234 is 482913. Do not share',
+  'One Time Password for online purchase of Rs. 1,250.00 at FLIPKART thru card XX1234 is 482913',
+  'OTP for txn of Rs. 500 at SHOP on card XX1234 is 482913',
+  'Your OTP for Rs. 2,000.00 txn at AMAZON is 482913',
+  'OTP to pay Rs. 500 to SHOP is 482913',
+  'Your OTP for A/c no. XX1234 is 482913',
+  'Dear Customer, OTP for adding beneficiary in A/c no. XX1234 is 482913',
+  'OTP for A/c no. 1234 txn is 482913',
+  // Known and accepted: a footer whose code-like number shares the keyword's sentence
+  // (joined by a comma or "as") still reads as an OTP, for example
+  // "Do not share OTP with anyone as your ref no is 48291312". Rare; it leans to true.
 ];
 
 export const PROMO_FIXTURES: string[] = [
@@ -254,4 +266,7 @@ export const EDGE_FIXTURES: SmsFixture[] = [
   E('Upcoming mandate: Rs 649 to be debited from A/c XX1234 on 05-12-26', null, null, null, '1234', null, '2026-12-05'),
   E('Mandate created successfully. Rs 1 debited from A/c XX1234 for verification', 100, 'INR', 'debit', '1234', null, null),
   E('Rs.500 debited A/cXX1234 on 01Nov26', 50000, 'INR', 'debit', '1234', null, '2026-11-01'),
+  // The full stop after "OTP" ends its sentence; a number in the next sentence is no code.
+  E('Rs 500 debited from A/c XX1234. Never share OTP. Your A/c XX1234 balance is 9500', 50000, 'INR', 'debit', '1234', null, null),
+  E('Rs 500 debited from A/c XX1234. Never share OTP. Call us: 18002662', 50000, 'INR', 'debit', '1234', null, null),
 ];

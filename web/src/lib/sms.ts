@@ -26,7 +26,8 @@ const MAX_MERCHANT = 40;
 const squeeze = (t: string) => t.replace(/\s+/g, ' ').trim();
 
 const OTP_SOURCE = [
-  '(?<![a-z])o\\.?t\\.?p\\.?s?(?![a-z])',            // OTP, OTPs, O.T.P., OTP482913
+  // The full stop after "OTP" ends a sentence; only the dotted "O.T.P." owns its last dot.
+  '(?<![a-z])(?:o\\.t\\.p\\.|o\\.?t\\.?p)s?(?![a-z])', // OTP, OTPs, O.T.P., OTP482913
   'ओटीपी',                                              // Hindi
   '\\bone[- ]?time[- ]?(?:password|pin|passcode|code)',
   '\\bverification code\\b',
@@ -56,8 +57,8 @@ const AFTER_KEYWORD_WINDOW = 34;
 const IS_CODE = /(?:\b(?:is|are)|:) ?[:-]* ?\d{4,8}(?!\d|[.,]\d|[-/]\d| ?(?:hrs?|hours|am|pm|days?|mins?)\b|%)/i;
 
 /** Is there a code just after an OTP keyword? The window is about 30
- *  characters, stops at a sentence end (". " before a capital or digit), and
- *  steps over punctuation, "is/for/txn/no/id/ref/of/your", and an amount
+ *  characters, cut by the caller at the end of the keyword's sentence (see
+ *  sentences(): "Rs." and "A/c no." do not end one), and steps over punctuation, "is/for/txn/no/id/ref/of/your", and an amount
  *  phrase ("for Rs 500"). A code is 4-8 digits (not an amount, date or time),
  *  or, right after "OTP is" or "OTP:", a 4-8 character letters-and-digits token.
  *  "Never share your OTP with anyone" has no code beside it, so it is no OTP. */
@@ -65,15 +66,10 @@ function codeAfterKeyword(w: string): boolean {
   let i = 0;
   while (i < w.length) {
     const r = w.slice(i);
-    if (/^\. [A-Z0-9]/.test(r)) return false;
     let m: RegExpExecArray | null;
     if ((m = CONNECTIVE.exec(r))) { i += m[0].length; continue; }
     if ((m = AMOUNT_PHRASE.exec(r)) && (!m[1] || isCurrency(m[1].toUpperCase()))) { i += m[0].length; continue; }
-    if ((m = SKIP.exec(r))) {
-      const stop = m[0].search(/\. [A-Z0-9]/);        // a sentence end inside the run
-      if (stop >= 0) return false;
-      i += m[0].length; continue;
-    }
+    if ((m = SKIP.exec(r))) { i += m[0].length; continue; }
     if ((m = /^\d{4,8}(?![\d]|[.,]\d|[-/]\d| ?(?:hrs?|hours|am|pm|days?|mins?)\b|%)/i.exec(r))) return true;
     if (ALNUM_CODE.test(r) && /^(?: ?(?:is|are))? ?:?-? ?$/i.test(w.slice(0, i))) return true;
     return false;
@@ -91,13 +87,15 @@ function codeAfterKeyword(w: string): boolean {
 export function isOtp(text: string): boolean {
   const t = squeeze(text).replace(DEVANAGARI_DIGITS, (d) => String(d.charCodeAt(0) - 0x966));
   if (/^\d{4,8} ?[-:–]/.test(t)) return true;
+  const sents = sentences(t);
+  let s = 0;
   for (const k of t.matchAll(OTP_KEYWORD)) {
     const from = k.index! + k[0].length;
-    if (codeAfterKeyword(t.slice(from, from + AFTER_KEYWORD_WINDOW))) return true;
-    // A longer description may come first: "OTP for txn of Rs 500 at SHOP on card XX1234 is 482913".
-    const rest = t.slice(from, from + 160);
-    const end = rest.search(/\. [A-Z0-9]/);
-    if (IS_CODE.test(end < 0 ? rest : rest.slice(0, end))) return true;
+    while (sents[s][1] < from) s++;                 // keywords come in order, so the sentence index only grows
+    const stop = sents[s][1];                       // the end of the keyword's own sentence
+    if (codeAfterKeyword(t.slice(from, Math.min(stop, from + AFTER_KEYWORD_WINDOW)))) return true;
+    // A longer description may come first: "OTP for txn of Rs. 500 at SHOP on card XX1234 is 482913".
+    if (IS_CODE.test(t.slice(from, Math.min(stop, from + 160)))) return true;
   }
   for (const m of t.matchAll(STANDALONE_NUM)) {
     const at = m.index!, end = at + m[0].length;
@@ -186,11 +184,11 @@ const CREDIT = /\b(?:credited|credit alert|received|deposited|refunded|refund\b(
 
 type Verb = { start: number; end: number; direction: 'debit' | 'credit' };
 
-/** Sentence ranges. "Rs." and "A/c no." are not sentence ends. */
+/** Sentence ranges. "Rs.", "A/c no." and the dotted "O.T.P." are not sentence ends. */
 function sentences(text: string): [number, number][] {
   const out: [number, number][] = [];
   let from = 0;
-  for (const m of text.matchAll(/(?<!\b(?:rs|inr|no|sr))[.;!?] /gi)) {
+  for (const m of text.matchAll(/(?<!\b(?:rs|inr|no|sr|o\.t\.p))[.;!?] /gi)) {
     out.push([from, m.index! + 1]);
     from = m.index! + 2;
   }
