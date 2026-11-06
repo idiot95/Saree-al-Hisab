@@ -32,7 +32,7 @@ const BASE = (process.env.SWEEP_BASE || 'http://localhost:3000').replace(/\/$/, 
 const STATE = process.env.SWEEP_STATE || path.join(HERE, '..', '.sweep-state.json');
 
 const DEFAULT_ROUTES = ['/', '/entries', '/budget', '/people', '/worth', '/accounts',
-  '/add', '/household', '/categories', '/categories|tap=^Add a category$', '/entries?f=review', '/entries?f=upcoming', '/entries?f=sms', '/signin', '/signup', '/terms', '/offline'];
+  '/add', '/household', '/categories', '/categories|tap=^Add a category$', '/categories|tap=^Add a category$|tap=^Show all', '/entries?f=review', '/entries?f=upcoming', '/entries?f=sms', '/signin', '/signup', '/terms', '/offline'];
 /* Public routes are measured with NO session: with one, /signin bounces to /. */
 const PUBLIC_ROUTES = new Set(['/signin', '/signup', '/terms', '/offline']);
 /* A link's own page is opened by someone not signed in yet: /join/<token> and /reset/<token> too, by default.
@@ -122,13 +122,34 @@ function checkFixedOverlap(edge /* 'top' | 'bottom' */, vw, vh) {
     const cls = typeof el.className === 'string' && el.className ? '.' + el.className.trim().split(/\s+/).slice(0, 2).join('.') : '';
     return `${el.tagName.toLowerCase()}${id}${cls}`;
   };
+  /* The part of a text box that is on screen: cut to every ancestor that clips its overflow (a box that scrolls by
+     itself). Text scrolled out of such a box has real rectangles, but nobody can see it, so a bar cannot cover it;
+     what the box does show is measured as before (selftest: "text a scroll box shows under the bar fails"). */
+  const clipOf = (el) => {
+    let box = { left: -Infinity, top: -Infinity, right: Infinity, bottom: Infinity };
+    for (let a = el.parentElement; a && a !== document.body && a !== document.documentElement; a = a.parentElement) {
+      const cs = getComputedStyle(a);
+      if (cs.overflowX === 'visible' && cs.overflowY === 'visible') continue;
+      const r = a.getBoundingClientRect();
+      box = { left: Math.max(box.left, r.left), top: Math.max(box.top, r.top),
+        right: Math.min(box.right, r.right), bottom: Math.min(box.bottom, r.bottom) };
+    }
+    return box;
+  };
   const textRects = (el) => {
     const rects = [];
+    let clip = null;
     for (const n of el.childNodes) {
       if (n.nodeType === 3 && n.nodeValue.trim()) {
         const rg = document.createRange();
         rg.selectNodeContents(n);
-        for (const r of rg.getClientRects()) if (r.width > 0 && r.height > 0) rects.push(r);
+        for (const r of rg.getClientRects()) {
+          if (!(r.width > 0 && r.height > 0)) continue;
+          clip ??= clipOf(el);
+          const left = Math.max(r.left, clip.left), right = Math.min(r.right, clip.right);
+          const top = Math.max(r.top, clip.top), bottom = Math.min(r.bottom, clip.bottom);
+          if (right - left > 0 && bottom - top > 0) rects.push({ left, right, top, bottom });
+        }
       }
     }
     return rects;
@@ -350,7 +371,12 @@ const CSP_INIT = () => {
 const slug = (route) => (route === '/' ? '_home' : route.replace(/[^a-z0-9]+/gi, '_').replace(/_$/, ''));
 const tally = {};
 let total = 0;
+/* How many screen-states were measured (a route at one viewport in one theme), per engine pass, so a clean run
+   still says how much it looked at. */
+const measured = {};
+let pass = '';
 function report(route, vp, theme, found) {
+  measured[pass] = (measured[pass] || 0) + 1;
   const byKind = {};
   for (const f of found) (byKind[f.kind] ||= []).push(f);
   for (const [kind, list] of Object.entries(byKind)) {
@@ -395,6 +421,7 @@ async function launch(engine) {
 
 async function sweepEngine(args, engine, hasState) {
   const { browser, name, viewports } = await launch(engine);
+  pass = browser.browserType().name() === name ? name : `${name} pass in ${browser.browserType().name()}`;
   const dir = path.join(args.out, name);
   fs.mkdirSync(dir, { recursive: true });
   const host = new URL(BASE).hostname;
@@ -498,6 +525,13 @@ const SCENARIOS = [
     html: `<div role="dialog" data-state="open" style="position:fixed;left:0;right:0;bottom:0;height:200px;z-index:40;background:#fff">
         <p style="position:absolute;bottom:10px;margin:0 16px">Save, at the drawer's foot</p></div>
       <div class="bar" style="z-index:60">Tab bar</div>` },
+  { name: 'text scrolled out of a scroll box, under the bar, passes', expect: [],
+    html: `<div style="padding:16px 16px 100px"><p>Top</p>
+      <div style="height:120px;overflow-y:auto">${Array.from({ length: 60 }, (_, i) => `<p style="margin:0;height:40px">Row ${i}</p>`).join('')}</div>
+      <p>After the box</p></div><div class="bar">Bar</div>` },
+  { name: 'text a scroll box shows under the bar fails', expect: ['overlap'],
+    html: `<div style="height:1500px;position:relative"><div style="position:absolute;top:1380px;height:120px;overflow-y:auto;width:100%">
+      ${Array.from({ length: 10 }, (_, i) => `<p style="margin:0;height:40px">Row ${i}</p>`).join('')}</div></div><div class="bar">Bar</div>` },
   { name: 'top bar over text fails', expect: ['overlap'],
     html: `<div class="top">Header</div><p style="margin:0;padding:16px">Starts under the header</p><div style="height:1000px"></div>` },
 ];
@@ -554,5 +588,7 @@ console.log(`# sweep ${new Date().toISOString()} base ${BASE}${args.note ? ` | $
 const engines = args.engine === 'all' ? ['chromium', 'webkit'] : [args.engine];
 for (const e of engines) await sweepEngine(args, e, hasState);
 const kinds = Object.entries(tally).map(([k, n]) => `${k}=${n}`).join(' ');
-console.log(`\nSWEEP SUMMARY: ${total} failure(s)${kinds ? ` [${kinds}]` : ''}`);
+const states = Object.values(measured).reduce((a, b) => a + b, 0);
+console.log(`\nSWEEP SUMMARY: ${total} failure(s)${kinds ? ` [${kinds}]` : ''}; ${states} screen-state(s) measured (${
+  Object.entries(measured).map(([k, n]) => `${k} ${n}`).join(', ')})`);
 process.exit(total ? 1 : 0);

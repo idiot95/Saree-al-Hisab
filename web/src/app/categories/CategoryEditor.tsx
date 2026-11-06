@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState, useCallback, useRef, useState, useTransition } from 'react';
+import { useActionState, useCallback, useId, useRef, useState, useTransition } from 'react';
 import { Icon, Chip, tintOf } from '../Icon';
 import { ErrorNote, Field } from '../auth-ui';
 import { fieldLabel, formCard, ghost, selectCls, solid, AddRow as AddButton, Said } from '../form-bits';
@@ -28,17 +28,36 @@ type Parent = { id: string; name: string; scope: Scope };
 
 /* Picking an icon and a colour is the whole point of the screen, so both are
    shown as themselves rather than named in a dropdown. A hundred and more
-   glyphs is far past what Hick's law would want in one glance, so they sit
-   in a scrolling grid with a search box above it: type "mil" and the grid
-   is milk. The names are the search index, so it works offline and costs
+   glyphs is far past what Hick's law would want in one glance, so one row is
+   offered, with a search box above it (type "mil" and the row is milk) and the
+   rest behind "Show all". The names are the search index, so it works offline and costs
    nothing. */
 function Picker({ icon, tint, onIcon, onTint }: {
   icon: string; tint: string; onIcon: (v: string) => void; onTint: (v: string) => void;
 }) {
   const [find, setFind] = useState('');
   const q = find.trim().toLowerCase();
-  const shown = q ? ICONS.filter((n) => n.includes(q) || n === icon) : ICONS;
+  const shown: readonly string[] = q ? ICONS.filter((n) => n.includes(q)) : ICONS;
+  /* 184 icons are far past one glance, and a grid of them all put Save some 2,000px down the form. So: one row of
+     five — the chosen icon first, then the first suggestions or matches — the search to narrow, and "Show all" for
+     the rest in a short box that scrolls by itself. */
+  const lead = !q || icon.includes(q) ? [icon] : [];
+  const row = [...lead, ...shown.filter((n) => n !== icon)].slice(0, 5);
+  const rest = shown.filter((n) => !row.includes(n));
+  const [all, setAll] = useState(false);
+  const allId = useId();
   const [ibg, iink] = tintOf(tint);
+  const tile = (n: string) => {
+    const on = n === icon;
+    return (
+      <button key={n} type="button" onClick={() => { haptic('tap'); onIcon(n); }}
+        aria-label={n} aria-pressed={on}
+        className={`flex min-h-12 items-center justify-center rounded-xl border ${on ? '' : 'border-border bg-background text-muted-foreground'}`}
+        style={on ? { background: ibg, color: iink, borderColor: iink } : undefined}>
+        <Icon name={n} size={20} />
+      </button>
+    );
+  };
   return (
     <>
       <input type="hidden" name="icon" value={icon} />
@@ -68,26 +87,27 @@ function Picker({ icon, tint, onIcon, onTint }: {
         <input type="search" value={find} onChange={(e) => setFind(e.target.value)}
           placeholder="Find an icon" aria-label="Find an icon" autoComplete="off"
           className="h-12 w-full rounded-xl border border-input bg-card px-3.5 text-[length:var(--field)] text-foreground" />
-        {/* The whole set, in the page's own scroll: a box that scrolled by itself inside the page hid most icons
-            (and, measured, laid them under the tab bar). 32 icons are five or six rows. */}
-        <div className="grid grid-cols-[repeat(auto-fill,minmax(48px,1fr))] gap-2">
-          {shown.length === 0 && (
-            <span className="col-span-full py-2 text-sm text-muted-foreground">
-              Nothing called that. Try another word.
-            </span>
-          )}
-          {shown.map((n) => {
-            const on = n === icon;
-            return (
-              <button key={n} type="button" onClick={() => { haptic('tap'); onIcon(n); }}
-                aria-label={n} aria-pressed={on}
-                className={`flex min-h-12 items-center justify-center rounded-xl border ${on ? '' : 'border-border bg-background text-muted-foreground'}`}
-                style={on ? { background: ibg, color: iink, borderColor: iink } : undefined}>
-                <Icon name={n} size={20} />
-              </button>
-            );
-          })}
-        </div>
+        {shown.length === 0 && (
+          <span className="py-2 text-sm text-muted-foreground">Nothing called that. Try another word.</span>
+        )}
+        {/* One row: the chosen icon and the first suggestions (or the first matches for what was typed). */}
+        <div className="grid grid-cols-5 gap-2">{row.map(tile)}</div>
+        {rest.length > 0 && (
+          <>
+            <button type="button" aria-expanded={all} aria-controls={allId} onClick={() => setAll((o) => !o)}
+              className="press flex min-h-11 items-center gap-1.5 self-start text-sm font-semibold text-primary in-data-[platform=android]:min-h-12">
+              <Icon name={all ? 'expand_less' : 'expand_more'} size={18} />
+              {all ? 'Fewer icons' : q ? `Show all ${shown.length} matches` : `Show all ${shown.length} icons`}
+            </button>
+            {/* The rest in a box that scrolls by itself, four rows tall, so the form's Save stays a short scroll away. */}
+            {all && (
+              <div id={allId} role="group" aria-label="All icons"
+                className="grid max-h-[232px] grid-cols-5 gap-2 overflow-y-auto overscroll-contain rounded-xl border border-border p-2">
+                {rest.map(tile)}
+              </div>
+            )}
+          </>
+        )}
       </fieldset>
     </>
   );
