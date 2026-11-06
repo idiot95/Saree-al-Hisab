@@ -50,8 +50,8 @@ export default function LeftToSpend({ month, budget, spent }: { month: string; b
         <Progress value={Math.min(100, throughMoney * 100)}
           aria-label={`${Math.round(throughMoney * 100)}% of the budget used`}
           className={`h-2.5 bg-muted *:data-[slot=progress-indicator]:rounded-full ${fill}`} />
-        {/* How far through the month: the tick the bar is read against. */}
-        <span aria-hidden="true" className="absolute top-0 h-4 w-0.5 -translate-x-1/2 rounded-full bg-foreground"
+        {/* How far through the month: the tick the bar is read against. Over budget the bar is full, so the tick turns light to show against it. */}
+        <span aria-hidden="true" className={`absolute top-0 h-4 w-0.5 -translate-x-1/2 rounded-full ${over ? 'bg-card' : 'bg-foreground'}`}
           style={{ left: `${throughMonth * 100}%` }} />
       </div>
       <div className="flex justify-between gap-3 text-xs text-muted-foreground">

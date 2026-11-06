@@ -37,18 +37,18 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ s
   /* Home asks only what it shows: the month, what to review and what is coming, the household's net worth (one
      row, the door to Wealth), what is owed to you (one line, the door to Loans), and today. The net worth is read
      the way Wealth reads it (worthInput, then netWorth for the household), so the two never disagree. */
-  const [[progress, totals, inbox, schedules, recent, claims, people], worth] = await Promise.all([
-    withHousehold(hh, () => Promise.all([
-      setupProgress(hh),
-      monthTotals(hh, month),
-      inboxCount(hh),
-      schedulesFor(hh),
-      entriesFor(hh, month),
-      claimsFor(hh),
-      peopleFor(hh),
-    ])),
-    worthInput(hh, actor.currency),
-  ]);
+  /* One transaction for everything Home reads, net worth included. Home does not refresh rates (Wealth does);
+     it values holdings at the last stored rates. */
+  const [progress, totals, inbox, schedules, recent, claims, people, worth] = await withHousehold(hh, () => Promise.all([
+    setupProgress(hh),
+    monthTotals(hh, month),
+    inboxCount(hh),
+    schedulesFor(hh),
+    entriesFor(hh, month),
+    claimsFor(hh),
+    peopleFor(hh),
+    worthInput(hh, actor.currency, { refreshRates: false }),
+  ]));
   const { owed } = owedToYou(claims, people);
   const householdWorth = netWorth(worth.input, { kind: 'household' }).worth;
 
