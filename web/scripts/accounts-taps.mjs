@@ -298,8 +298,27 @@ try {
   for (const [name, on] of [['Every month', true], ['Once a year', false], ['English', true], ['Hijri', false], ['Expense', true]]) {
     assert.equal(await form.getByRole('radio', { name }).isChecked(), on, `a fresh form: ${name} ${on ? 'ticked' : 'not ticked'}`);
   }
-  await form.getByRole('button', { name: 'Cancel' }).click();
   ok('after a save the form closes, and the next one opens on Every month, English and Expense');
+  /* A bounded month from below: "Ends · On a date" offers days from the first one on. Paging back stops at the first
+     day's month, and in it no day before the first is offered, the first and every later day are. */
+  await form.getByRole('button', { name: 'Change' }).click();
+  await form.getByText('On a date', { exact: true }).click();
+  await form.getByRole('button', { name: 'Another day…' }).click();
+  const last = page.getByRole('dialog', { name: 'Last day' });
+  await last.getByRole('grid').waitFor();
+  const prevMonth = last.getByRole('button', { name: 'Previous month' });
+  for (let i = 0; i < 24 && (await prevMonth.getAttribute('aria-disabled')) !== 'true'; i++) await prevMonth.click();
+  assert.equal(await prevMonth.getAttribute('aria-disabled'), 'true', 'paging prevMonth stops at the first day\'s month');
+  const span = await last.getByRole('grid').locator('button').evaluateAll((b) => b.map((x) =>
+    [x.closest('td').dataset.day, !(x.disabled || x.getAttribute('aria-disabled') === 'true')]));
+  const minIso = span.find(([, on]) => on)?.[0];
+  assert.ok(minIso, 'at least one day is offered in the first month');
+  assert.deepEqual(span.filter(([d, on]) => d < minIso && on).map(([d]) => d), [], 'no day before the first (min) is offered');
+  assert.deepEqual(span.filter(([d, on]) => d >= minIso && !on).map(([d]) => d), [], 'the first day and every later one are offered');
+  await page.keyboard.press('Escape');
+  await last.waitFor({ state: 'hidden' });
+  await form.getByRole('button', { name: 'Cancel' }).click();
+  ok(`Ends on a date: the month pages back no further than ${minIso.slice(0, 7)}, and offers nothing before ${minIso}`);
   // The row's own swipe: the parent of the layer that holds its grip (the actions sit beside that layer).
   const swipe = list.getByText(SCHEDULE, { exact: true }).locator('xpath=ancestor::*[button[@aria-expanded]][1]/..');
   /* Let the page settle after the form closes (a scroll shuts an open row), then open it from the grip. */

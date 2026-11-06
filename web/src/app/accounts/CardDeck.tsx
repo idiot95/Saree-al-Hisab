@@ -55,15 +55,24 @@ export default function CardDeck({ cards, canWrite }: { cards: CardInfo[]; canWr
 
   return (
     <div className="mb-1.5 flex flex-col gap-2">
-      <Carousel setApi={setApi} opts={{ align: 'start', watchDrag: many }} aria-label="Credit cards"
-        className="px-[var(--gutter)]">
-        <CarouselContent className="-ml-3 pb-1">
-          {cards.map((card, i) => (
-            <CarouselItem key={card.edit.id} aria-label={`Card ${i + 1} of ${cards.length}`}
-              className={cn('flex pl-3', many ? 'basis-[86%]' : 'basis-full')}>
-              <CardBlock card={card} canWrite={canWrite} />
-            </CarouselItem>
-          ))}
+      {/* The viewport runs edge to edge, so the next card peeks right to the screen's edge as the scroll-snap deck's did.
+          The gutter is padding inside the first and last slides (a slide's padding is part of its size to Embla), and
+          trimSnaps stops the first and last cards at the gutter; the cards between snap to the middle. */}
+      <Carousel setApi={setApi} opts={{ align: 'center', containScroll: 'trimSnaps', watchDrag: many }} aria-label="Credit cards">
+        <CarouselContent className="ml-0 pb-1">
+          {cards.map((card, i) => {
+            const first = i === 0, last = i === cards.length - 1;
+            return (
+              <CarouselItem key={card.edit.id} aria-label={`Card ${i + 1} of ${cards.length}`}
+                className={cn('flex pl-3',
+                  first && 'pl-[var(--gutter)]', last && 'pr-[var(--gutter)]',
+                  !many ? 'basis-full'
+                    : first ? 'basis-[calc(86%-12px+var(--gutter))]'
+                    : last ? 'basis-[calc(86%+var(--gutter))]' : 'basis-[86%]')}>
+                <CardBlock card={card} canWrite={canWrite} />
+              </CarouselItem>
+            );
+          })}
         </CarouselContent>
       </Carousel>
 

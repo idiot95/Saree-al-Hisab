@@ -301,9 +301,15 @@ try {
     await month.getByRole('grid').waitFor();
     assert.equal(await page.locator('[data-slot=drawer-content]').count(), 2, 'the month opens nested over Add');
     assert.equal(await month.getByRole('button', { name: 'Next month' }).getAttribute('aria-disabled'), 'true', 'no month after this one');
-    const days = await month.getByRole('grid').locator('button').evaluateAll((b) => b.map((x) => [x.getAttribute('aria-label'), x.disabled]));
-    const firstOff = days.findIndex(([, off]) => off);
-    assert.ok(firstOff === -1 || days.slice(firstOff).every(([, off]) => off), 'every day after today is disabled, none before');
+    /* Each day as [YYYY-MM-DD, offered]: max is today, there is no min, so every day up to today is offered and every
+       day after it is not (a focused disabled day is aria-disabled rather than disabled; both count as not offered). */
+    const days = await month.getByRole('grid').locator('button').evaluateAll((b) => b.map((x) =>
+      [x.closest('td').dataset.day, !(x.disabled || x.getAttribute('aria-disabled') === 'true'), x.hasAttribute('data-today')]));
+    const todayIso = days.find(([, , t]) => t)?.[0];
+    assert.ok(todayIso, 'today is in the month shown');
+    assert.deepEqual(days.filter(([d, on]) => d > todayIso && on).map(([d]) => d), [], 'no day after today (max) is offered');
+    assert.deepEqual(days.filter(([d, on]) => d <= todayIso && !on).map(([d]) => d), [], 'every day up to today is offered');
+    assert.ok(days.some(([, on]) => on), 'at least one day is offered');
     const cell = await month.getByRole('grid').locator('button').first().boundingBox();
     assert.ok(cell.width >= 44 && cell.height >= 44, `a day is 44px or more (${cell.width}x${cell.height})`);
     await month.getByRole('button', { name: 'Previous month' }).click();

@@ -109,6 +109,23 @@ try {
      keyboard is back on the button that opened it. */
   await page.getByRole('dialog', { name: 'Money back' }).waitFor({ state: 'hidden' });
   const opener = page.getByRole('button', { name: 'Money back' });
+  /* The handle is a real Close button, as Sheet's was: the drawer opens with focus on it, activating it (a keyboard,
+     or a screen reader's double tap) closes the drawer, and focus is back on the button that opened it. Then a tap
+     on it does the same. */
+  await opener.click();
+  const mbDrawer = page.getByRole('dialog', { name: 'Money back' });
+  await mbDrawer.waitFor();
+  await page.waitForFunction(() => document.activeElement?.getAttribute('aria-label') === 'Close', null, { timeout: 5000 });
+  const closeBox = await mbDrawer.getByRole('button', { name: 'Close' }).boundingBox();
+  assert.ok(closeBox.height >= 44 && closeBox.width >= 44, `Close is a 44px target (${closeBox.width}x${closeBox.height})`);
+  await page.keyboard.press('Enter');
+  await mbDrawer.waitFor({ state: 'hidden' });
+  await page.waitForFunction(() => document.activeElement?.textContent?.includes('Money back'), null, { timeout: 5000 });
+  await opener.click();
+  await mbDrawer.getByRole('button', { name: 'Close' }).click();
+  await mbDrawer.waitFor({ state: 'hidden' });
+  await page.waitForFunction(() => document.activeElement?.textContent?.includes('Money back'), null, { timeout: 5000 });
+  ok('Money back opens with focus on its Close handle (44px); Enter closes it and so does a tap, focus back on Money back each time');
   await opener.click();
   const again = page.getByRole('dialog', { name: 'Money back' });
   await again.getByRole('button', { name: 'Another day…' }).click();

@@ -12,7 +12,9 @@ import { cn } from '@/lib/utils';
    schedules (no selection; each day may carry marks). Dates go in and out as plain YYYY-MM-DD; the Date objects
    react-day-picker wants are local midnights made here, so nothing shifts across a time zone.
 
-   Cells are 44px at least (48 on Android), as wide as a seventh of the card. */
+   Cells are 44px tall at least (48 on Android) and a seventh of the width with no gaps between, which is 44px or more
+   from a 360px screen up: in a drawer the grid has the drawer's width less its gutters, and Upcoming's card lets it
+   run into its own padding (its className). */
 
 export const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December'];
@@ -70,14 +72,14 @@ export default function HijriCalendar({ month, onMonthChange, today, selected, o
     },
     className: cn('w-full bg-transparent p-0 [--cell-size:44px] in-data-[platform=android]:[--cell-size:48px]', className),
     classNames: {
-      root: 'w-full',
+      root: '',
       months: 'relative flex flex-col',
       month: 'flex w-full flex-col gap-2',
       month_caption: 'flex min-h-(--cell-size) w-full flex-col items-center justify-center px-(--cell-size)',
       caption_label: 'text-base font-semibold text-foreground',
-      weekdays: 'flex gap-0.5',
+      weekdays: 'flex',
       weekday: 'flex-1 pb-0.5 text-center text-xs font-semibold text-muted-foreground select-none',
-      week: 'mt-0.5 flex w-full gap-0.5',
+      week: 'mt-0.5 flex w-full',
       day: 'relative flex-1 p-0 text-center select-none',
       today: '', outside: '', disabled: '', hidden: 'invisible',
     },
@@ -118,7 +120,7 @@ function HijriDay({ day, modifiers, className, children, ...props }: React.Compo
     <button ref={ref} {...props} data-selected={on || undefined} data-today={modifiers.today || undefined}
       className={cn(
         'flex min-h-(--cell-size) w-full flex-col items-center justify-center gap-0.5 rounded-[10px] px-0 py-1.5 text-foreground outline-none',
-        'focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-30',
+        'focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-30 aria-disabled:opacity-30',
         marks?.busy && 'bg-muted',
         on && 'bg-primary text-primary-foreground',
         modifiers.today && !on && 'ring-2 ring-chart-1 ring-inset',
@@ -126,8 +128,10 @@ function HijriDay({ day, modifiers, className, children, ...props }: React.Compo
       <span className={cn('tabular-nums text-base leading-none', modifiers.today || on ? 'font-bold' : 'font-medium')}>
         {day.date.getDate()}
       </span>
-      <span className={cn('text-[0.62rem] leading-none',
-        first ? 'font-bold' : 'font-medium',
+      {/* The 1st names its Hijri month whole ("Jumada II", "Zilqadah"): on one line, a size smaller, rather than
+          wrapping to a second line or being cut short. */}
+      <span className={cn('leading-none',
+        first ? 'whitespace-nowrap text-[0.56rem] font-bold tracking-[-0.02em]' : 'text-[0.62rem] font-medium',
         on ? 'text-primary-foreground/85' : first ? 'text-primary' : 'text-muted-foreground')}>
         {first ? HIJRI_MONTHS_SHORT[h.m - 1] : h.d}
       </span>

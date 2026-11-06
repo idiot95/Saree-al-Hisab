@@ -164,7 +164,8 @@ export default function Calendar({ schedules, canWrite, today }: {
           onPointerCancel={() => { swipe.current = null; }}
           onClickCapture={(e) => { if (swiped.current) { e.stopPropagation(); e.preventDefault(); } }}>
           <HijriCalendar month={new Date(y, m - 1, 1)} onMonthChange={(d) => setYm({ y: d.getFullYear(), m: d.getMonth() + 1 })}
-            today={today} onPick={setSel} marksFor={marksFor} />
+            today={today} onPick={setSel} marksFor={marksFor}
+            className="-mx-[calc(var(--pad)-2px)] w-[calc(100%+2*var(--pad)-4px)]" />
         </div>
 
         {!isNow && (
