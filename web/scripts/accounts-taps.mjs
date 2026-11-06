@@ -432,6 +432,29 @@ try {
   assert.equal(await newCat.getByRole('button', { name: chosen, exact: true, pressed: true }).count(), 1, `"${chosen}" stays in sight during a search`);
   await newCat.getByLabel('Find an icon').fill('');
   ok(`with the box shut, and during a search it does not match, the chosen "${chosen}" is still shown and pressed`);
+  /* The reviewer's case: the chosen icon is not among the matches of a search with more than five, Show all is open,
+     and the first icon in the box is chosen by keyboard. The split is over the matches only, so choosing one moves
+     none of them: focus stays on it and it is pressed. */
+  let query = null;
+  for (const cand of ['ca', 'ar', 'in', 'er', 'o', 'e', 'a']) {
+    if (cand.length && chosen.includes(cand)) continue;
+    await newCat.getByLabel('Find an icon').fill(cand);
+    if (await newCat.getByRole('button', { name: /^Show all \d+ matches$/ }).count()) { query = cand; break; }
+  }
+  assert.ok(query, 'a search with more than five matches that leaves the chosen icon out');
+  assert.equal(await newCat.getByText('Chosen now').count(), 1, `"${chosen}" has its own slot during "${query}"`);
+  await newCat.getByRole('button', { name: /^Show all \d+ matches$/ }).click();
+  const firstInBox = newCat.getByRole('group', { name: 'All icons' }).getByRole('button').first();
+  const firstName = await firstInBox.getAttribute('aria-label');
+  await firstInBox.focus();
+  await page.keyboard.press('Enter');
+  await page.waitForTimeout(200);
+  assert.ok(await firstInBox.evaluate((el) => el === document.activeElement && el.isConnected), `focus stays on "${firstName}"`);
+  assert.equal(await firstInBox.getAttribute('aria-pressed'), 'true', `"${firstName}" is pressed`);
+  assert.equal(await newCat.getByText('Chosen now').count(), 0, 'the separate slot for the old choice is gone');
+  await newCat.getByRole('button', { name: 'Fewer icons' }).click();
+  await newCat.getByLabel('Find an icon').fill('');
+  ok(`searching "${query}" (the chosen "${chosen}" not among the matches), the first icon in Show all chosen by Enter keeps focus and is pressed`);
   await newCat.getByLabel('Name').fill(NEWCAT);
   await newCat.getByRole('button', { name: 'Add category' }).click();
   await newCat.waitFor({ state: 'detached', timeout: 20000 });

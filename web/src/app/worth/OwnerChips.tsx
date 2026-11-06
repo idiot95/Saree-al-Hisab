@@ -20,7 +20,7 @@ export default function OwnerChips({ chips, current, onPick }: {
           <Link key={c.key} href={href} replace data-replace scroll={false} prefetch={false}
             aria-current={on ? 'true' : undefined}
             onClick={(e) => {
-              if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+              if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
               e.preventDefault();
               if (on) return;
               haptic('select');

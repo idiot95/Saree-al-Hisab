@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { useRouter } from 'next/navigation';
 import Snack, { type SnackState } from './Snack';
 import { startPending } from './pending';
@@ -21,14 +21,30 @@ import { replacing } from './backStack';
 const DONE = 'ql.saved.done';
 const handled = (id: string) => { try { return sessionStorage.getItem(DONE) === id; } catch { return false; } };
 
+/* Whether this ?saved= was dealt with, as the phone's storage says. The server (and the first render on the phone,
+   which must match it) cannot know, so it says 'unknown' and nothing is drawn; only the phone's own answer, 'fresh',
+   draws the snack. Back on a handled ?saved= therefore never shows "Entry saved." even for a frame. */
+const noSub = () => () => {};
+/* Read once per visit: Edit itself marks the id handled, and the snack showing then must not turn into the tidy-up
+   (which would replace the address under Edit's own push). Forgotten when the snack's Home goes, so coming Back
+   reads it afresh. */
+const seen = new Map<string, 'handled' | 'fresh'>();
+const once = (id: string) => {
+  if (!seen.has(id)) seen.set(id, handled(id) ? 'handled' : 'fresh');
+  return seen.get(id)!;
+};
+
 export default function SavedSnack({ id }: { id: string }) {
   const router = useRouter();
   const editing = useRef(false);
+  const state = useSyncExternalStore(noSub, () => once(id), () => 'unknown');
+  useEffect(() => () => { seen.delete(id); }, [id]);
+  const [closed, setClosed] = useState(false);
   const tidy = useCallback(() => {
     replacing('/');
     router.replace('/', { scroll: false });
   }, [router]);
-  const [snack, setSnack] = useState<SnackState>(() => ({
+  const snack = useMemo<SnackState>(() => (state !== 'fresh' || closed ? null : {
     text: 'Entry saved.',
     check: true,
     action: {
@@ -40,12 +56,11 @@ export default function SavedSnack({ id }: { id: string }) {
         router.push(`/entries/${id}?from=/`, { transitionTypes: ['nav-forward'] });
       },
     },
-  }));
-  /* Back on a ?saved= already dealt with: just the clean address (Home then renders without this snack). Read in an
-     effect, not the first render, so the server's markup and the phone's agree. */
-  useEffect(() => { if (handled(id)) tidy(); }, [id, tidy]);
+  }), [state, closed, id, router]);
+  // Back on a ?saved= already dealt with: just the clean address (Home then renders without this component).
+  useEffect(() => { if (state === 'handled') tidy(); }, [state, tidy]);
   const close = useCallback(() => {
-    setSnack(null);
+    setClosed(true);
     if (!editing.current) tidy();
   }, [tidy]);
   return <Snack snack={snack} onClose={close} />;

@@ -41,11 +41,13 @@ function Picker({ icon, tint, onIcon, onTint }: {
   /* 184 icons are far past one glance, and a grid of them all put Save some 2,000px down the form. So ONE list in a
      fixed order — the first five always on show, the rest behind "Show all" in a short box that scrolls by itself —
      and the search to narrow it. Choosing an icon never moves it: its button stays where it is (and keeps focus).
-     The chosen icon stays in sight: during a search that it does not match it leads the list, and when it sits in
-     the shut box it is shown again as a sixth tile ahead of "Show all". */
-  const list: readonly string[] = q && !matches.includes(icon) ? [icon, ...matches] : matches;
-  const head = list.slice(0, 5);
-  const rest = list.slice(5);
+     The split is over the matches only, so for a given search it never depends on which icon is chosen. The chosen
+     icon stays in sight: when a search does not match it, it has a slot of its own before the row (choosing a match
+     then only takes that slot away, and no match moves); when it sits in the shut box it is shown again as a sixth
+     tile ahead of "Show all". */
+  const head = matches.slice(0, 5);
+  const rest = matches.slice(5);
+  const chosenOutside = !!q && !matches.includes(icon);
   const [all, setAll] = useState(false);
   const allId = useId();
   const chosenHidden = !all && rest.includes(icon);
@@ -93,6 +95,12 @@ function Picker({ icon, tint, onIcon, onTint }: {
         {matches.length === 0 && (
           <span className="py-2 text-sm text-muted-foreground">Nothing called that. Try another word.</span>
         )}
+        {chosenOutside && (
+          <div className="flex items-center gap-3">
+            <div className="grid w-[calc((100%_-_2rem)/5)] flex-none">{tile(icon)}</div>
+            <span className="text-sm text-muted-foreground">Chosen now</span>
+          </div>
+        )}
         <div className="grid grid-cols-5 gap-2">{head.map(tile)}</div>
         {(chosenHidden || rest.length > 0) && (
           <div className="flex items-center gap-3">
@@ -101,7 +109,7 @@ function Picker({ icon, tint, onIcon, onTint }: {
               <button type="button" aria-expanded={all} aria-controls={allId} onClick={() => setAll((o) => !o)}
                 className="press flex min-h-11 items-center gap-1.5 text-sm font-semibold text-primary in-data-[platform=android]:min-h-12">
                 <Icon name={all ? 'expand_less' : 'expand_more'} size={18} />
-                {all ? 'Fewer icons' : q ? `Show all ${list.length} matches` : `Show all ${list.length} icons`}
+                {all ? 'Fewer icons' : q ? `Show all ${matches.length} matches` : `Show all ${matches.length} icons`}
               </button>
             )}
           </div>

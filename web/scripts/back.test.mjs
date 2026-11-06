@@ -85,15 +85,37 @@ assert.equal(read().at(-1), '/worth?o=a+b');
 assert.equal(read().length, 5, 'the same address spelled two ways is the same address');
 ok('a mark applies only to the address it names, once, however the query is spelled, even with an address in between');
 
-/* Every replacing navigation in the app is marked. The rules the scan enforces:
+/* A mark nobody spent does not wait for a later push to the same address: the next link the person taps drops it.
+   A mark for "/" is pending, the person taps Budget, then Home, within the ten seconds: both are pushes. */
+reset();
+go('/'); go('/entries');
+trail.replacing('/');
+trail.tapped('/budget', false, '/entries'); go('/budget');
+trail.tapped('/', false, '/budget'); go('/');
+assert.deepEqual(read(), ['/', '/entries', '/budget', '/'], 'Budget then Home are pushes, not a replace');
+/* A tap on a data-replace link marks its own address; a tap on a link to where the page already is changes nothing. */
+reset();
+go('/'); go('/entries');
+trail.tapped('/entries?f=sms', true, '/entries'); go('/entries?f=sms');
+assert.deepEqual(read(), ['/', '/entries?f=sms'], 'a data-replace tap marks its address');
+trail.replacing('/x'); trail.tapped('/entries?f=sms', false, 'http://h/entries?f=sms');
+trail.visited('/x');
+assert.deepEqual(read(), ['/', '/x'], 'a tap on the current address left the pending mark alone');
+ok('a link tap drops a mark nobody spent (Budget then Home push); a data-replace tap marks its own; a tap on the current address changes nothing');
+
+/* Every replacing navigation in the app is marked. The rules the scan enforces, on the code with its comments
+   blanked out (a comment may well describe a <Link replace>, or say "replacing("):
    - a <Link …> element whose props include `replace` also carries `data-replace` (the element is read to its real
      closing `>`, at brace depth 0 and outside quotes, so `=>` and `>` inside {…} do not end it);
-   - each call of router.replace (whatever the router is called, or a `replace` destructured from useRouter()) and
-     each history.replaceState is marked, call by call: `replacing(` within the six lines before it, or — the pairing
-     rule — the call sits inside the props of a <Link … data-replace> (OwnerChips' onClick calls replaceState for its
-     own Link, whose click NavTrail has already marked);
-   - RedirectType.replace is refused outright: a server redirect cannot be marked on the phone.
-   Comments are skipped: a comment may well describe a <Link replace>. */
+   - each call of `<router>.replace(` / `<router>?.replace(` and `history.replaceState(` is marked, call by call. A
+     router is `router`, any name given a useRouter() result (const, let or var), and any identifier named or typed
+     as a router (a parameter `router`, `nav: AppRouterInstance`, `r: ReturnType<typeof useRouter>`). Marked means
+     a `replacing(` in the six lines before the call that either names the same target (the same argument text)
+     or comes immediately before it, with nothing but `;` and whitespace between. The pairing rule: a call inside
+     the props of a <Link … data-replace> is marked by that Link (OwnerChips' onClick replaces for its own Link,
+     whose tap NavTrail has already marked);
+   - a `replace` destructured from useRouter(), and RedirectType.replace, are refused outright: the first escapes the
+     per-call check, and a server redirect cannot be marked on the phone. */
 {
   const { readFileSync, readdirSync } = await import('node:fs');
   const { join } = await import('node:path');
@@ -113,78 +135,107 @@ ok('a mark applies only to the address it names, once, however the query is spel
     }
     return out;
   }
+  /** The source with every comment blanked to spaces (newlines kept), so offsets and line numbers still hold. */
+  const blank = (src) => {
+    let out = '', at = 0;
+    for (const [a, b] of commentRanges(src)) { out += src.slice(at, a) + src.slice(a, b).replace(/[^\n]/g, ' '); at = b; }
+    return out + src.slice(at);
+  };
   /** A JSX opening tag from `<Link` to its own closing `>`: depth 0, outside quotes. Returns [start, end, props]. */
-  function linkElements(src) {
+  function linkElements(code) {
     const out = [];
-    for (const m of src.matchAll(/<Link\b/g)) {
+    for (const m of code.matchAll(/<Link\b/g)) {
       let depth = 0, q = null, i = m.index + 5;
-      for (; i < src.length; i++) {
-        const c = src[i];
+      for (; i < code.length; i++) {
+        const c = code[i];
         if (q) { if (c === '\\') { i++; continue; } if (c === q) q = null; continue; }
         if (c === '"' || c === "'" || c === '`') { q = c; continue; }
         if (c === '{') depth++;
         else if (c === '}') depth--;
         else if (c === '>' && depth === 0) break;
       }
-      out.push([m.index, i, src.slice(m.index + 5, i)]);
+      out.push([m.index, i, code.slice(m.index + 5, i)]);
     }
     return out;
   }
   /** The props written at depth 0 (outside any {…}): `replace`, `replace={x}`, `data-replace`. */
   const topLevel = (props) => { let d = 0, t = ''; for (const c of props) { if (c === '{') d++; if (d === 0) t += c; if (c === '}') d--; } return t; };
+  const has = (props, name) => new RegExp(`(^|\\s)${name}(\\s|=|\\/|$)`).test(topLevel(props));
+  /** The argument text of the call whose `(` is at `open`, and the index just after its `)`. */
+  const argsAt = (code, open) => {
+    let d = 0, i = open;
+    for (; i < code.length; i++) { if (code[i] === '(') d++; else if (code[i] === ')' && --d === 0) break; }
+    return [code.slice(open + 1, i), i + 1];
+  };
+  const firstArg = (args) => { let d = 0; for (let i = 0; i < args.length; i++) { const c = args[i]; if ('([{'.includes(c)) d++; else if (')]}'.includes(c)) d--; else if (c === ',' && d === 0) return args.slice(0, i).trim(); } return args.trim(); };
+
+  /** Every finding for one file's source. */
+  function scan(src, f = 'probe') {
+    const code = blank(src);
+    const found = [];
+    let sites = 0;
+    const links = linkElements(code);
+    for (const [, , props] of links) {
+      if (!has(props, 'replace')) continue;
+      sites++;
+      if (!has(props, 'data-replace')) found.push(`${f}: <Link replace> without data-replace`);
+    }
+    const routers = new Set(['router']);
+    for (const m of code.matchAll(/\b(?:const|let|var)\s+(\w+)\s*=\s*useRouter\(\)/g)) routers.add(m[1]);
+    for (const m of code.matchAll(/\b(\w+)\s*\??:\s*(?:AppRouterInstance|ReturnType<\s*typeof\s+useRouter\s*>)/g)) routers.add(m[1]);
+    for (const m of code.matchAll(/\b(\w*[Rr]outer\w*)\b/g)) if (!/^use/.test(m[1]) && m[1] !== 'AppRouterInstance') routers.add(m[1]);
+    for (const m of code.matchAll(/\b(?:const|let|var)\s*\{[^}]*\breplace\b[^}]*\}\s*=\s*(?:useRouter\(\)|\w+)/g)) {
+      const rhs = m[0].split('=').pop().trim();
+      if (rhs === 'useRouter()' || routers.has(rhs)) found.push(`${f}: replace destructured from a router — call <router>.replace after replacing()`);
+    }
+    for (const m of code.matchAll(/\bRedirectType\.replace\b/g)) { void m; found.push(`${f}: RedirectType.replace cannot be marked for Back`); }
+    const calls = [];
+    for (const r of routers) for (const m of code.matchAll(new RegExp(`\\b${r}\\s*\\??\\.\\s*replace\\s*\\(`, 'g'))) calls.push([m.index, m.index + m[0].length - 1, `${r}.replace(`]);
+    for (const m of code.matchAll(/\bhistory\s*\.\s*replaceState\s*\(/g)) calls.push([m.index, m.index + m[0].length - 1, 'history.replaceState(']);
+    for (const [at, open, what] of calls) {
+      sites++;
+      const line = code.slice(0, at).split('\n').length;
+      if (links.some(([a, b, props]) => at > a && at < b && has(props, 'data-replace'))) continue;
+      let from = code.lastIndexOf('\n', at) + 1;
+      for (let k = 0; k < 6 && from > 0; k++) from = code.lastIndexOf('\n', from - 2) + 1;
+      const window = code.slice(from, at);
+      const marks = [...window.matchAll(/\breplacing\s*\(/g)];
+      const target = what === 'history.replaceState(' ? firstArg(argsAt(code, open)[0].split(',').slice(2).join(',')) : firstArg(argsAt(code, open)[0]);
+      const ok = marks.some((mk) => {
+        const [margs, end] = argsAt(window, mk.index + mk[0].length - 1);
+        return firstArg(margs) === target || /^[\s;]*$/.test(window.slice(end));
+      });
+      if (!ok) found.push(`${f}:${line}: ${what} without replacing() for it just before`);
+    }
+    return { found, sites };
+  }
 
   const root = new URL('../src', import.meta.url).pathname;
   const files = readdirSync(root, { recursive: true }).filter((f) => /\.(tsx?|jsx?)$/.test(f)).map((f) => join(root, f));
   const unmarked = [];
   let sites = 0;
-  for (const f of files) {
-    const src = readFileSync(f, 'utf8');
-    const comments = commentRanges(src);
-    const inComment = (at) => comments.some(([a, b]) => at >= a && at < b);
-    const links = linkElements(src).filter(([a]) => !inComment(a));
-    for (const [, , props] of links) {
-      const top = topLevel(props);
-      if (!/(^|\s)replace(\s|=|\/|$)/.test(top)) continue;
-      sites++;
-      if (!/(^|\s)data-replace(\s|=|\/|$)/.test(top)) unmarked.push(`${f}: <Link replace> without data-replace`);
-    }
-    /* Every name a router is held by in this file, and a destructured replace. */
-    const routers = new Set(['router']);
-    for (const m of src.matchAll(/const\s+(\w+)\s*=\s*useRouter\(\)/g)) routers.add(m[1]);
-    const calls = [];
-    for (const r of routers) for (const m of src.matchAll(new RegExp(`\\b${r}\\.replace\\(`, 'g'))) calls.push([m.index, `${r}.replace(`]);
-    for (const m of src.matchAll(/\bhistory\.replaceState\(/g)) calls.push([m.index, m[0]]);
-    for (const m of src.matchAll(/const\s*\{[^}]*\breplace\b[^}]*\}\s*=\s*useRouter\(\)/g)) {
-      if (!inComment(m.index)) unmarked.push(`${f}: replace destructured from useRouter() — call router.replace after replacing()`);
-    }
-    for (const m of src.matchAll(/\bRedirectType\.replace\b/g)) {
-      if (!inComment(m.index)) unmarked.push(`${f}: RedirectType.replace cannot be marked for Back`);
-    }
-    for (const [at, what] of calls) {
-      if (inComment(at)) continue;
-      sites++;
-      const lineStart = src.lastIndexOf('\n', at) + 1;
-      let from = lineStart;
-      for (let k = 0; k < 6 && from > 0; k++) from = src.lastIndexOf('\n', from - 2) + 1;
-      const before = src.slice(from, at);
-      const paired = links.some(([a, b, props]) => at > a && at < b && /(^|\s)data-replace(\s|=|\/|$)/.test(topLevel(props)));
-      if (!/\breplacing\(/.test(before) && !paired) unmarked.push(`${f}:${src.slice(0, at).split('\n').length}: ${what} without replacing() just before it`);
-    }
-  }
+  for (const f of files) { const r = scan(readFileSync(f, 'utf8'), f); unmarked.push(...r.found); sites += r.sites; }
   assert.deepEqual(unmarked, [], 'every replacing navigation is marked');
   assert.ok(sites >= 11, `the scan found the app's replacing navigations (${sites})`);
-  ok(`all ${sites} replacing navigations in src are marked (data-replace, replacing() just before, or paired)`);
+  ok(`all ${sites} replacing navigations in src are marked (data-replace, replacing() for that call, or paired)`);
 
-  /* The scan itself, on code written to slip past the old one. */
-  const probe = (code) => {
-    const comments = commentRanges(code);
-    const links = linkElements(code).filter(([a]) => !comments.some(([x, y]) => a >= x && a < y));
-    return links.map(([, , p]) => topLevel(p));
-  };
-  assert.deepEqual(probe(`<Link onClick={() => go(a > b)} replace href="/x">`).map((t) => /(^|\s)replace(\s|=|\/|$)/.test(t)), [true],
-    'a `>` inside {…} does not end the element before `replace`');
-  assert.deepEqual(probe(`/* <Link replace> */ const x = 'image/*'; <Link href="/y">`).length, 1, 'comments are skipped, quoted /* is not one');
-  ok('the scan reads a <Link> to its real end and skips comments, not quoted /*');
+  /* The scan itself, on code written to slip past a looser one. Each must be caught, or (the last three) pass. */
+  const caught = (code) => scan(code).found.length > 0;
+  assert.ok(caught(`<Link onClick={() => go(a > b)} replace href="/x">`), 'a `>` inside {…} does not end the element before `replace`');
+  assert.ok(!caught(`/* <Link replace> */ const x = 'image/*'; <Link href="/y">`), 'comments are skipped, a quoted /* is not one');
+  assert.ok(caught(`// replacing('/a')\nrouter.replace('/a');`), 'a replacing( inside a comment does not count');
+  assert.ok(caught(`replacing('/a');\nrouter.push('/b');\nrouter.replace('/c');`), 'a replacing( for another target, before another call, does not count');
+  assert.ok(caught(`let nav = useRouter();\nnav.replace('/a');`), 'a let alias of useRouter is a router');
+  assert.ok(caught(`var go = useRouter();\ngo.replace('/a');`), 'a var alias of useRouter is a router');
+  assert.ok(caught(`function f(r: AppRouterInstance) { r.replace('/a'); }`), 'a parameter typed as a router is a router');
+  assert.ok(caught(`function f(appRouter) { appRouter.replace('/a'); }`), 'a parameter named as a router is a router');
+  assert.ok(caught(`router?.replace('/a');`), 'router?.replace( is a call');
+  assert.ok(caught(`const { replace } = useRouter();`), 'a replace destructured from useRouter is refused');
+  assert.ok(caught(`redirect('/a', RedirectType.replace);`), 'RedirectType.replace is refused');
+  assert.ok(!caught(`replacing(\`/tab/\${id}\`);\nrouter.replace(\`/tab/\${id}\`, { scroll: false });`), 'the same target, just before, passes');
+  assert.ok(!caught(`replacing(url);\nrouter.replace(next);`), 'immediately before passes');
+  assert.ok(!caught(`const s = text.replace(/a/g, 'b');`), 'a string .replace is not a router');
+  ok('the scan catches commented marks, marks for another call, let/var/parameter/typed routers, ?. calls, destructured replace and RedirectType.replace; passes the right shapes');
 }
 
 console.log(`  back.test: ${n} passed`);

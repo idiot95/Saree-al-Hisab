@@ -150,9 +150,19 @@ try {
        only takes ?saved= off, and the trail ends where the history does: at Home. */
     await page.getByRole('button', { name: 'Edit', exact: true }).click();
     await page.waitForURL((u) => u.pathname === `/entries/${row.id}`, { timeout: 15000 });
+    /* Watch the whole way back, not only the end: any "Entry saved." put into the page from the Back press until the
+       clean address (even for one frame, before the ?saved= comes off) is caught by the observer. The page is not
+       reloaded on Back, so the observer lives through it. */
+    await page.evaluate(() => {
+      window.__sawSaved = [];
+      const look = () => { if (document.body.innerText.includes('Entry saved.')) window.__sawSaved.push(location.href); };
+      new MutationObserver(look).observe(document.body, { childList: true, subtree: true, characterData: true });
+    });
     await page.getByRole('link', { name: 'Back' }).first().click();
     await page.waitForURL((u) => u.pathname === '/' && !u.searchParams.has('saved'), { timeout: 15000 });
     await page.waitForTimeout(800);
+    const flashes = await page.evaluate(() => window.__sawSaved);
+    assert.deepEqual(flashes, [], `"Entry saved." never appeared on the way back (${JSON.stringify(flashes)})`);
     assert.equal(await page.getByText('Entry saved.').count(), 0, 'no second "Entry saved." on the way back');
     const trailNow = await page.evaluate(() => JSON.parse(sessionStorage.getItem('ql.trail.v1') ?? '[]'));
     assert.equal(trailNow.at(-1), '/', `the trail ends at Home (${JSON.stringify(trailNow)})`);

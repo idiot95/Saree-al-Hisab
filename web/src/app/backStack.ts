@@ -42,6 +42,15 @@ export function replacing(url: string) {
   pending = { url: normal(url), at: Date.now() };
 }
 
+/** A link the person tapped, as NavTrail's click listener hears it. A tap is a new intention: whatever mark is still
+ *  waiting is dropped, so a mark nobody spent can never turn a later push into a replace. A tap on a `data-replace`
+ *  link marks its own address instead (a link to where the page already is goes nowhere and changes nothing). */
+export function tapped(href: string, replace: boolean, here?: string) {
+  if (here !== undefined && normal(href) === normal(here)) return;
+  if (replace) replacing(href);
+  else pending = null;
+}
+
 /** Called on every route change with the full address (path and query). */
 export function visited(url: string) {
   const mark = pending && Date.now() - pending.at < LAPSE_MS ? pending : null;
