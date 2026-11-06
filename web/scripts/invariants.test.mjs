@@ -768,9 +768,27 @@ console.log('\nINVITED WITH GOOGLE — one transaction, one use, one place');
   const [ident] = await sql`select count(*)::int as n from auth_identity
     where user_id = ${made?.userId ?? null} and provider = 'google' and subject = 'inv-sub-1'`;
   ok(ident.n === 1, 'and their Google account linked in the same stroke');
-  const [fresh] = await sql`select extract(epoch from sessions_valid_from) <= floor(extract(epoch from now())) as ok
+  /* Staleness, as contextFor (src/db/membership.ts) judges it: in whole
+     seconds, since that is all a token's iat carries. The expression below is
+     contextFor's own. A token minted in the second the account was made is
+     honoured; one from an earlier second than a revocation is refused. */
+  const stale = async (id, iat) => (await sql`
+    select extract(epoch from date_trunc('second', u.sessions_valid_from)) > ${iat} as stale
+    from app_user u where u.id = ${id}`)[0].stale;
+  const [{ born }] = await sql`select floor(extract(epoch from sessions_valid_from))::bigint::int as born
     from app_user where id = ${made?.userId ?? null}`;
-  ok(fresh?.ok === true, 'and their first session, minted a moment later in whole seconds, is not already revoked');
+  const [{ recent }] = await sql`select sessions_valid_from > now() - interval '1 minute' as recent
+    from app_user where id = ${made?.userId ?? null}`;
+  ok(recent === true, 'the new account starts its session epoch at now(), like every other');
+  ok(await stale(made?.userId, born) === false,
+    'a session minted in the same second the account was made is honoured, not signed out on arrival');
+  await sql`update app_user set sessions_valid_from = now() where id = ${made?.userId ?? null}`;
+  const [{ revoked }] = await sql`select floor(extract(epoch from sessions_valid_from))::bigint::int as revoked
+    from app_user where id = ${made?.userId ?? null}`;
+  ok(await stale(made?.userId, revoked - 1) === true,
+    'a session from an earlier second than a revocation is refused');
+  ok(await stale(made?.userId, revoked) === false,
+    'and one minted in the revocation\'s own second, after it, is honoured');
   const [spent] = await sql`select status from invite where token_hash = ${hashLinkToken(token)}`;
   ok(spent.status === 'accepted', 'and the invitation spent');
   ok(await createFromInviteGoogleIn(sql, token, 'inv-sub-2', address, 'Again') === null,

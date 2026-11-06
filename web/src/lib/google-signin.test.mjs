@@ -6,6 +6,7 @@ const claims = { sub: 's1', email: 'x@y.com', emailVerified: true };
 const none = {
   identityUserId: null, sessionUserId: null, linkIntentUserId: null,
   sessionUserHasGoogle: false, emailOwnerId: null, invite: null,
+  resetIntentUserId: null, resetIntentUserHasGoogle: false,
 };
 const d = (c = {}, f = {}) => decideGoogleSignIn({ ...claims, ...c }, { ...none, ...f });
 
@@ -44,3 +45,24 @@ assert.deepEqual(
 assert.deepEqual(
   d({ email: ' x@y.com' }, { invite: { email: 'x@y.com' } }),
   { kind: 'refuse', code: 'invite-mismatch' });
+
+// Reset intent (a spent reset link): link-only, never create, never an invite.
+const R = { resetIntentUserId: 'u7' };
+assert.deepEqual(d({ emailVerified: false }, R), { kind: 'refuse', code: 'unverified' });
+assert.deepEqual(d({}, R), { kind: 'link', userId: 'u7' });
+assert.deepEqual(d({}, { ...R, emailOwnerId: 'u7' }), { kind: 'link', userId: 'u7' });
+assert.deepEqual(d({}, { ...R, emailOwnerId: 'u4' }), { kind: 'link', userId: 'u7' });
+assert.deepEqual(d({}, { ...R, identityUserId: 'u7' }), { kind: 'signin', userId: 'u7' });
+assert.deepEqual(d({}, { ...R, identityUserId: 'u9' }), { kind: 'refuse', code: 'already-linked' });
+assert.deepEqual(d({}, { ...R, resetIntentUserHasGoogle: true }), { kind: 'refuse', code: 'already-linked' });
+assert.deepEqual(d({}, { ...R, identityUserId: 'u7', resetIntentUserHasGoogle: true }), { kind: 'signin', userId: 'u7' });
+// An invite alongside is ignored, whichever address it names.
+assert.deepEqual(d({}, { ...R, invite: { email: 'x@y.com' } }), { kind: 'link', userId: 'u7' });
+assert.deepEqual(d({}, { ...R, invite: { email: 'other@y.com' } }), { kind: 'link', userId: 'u7' });
+assert.deepEqual(d({}, { ...R, invite: { email: 'x@y.com' }, identityUserId: 'u9' }), { kind: 'refuse', code: 'already-linked' });
+// Nor does a link intent or a session for someone else change it.
+assert.deepEqual(d({}, { ...R, linkIntentUserId: 'u2', sessionUserId: 'u2' }), { kind: 'link', userId: 'u7' });
+// No reset row ever yields create or join-existing.
+for (const f of [R, { ...R, invite: { email: 'x@y.com' } }, { ...R, emailOwnerId: null }]) {
+  assert.ok(!['create', 'join-existing'].includes(d({}, f).kind));
+}

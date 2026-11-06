@@ -15,7 +15,7 @@ import { decideGoogleSignIn, type GoogleClaims } from '@/lib/google-signin';
 import { gatherSignInFacts } from '@/lib/google-facts';
 import { signInErrorPath } from '@/lib/signin-errors';
 import { rethrowControlFlow } from '@/lib/rethrow';
-import { INVITE_COOKIE, LINK_COOKIE } from '@/lib/flow-cookies';
+import { INVITE_COOKIE, LINK_COOKIE, RESET_COOKIE } from '@/lib/flow-cookies';
 import { looksLikeLinkToken } from '@/lib/link-token';
 
 /* Two ways in: Google (the primary one), and an address and a password we
@@ -38,8 +38,10 @@ import { looksLikeLinkToken } from '@/lib/link-token';
    a credentials POST is refused).                                           */
 
 /* The link-intent cookie (set from Household when someone asks to link
-   Google) and the invite cookie (set by "Accept with Google" on /join) are
-   spent by the callback they were set for, whatever happens there. */
+   Google), the reset-intent cookie (set by a spent reset link after the
+   password cutoff) and the invite cookie (set by "Accept with Google" on
+   /join) are spent by the callback they were set for, whatever happens
+   there. */
 
 /** Where the invitation link has nothing left to give: its own page says
  *  why (used, withdrawn, expired). Only a token that looks like one of ours
@@ -79,6 +81,7 @@ async function googleSignIn(user: User, profile: Profile | undefined): Promise<b
   const jar = await cookies();
   const linkToken = jar.get(LINK_COOKIE)?.value;
   const inviteToken = jar.get(INVITE_COOKIE)?.value || undefined;
+  const resetToken = jar.get(RESET_COOKIE)?.value || undefined;
   try {
     const sub = typeof profile?.sub === 'string' ? profile.sub : '';
     const email = typeof profile?.email === 'string' ? profile.email.trim().toLowerCase() : '';
@@ -92,7 +95,9 @@ async function googleSignIn(user: User, profile: Profile | undefined): Promise<b
        dropped — that would turn "accept" into a bare account with no books —
        it goes back to the invitation's page, which says what happened. */
     let invite: { email: string } | null = null;
-    if (inviteToken) {
+    // A reset link's intent never touches an invitation, so with one in hand
+    // the invite cookie is not even read.
+    if (inviteToken && !resetToken) {
       const invitedEmail = await openInviteEmail(inviteToken);
       if (!invitedEmail) return deadInvitePath(inviteToken);
       invite = { email: invitedEmail };
@@ -102,20 +107,24 @@ async function googleSignIn(user: User, profile: Profile | undefined): Promise<b
       identityUser, userIdByEmail, hasGoogle,
       sessionUserId: honouredSessionUser,
       linkIntentToken: linkToken,
+      resetIntentToken: resetToken,
       secret: process.env.AUTH_SECRET || undefined,
       nowMs: Date.now(),
       invite,
     });
     const d = decideGoogleSignIn(claims, facts);
+    // The invitation being accepted: only one that was read and found open.
+    const acceptingToken = invite ? inviteToken : undefined;
 
     let userId: string;
     switch (d.kind) {
       case 'refuse':
         return signInErrorPath(d.code);
       case 'join-existing': {
-        // Only reached with an open invite, so inviteToken is set.
-        const joined = await acceptInviteAs(inviteToken!, d.userId, email);
-        if (!joined) return deadInvitePath(inviteToken!);
+        // Only decided with an open invite, so acceptingToken is set.
+        if (!acceptingToken) return false;
+        const joined = await acceptInviteAs(acceptingToken, d.userId, email);
+        if (!joined) return deadInvitePath(acceptingToken);
         userId = d.userId;
         break;
       }
@@ -128,11 +137,11 @@ async function googleSignIn(user: User, profile: Profile | undefined): Promise<b
         break;
       case 'create': {
         const name = typeof profile?.name === 'string' ? profile.name : '';
-        if (inviteToken) {
+        if (acceptingToken) {
           // The person, their Google identity, their place in the household
           // and the spent invitation: all in one transaction, or none of it.
-          const made = await createFromInviteGoogle(inviteToken, sub, email, name);
-          if (!made) return deadInvitePath(inviteToken);
+          const made = await createFromInviteGoogle(acceptingToken, sub, email, name);
+          if (!made) return deadInvitePath(acceptingToken);
           userId = made.userId;
         } else {
           const image = typeof profile?.picture === 'string' ? profile.picture : null;
@@ -165,6 +174,7 @@ async function googleSignIn(user: User, profile: Profile | undefined): Promise<b
   } finally {
     jar.delete(LINK_COOKIE);
     jar.delete(INVITE_COOKIE);
+    jar.delete(RESET_COOKIE);
   }
 }
 

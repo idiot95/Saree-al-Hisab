@@ -1,4 +1,5 @@
 import 'server-only';
+import type { TransactionSql } from 'postgres';
 import { identity as sql } from './client';
 import { hashLinkToken } from '@/lib/link-token';
 import { createFromInviteGoogleIn, lockOpenInvite, openInviteEmailIn } from '@/lib/invite-accept';
@@ -35,12 +36,18 @@ export type PageContext = {
    which household is on screen, what they may do there, what it is called, and
    whether the cookie that arrived is still one we honour.
 
+   Staleness is judged in whole seconds, because that is all a token's iat
+   carries: the epoch has microseconds, so a session minted in the same
+   second as an account, a reset or a link read as issued before it — the
+   person was signed out on arrival. A token from any earlier second than
+   the epoch is still refused.
+
    It is one query rather than three because the database is not always next
    door — every extra round trip is paid by whoever is furthest from it. */
 export async function contextFor(userId: string, tokenIssuedAt: number): Promise<PageContext | null> {
   const [row] = await sql`
     select m.household_id, m.role, h.name as household_name, h.base_currency as currency,
-           extract(epoch from u.sessions_valid_from) > ${tokenIssuedAt} as stale
+           extract(epoch from date_trunc('second', u.sessions_valid_from)) > ${tokenIssuedAt} as stale
     from app_user u
     left join member m
       on m.user_id = u.id
@@ -231,25 +238,48 @@ export async function acceptInviteAs(token: string, userId: string, email: strin
 
 /* ── forgotten passwords ────────────────────────────────────────────────── */
 
+/** The live reset this link opens, spent inside the caller's transaction —
+ *  and every other live reset for that person with it, so a second link left
+ *  lying around is dead too. The person's id, or null for a link that is
+ *  used, expired or not ours. One check for both ways a reset is used. */
+async function spendOpenReset(tx: TransactionSql<Record<string, unknown>>, token: string) {
+  const [r] = await tx`
+    select id, user_id from password_reset
+    where token_hash = ${hashLinkToken(token)}
+      and used_at is null and expires_at > now()
+    for update`;
+  if (!r) return null;
+  await tx`update password_reset set used_at = now() where id = ${r.id}`;
+  await tx`update password_reset set used_at = now()
+           where user_id = ${r.user_id} and used_at is null`;
+  return r.user_id as string;
+}
+
 /** Spend the reset link and set the new password, or do neither. Every other
  *  live reset for that person dies at the same time. */
 export async function usePasswordReset(token: string, passwordHash: string) {
   return sql.begin(async (tx) => {
-    const [r] = await tx`
-      select id, user_id from password_reset
-      where token_hash = ${hashLinkToken(token)}
-        and used_at is null and expires_at > now()
-      for update`;
-    if (!r) return null;
-    await tx`update password_reset set used_at = now() where id = ${r.id}`;
-    await tx`update password_reset set used_at = now()
-             where user_id = ${r.user_id} and used_at is null`;
+    const userId = await spendOpenReset(tx, token);
+    if (!userId) return null;
     await tx`update app_user
              set password_hash = ${passwordHash}, password_set_at = now(),
                  failed_attempts = 0, locked_until = null,
                  sessions_valid_from = now()
-             where id = ${r.user_id}`;
-    const [u] = await tx`select email from app_user where id = ${r.user_id}`;
-    return { userId: r.user_id as string, email: u.email as string };
+             where id = ${userId}`;
+    const [u] = await tx`select email from app_user where id = ${userId}`;
+    return { userId, email: u.email as string };
   });
+}
+
+/** After the password cutoff a reset link sets no password: it is spent, the
+ *  person's sessions are revoked as any reset revokes them, and what is left
+ *  is ten minutes in which a Google account can be linked to them (the
+ *  caller seals that). The person's id, or null. */
+export async function spendResetForLink(token: string): Promise<string | null> {
+  return sql.begin(async (tx) => {
+    const userId = await spendOpenReset(tx, token);
+    if (!userId) return null;
+    await tx`update app_user set sessions_valid_from = now() where id = ${userId}`;
+    return userId;
+  }) as Promise<string | null>;
 }

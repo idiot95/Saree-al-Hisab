@@ -6,6 +6,8 @@ export type SignInFacts = {
   sessionUserHasGoogle: boolean;
   emailOwnerId: string | null; // app_user with lower(email) = lower(claims.email)
   invite: { email: string } | null; // an open invite being accepted
+  resetIntentUserId: string | null; // from a valid reset-intent cookie (a spent reset link)
+  resetIntentUserHasGoogle: boolean;
 };
 export type Decision =
   | { kind: 'signin'; userId: string }
@@ -19,9 +21,21 @@ export type Decision =
 
 const same = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
 
-/** Order: unverified, invite, link intent, known sub, email owner, create. */
+/** Order: unverified, reset intent, invite, link intent, known sub, email
+ *  owner, create. */
 export function decideGoogleSignIn(c: GoogleClaims, f: SignInFacts): Decision {
   if (!c.emailVerified) return { kind: 'refuse', code: 'unverified' };
+
+  /* A spent reset link stands in for a session, for one purpose only: tying
+     a Google account to the person it was issued for. It never creates an
+     account and never touches an invitation, so it is decided here, whole,
+     before either is looked at. */
+  if (f.resetIntentUserId) {
+    const u = f.resetIntentUserId;
+    if (f.identityUserId === u) return { kind: 'signin', userId: u };
+    if (f.identityUserId || f.resetIntentUserHasGoogle) return { kind: 'refuse', code: 'already-linked' };
+    return { kind: 'link', userId: u };
+  }
 
   if (f.invite) {
     if (!same(f.invite.email, c.email)) return { kind: 'refuse', code: 'invite-mismatch' };

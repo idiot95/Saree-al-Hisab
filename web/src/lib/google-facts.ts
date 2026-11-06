@@ -16,11 +16,16 @@ export type FactSources = {
   secret: string | undefined;
   nowMs: number;
   invite: { email: string } | null;
+  /** The reset-intent cookie, sealed with purpose 'reset'. */
+  resetIntentToken?: string | undefined;
 };
 
 export async function gatherSignInFacts(c: GoogleClaims, s: FactSources): Promise<SignInFacts> {
   const linkIntentUserId = s.secret && s.linkIntentToken
     ? openLinkIntent(s.linkIntentToken, s.secret, s.nowMs)
+    : null;
+  const resetIntentUserId = s.secret && s.resetIntentToken
+    ? openLinkIntent(s.resetIntentToken, s.secret, s.nowMs, 'reset')
     : null;
   const [identityUserId, sessionUserId, emailOwnerId] = await Promise.all([
     s.identityUser(c.sub),
@@ -28,8 +33,9 @@ export async function gatherSignInFacts(c: GoogleClaims, s: FactSources): Promis
     s.userIdByEmail(c.email.toLowerCase()),
   ]);
   const sessionUserHasGoogle = sessionUserId ? await s.hasGoogle(sessionUserId) : false;
+  const resetIntentUserHasGoogle = resetIntentUserId ? await s.hasGoogle(resetIntentUserId) : false;
   return {
     identityUserId, sessionUserId, linkIntentUserId, sessionUserHasGoogle, emailOwnerId,
-    invite: s.invite,
+    invite: s.invite, resetIntentUserId, resetIntentUserHasGoogle,
   };
 }

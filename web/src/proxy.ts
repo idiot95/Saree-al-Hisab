@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { auth } from '@/auth';
-import { INVITE_COOKIE, LINK_COOKIE } from '@/lib/flow-cookies';
+import { INVITE_COOKIE, LINK_COOKIE, RESET_COOKIE } from '@/lib/flow-cookies';
 
 /* Two jobs, and one chore.
 
@@ -79,6 +79,7 @@ export default async function proxy(req: NextRequest) {
   if (pathname === '/signin' && req.nextUrl.searchParams.has('error')) {
     res.cookies.delete(LINK_COOKIE);
     res.cookies.delete(INVITE_COOKIE);
+    res.cookies.delete(RESET_COOKIE);
   }
   return res;
 }

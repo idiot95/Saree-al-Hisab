@@ -20,6 +20,7 @@ let f = await gatherSignInFacts(claims, base());
 assert.deepEqual(f, {
   identityUserId: 'u-known', sessionUserId: null, linkIntentUserId: null,
   sessionUserHasGoogle: false, emailOwnerId: 'u-owner', invite: null,
+  resetIntentUserId: null, resetIntentUserHasGoogle: false,
 });
 assert.deepEqual(seen.emails, ['ammar@example.com']);
 assert.deepEqual(seen.googleAsked, []);
@@ -40,3 +41,19 @@ for (const over of [{ secret: undefined }, { secret: '' }, { secret: 'other' }, 
 // The invite is passed through untouched.
 f = await gatherSignInFacts(claims, base({ invite: { email: 'x@y.z' } }));
 assert.deepEqual(f.invite, { email: 'x@y.z' });
+
+// A reset intent opens only when sealed for 'reset'; its user's Google is asked.
+const resetTok = sealLinkIntent('u-linked', SECRET, NOW - 1000, 'reset');
+f = await gatherSignInFacts(claims, base({ resetIntentToken: resetTok }));
+assert.equal(f.resetIntentUserId, 'u-linked');
+assert.equal(f.resetIntentUserHasGoogle, true);
+assert.equal(f.linkIntentUserId, null);
+// A link seal in the reset cookie, or a reset seal in the link cookie, is nobody.
+f = await gatherSignInFacts(claims, base({ resetIntentToken: token }));
+assert.equal(f.resetIntentUserId, null);
+f = await gatherSignInFacts(claims, base({ linkIntentToken: resetTok, sessionUserId: async () => 'u-linked' }));
+assert.equal(f.linkIntentUserId, null);
+for (const over of [{ secret: undefined }, { secret: 'other' }, { nowMs: NOW + 11 * 60 * 1000 }]) {
+  f = await gatherSignInFacts(claims, base({ resetIntentToken: resetTok, ...over }));
+  assert.equal(f.resetIntentUserId, null, JSON.stringify(over));
+}

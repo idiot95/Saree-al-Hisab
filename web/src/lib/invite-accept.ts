@@ -44,11 +44,6 @@ export async function openInviteEmailIn(sql: Db, token: string): Promise<string 
   return (r?.email as string | undefined) ?? null;
 }
 
-/* A new account starts its session epoch at 1970, not now(): it has no
-   earlier session to revoke, and now() carries microseconds while the token
-   minted a moment later carries whole seconds — so the very first session
-   read as issued before the epoch, i.e. revoked, and the person landed back
-   on /signin. Found by driving the callback end to end. */
 /** A person who arrives through an invitation with a Google account and no
  *  account here: they, their Google identity and their place in the household
  *  land together, and the invitation is spent doing it — all, or none.
@@ -63,9 +58,8 @@ export async function createFromInviteGoogleIn(
     const inv = await lockOpenInvite(tx, token, address);
     if (!inv) return null;
     const [u] = await tx`
-      insert into app_user (email, name, active_household_id, sessions_valid_from)
-      values (${address}, ${name.trim() || address.split('@')[0]}, ${inv.household_id},
-              to_timestamp(0))
+      insert into app_user (email, name, active_household_id)
+      values (${address}, ${name.trim() || address.split('@')[0]}, ${inv.household_id})
       returning id`;
     await tx`
       insert into auth_identity (user_id, provider, subject, email_at_link)
