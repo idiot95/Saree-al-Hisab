@@ -1,7 +1,8 @@
 import { redirect } from 'next/navigation';
-import { actorOrNull, categoriesFor, tabsForEntry, openClaimsFor, scanningState } from '@/db/queries';
+import { actorOrNull, categoriesFor, tabsForEntry, openClaimsFor, scanningState, topCategories, lastPaidWith } from '@/db/queries';
 import { withHousehold } from '@/db/client';
 import { waysToPay } from '@/db/payment';
+import { defaultRef, findRef } from '@/lib/pay';
 
 export type AddSearch = { amount?: string; on?: string; merchant?: string;
                           kind?: string; category?: string; tab?: string; to?: string; from?: string };
@@ -14,13 +15,21 @@ export async function loadAdd(q: AddSearch) {
   if (!actor) redirect('/signin');
   if (!actor.household_id) redirect('/no-household');
   const household_id = actor.household_id;
-  const [categories, ways, tabs, claims, scanning] = await withHousehold(household_id, () => Promise.all([
+  const [categories, ways, tabs, claims, scanning, topExpense, topIncome, lastPaid] = await withHousehold(household_id, () => Promise.all([
     categoriesFor(household_id),
     waysToPay(household_id),
     tabsForEntry(household_id),
     openClaimsFor(household_id),
     scanningState(household_id),
+    topCategories(household_id, 'expense'),
+    topCategories(household_id, 'income'),
+    lastPaidWith(actor.user_id),
   ]));
+  /* The way this person last paid with, if it still names one of these books' ways. It is a preference that can
+     go stale (an archived rail, a reference from the other set of books they keep), so it is resolved exactly as
+     resolvePayment does — findRef over this household's waysToPay, which are already loaded — and anything that
+     names nothing falls back to the first way. A stale preference never reaches the form. */
+  const paidWith = lastPaid && findRef(ways, lastPaid) ? lastPaid : defaultRef(ways);
   const today = new Date().toISOString().slice(0, 10);
 
   /* A draft handed over from a scan. Every value is re-checked here: it
@@ -45,6 +54,8 @@ export async function loadAdd(q: AddSearch) {
 
   return {
     draft, categories, ways, tabs, today, householdId: household_id,
+    top: { expense: topExpense, income: topIncome },
+    paidWith, lastPaid: paidWith === lastPaid ? lastPaid : null,
     // The camera in the header is offered only where a scan can work: a key set, and someone who may add.
     canScan: scanning.has_key && actor.role !== 'viewer',
     claims: claims.map((c) => ({

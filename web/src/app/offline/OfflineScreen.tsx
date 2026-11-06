@@ -46,7 +46,7 @@ export default function OfflineScreen() {
   return (
     <AddEntry offline
       categories={pickers.categories} ways={ways}
-      tabs={pickers.tabs ?? []}
+      tabs={pickers.tabs ?? []} top={pickers.top} paidWith={pickers.paidWith}
       householdId={pickers.householdId} today={localToday()}
       onQueued={() => { /* the store's own event re-renders the list below */ }}
     >

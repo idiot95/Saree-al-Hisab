@@ -1236,6 +1236,23 @@ try {
 }
 await sql`delete from price_quote where base = 'XTS'`.catch(() => {});
 
+// ── the last way to pay is a preference, not a reference ──────────────────
+/* Add Entry opens on the way this person last paid with. It is stored as the text reference the form sends, and
+   must never be a foreign key: the rail can be archived, or belong to the other books this person keeps, and a
+   stale preference must not be able to stop an entry (or an archive) from happening. */
+{
+  const [col] = await sql`select data_type, is_nullable from information_schema.columns
+    where table_name = 'app_user' and column_name = 'last_paid_with'`;
+  ok(col?.data_type === 'text' && col?.is_nullable === 'YES', 'app_user.last_paid_with is nullable text');
+  const [{ n: fks }] = await sql`
+    select count(*)::int as n from pg_constraint c
+    join pg_attribute a on a.attrelid = c.conrelid and a.attnum = any(c.conkey)
+    where c.conrelid = 'app_user'::regclass and c.contype = 'f' and a.attname = 'last_paid_with'`;
+  ok(fks === 0, 'and no foreign key: a stale reference cannot hold a rail or an account in place');
+  await allows('a reference that names nothing is stored as it is (resolved on read, never trusted)',
+    () => sql`update app_user set last_paid_with = 'm:00000000-0000-4000-8000-000000000000' where id = ${user.id}`);
+}
+
 await sql`delete from household where name = 'Invariant test'`;
 await sql`delete from password_reset where user_id in
   (select id from app_user where phone = any(${PHONES}) or email = any(${EMAILS}))`;

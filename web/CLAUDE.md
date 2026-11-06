@@ -204,15 +204,27 @@ of Postgres, and Save writes a row through `saveEntry`.
 first cut of `/add` offered only the *rails* — GPay, the card, net banking — so
 a household whose recurring deposit or second savings account had no rail of
 its own could never record money leaving it, and the ones it could reach sat in
-a strip that scrolled sideways past the edge. Now `/add` is a two-step
-wizard. **Step 1** — the header (kind tabs and the amount) plus "How did you
-pay" and "When"; **Step 2** — "Category" (the household's four most-used
-choices first, then a compact two-column parent grid; opening a parent reveals
-only that family's children, and search finds and selects either level directly
-with every child labelled as a subcategory), "Where",
-"On a tab", Shared, and Save. Transfer has no category, so it is one step
-with "To which account" under "From which account". Step 2's header is a one-line summary of step 1
-with "Change", so nothing decided is out of sight. **There is no drawn
+a strip that scrolled sideways past the edge. Now `/add` is **one screen** (Task 18,
+Nov 2026; the two-step wizard is gone): kind switch (Expense · Income · Move), the
+amount (focused on open), a 4×2 grid of the kind's most-used categories
+(`TopCategories.tsx`: seven tiles from `topCategories(hh, kind)` — last 90 days by
+entry count, padded with top-level categories in `sort_order`, active only,
+`fits()` the kind — and *All*, which opens `CategoryFinder`; a category picked
+there takes the seventh seat), then a stack of rows that each open a vaul drawer
+(`PickRows.tsx`: *Paid with* → `PayPicker`, *When* → quick days and `MonthGrid`;
+on a Move, *From* and *To* replace the tiles), a collapsed *More* row
+(`MoreFields.tsx`: Clears what is owed, the tab and its two answers, where,
+remarks, bills, shared, scan), the duplicate line, and a sticky **Save · ₹amount
+Category** (its figure a `<Figure paise>`; lifted above the iPhone keyboard by
+`keyboard.ts` through `visualViewport`, while vaul resizes the drawer). The
+common entry is amount, tile, Save (`scripts/add-taps.mjs` counts the three).
+More opens itself when a tab is chosen on an expense, or when money coming in
+equals a claim to the paisa. *Paid with* opens on `app_user.last_paid_with`
+(0037), a nullable text preference — not a foreign key — written after a saved
+**expense** only, read through `findRef` against the household's ways, and
+falling back to the first way when it names nothing. The `Draft` sent to
+`saveEntry` did not change, so entries queued by older builds still save
+(`scripts/queue.test.mjs`, run by `test:lib`). **There is no drawn
 keypad**: the amount is a plain `<input inputMode="decimal">` that takes the
 phone's own keyboard and formats as it is typed — `typed()` tidies what the
 keyboard gave, `keysDisplay()` groups the rupees and leaves the paise exactly
@@ -283,7 +295,7 @@ hidden input; there is no `<select>` of payment modes anywhere, because one
 listing every rail under every account showed "ICICI Amazon Pay" twice and
 read as nonsense. Wrap it in a `<div role="group">`, never a `<label>` — a
 label around buttons activates the first chip. The entries list shows the
-rail when there is one and the account when there is not. `sw.js` is v30 (Quiet Ledger).
+rail when there is one and the account when there is not. `sw.js` is v32 (one-screen Add).
 Before Save, a debounced
 `checkDuplicate` shows what a household member already recorded within ±1% and
 ±2 days, which is the prevention half of the duplicate rule; the Inbox card is
@@ -1062,11 +1074,9 @@ the same UPDATE (one `now()`), and restoring it brings back exactly the
 children that share that timestamp — a child retired earlier on its own stays
 retired; restoring a child restores its parent. `sort_order` runs among
 siblings; `reorderCategories` takes the top-level set only and the family
-drags as one block. Add Entry's step 2 is `CategoryGrid`
-(`src/app/add/CategoryGrid.tsx`): the top level as compact tiles, only the
-chosen family's children beneath, and a search box over the rows already in
-memory that selects a matching child directly and labels it "Parent ·
-Subcategory". **Categories has a
+drags as one block. Add Entry offers the most-used categories as tiles
+(`TopCategories`) and every category, children grouped under parents, behind
+*All* (`CategoryFinder`). **Categories has a
 "Suggested" section** (`categories/Suggested.tsx`, `lib/taxonomy.ts`): a
 Fold-style library of 28 groups and 150 sub-categories with the Bohra
 household's own names (Wajebaat & sabeel, FMB thaali, Niyaz & majlis, Eidi…),

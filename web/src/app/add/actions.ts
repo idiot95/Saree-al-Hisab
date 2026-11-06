@@ -302,6 +302,18 @@ export async function saveEntry(d: Draft): Promise<SaveResult> {
         }
         return entry;
       });
+      /* Remember how this person paid, so the next Add Entry opens on it. Only
+         for spending: money coming in lands in the bank and a move leaves the
+         savings account, and neither is how the next coffee is paid for. A
+         preference, written after the entry and in its own savepoint, so a
+         failure here can never take the entry with it. The reference has just
+         resolved above; a later read that finds it stale falls back to the
+         first way. */
+      if (row && d.kind === 'expense' && typeof d.paidWith === 'string') {
+        const ref = d.paidWith;
+        await sql.begin((tx) => tx`update app_user set last_paid_with = ${ref} where id = ${user_id}`)
+          .catch(() => { console.error('saveEntry: last_paid_with not kept'); });
+      }
       if (tab) { revalidatePath(`/tab/${tab.id}`); revalidatePath('/people'); revalidatePath('/worth'); }
       if (settles.length) { revalidatePath('/people'); revalidatePath('/worth'); revalidatePath('/entries'); }
       revalidatePath('/');

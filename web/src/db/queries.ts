@@ -6,6 +6,7 @@ import { auth } from '@/auth';
 import { contextFor } from './membership';
 import { hashLinkToken } from '@/lib/link-token';
 import { setCurrencyResolver } from '@/lib/money';
+import { fits } from '@/lib/scope';
 
 /* Who is asking, and what they may do — resolved on the server, on every
    request, in a single round trip.
@@ -109,6 +110,42 @@ export async function categoriesFor(householdId: string) {
     ` as Promise<{ id: string; name: string; icon: string; tint: string; scope: CategoryScope;
                    parent_id: string | null; parent: string | null; uses: number }[]>;
   });
+}
+
+/* Add Entry's eight tiles: the categories this household has actually used
+   in the last 90 days, most entries first, for one kind of entry. A newer
+   household — or one that files only a few things — has fewer than eight,
+   so the rest are padded with its top-level categories in their own order
+   (the order Categories sets). Children are offered only once used: a tile
+   reading "Milk" before anyone has bought milk would push out Rent. Active
+   categories only, and only those whose scope takes the kind (fits(), the
+   same rule the action re-checks). Ids, in tile order. */
+export async function topCategories(householdId: string, kind: 'expense' | 'income', limit = 8) {
+  return withHousehold(householdId, async () => {
+    const rows = await sql`
+      select c.id, c.scope
+      from category c
+      left join category p on p.id = c.parent_id
+      left join (
+        select category_id, count(*)::int as n from txn
+        where household_id = ${householdId} and deleted_at is null and category_id is not null
+          and occurred_on >= current_date - 90
+        group by category_id
+      ) u on u.category_id = c.id
+      where c.household_id = ${householdId} and c.archived_at is null
+        and (coalesce(u.n, 0) > 0 or c.parent_id is null)
+      order by coalesce(u.n, 0) desc, coalesce(p.sort_order, c.sort_order), (c.parent_id is not null),
+               c.sort_order, c.name
+    ` as { id: string; scope: CategoryScope }[];
+    return rows.filter((r) => fits(r.scope, kind)).slice(0, limit).map((r) => r.id);
+  });
+}
+
+/** The way to pay this person last used, as stored: a preference that may
+ *  name nothing in these books any more. Resolve it before use. */
+export async function lastPaidWith(userId: string): Promise<string | null> {
+  const [row] = await sql`select last_paid_with from app_user where id = ${userId}`;
+  return (row?.last_paid_with as string | null | undefined) ?? null;
 }
 
 /* The pickers' accounts and rails live in db/payment.ts: every real account

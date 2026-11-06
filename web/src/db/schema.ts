@@ -94,6 +94,14 @@ export const appUser = pgTable('app_user', {
      that something: any token issued before this moment is refused. Changing a
      password, using a reset link, or signing out everywhere moves it. */
   sessionsValidFrom: timestamp('sessions_valid_from', { withTimezone: true }).notNull().defaultNow(),
+  /* The way to pay this person last used on an expense, as the reference Add
+     Entry sends (`a:<account>` / `m:<rail>`, src/lib/pay.ts). A preference,
+     never read for authorisation, and deliberately NOT a foreign key: the
+     account or rail can be archived, or belong to another set of books this
+     person keeps, and a stale reference must never stop an entry being saved.
+     Add Entry resolves it against this household's ways and falls back to
+     the first way when it names nothing. */
+  lastPaidWith: text('last_paid_with'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [
   // One of the two must identify them. Without this a nameless row with
