@@ -34,3 +34,13 @@ assert.deepEqual(
 assert.deepEqual(
   d({ email: 'b@x.com' }, { invite: { email: 'a@x.com' } }),
   { kind: 'refuse', code: 'invite-mismatch' });
+// Fix round 1.
+assert.deepEqual(
+  d({ email: 'x@Y.com' }, { invite: { email: 'X@y.com' }, emailOwnerId: 'u4' }),
+  { kind: 'refuse', code: 'exists-link-first' });
+assert.deepEqual(
+  d({}, { identityUserId: 'u2', linkIntentUserId: 'u2', sessionUserId: 'u2' }),
+  { kind: 'link', userId: 'u2' });
+assert.deepEqual(
+  d({ email: ' x@y.com' }, { invite: { email: 'x@y.com' } }),
+  { kind: 'refuse', code: 'invite-mismatch' });

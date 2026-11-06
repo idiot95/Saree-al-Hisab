@@ -17,7 +17,7 @@ export type Decision =
       code: 'exists-link-first' | 'already-linked' | 'invite-mismatch' | 'unverified';
     };
 
-const same = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
+const same = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
 
 /** Order: unverified, invite, link intent, known sub, email owner, create. */
 export function decideGoogleSignIn(c: GoogleClaims, f: SignInFacts): Decision {
