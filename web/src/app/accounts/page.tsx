@@ -41,7 +41,7 @@ export default async function Accounts() {
     tabHeldOwed(hh),
   ]));
   /* The same figure the Net worth screen shows, from the same helper. */
-  const { worth, receivable, assetTotal, debtTotal } = netWorth(balances, owedTo.reduce((n, o) => n + Number(o.claimed), 0), Number(held));
+  const { worth, receivable, assetTotal, debtTotal } = netWorth({ accounts: balances, claimed: owedTo.reduce((n, o) => n + Number(o.claimed), 0), held: Number(held) });
 
   const canWrite = actor.role !== 'viewer';
   const holdings = accounts.filter((a) => a.kind !== 'credit');

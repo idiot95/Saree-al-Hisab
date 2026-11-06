@@ -45,7 +45,7 @@ export default async function Worth() {
      silently. */
   // Plus what the tabs are owed with nobody named — no person's row carries it.
   const { worth, assets, debts, assetTotal, debtTotal, receivable, claims, savings, lent } =
-    netWorth(accounts, owed.reduce((n, o) => n + Number(o.claimed), 0), Number(held));
+    netWorth({ accounts, claimed: owed.reduce((n, o) => n + Number(o.claimed), 0), held: Number(held) });
 
   const points = series.map((p) => Number(p.held));
   const lo = Math.min(...points, 0), hi = Math.max(...points, 1);

@@ -1084,7 +1084,7 @@ export async function schedulesFor(householdId: string) {
 /* ── what the household is actually worth ───────────────────────────────── */
 
 export type WorthRow = {
-  id: string; name: string; kind: string; last4: string | null; balance: string;
+  id: string; name: string; kind: string; last4: string | null; balance: string; owner_user_id: string | null;
 };
 
 /** Every account with its balance, people included. A person's account IS the
@@ -1093,7 +1093,7 @@ export type WorthRow = {
 export async function allBalances(householdId: string) {
   return withHousehold(householdId, async () => {
     return sql`
-      select b.id, b.name, b.kind, b.last4, b.balance::text
+      select b.id, b.name, b.kind, b.last4, b.balance::text, b.owner_user_id
       from account_balance b
       where b.household_id = ${householdId} and b.archived_at is null
       order by case b.kind when 'spending' then 0 when 'cash' then 1 when 'savings' then 2
