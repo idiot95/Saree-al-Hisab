@@ -11,7 +11,7 @@ import { bodyHash, type ParsedSms } from '@/lib/sms';
    capture_token.token_hash insists on) is stored, so a copy of the database
    opens nothing. capture_token is under a household-only policy with no
    unscoped branch, so the endpoint, which holds only the token, finds the
-   household through capture_lookup() (0112) — the one security-definer door,
+   household through capture_lookup() (0113) — the one security-definer door,
    returning at most one live row. Everything after that runs scoped. */
 
 export type CaptureTokenRow = { id: string; user_id: string; household_id: string };

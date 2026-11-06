@@ -1,12 +1,28 @@
-/* capture_lookup (0112) now answers every refusal the endpoint makes about who
-   is asking in one query: the token is live AND its person is still a member
-   of that household AND not a viewer. A token issued to someone since removed,
-   or dropped to viewer, returns no row, exactly like an unknown or revoked one,
-   so the endpoint cannot be timed into saying which it was.
+/* How the SMS capture endpoint finds the household a bearer token belongs to.
+   (This was 0112 without the member check; folded in here so no run of the
+   migrator ever has the weaker definition live, even for a moment.)
 
-   Same signature and return type, so CREATE OR REPLACE keeps the owner, the
-   SECURITY DEFINER, and the grants 0112 made (execute for saree_app only).
-   They are restated anyway so this file stands alone. Idempotent. */
+   capture_token is under a plain household policy (0109): unscoped, the app
+   role sees, changes and deletes none of it. But the endpoint holds only the
+   token, so it cannot name a household yet. This function is that one door: it
+   takes the SHA-256 hex of the token and returns at most one row, id, user and
+   household. It returns nothing else (no label, no hash, no other household's
+   token).
+
+   It answers every refusal the endpoint makes about who is asking in one
+   query: the token is not revoked AND its person is still a member of that
+   household AND not a viewer. An unknown, revoked, removed or viewer token all
+   return no row alike, so the endpoint cannot be timed into saying which.
+
+   SECURITY DEFINER, so it runs as the owner, which bypasses row security.
+   search_path is pinned so a caller cannot shadow a table or operator. Execute
+   is for saree_app only, not PUBLIC.
+
+   last_used_at is deliberately NOT written from here. The endpoint scopes its
+   transaction to the household this returns, then updates last_used_at under
+   the normal policy, so the definer function stays a read-only lookup.
+   Idempotent: same signature and return type, so CREATE OR REPLACE keeps the
+   owner and the grants, which are restated anyway. */
 CREATE OR REPLACE FUNCTION capture_lookup(p_hash text)
 RETURNS TABLE (id uuid, user_id uuid, household_id uuid)
 LANGUAGE sql STABLE SECURITY DEFINER

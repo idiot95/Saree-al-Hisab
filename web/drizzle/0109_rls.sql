@@ -179,7 +179,7 @@ create policy invite_scope on invite
 
 /* capture_token is household-only, with NO unscoped branch: an open branch would
    let any unscoped connection list, un-revoke or delete every household's tokens.
-   The endpoint finds a token's household through capture_lookup(hash) (0112), a
+   The endpoint finds a token's household through capture_lookup(hash) (0113), a
    security-definer function that returns one live row. sms_draft holds message
    bodies and is household-only too. */
 alter table capture_token enable row level security;
