@@ -1197,7 +1197,10 @@ invariants run them): accept and dismiss null the body at once and stamp
 `purgeSmsBodiesIn` nulls the text of anything decided or older than 30 days,
 called as `/entries` and the message screen render and on every
 arrival at the endpoint — there is no scheduler. Dismissing on the message
-screen redirects to `/entries?f=sms&dismissed=<id>`, which offers the Undo. Phones get keys on `/household/capture` (shown once; owners see
+screen redirects to `/entries?f=sms&dismissed=<id>`, which offers the Undo. The address a phone is given is `AUTH_URL` when set (production must set it), else the request's host;
+`lib/capture-origin.ts` decides, and on a Vercel preview host (a `vercel.app` host that is not
+`VERCEL_PROJECT_PRODUCTION_URL`, or `VERCEL_ENV=preview`) the screen warns that the address and keys made there die
+with the preview. Phones get keys on `/household/capture` (shown once; owners see
 and revoke everyone's, others their own; viewers add none) with the iPhone
 Shortcuts and Android forwarder guides. `scripts/sms-taps.mjs` drives the
 whole path against a running build.

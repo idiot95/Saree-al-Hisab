@@ -1,5 +1,30 @@
 # Real-device checklist (owner)
 
+## Before you deploy
+
+These are not code; they decide whether v3 works on its first day (final review, item 13). Tick each one.
+
+- [ ] **Google sign-in is configured in Vercel (Production):** `AUTH_GOOGLE_ID` and `AUTH_GOOGLE_SECRET`, with the
+  OAuth client's redirect URI `https://<stable host>/api/auth/callback/google`. `/signup` is Google-only from day one,
+  so without these **nobody new can sign up**.
+- [ ] **`AUTH_URL` is set (Production)** to the stable address, scheme and host only. SMS capture hands phones this
+  address (owner-notes §2b).
+- [ ] **`AUTH_PASSWORD_UNTIL` is left unset.** Set a date only after rows 2–4 below pass on **both** phones. Until
+  then password sign-in stays open beside Google.
+- [ ] **Take a Neon branch** (a copy of the production database) just before deploying, so the migrations
+  (0034–0039, all additive) can be undone by switching back to it.
+- [ ] **Task 0 has not been done yet:** nobody has tried Google sign-in inside an installed iPhone app. That is row
+  2 below. Do it on the stable address the day you deploy, before anyone else is asked to sign in with Google.
+- [ ] **After deploying, once:** Household → **Sign out everywhere** (row 14), so every session is re-issued by the
+  new code.
+- [ ] **Check SMS capture can find a key:** in Neon's SQL editor, `select rolbypassrls from pg_roles where rolname =
+  'neondb_owner';` says `t` (owner-notes §2c). Read-only.
+
+Not part of this list, and not changed by v3: the cross-household read on `invite` from outside a household scope
+(owner-notes §2) is a follow-up, unexploited today.
+
+## On the phones
+
 The Playwright sweep emulates phones in Chromium; it cannot prove what only a real phone does: the installed app's
 own cookie jar, the keyboard, a finger, the radio. Do this on **one iPhone and one Android phone**, both with the app
 **installed to the home screen** from the stable production URL (not a preview deploy: Google sign-in only works on

@@ -28,6 +28,11 @@ every opaque origin.)
 
 ## 2. `invite` can be read across households from outside a household scope
 
+**Status: not fixed in v3, on purpose.** The final review (item 4) found it unchanged and not exploitable today:
+every query on `invite` either looks it up by `token_hash` (opening or locking an invitation, on the identity pool)
+or runs inside a household scope filtered by `household_id` (create, revoke, list). It was left for a follow-up so
+the merge did not carry a new migration.
+
 **What happens.** Row security on `invite` is open when no household is set, because accepting an invitation has
 to find it before there is a household to scope by. So any query made outside `withHousehold()` — the `identity`
 pool, used for sign-in and membership — can read, change or delete every household's invitations. Nothing in the
@@ -43,6 +48,30 @@ id, household, address, role and expiry. Accepting then runs inside `withHouseho
 `household` and `member` keep their open branch (sign-in needs them). It is a migration plus the join page's lookup;
 the invariants test should then check `invite` is household-only. (Like `capture_lookup`, it would rely on the
 database owner bypassing row security: Neon's `neondb_owner` does.)
+
+## 2b. Production must set `AUTH_URL`
+
+**What happens.** Household → SMS capture shows each phone the address to send its messages to. It is `AUTH_URL`
+when that is set; otherwise it is the address the page was opened on. On a Vercel preview that is a per-deploy
+address (`saree-al-hisab-<hash>-<team>.vercel.app`) which disappears with the preview, and a phone set up with it
+would post to nothing. The screen now says so on a preview ("Preview address…"), but only `AUTH_URL` makes the
+address right everywhere.
+
+**What to do.** In Vercel → Project → Settings → Environment Variables, set `AUTH_URL` for **Production** to the
+stable address, e.g. `https://saree-al-hisab.vercel.app` (scheme and host, no path). Auth.js reads the same variable.
+Set phones up only on that address.
+
+## 2c. SMS capture needs the database owner to bypass row security
+
+`capture_lookup` finds a phone's key in any household only because its owner, `neondb_owner`, has `BYPASSRLS`. Neon
+gives it that; a copy whose owner lacks it would refuse every phone with a 401 and nothing else said.
+`npm run test:invariants` now checks the attribute (and that nobody but the app role can call the function) on the
+database it runs against; the local verification database runs as the `postgres` superuser, which has it. For
+production, one read-only query in Neon's SQL editor answers it: `select rolbypassrls from pg_roles where rolname =
+'neondb_owner';` should say `t`.
+
+A phone's key also ends with its holder's place: removing a member, or making them a viewer, revokes their keys in
+the same step, so re-inviting them does not bring an old phone back. They set the phone up again.
 
 ## 3. SMS parsing: what it does not catch
 
@@ -66,6 +95,10 @@ previous figure. Nothing is lost; it catches up by itself. A fix would pass the 
 use `(now() at time zone 'Asia/Kolkata')::date`), which is a view change worth its own review.
 
 ## 5. Smaller things
+
+- **The tap scripts refuse anything but a local database.** `scripts/*-taps.mjs`, `frames.check`, `drawers.check`,
+  `capture.test`, `prices.check` and `revocation.check` exit with code 2 unless `.env.local`'s database URLs are on
+  `localhost` or `127.0.0.1`. On a laptop whose `.env.local` points at production they do nothing at all, by design.
 
 - **The home-screen icon** was redrawn in Task 30 (fix round): ح in rose gold on the hero plum, from
   `scripts/make-icons.mjs` (`npm run icons`), with the browser-tab favicon (until then Next's default triangle).

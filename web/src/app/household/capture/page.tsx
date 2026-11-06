@@ -10,25 +10,22 @@ import { Icon } from '../../Icon';
 import AddPhone from './AddPhone';
 import PhoneRow from './PhoneRow';
 import Guides from './Guides';
+import { captureOrigin } from '@/lib/capture-origin';
 
 export const metadata = { title: 'SMS capture · Saree al-Hisab' };
 export const dynamic = 'force-dynamic';
 
-/** Where a phone should send its messages. The configured origin when there is one (AUTH_URL); otherwise this
- *  request's host, over https — a key must never travel in clear — except on the developer's own machine, where
- *  the first x-forwarded-proto (or http) is kept. */
+/** Where a phone should send its messages, and whether that address is a preview's that will go away
+ *  (lib/capture-origin.ts): AUTH_URL when set, else this request's host. */
 async function origin() {
-  const configured = process.env.AUTH_URL;
-  if (configured) {
-    try { return new URL(configured).origin; } catch { /* unparsable: fall back to the request */ }
-  }
   const h = await headers();
-  const host = h.get('host') ?? 'localhost';
-  const name = host.replace(/:\d+$/, '').replace(/^\[|\]$/g, '');
-  const local = name === 'localhost' || name === '127.0.0.1' || name === '::1';
-  const forwarded = h.get('x-forwarded-proto')?.split(',')[0]?.trim();
-  const proto = local ? (forwarded === 'https' ? 'https' : 'http') : 'https';
-  return `${proto}://${host}`;
+  return captureOrigin({
+    authUrl: process.env.AUTH_URL,
+    host: h.get('host'),
+    forwardedProto: h.get('x-forwarded-proto'),
+    productionHost: process.env.VERCEL_PROJECT_PRODUCTION_URL,
+    vercelEnv: process.env.VERCEL_ENV,
+  });
 }
 
 const day = (d: Date) => new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
@@ -43,7 +40,8 @@ export default async function Capture() {
   const owner = actor.role === 'owner';
   const canAdd = actor.role !== 'viewer';
   const tokens = await captureTokensFor(actor.household_id, actor.user_id, owner);
-  const endpoint = `${await origin()}/api/capture/sms`;
+  const where = await origin();
+  const endpoint = `${where.origin}/api/capture/sms`;
 
   return (
     <Screen>
@@ -80,6 +78,14 @@ export default async function Capture() {
               </div>
             )}
           </section>
+
+          {where.preview && (
+            /* A preview's address goes when the preview does: say so before a phone is set up against it. */
+            <p data-preview-warning className="flex items-start gap-2.5 rounded-2xl bg-attention-soft p-4 text-sm leading-relaxed text-attention-soft-foreground">
+              <Icon name="warning" size={18} className="mt-0.5" />
+              <span><strong className="font-semibold">Preview address.</strong> This is a preview deploy, so the address below stops working when the preview goes away, and a phone set up with a key made here stops with it. Set phones up on the app’s main address.</span>
+            </p>
+          )}
 
           {canAdd ? (
             <section aria-label="Add a phone" className="flex flex-col gap-2">
