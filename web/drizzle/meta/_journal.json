@@ -260,6 +260,13 @@
       "when": 1793970904450,
       "tag": "0037_last_paid_with",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1793972520877,
+      "tag": "0038_sms_capture",
+      "breakpoints": true
     }
   ]
 }

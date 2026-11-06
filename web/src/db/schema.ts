@@ -453,6 +453,9 @@ export const txn = pgTable('txn', {
   // a real double-spend at the same shop is legitimate, so this surfaces
   // a decision in the Inbox rather than rejecting the write.
   index('txn_dupe_probe').on(t.accountId, t.amount, t.occurredOn),
+  // The key sms_draft's composite foreign key points at, so a draft can only
+  // name an entry of its own household.
+  uniqueIndex('txn_household_key').on(t.id, t.householdId),
 
   check('amount_positive', sql`${t.amount} > 0`),
 
@@ -821,4 +824,55 @@ export const priceOverride = pgTable('price_override', {
   // A ceiling, so one absurd rate cannot overflow a value and break the household's whole view.
   check('price_override_rate_bounded', sql`${t.rate} < 1000000000`),
   check('price_override_codes', sql`${t.base} ~ '^[A-Z]{3}$' AND ${t.quote} ~ '^[A-Z]{3}$'`),
+]);
+
+/* SMS capture. A phone forwards a bank message to /api/capture/sms with a
+   bearer token; the token is 256 random bits shown once, and only its SHA-256
+   hex is kept, so a stolen database yields no working token. */
+export const captureToken = pgTable('capture_token', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').notNull().references(() => appUser.id, { onDelete: 'cascade' }),
+  householdId: uuid('household_id').notNull().references(() => household.id, { onDelete: 'cascade' }),
+  tokenHash: text('token_hash').notNull().unique(),
+  label: text('label').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  lastUsedAt: timestamp('last_used_at', { withTimezone: true }),
+  revokedAt: timestamp('revoked_at', { withTimezone: true }),
+}, (t) => [
+  index('capture_token_household').on(t.householdId),
+  check('capture_token_hash_hex', sql`${t.tokenHash} ~ '^[0-9a-f]{64}$'`),
+  check('capture_token_label_len', sql`char_length(${t.label}) BETWEEN 1 AND 40`),
+]);
+
+/* A forwarded message, parsed as far as it could be. It is never an entry on
+   its own: accepting one opens Add entry, and only saving that makes a txn.
+   The raw body is set to NULL once the draft is accepted or dismissed (and
+   after 30 days), so it is nullable. The same SMS forwarded twice is one
+   draft: unique (household, body_hash). txn_id is held to the draft's own
+   household by a composite key; deleting the entry only clears txn_id (the
+   migration writes SET NULL (txn_id), which drizzle cannot express, since a
+   plain SET NULL would try to null household_id too). */
+export const smsDraft = pgTable('sms_draft', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  householdId: uuid('household_id').notNull().references(() => household.id, { onDelete: 'cascade' }),
+  userId: uuid('user_id').references(() => appUser.id, { onDelete: 'set null' }),
+  sender: text('sender'),
+  body: text('body'),
+  receivedAt: timestamp('received_at', { withTimezone: true }).notNull().defaultNow(),
+  bodyHash: text('body_hash').notNull(),
+  parsed: jsonb('parsed').notNull().default(sql`'{}'::jsonb`),
+  status: inboxStatus('status').notNull().default('open'),
+  txnId: uuid('txn_id'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  uniqueIndex('sms_draft_household_body').on(t.householdId, t.bodyHash),
+  index('sms_draft_household_status').on(t.householdId, t.status),
+  foreignKey({
+    columns: [t.txnId, t.householdId], foreignColumns: [txn.id, txn.householdId],
+    name: 'sms_draft_txn_same_household',
+  }).onDelete('set null'),
+  check('sms_draft_accepted_has_txn', sql`${t.status} <> 'accepted' OR ${t.txnId} IS NOT NULL`),
+  check('sms_draft_body_hash_hex', sql`${t.bodyHash} ~ '^[0-9a-f]{64}$'`),
+  check('sms_draft_body_len', sql`${t.body} IS NULL OR char_length(${t.body}) <= 2000`),
+  check('sms_draft_sender_len', sql`${t.sender} IS NULL OR char_length(${t.sender}) <= 64`),
 ]);

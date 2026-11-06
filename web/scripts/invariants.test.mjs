@@ -1253,6 +1253,86 @@ await sql`delete from price_quote where base = 'XTS'`.catch(() => {});
     () => sql`update app_user set last_paid_with = 'm:00000000-0000-4000-8000-000000000000' where id = ${user.id}`);
 }
 
+// ── SMS capture — a forwarded bank message is a draft, never an entry ──────
+/* capture_token stores only the SHA-256 of a 256-bit token. sms_draft is one row per distinct
+   message per household; it is never an entry on its own, and a draft cannot be marked accepted
+   without the entry it became. */
+console.log('\nSMS CAPTURE — drafts and tokens');
+try {
+  const HEX = (c) => c.repeat(64);
+  const [h2] = await sql`insert into household ${sql({ name: 'Invariant test' })} returning id`;
+  const [a1] = await sql`insert into account ${sql({ household_id: hh.id, name: 'Sms acct', kind: 'cash' })} returning id`;
+  const [a2] = await sql`insert into account ${sql({ household_id: h2.id, name: 'Sms acct 2', kind: 'cash' })} returning id`;
+  const mkTxn = async (household_id, account_id) => (await sql`insert into txn ${sql({ household_id, created_by: user.id,
+    occurred_on: '2026-09-01', amount: 1000, currency: 'INR', kind: 'expense', account_id })} returning id`)[0];
+  const t1 = await mkTxn(hh.id, a1.id), t2 = await mkTxn(h2.id, a2.id);
+  const draft = (o = {}) => sql`insert into sms_draft ${sql({ household_id: hh.id, user_id: user.id, sender: 'HDFCBK',
+    body: 'Rs 250 debited', body_hash: HEX('a'), ...o })} returning id`;
+  const token = (o = {}) => sql`insert into capture_token ${sql({ user_id: user.id, household_id: hh.id,
+    token_hash: HEX('b'), label: 'My phone', ...o })} returning id`;
+
+  await allows('a draft with only what was found is stored', () => draft());
+  await refusesWith('the same message twice in one household is one draft', /sms_draft_household_body/,
+    () => draft());
+  await allows('the same message in another household is a separate draft', () => draft({ household_id: h2.id, user_id: null }));
+  await refusesWith('a draft marked accepted with no entry is refused', /sms_draft_accepted_has_txn/,
+    () => draft({ body_hash: HEX('c'), status: 'accepted' }));
+  await allows('accepted with its entry is allowed', () => draft({ body_hash: HEX('c'), status: 'accepted', txn_id: t1.id }));
+  await refusesWith('an entry of another household cannot be a draft\'s entry', /sms_draft_txn_same_household|foreign key/,
+    () => draft({ body_hash: HEX('d'), txn_id: t2.id }));
+  await refusesWith('a body hash that is not 64 hex is refused', /sms_draft_body_hash_hex/, () => draft({ body_hash: 'abc' }));
+  await refusesWith('an upper-case body hash is refused', /sms_draft_body_hash_hex/, () => draft({ body_hash: HEX('A') }));
+  await refusesWith('a body over 2000 characters is refused', /sms_draft_body_len/, () => draft({ body_hash: HEX('e'), body: 'x'.repeat(2001) }));
+  await refusesWith('a sender over 64 characters is refused', /sms_draft_sender_len/, () => draft({ body_hash: HEX('f'), sender: 'x'.repeat(65) }));
+  await allows('a purged body (NULL) is allowed', () => draft({ body_hash: HEX('1'), body: null, sender: null }));
+  /* ON DELETE SET NULL on txn_id is overtaken by the accepted check for an accepted draft: the entry it
+     became cannot be hard-deleted from under it (the app soft-deletes entries). A draft that merely names an
+     entry loses the link. */
+  await refusesWith('an entry an accepted draft became cannot be hard-deleted from under it', /sms_draft_accepted_has_txn/,
+    () => sql`delete from txn where id = ${t1.id}`);
+  const [t3] = [await mkTxn(hh.id, a1.id)];
+  await draft({ body_hash: HEX('3'), txn_id: t3.id });
+  await sql`delete from txn where id = ${t3.id}`;
+  const [{ txn_id: cleared, household_id: still }] = await sql`select txn_id, household_id from sms_draft where body_hash = ${HEX('3')} and household_id = ${hh.id}`;
+  ok(cleared === null && still === hh.id, 'deleting an entry a non-accepted draft names clears only the link, not the household');
+
+  await allows('a token is stored by its hash', () => token());
+  await refusesWith('two tokens cannot share a hash', /token_hash_unique|token_hash_key|duplicate/, () => token());
+  await refusesWith('a token hash that is not 64 hex is refused', /capture_token_hash_hex/, () => token({ token_hash: 'plaintext-token' }));
+  await refusesWith('an empty label is refused', /capture_token_label_len/, () => token({ token_hash: HEX('2'), label: '' }));
+  await refusesWith('a label over 40 characters is refused', /capture_token_label_len/, () => token({ token_hash: HEX('2'), label: 'x'.repeat(41) }));
+  const [{ n: tokCols }] = await sql`select count(*)::int as n from information_schema.columns
+    where table_name = 'capture_token' and column_name in ('token', 'secret', 'plaintext')`;
+  ok(tokCols === 0, 'capture_token has no column that could hold a usable token');
+
+  if (appUser === 'saree_app') {
+    const app = postgres(appUrl, { ssl: 'require', max: 1, onnotice: () => {} });
+    const scoped = (id, fn) => app.begin(async (tx) => { await tx`select set_config('app.household_id', ${id}, true)`; return fn(tx); });
+    const n = (q) => q.then((r) => r[0].n);
+    ok(await n(app`select count(*)::int as n from capture_token where token_hash = ${HEX('b')}`) === 1,
+      'with no household named, a token can be found by its hash — that is how the endpoint finds its household');
+    ok(await n(app`select count(*)::int as n from sms_draft`) === 0, 'with no household named, no draft can be read');
+    ok(await scoped(hh.id, (tx) => n(tx`select count(*)::int as n from sms_draft where household_id = ${hh.id}`)) === 4,
+      'named, the household sees its own drafts');
+    ok(await scoped(h2.id, (tx) => n(tx`select count(*)::int as n from sms_draft where household_id = ${hh.id}`)) === 0,
+      'another household cannot read the drafts, asked for by household');
+    ok(await scoped(h2.id, (tx) => n(tx`select count(*)::int as n from sms_draft where body_hash = ${HEX('c')}`)) === 0,
+      'nor by body hash');
+    ok(await scoped(h2.id, (tx) => n(tx`select count(*)::int as n from capture_token`)) === 0,
+      'another household cannot read the tokens once one is named');
+    ok(await scoped(hh.id, (tx) => n(tx`select count(*)::int as n from capture_token`)) === 1,
+      'named, the household sees its own token');
+    await refuses('scoped to another household, a draft cannot be written into this one',
+      () => scoped(h2.id, (tx) => tx`insert into sms_draft ${sql({ household_id: hh.id, body_hash: HEX('9') })}`));
+    await refuses('nor a token',
+      () => scoped(h2.id, (tx) => tx`insert into capture_token ${sql({ user_id: user.id, household_id: hh.id, token_hash: HEX('8'), label: 'x' })}`));
+    await app.end();
+  }
+  await sql`delete from household where id = ${h2.id}`;
+} catch (e) {
+  ok(false, `the SMS capture section could not run: ${e.message.slice(0, 120)}`);
+}
+
 await sql`delete from household where name = 'Invariant test'`;
 await sql`delete from password_reset where user_id in
   (select id from app_user where phone = any(${PHONES}) or email = any(${EMAILS}))`;
