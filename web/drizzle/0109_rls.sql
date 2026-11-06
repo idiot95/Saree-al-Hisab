@@ -29,8 +29,8 @@
    Views run as their caller (security_invoker), or a view owned by the
    bypassing owner would read past every policy. CREATE OR REPLACE VIEW
    without options RESETS that flag, so this file runs after every view file
-   and sets it on all of them; a new view file must set it itself, and
-   invariants.test.mjs fails if any view lacks it. */
+   before it and sets it on all of them; a view file after it (0110 onwards)
+   must set it itself, and invariants.test.mjs fails if any view lacks it. */
 
 create or replace function app_household() returns uuid
   language sql stable parallel safe
@@ -125,6 +125,30 @@ drop policy if exists inbox_item_household on inbox_item;
 create policy inbox_item_household on inbox_item
   using (household_id = app_household()) with check (household_id = app_household());
 
+/* Wealth (0035). Holdings, their snapshots and a household's own rates are
+   the household's. A snapshot also carries the household its holding is in
+   — a composite foreign key holds the two together — so it needs no EXISTS.
+   price_quote is a market price, the same for every household: no
+   household_id and no policy, and the grants at the end let the app read
+   and add a quote but never change or remove one. */
+alter table holding enable row level security;
+alter table holding force row level security;
+drop policy if exists holding_household on holding;
+create policy holding_household on holding
+  using (household_id = app_household()) with check (household_id = app_household());
+
+alter table holding_snapshot enable row level security;
+alter table holding_snapshot force row level security;
+drop policy if exists holding_snapshot_household on holding_snapshot;
+create policy holding_snapshot_household on holding_snapshot
+  using (household_id = app_household()) with check (household_id = app_household());
+
+alter table price_override enable row level security;
+alter table price_override force row level security;
+drop policy if exists price_override_household on price_override;
+create policy price_override_household on price_override
+  using (household_id = app_household()) with check (household_id = app_household());
+
 -- The tables that find a household: open until one is named, scoped after.
 alter table household enable row level security;
 alter table household force row level security;
@@ -210,6 +234,8 @@ grant select, insert, update, delete on all tables in schema public to saree_app
 grant usage, select on all sequences in schema public to saree_app;
 grant execute on all functions in schema public to saree_app;
 revoke all on _migration from saree_app;
+-- A quote is evidence of what the market said on a day: read it, add one, never rewrite it.
+revoke update, delete, truncate on price_quote from saree_app;
 -- A table a later migration adds is granted the same way, without a new line here.
 alter default privileges in schema public grant select, insert, update, delete on tables to saree_app;
 alter default privileges in schema public grant usage, select on sequences to saree_app;

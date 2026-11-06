@@ -36,6 +36,16 @@ async function refuses(what, fn) {
   try { await fn(); ok(false, `${what} — was ALLOWED, should have been refused`); }
   catch { ok(true, what); }
 }
+/** Expect a write to be refused BY THE NAMED RULE: a missing table or a typo
+ *  also throws, and would pass `refuses` for the wrong reason. `why` is
+ *  matched against the constraint name and the message. */
+async function refusesWith(what, why, fn) {
+  try { await fn(); ok(false, `${what} — was ALLOWED, should have been refused`); }
+  catch (e) {
+    const hit = why.test(`${e.constraint_name ?? ''} ${e.message}`);
+    ok(hit, hit ? what : `${what} — refused, but not by ${why}: ${e.message.slice(0, 90)}`);
+  }
+}
 async function allows(what, fn) {
   try { await fn(); ok(true, what); }
   catch (e) { ok(false, `${what} — was refused: ${e.message.slice(0, 80)}`); }
@@ -828,7 +838,8 @@ console.log('\nROW SECURITY — Postgres itself refuses another household\'s row
   ok(unguarded.length === 0,
     `every table keyed by a household, and every child of one, is under a forced policy${unguarded.length ? ': not ' + unguarded.map((r) => r.name).join(', ') : ''}`);
   const open = tables.filter((r) => !covered(r)).map((r) => r.name).sort().join(' ');
-  ok(open === '_migration app_user auth_identity device password_reset rate_limit',
+  // price_quote is a market price, the same for everyone: no household, no policy.
+  ok(open === '_migration app_user auth_identity device password_reset price_quote rate_limit',
     `the tables left open are exactly the ones keyed by a person or a token (${open})`);
   const blind = views.filter((v) => !v.invoker).map((v) => v.name);
   ok(views.length >= 13 && blind.length === 0,
@@ -893,6 +904,174 @@ if (appUser === 'saree_app') {
   const seen = (await sql`select count(*)::int as n from txn where household_id = ${other.id}`)[0].n;
   ok(seen === 1, 'the owner, running this test, still sees everything');
 }
+
+console.log('\nWEALTH — owners, pots and metals, valued once, in SQL, half-even');
+/* Holdings are snapshots, never entries: no view the budget or a balance
+   reads may mention them. Prices: `price_quote` is global and real
+   households read it, so every quote written here is for XTS — the ISO code
+   reserved for testing, which no household holds — and is deleted after.
+   The valuation figures use household overrides, which go with the
+   household. */
+await sql`delete from price_quote where base = 'XTS'`.catch(() => {});
+try {
+  const [{ today, yesterday, tomorrow }] = await sql`select current_date::text as today,
+    (current_date - 1)::text as yesterday, (current_date + 1)::text as tomorrow`;
+  const [stranger] = await sql`insert into app_user ${sql({ phone: '+910000000003', name: 'Not a member' })} returning id`;
+
+  // Ownership: NULL is joint; an owner must be in the household; a person account has none.
+  await allows('an account can belong to a member', () => sql`update account set owner_user_id = ${user.id} where id = ${cash}`);
+  await refusesWith('an owner who is not a member is refused', /member/i,
+    () => sql`update account set owner_user_id = ${stranger.id} where id = ${spend}`);
+  await refusesWith('an owner on a person account is refused', /person_has_no_owner/,
+    () => sql`insert into account ${sql({ household_id: hh.id, name: 'Ahmed', kind: 'person', owner_user_id: user.id })}`);
+  await sql`update account set owner_user_id = null where id = ${cash}`;
+  const [bal] = await sql`select owner_user_id from account_balance where id = ${cash}`;
+  ok(bal && 'owner_user_id' in bal, 'account_balance carries the owner');
+
+  const pot = async (o) => (await sql`insert into holding ${sql({ household_id: hh.id, kind: 'fx_cash', name: 'Pot', ...o })} returning id`)[0].id;
+  const snap = (holding, quantity, as_of = today) =>
+    sql`insert into holding_snapshot ${sql({ holding_id: holding, household_id: hh.id, as_of, quantity, created_by: user.id })}`;
+  const override = (base, rate, as_of = today) =>
+    sql`insert into price_override ${sql({ household_id: hh.id, base, quote: 'INR', as_of, rate, set_by: user.id })}`;
+  const valued = async (id) => (await sql`select quantity::bigint as q, rate::text as rate, rate_as_of::text as rate_as_of,
+    rate_source, value_minor from holding_value where id = ${id}`)[0];
+
+  await refusesWith('an INR pot in an INR household is refused, naming the code', /Use an account for INR/,
+    () => pot({ currency: 'INR' }));
+  await refusesWith('a pot owned by someone outside the household is refused', /member/i,
+    () => pot({ currency: 'USD', owner_user_id: stranger.id }));
+  await refusesWith('a pot cannot carry a metal', /holding_shape/,
+    () => pot({ currency: 'USD', metal: 'gold', purity_permille: 916 }));
+  await refusesWith('a metal needs a purity between 1 and 1000', /holding_shape/,
+    () => sql`insert into holding ${sql({ household_id: hh.id, kind: 'metal', name: 'Bar', metal: 'gold', purity_permille: 1001 })}`);
+
+  const kwd = await pot({ currency: 'KWD', name: 'Kuwait cash', owner_user_id: user.id });
+  ok(Number((await sql`select count(*)::int as n from holding_value where id = ${kwd}`)[0].n) === 1, 'a new pot is in holding_value');
+  const before = await valued(kwd);
+  ok(before.q === null && before.value_minor === null, 'with no snapshot, value_minor is NULL — not zero');
+  await refusesWith('a negative snapshot is refused', /quantity_not_negative/, () => snap(kwd, -1));
+  await snap(kwd, 1500);
+  await refusesWith('two snapshots on one day for one holding are refused', /one_a_day/, () => snap(kwd, 1600));
+  const [elsewhere] = await sql`insert into household ${sql({ name: 'Invariant test' })} returning id`;
+  await refusesWith('a snapshot filed under another household than its holding is refused', /same_household/,
+    () => sql`insert into holding_snapshot ${sql({ holding_id: kwd, household_id: elsewhere.id, as_of: yesterday, quantity: 1 })}`);
+
+  ok((await valued(kwd)).value_minor === null, 'with a snapshot but no rate, value_minor is NULL');
+  await refusesWith('a rate of zero is refused on an override', /rate_positive/, () => override('KWD', 0));
+  await refusesWith('a negative rate is refused on a quote', /rate_positive/,
+    () => sql`insert into price_quote ${sql({ base: 'XTS', quote: 'INR', as_of: today, rate: -1, source: 'test' })}`);
+  await override('KWD', '271.5');
+  const k = await valued(kwd);
+  ok(String(k.value_minor) === '40725', `KD 1.500 at 271.5 is ₹407.25 — 40725 paise (${k.value_minor})`);
+
+  const jpy = await pot({ currency: 'JPY', name: 'Yen' });
+  await snap(jpy, 500); await override('JPY', '0.55');
+  ok(String((await valued(jpy)).value_minor) === '27500', `¥500 at 0.55 is 27500 paise (${(await valued(jpy)).value_minor})`);
+
+  const [gold] = await sql`insert into holding ${sql({ household_id: hh.id, kind: 'metal', name: 'Bangles',
+    metal: 'gold', purity_permille: 916 })} returning id`;
+  await snap(gold.id, 50000); await override('XAU', '8000');
+  ok(String((await valued(gold.id)).value_minor) === '36640000',
+    `50 g of 22k gold at ₹8,000/g pure is 36640000 paise (${(await valued(gold.id)).value_minor})`);
+
+  // Which rate applies: newest of override and quote, the override winning a tie; nothing after today.
+  const xts = await pot({ currency: 'XTS', name: 'Test pot' });
+  await snap(xts, 100);
+  await sql`insert into price_quote ${sql({ base: 'XTS', quote: 'INR', as_of: today, rate: '2', source: 'invariant-test' })}`;
+  await sql`insert into price_quote ${sql({ base: 'XTS', quote: 'INR', as_of: tomorrow, rate: '9', source: 'invariant-test' })}`;
+  await override('XTS', '4', yesterday);
+  let x = await valued(xts);
+  ok(x.rate_source === 'invariant-test' && Number(x.rate) === 2 && x.rate_as_of === today && String(x.value_minor) === '200',
+    `a quote dated today beats an override dated yesterday, and tomorrow's quote is not used (${x.rate_source} ${x.rate} → ${x.value_minor})`);
+  await override('XTS', '3', today);
+  x = await valued(xts);
+  ok(x.rate_source === 'override' && Number(x.rate) === 3 && String(x.value_minor) === '300',
+    `an override dated today beats a quote dated today (${x.rate_source} ${x.rate} → ${x.value_minor})`);
+
+  // Banker's rounding, once, at the end.
+  const r = (await sql`select round_half_even(0.5) a, round_half_even(1.5) b, round_half_even(2.5) c,
+    round_half_even(-0.5) d, round_half_even(-1.5) e, round_half_even(2.4999999999) f, round_half_even(2.5000000001) g`)[0];
+  ok([r.a, r.b, r.c, r.d, r.e, r.f, r.g].map(String).join(' ') === '0 2 2 0 -2 2 3',
+    `round_half_even: 0.5→0 1.5→2 2.5→2 -0.5→0 -1.5→-2, and only an exact half is a tie (${[r.a, r.b, r.c, r.d, r.e, r.f, r.g].join(' ')})`);
+  const half = await pot({ currency: 'KWD', name: 'Half' });
+  await snap(half, 5); // 0.005 KD × 271.5 = ₹1.3575 → 135.75 paise → 136
+  ok(String((await valued(half)).value_minor) === '136', 'a value is rounded to the nearest paisa');
+  await sql`update holding_snapshot set quantity = 1 where holding_id = ${half}`; // 27.15 → 27
+  ok(String((await valued(half)).value_minor) === '27', 'and down when nearer down');
+  const [silver] = await sql`insert into holding ${sql({ household_id: hh.id, kind: 'metal', name: 'Coin',
+    metal: 'silver', purity_permille: 1000 })} returning id`;
+  await override('XAG', '25');
+  await snap(silver.id, 1); // 1 mg pure × ₹25/g = 2.5 paise, an exact tie
+  ok(String((await valued(silver.id)).value_minor) === '2', 'an exact half paisa goes to the even one: 2.5 → 2');
+  await sql`update holding_snapshot set quantity = 3 where holding_id = ${silver.id}`; // 7.5 → 8
+  ok(String((await valued(silver.id)).value_minor) === '8', 'and 7.5 → 8');
+
+  // Digits come from the same list as money.ts.
+  const digits = await sql`select code, currency_digits(code) as d from unnest(
+    array['INR','KWD','BHD','OMR','JOD','IQD','TND','JPY','KRW','VND','UGX','USD','IDR']) as code`;
+  ok(digits.map((d) => `${d.code}${d.d}`).join(' ') === 'INR2 KWD3 BHD3 OMR3 JOD3 IQD3 TND3 JPY0 KRW0 VND0 UGX0 USD2 IDR2',
+    `currency_digits agrees with lib/money.ts (${digits.map((d) => `${d.code}${d.d}`).join(' ')})`);
+
+  // No float near the money.
+  const floats = await sql`select a.attname from pg_attribute a join pg_class c on c.oid = a.attrelid
+    where c.relname in ('holding','holding_snapshot','price_quote','price_override','holding_value')
+      and a.attnum > 0 and a.atttypid in ('float4'::regtype, 'float8'::regtype)`;
+  ok(floats.length === 0, 'no float column in holdings, prices or their valuation');
+  const [vm] = await sql`select format_type(atttypid, atttypmod) t from pg_attribute
+    where attrelid = 'holding_value'::regclass and attname = 'value_minor'`;
+  ok(vm?.t === 'bigint', `value_minor is a bigint of minor units (${vm?.t})`);
+
+  // Snapshots, never entries: nothing the budget or a balance reads mentions them.
+  const named = await sql`select viewname from pg_views where schemaname = 'public'
+    and viewname in ('spend_txn','income_txn','account_balance') and definition !~ '(holding|price_)'`;
+  ok(named.length === 3, 'spend_txn, income_txn and account_balance do not read holdings or prices');
+  const readers = await sql`select viewname from pg_views where schemaname = 'public'
+    and viewname <> 'holding_value' and definition ~ '(holding|price_)'`;
+  ok(readers.length === 0, `no other view reads them either${readers.length ? ': ' + readers.map((v) => v.viewname).join(', ') : ''}`);
+
+  // A household's base cannot become the currency of a pot it holds.
+  const [aed] = await sql`insert into household ${sql({ name: 'Invariant test', base_currency: 'AED' })} returning id`;
+  await sql`insert into holding ${sql({ household_id: aed.id, kind: 'fx_cash', name: 'Dollars', currency: 'USD' })}`;
+  await refusesWith('a household cannot move its books into the currency of one of its pots', /Use an account for USD: a pot already holds it/,
+    () => sql`update household set base_currency = 'USD' where id = ${aed.id}`);
+
+  // Row security, as the app.
+  if (appUser === 'saree_app') {
+    const app = postgres(appUrl, { ssl: 'require', max: 1, onnotice: () => {} });
+    const scoped = (id, fn) => app.begin(async (tx) => {
+      await tx`select set_config('app.household_id', ${id}, true)`;
+      return fn(tx);
+    });
+    const n = (q) => q.then((rows) => rows[0].n);
+    ok(await scoped(hh.id, (tx) => n(tx`select count(*)::int as n from holding where id = ${kwd}`)) === 1,
+      'named, the household sees its own pot');
+    ok(await scoped(elsewhere.id, (tx) => n(tx`select count(*)::int as n from holding where id = ${kwd}`)) === 0,
+      'another household cannot read the holding, asked for by id');
+    ok(await scoped(elsewhere.id, (tx) => n(tx`select count(*)::int as n from holding_snapshot where holding_id = ${kwd}`)) === 0,
+      'nor its snapshots');
+    ok(await scoped(elsewhere.id, (tx) => n(tx`select count(*)::int as n from price_override where household_id = ${hh.id}`)) === 0,
+      'nor its overrides');
+    ok(await scoped(elsewhere.id, (tx) => n(tx`select count(*)::int as n from holding_value where household_id = ${hh.id}`)) === 0,
+      'nor through holding_value');
+    ok(await n(app`select count(*)::int as n from holding`) === 0, 'unscoped, there are no holdings at all');
+    await refusesWith('an override written into another household is refused', /row-level security/,
+      () => scoped(elsewhere.id, (tx) => tx`insert into price_override ${sql({ household_id: hh.id, base: 'XTS', quote: 'INR',
+        as_of: tomorrow, rate: '5' })}`));
+    ok(await scoped(elsewhere.id, (tx) => n(tx`select count(*)::int as n from price_quote where base = 'XTS'`)) >= 2,
+      'a quote is a market price: every household reads it');
+    await allows('the app may record a fetched quote',
+      () => scoped(elsewhere.id, (tx) => tx`insert into price_quote ${sql({ base: 'XTS', quote: 'INR', as_of: yesterday,
+        rate: '1', source: 'invariant-test' })}`));
+    await refusesWith('but never rewrite one', /permission denied/,
+      () => scoped(elsewhere.id, (tx) => tx`update price_quote set rate = 1000 where base = 'XTS'`));
+    await refusesWith('or delete one', /permission denied/,
+      () => scoped(elsewhere.id, (tx) => tx`delete from price_quote where base = 'XTS'`));
+    await app.end();
+  }
+} catch (e) {
+  ok(false, `the wealth section could not run: ${e.message.slice(0, 120)}`);
+}
+await sql`delete from price_quote where base = 'XTS'`.catch(() => {});
 
 await sql`delete from household where name = 'Invariant test'`;
 await sql`delete from password_reset where user_id in

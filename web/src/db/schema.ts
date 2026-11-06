@@ -1,5 +1,5 @@
 import {
-  pgTable, pgEnum, uuid, text, integer, bigint, date, timestamp,
+  pgTable, pgEnum, uuid, text, integer, bigint, date, timestamp, numeric,
   boolean, jsonb, index, uniqueIndex, check, foreignKey, customType, primaryKey, unique,
 } from 'drizzle-orm/pg-core';
 import type { AnyPgColumn } from 'drizzle-orm/pg-core';
@@ -189,8 +189,14 @@ export const account = pgTable('account', {
   statementDay: integer('statement_day'),
   dueDay: integer('due_day'),
   archivedAt: timestamp('archived_at', { withTimezone: true }),
+  /* Whose it is, for per-person net worth. NULL is joint, which is what every
+     account was before this column existed. The owner must be a member of
+     the household (trigger `account_owner_is_member`, 0110). */
+  ownerUserId: uuid('owner_user_id').references(() => appUser.id, { onDelete: 'set null' }),
 }, (t) => [
   index('account_household').on(t.householdId),
+  // A person account is somebody else's money with you, never one member's.
+  check('person_has_no_owner', sql`${t.kind} <> 'person' OR ${t.ownerUserId} IS NULL`),
   // INVARIANT 3, half of it: only a credit account may carry card metadata.
   check('card_fields_only_on_credit', sql`
     ${t.kind} = 'credit'
@@ -678,4 +684,93 @@ export const reconciliation = pgTable('reconciliation', {
 }, (t) => [
   index('reconciliation_account').on(t.accountId, t.statementOn),
   index('reconciliation_household').on(t.householdId),
+]);
+
+/* ── wealth: what is held outside the ledger ─────────────────────────────
+   A pot of foreign cash or a weight of gold is recorded as SNAPSHOTS — "on
+   this day there was this much" — never as entries. Nothing here touches
+   txn, so spend_txn, the budget and every balance are untouched by
+   construction (an invariant proves no view but holding_value reads these).
+   Valuation is in SQL numeric, rounded once, half-even (holding_value, 0110). */
+export const holdingKind = pgEnum('holding_kind', ['fx_cash', 'metal']);
+
+export const holding = pgTable('holding', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  householdId: uuid('household_id').notNull().references(() => household.id, { onDelete: 'cascade' }),
+  // NULL is joint. A member of the household (trigger `holding_owner_is_member`, 0110).
+  ownerUserId: uuid('owner_user_id').references(() => appUser.id, { onDelete: 'set null' }),
+  kind: holdingKind('kind').notNull(),
+  name: text('name').notNull(),
+  /* fx_cash: the ISO code, never the household's own (that is an account;
+     trigger `fx_pot_not_base`, 0110). Quantity is in its minor units. */
+  currency: text('currency'),
+  // metal: 'gold' | 'silver', purity in parts per thousand. Quantity is milligrams.
+  metal: text('metal'),
+  purityPermille: integer('purity_permille'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  archivedAt: timestamp('archived_at', { withTimezone: true }),
+}, (t) => [
+  index('holding_household').on(t.householdId),
+  // The key a snapshot's composite foreign key points at, so a snapshot can
+  // never sit in a different household from its holding.
+  uniqueIndex('holding_household_key').on(t.id, t.householdId),
+  check('holding_shape', sql`
+    (${t.kind} = 'fx_cash' AND ${t.currency} IS NOT NULL AND ${t.metal} IS NULL AND ${t.purityPermille} IS NULL)
+    OR (${t.kind} = 'metal' AND ${t.metal} IN ('gold','silver')
+        AND ${t.purityPermille} BETWEEN 1 AND 1000 AND ${t.currency} IS NULL)`),
+  check('holding_currency_is_a_code', sql`${t.currency} IS NULL OR ${t.currency} ~ '^[A-Z]{3}$'`),
+]);
+
+/* One figure per holding per day; a second save that day replaces it. */
+export const holdingSnapshot = pgTable('holding_snapshot', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  holdingId: uuid('holding_id').notNull(),
+  householdId: uuid('household_id').notNull().references(() => household.id, { onDelete: 'cascade' }),
+  asOf: date('as_of').notNull(),
+  // fx_cash: minor units of holding.currency. metal: milligrams.
+  quantity: bigint('quantity', { mode: 'number' }).notNull(),
+  note: text('note'),
+  createdBy: uuid('created_by').references(() => appUser.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  unique('holding_snapshot_one_a_day').on(t.holdingId, t.asOf),
+  index('holding_snapshot_household').on(t.householdId),
+  foreignKey({
+    name: 'holding_snapshot_same_household',
+    columns: [t.holdingId, t.householdId], foreignColumns: [holding.id, holding.householdId],
+  }).onDelete('cascade'),
+  check('holding_snapshot_quantity_not_negative', sql`${t.quantity} >= 0`),
+]);
+
+/* A market price, the same for every household: no household_id, no row
+   policy, and the app role may read and add one but never change one.
+   `base` is an ISO code, or XAU/XAG priced per gram of PURE metal; `quote`
+   is the currency it is priced in. numeric, not a float. */
+export const priceQuote = pgTable('price_quote', {
+  base: text('base').notNull(),
+  quote: text('quote').notNull(),
+  asOf: date('as_of').notNull(),
+  rate: numeric('rate', { precision: 24, scale: 10 }).notNull(),
+  source: text('source').notNull(),
+  fetchedAt: timestamp('fetched_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  primaryKey({ columns: [t.base, t.quote, t.asOf, t.source] }),
+  check('price_quote_rate_positive', sql`${t.rate} > 0`),
+  check('price_quote_codes', sql`${t.base} ~ '^[A-Z]{3}$' AND ${t.quote} ~ '^[A-Z]{3}$'`),
+]);
+
+/* A household's own rate for a day, set from the rate line. It wins over a
+   fetched quote of the same day or older (holding_value, 0110). */
+export const priceOverride = pgTable('price_override', {
+  householdId: uuid('household_id').notNull().references(() => household.id, { onDelete: 'cascade' }),
+  base: text('base').notNull(),
+  quote: text('quote').notNull(),
+  asOf: date('as_of').notNull(),
+  rate: numeric('rate', { precision: 24, scale: 10 }).notNull(),
+  setBy: uuid('set_by').references(() => appUser.id, { onDelete: 'set null' }),
+  setAt: timestamp('set_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  primaryKey({ columns: [t.householdId, t.base, t.quote, t.asOf] }),
+  check('price_override_rate_positive', sql`${t.rate} > 0`),
+  check('price_override_codes', sql`${t.base} ~ '^[A-Z]{3}$' AND ${t.quote} ~ '^[A-Z]{3}$'`),
 ]);

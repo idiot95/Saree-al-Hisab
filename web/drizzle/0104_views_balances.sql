@@ -22,6 +22,7 @@ SELECT a.id,
        a.statement_day,
        a.due_day,
        a.archived_at,
+       a.owner_user_id,   -- NULL is joint; whose it is, for per-person net worth
        a.opening_balance,
        a.opening_balance + COALESCE(SUM(
          CASE

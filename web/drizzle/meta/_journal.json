@@ -239,6 +239,13 @@
       "when": 1793958712608,
       "tag": "0034_auth_identity",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1793965441954,
+      "tag": "0035_wealth",
+      "breakpoints": true
     }
   ]
 }
