@@ -96,6 +96,22 @@ Each gets its own implementation plan, branch commits and verification. The orde
 
   `Sheet.tsx` is replaced by the shadcn **Drawer** (vaul). `SwipeRow` stays: no mature library does the swipe row with a visible twin control, and it is tested.
 
+### 3.2a Rolling figures
+
+When a figure changes, its digits roll to the new value instead of jumping. Groupings and the currency symbol slide sideways as the number's width changes. This is the premium touch.
+
+- **Library:** NumberFlow (`@number-flow/react`), a maintained component built for exactly this. It formats through `Intl.NumberFormat`, so Indian grouping (`₹1,47,000`), 0/2/3-digit currencies and `AED 1,250` work through the existing `money.ts` rules. No hand-written CSS.
+- **Where it rolls** (only where a person sees a figure change in front of them; never in long lists, where it would be noise and cost frames):
+  - Add entry: the amount as it is typed, and the Save label (`Save · ₹2,340 Groceries`).
+  - Home: *Left to spend* and the pace line after a save, a delete or an Undo.
+  - Wealth: the net-worth headline and the class legend when switching Household / Me / member / Joint, and a holding's value after *Update balance* or a rate override.
+  - Plan: the month total and a budget row's figure while it is edited.
+  - Loans: *Owed to you* after Money back.
+- **On first paint** the figure renders static, server-side and correct. It rolls only on a change, never on page load, so screens don't feel slow and the server and client renders match.
+- **Accessibility:** `prefers-reduced-motion` turns rolling off (the library respects it; the plan checks it). Screen readers get the final value once, not every intermediate digit.
+- **One wrapper:** `<Figure minor={…} currency={…} />` is the only way a rolling amount is drawn. It reads `useMoney()`, so the currency rules stay in one place. Server pages pass the value to it as a prop.
+- **Checked in the plan:** NumberFlow styles its shadow DOM with constructed stylesheets. The nonce-based CSP (`style-src`) is verified against it in Chromium and WebKit before adoption. If it is blocked, the fallback is the same effect from Motion's `AnimateNumber`.
+
 ### 3.3 Platform adaptivity (one design, tuned per OS)
 
 - The root layout sets `data-platform="ios|android|other"` on `<html>`, from the request's `User-Agent` / `Sec-CH-UA-Platform` on the server, so the first paint is right.
