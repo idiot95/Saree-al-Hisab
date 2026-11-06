@@ -434,6 +434,42 @@ try {
   await page.waitForTimeout(300);
   assert.equal(await msg.innerText(), first, 'editing the form after create leaves the message as it was');
   ok('the form edited afterwards (another address, Contributing member): the message is unchanged');
+  /* A second invitation to the same address replaces the first, and is said again: the live region is emptied on
+     submit and filled on success, so a screen reader hears it though the words are the same. */
+  const watchSaid = (fragment) => page.evaluate((frag) => {
+    const el = [...document.querySelectorAll('[role=status]')].find((x) => x.className.includes('sr-only') && x.closest('main') && (x.textContent.includes(frag) || x.dataset.watch === frag));
+    el.dataset.watch = frag;
+    window.__said = [el.textContent];
+    new MutationObserver(() => window.__said.push(el.textContent)).observe(el, { childList: true, characterData: true, subtree: true });
+  }, fragment);
+  await watchSaid('Invitation ready for');
+  await page.getByLabel('Email address').fill(INVITEE);
+  await page.getByRole('button', { name: 'Create invitation' }).click();
+  await page.waitForFunction((t) => (window.__said ?? []).slice(1).includes(t), `Invitation ready for ${INVITEE}. The message to send is below.`, { timeout: 20000 });
+  const heard = await page.evaluate(() => window.__said);
+  assert.ok(heard.slice(1).includes(''), `the region was emptied before it was filled again (${JSON.stringify(heard)})`);
+  ok('a second invitation to the same address is announced again (the live region empties, then says it)');
+
+  /* The household's name saved twice, unchanged: "Household name saved." is said each time, from a live region outside
+     the redrawn form. Nothing in the books changes. */
+  await page.getByRole('button', { name: /^Rename this household/ }).click();
+  const hhName = await page.getByLabel('Household name').inputValue();
+  const saveName = async () => {
+    await page.getByRole('button', { name: 'Save', exact: true }).click();
+    await page.waitForFunction(() => (window.__said ?? []).at(-1) === 'Household name saved.', null, { timeout: 20000 });
+  };
+  await page.evaluate(() => {
+    const el = [...document.querySelectorAll('main [role=status].sr-only')].find((x) => !x.textContent.includes('Invitation'));
+    window.__said = [el.textContent];
+    new MutationObserver(() => window.__said.push(el.textContent)).observe(el, { childList: true, characterData: true, subtree: true });
+  });
+  await saveName();
+  await saveName();
+  const names = await page.evaluate(() => window.__said);
+  assert.equal(names.filter((t) => t === 'Household name saved.').length, 2, `said twice (${JSON.stringify(names)})`);
+  assert.equal(await page.getByLabel('Household name').inputValue(), hhName, 'the name is as it was');
+  await page.getByRole('button', { name: 'Cancel' }).first().click();
+  ok(`the household's name saved twice unchanged: "Household name saved." is said each time`);
 
   /* ── 6. someone owes me for this ──────────────────────────────────── */
   [claimTxn] = await sql`select t.id from txn t where t.household_id = ${hh} and t.kind = 'expense' and t.deleted_at is null

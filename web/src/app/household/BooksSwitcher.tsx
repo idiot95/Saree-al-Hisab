@@ -7,6 +7,7 @@ import { setCurrency, startAnotherHousehold, switchTo, renameHousehold } from '.
 import { Icon } from '../Icon';
 import { Card, Chevron, ghost, Glyph, row, solid, Words } from './rows';
 import { useKeepOnRefusal, useOnSuccess } from '../worth/fields';
+import { Said } from '../form-bits';
 
 type Book = { id: string; name: string; role: 'owner' | 'adult' | 'viewer'; active: boolean; people: number };
 
@@ -33,8 +34,12 @@ export default function BooksSwitcher({ books, canRename, currency, currencyFixe
      post-success reset left in the DOM. */
   const [nameRound, setNameRound] = useState(0);
   const [ccyRound, setCcyRound] = useState(0);
-  useOnSuccess(renameState, () => setNameRound((r) => r + 1));
-  useOnSuccess(ccyState, () => setCcyRound((r) => r + 1));
+  /* What a save did, said in a live region that is mounted before the text changes and sits outside the keyed
+     forms (one inside a form that was just redrawn is often not read). Cleared on each submit, so saving the same
+     thing twice is said twice. */
+  const [said, setSaid] = useState('');
+  useOnSuccess(renameState, () => { setNameRound((r) => r + 1); setSaid('Household name saved.'); });
+  useOnSuccess(ccyState, () => { setCcyRound((r) => r + 1); setSaid('Currency saved.'); });
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState(false);
   const [choosing, setChoosing] = useState(false);
@@ -42,6 +47,8 @@ export default function BooksSwitcher({ books, canRename, currency, currencyFixe
   const ccyLabel = ccy ? `${ccy.name} · ${ccy.symbol.trim()}` : currency;
 
   return (
+    <>
+    <Said>{said}</Said>
     <Card>
       {books.map((b) => (
         <div key={b.id} className="flex min-h-16 items-center gap-3 px-[var(--pad)] py-2.5">
@@ -67,11 +74,11 @@ export default function BooksSwitcher({ books, canRename, currency, currencyFixe
       ))}
 
       {canRename && (editing ? (
-        <form key={nameRound} action={renameAct} {...keepName} className="flex flex-col gap-3 px-[var(--pad)] py-4">
+        <form key={nameRound} action={renameAct} {...keepName} onSubmit={() => { setSaid(''); keepName.onSubmit(); }} className="flex flex-col gap-3 px-[var(--pad)] py-4">
           <Field label="Household name" name="name"
             defaultValue={books.find((b) => b.active)?.name} required maxLength={60} autoFocus />
           {renameState && !renameState.ok && <ErrorNote>{renameState.error}</ErrorNote>}
-          {renameState?.ok && <p role="status"><DoneWord /></p>}
+          {renameState?.ok && <DoneWord />}
           <div className="flex gap-2">
             <button type="button" onClick={() => setEditing(false)} className={ghost}>Cancel</button>
             <button type="submit" disabled={renaming} className={solid}>
@@ -92,11 +99,11 @@ export default function BooksSwitcher({ books, canRename, currency, currencyFixe
           are empty. Once fixed it is a row that says so rather than a
           control that fails. */}
       {canRename && !currencyFixed && choosing ? (
-        <form key={ccyRound} action={ccyAct} {...keepCcy} className="flex flex-col gap-3 px-[var(--pad)] py-4">
+        <form key={ccyRound} action={ccyAct} {...keepCcy} onSubmit={() => { setSaid(''); keepCcy.onSubmit(); }} className="flex flex-col gap-3 px-[var(--pad)] py-4">
           <CurrencyField defaultValue={currency} autoFocus
             hint="Every entry is recorded in this. It is fixed the moment the books hold one." />
           {ccyState && !ccyState.ok && <ErrorNote>{ccyState.error}</ErrorNote>}
-          {ccyState?.ok && <p role="status"><DoneWord /></p>}
+          {ccyState?.ok && <DoneWord />}
           <div className="flex gap-2">
             <button type="button" onClick={() => setChoosing(false)} className={ghost}>Cancel</button>
             <button type="submit" disabled={changingCcy} className={solid}>
@@ -141,6 +148,7 @@ export default function BooksSwitcher({ books, canRename, currency, currencyFixe
         </button>
       )}
     </Card>
+    </>
   );
 }
 

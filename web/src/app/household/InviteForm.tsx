@@ -30,7 +30,13 @@ export default function InviteForm({ origin, household, inviter, passwordOpen }:
   /* The redraw takes the Create button, and focus with it: focus goes to the message's heading, the thing to act
      on next, and the live region says the invitation is ready. */
   const [ready, focusReady] = useFocusSoon<HTMLElement>();
-  useOnSuccess(state, () => { setRound((r) => r + 1); focusReady(); });
+  /* Cleared on every submit and set on every success, so a second invitation to the same address (which replaces
+     the first) is said again, not left as the same unchanged text. */
+  const [said, setSaid] = useState('');
+  useOnSuccess(state, () => {
+    setRound((r) => r + 1); focusReady();
+    if (state?.ok) setSaid(`Invitation ready for ${state.email ?? 'them'}. The message to send is below.`);
+  });
   const token = state?.ok ? state.message : undefined;
   const until = state?.ok ? state.until ?? '' : '';
   const sentTo = state?.ok ? state.email ?? '' : '';
@@ -38,8 +44,8 @@ export default function InviteForm({ origin, household, inviter, passwordOpen }:
 
   return (
     <div className="flex flex-col gap-4 rounded-[18px] bg-card p-[var(--pad)]">
-      <Said>{token ? `Invitation ready for ${sentTo}. The message to send is below.` : ''}</Said>
-      <form key={round} action={act} {...keep} className="flex flex-col gap-3">
+      <Said>{said}</Said>
+      <form key={round} action={act} {...keep} onSubmit={() => { setSaid(''); keep.onSubmit(); }} className="flex flex-col gap-3">
         <Field label="Email address" name="email" type="email" inputMode="email" autoComplete="off"
           placeholder="name@example.com" required
           value={email} onChange={(e) => setEmail(e.target.value)} />
