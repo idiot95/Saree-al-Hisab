@@ -1,4 +1,5 @@
 import { headers } from 'next/headers';
+import { EmptyLine } from '../../entries/parts';
 import { redirect } from 'next/navigation';
 import { actorOrNull, captureTokensFor } from '@/db/queries';
 import PageHead, { Label } from '../../PageHead';
@@ -63,9 +64,9 @@ export default async function Capture() {
           <section aria-label="Your phones" className="flex flex-col gap-2">
             <Label>{owner ? 'Phones in this household' : 'Your phones'}</Label>
             {tokens.length === 0 ? (
-              <p className="rounded-2xl border border-dashed border-border p-4 text-sm leading-relaxed text-muted-foreground">
-                No phone is set up yet.
-              </p>
+              <EmptyLine icon="phone_iphone" className="rounded-2xl border border-dashed border-border">
+                No phone is set up yet. Add one below, and its bank messages arrive as drafts.
+              </EmptyLine>
             ) : (
               <div className="rounded-2xl border border-border bg-card px-4">
                 {tokens.map((t, i) => {

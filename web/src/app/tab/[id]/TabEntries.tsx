@@ -9,6 +9,7 @@ import BottomDrawer from '../../BottomDrawer';
 import { Button } from '@/components/ui/button';
 import { Problem } from '../../worth/fields';
 import { Chip, Icon } from '../../Icon';
+import { Empty } from '../../entries/parts';
 import { haptic } from '../../haptics';
 import { useMoney } from '@/app/currency';
 import { addBills, removeEntry, restoreEntry } from '../../entries/actions';
@@ -127,7 +128,7 @@ export default function TabEntries({
   return (
     <>
       {visible.length === 0 && (
-        <p className="px-[var(--gutter)] text-[15px] text-muted-foreground">Nothing on this tab yet.</p>
+        <Empty icon="receipt_long" text="Nothing on this tab yet. Add cost, below, puts the first one on." />
       )}
 
       {months.map((m) => (

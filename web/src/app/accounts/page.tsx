@@ -1,4 +1,5 @@
 import Link from '@/app/NavLink';
+import { EmptyLine } from '../entries/parts';
 import { redirect } from 'next/navigation';
 import { Chip, RAIL_ICON, RAIL_TINT, ACCOUNT_ICON, ACCOUNT_TINT } from '../Icon';
 import {
@@ -106,7 +107,7 @@ export default async function Accounts() {
                     <AccountLine a={a} rails={railsOn(a.id)} />
                   </EditAccount>
                 ))}
-                {everyday.length === 0 && <Empty>No accounts yet.</Empty>}
+                {everyday.length === 0 && <Empty icon="account_balance">No bank account or cash yet. Add one below.</Empty>}
               </List>
             </Section>
 
@@ -184,7 +185,7 @@ export default async function Accounts() {
                     </div>
                   </div>
                 ))}
-                {methods.length === 0 && <Empty>No apps or cards linked yet.</Empty>}
+                {methods.length === 0 && <Empty icon="qr_code_2">No apps or cards linked yet.</Empty>}
               </List>
             </Section>
             {canWrite && <AddMethod startOpen={needsMethods}
@@ -256,6 +257,6 @@ function AccountLine({ a, rails }: { a: AccountRow; rails: string[] }) {
   );
 }
 
-function Empty({ children }: { children: React.ReactNode }) {
-  return <p className="py-5 text-center text-sm text-muted-foreground">{children}</p>;
+function Empty({ icon, children }: { icon: string; children: React.ReactNode }) {
+  return <EmptyLine icon={icon} className="">{children}</EmptyLine>;
 }

@@ -1,5 +1,6 @@
 'use client';
 
+import { EmptyLine } from '../entries/parts';
 import { useState } from 'react';
 import Link from '@/app/NavLink';
 import { Figure } from '../Figure';
@@ -93,9 +94,9 @@ export default function WealthView({ views, initial, items, potRates, metalRates
       </section>
 
       {pots.length === 0 && metals.length === 0 && (
-        <p className="mx-[var(--gutter)] text-sm text-muted-foreground">
+        <EmptyLine icon="currency_exchange" className="mx-[var(--gutter)] rounded-[18px] bg-card">
           Keep a pot in another currency, or gold and silver, with + above. Each is priced in your currency every day.
-        </p>
+        </EmptyLine>
       )}
 
       {v.key === 'household' && series.length > 1 && (

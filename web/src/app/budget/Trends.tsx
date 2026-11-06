@@ -1,4 +1,5 @@
 import Link from '@/app/NavLink';
+import { EmptyLine } from '../entries/parts';
 import { Chip, Icon } from '../Icon';
 import { tabTint } from '../tab/look';
 import { format } from '@/lib/money';
@@ -73,9 +74,9 @@ export default function Trends({ month, partial, day, future, series, cats, tabs
       </div>
 
       {nothing ? (
-        <p className="mx-[var(--gutter)] rounded-[18px] bg-card px-4 py-5 text-sm leading-relaxed text-muted-foreground">
+        <EmptyLine icon="trending_flat" className="mx-[var(--gutter)] rounded-[18px] bg-card">
           {future ? `Trends start when ${long(month)} does.` : 'Nothing to chart yet. Record a few entries and this fills in.'}
-        </p>
+        </EmptyLine>
       ) : (
         <>
           {lastMonth > 0 && thisMonth > 0 && (

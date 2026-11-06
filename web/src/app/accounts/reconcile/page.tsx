@@ -1,4 +1,5 @@
 import Link from '@/app/NavLink';
+import { Empty } from '../../entries/parts';
 import { redirect } from 'next/navigation';
 import { actorOrNull, reconcileTargets } from '@/db/queries';
 import { format } from '@/lib/money';
@@ -28,7 +29,11 @@ export default async function ReconcilePicker() {
 
         <section aria-labelledby="sec-which" className="flex flex-col gap-1.5 px-[var(--gutter)] pb-8">
           <h2 id="sec-which" className="px-0.5 text-[13px] font-semibold text-muted-foreground">Which account</h2>
-          <ul className="overflow-hidden rounded-[18px] bg-card">
+          {accounts.length === 0 && (
+            <Empty icon="account_balance" inset={false} text="No account to match yet. Add your bank account first."
+              action={{ href: '/accounts', label: 'Add an account', icon: 'add' }} />
+          )}
+          <ul className="overflow-hidden rounded-[18px] bg-card empty:hidden">
             {accounts.map((a) => {
               const bal = Number(a.balance);
               const credit = a.kind === 'credit';

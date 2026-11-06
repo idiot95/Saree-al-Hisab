@@ -1,4 +1,5 @@
 import { notFound, redirect } from 'next/navigation';
+import { EmptyLine } from '../../entries/parts';
 import {
   actorOrNull, attachmentsForTxns, categoriesFor, claimsFor, personById, personLedger,
 } from '@/db/queries';
@@ -130,7 +131,7 @@ export default async function Person({ params }: { params: Promise<{ id: string 
           <section aria-label="Money lent and returned" className="mx-[var(--gutter)] flex flex-col gap-1.5">
             <h2 className="px-0.5 text-[13px] font-semibold text-muted-foreground">Money lent and returned</h2>
             {ledger.length === 0 ? (
-              <p className="rounded-[18px] bg-card px-3.5 py-4 text-[13px] text-muted-foreground">Nothing between you yet.</p>
+              <EmptyLine icon="handshake">Nothing lent or returned between you yet.</EmptyLine>
             ) : (
               <ul className="overflow-hidden rounded-[18px] bg-card">
                 {ledger.map((e) => {

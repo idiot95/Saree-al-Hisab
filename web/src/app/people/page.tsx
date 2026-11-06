@@ -1,4 +1,5 @@
 import Link from '@/app/NavLink';
+import { Empty } from '../entries/parts';
 import { redirect } from 'next/navigation';
 import { actorOrNull, claimsFor, peopleFor, receiptsByMonth, tabList, type TabRow } from '@/db/queries';
 import { withHousehold } from '@/db/client';
@@ -80,6 +81,11 @@ export default async function LoanCentre() {
                   ].filter(Boolean).join(' · ')}
             </span>
           </section>
+
+          {tabs.length === 0 && lent.length === 0 && (
+            /* Nothing to list yet: what would be here, and where to start (New tab, in the header). */
+            <Empty icon="group" inset={false} text={canWrite ? 'No tabs yet. New tab, above, starts one.' : 'No tabs yet.'} />
+          )}
 
           {open.length > 0 && (
             <section aria-label="Open tabs" className="flex flex-col gap-1.5">
