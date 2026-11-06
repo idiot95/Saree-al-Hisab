@@ -232,6 +232,13 @@
       "when": 1789285805383,
       "tag": "0033_reconciliation",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1793958712608,
+      "tag": "0034_auth_identity",
+      "breakpoints": true
     }
   ]
 }

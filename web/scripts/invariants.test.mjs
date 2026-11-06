@@ -38,7 +38,8 @@ async function allows(what, fn) {
 // a crash. Everything below is namespaced to a test household and two phones.
 const PHONES = ['+910000000001', '+910000000002', '+910000000003'];
 const EMAILS = ['invited@invariant.test', 'someone.else@invariant.test',
-                'passing@invariant.test', 'negative@invariant.test'];
+                'passing@invariant.test', 'negative@invariant.test',
+                'google.a@invariant.test', 'google.b@invariant.test'];
 await sql`delete from household where name = 'Invariant test'`;
 // A crashed run can leave reset links behind; they hold their user in place.
 await sql`delete from password_reset where user_id in
@@ -722,6 +723,21 @@ await sql`delete from app_user where id = ${passer.id}`;
 const orphanResets = (await sql`select count(*)::int as n from password_reset where user_id = ${passer.id}`)[0].n;
 ok(orphanResets === 0, 'deleting an account with no entries takes its reset links with it');
 
+console.log('\nGOOGLE IDENTITY — a Google account is keyed on its sub, one per person');
+{
+  const [a] = await sql`insert into app_user ${sql({ email: 'google.a@invariant.test', name: 'Google A' })} returning id`;
+  const [b] = await sql`insert into app_user ${sql({ email: 'google.b@invariant.test', name: 'Google B' })} returning id`;
+  const link = (user_id, subject) => sql`insert into auth_identity ${sql({ user_id, provider: 'google', subject, email_at_link: 'x@invariant.test' })}`;
+  await link(a.id, 'sub-1');
+  await refuses('one Google account cannot belong to two people', () => link(b.id, 'sub-1'));
+  await refuses('one person cannot link two Google accounts', () => link(a.id, 'sub-2'));
+  await refuses('only Google is a provider',
+    () => sql`insert into auth_identity ${sql({ user_id: b.id, provider: 'github', subject: 'sub-3', email_at_link: 'x@invariant.test' })}`);
+  await sql`delete from app_user where id in (${a.id}, ${b.id})`;
+  const left = (await sql`select count(*)::int as n from auth_identity where subject = 'sub-1'`)[0].n;
+  ok(left === 0, 'deleting a person takes their linked Google account with it');
+}
+
 console.log('\nROW SECURITY — Postgres itself refuses another household\'s rows');
 /* The catalogue first: every table keyed by a household is under a policy,
    every view runs as its caller, and the set left open is exactly the
@@ -742,7 +758,7 @@ console.log('\nROW SECURITY — Postgres itself refuses another household\'s row
   ok(unguarded.length === 0,
     `every table keyed by a household, and every child of one, is under a forced policy${unguarded.length ? ': not ' + unguarded.map((r) => r.name).join(', ') : ''}`);
   const open = tables.filter((r) => !covered(r)).map((r) => r.name).sort().join(' ');
-  ok(open === '_migration app_user device password_reset rate_limit',
+  ok(open === '_migration app_user auth_identity device password_reset rate_limit',
     `the tables left open are exactly the ones keyed by a person or a token (${open})`);
   const blind = views.filter((v) => !v.invoker).map((v) => v.name);
   ok(views.length >= 13 && blind.length === 0,

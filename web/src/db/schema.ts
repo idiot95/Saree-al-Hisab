@@ -1,6 +1,6 @@
 import {
   pgTable, pgEnum, uuid, text, integer, bigint, date, timestamp,
-  boolean, jsonb, index, uniqueIndex, check, foreignKey, customType,
+  boolean, jsonb, index, uniqueIndex, check, foreignKey, customType, primaryKey, unique,
 } from 'drizzle-orm/pg-core';
 import type { AnyPgColumn } from 'drizzle-orm/pg-core';
 import { sql, relations } from 'drizzle-orm';
@@ -156,6 +156,23 @@ export const passwordReset = pgTable('password_reset', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [
   index('password_reset_user').on(t.userId),
+]);
+
+/* A Google account, keyed on its `sub` — the one claim Google promises never
+   changes or gets reused; the address can. A sub belongs to exactly one
+   person, and a person links at most one Google account. `email_at_link` is
+   a note of what the address was then, never a way to find someone. Keyed by
+   a person, like app_user, so it has no row policy. */
+export const authIdentity = pgTable('auth_identity', {
+  userId: uuid('user_id').notNull().references(() => appUser.id, { onDelete: 'cascade' }),
+  provider: text('provider').notNull(),
+  subject: text('subject').notNull(),
+  emailAtLink: text('email_at_link').notNull(),
+  linkedAt: timestamp('linked_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  primaryKey({ columns: [t.provider, t.subject] }),
+  unique('auth_identity_user_provider').on(t.userId, t.provider),
+  check('auth_identity_provider', sql`${t.provider} in ('google')`),
 ]);
 
 export const account = pgTable('account', {
