@@ -24,16 +24,6 @@ export async function membershipOf(userId: string): Promise<Membership | null> {
   return c && c.household_id ? { household_id: c.household_id, role: c.role! } : null;
 }
 
-/** Where this person stands in this one household, or null when they are
- *  not in it. For callers that already hold a household id from something
- *  other than a session (an SMS capture token), so a token issued to someone
- *  since removed, or dropped to viewer, stops working on the next request. */
-export async function roleIn(userId: string, householdId: string): Promise<Role | null> {
-  const [m] = await sql`
-    select role from member where user_id = ${userId} and household_id = ${householdId}`;
-  return (m?.role as Role | undefined) ?? null;
-}
-
 export type PageContext = {
   household_id: string | null;
   role: Role | null;

@@ -122,7 +122,8 @@ export async function readSmsWithModel(key: string, text: string): Promise<Scann
       headers: { 'x-goog-api-key': key, 'Content-Type': 'application/json' },
       signal: AbortSignal.timeout(4_000),
       body: JSON.stringify({
-        contents: [{ parts: [{ text: SMS_PROMPT }, { text }] }],
+        systemInstruction: { parts: [{ text: SMS_PROMPT }] },
+        contents: [{ role: 'user', parts: [{ text: `<sms>${JSON.stringify(text)}</sms>` }] }],
         generationConfig: { responseMimeType: 'application/json', temperature: 0 },
       }),
     });

@@ -39,8 +39,12 @@ export async function revokeCaptureToken(householdId: string, id: string): Promi
   });
 }
 
-/** The live token this plaintext names, or null. Compared by hash lookup only. */
+/** The live token this plaintext names, held by someone still a member of
+ *  its household and not a viewer — or null, for every one of those reasons
+ *  alike (capture_lookup, 0113). Compared by hash lookup only. */
 export async function lookupCaptureToken(token: string): Promise<CaptureTokenRow | null> {
+  // The identity pool: there is no household to scope by until this answers;
+  // the definer function is the only thing it may reach under capture_token's policy.
   const [row] = await identity`select id, user_id, household_id from capture_lookup(${hashCaptureToken(token)})`;
   return (row as CaptureTokenRow | undefined) ?? null;
 }
@@ -68,6 +72,17 @@ export async function insertDraft(householdId: string, userId: string, d: Draft)
       on conflict (household_id, body_hash) do nothing
       returning id`;
     return rows.length === 1;
+  });
+}
+
+/** Is this message already a draft here? Asked before spending the
+ *  household's model quota on it; on conflict in insertDraft stays the guard
+ *  against two arriving at once. */
+export async function draftExists(householdId: string, body: string): Promise<boolean> {
+  return withHousehold(householdId, async () => {
+    const rows = await sql`select 1 from sms_draft
+                           where household_id = ${householdId} and body_hash = ${bodyHash(body)}`;
+    return rows.length > 0;
   });
 }
 

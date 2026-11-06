@@ -96,9 +96,9 @@ export const config = {
        /signin where a woff2 was expected is a silently missing typeface —
        which is how the Arabic line came back in a fallback face the first
        time this shipped.
-       `api/capture` is the SMS endpoint a phone posts to with a bearer token:
+       `api/capture/` (with its slash, so /api/captureX is still covered) is the SMS endpoint a phone posts to with a bearer token:
        no session to redirect for, JSON rather than a page so no CSP or nonce,
        and nothing here may set a cookie on it. */
-    '/((?!_next/static|_next/image|icons|brands|fonts|manifest.webmanifest|favicon.ico|sw.js|api/capture).*)',
+    '/((?!_next/static|_next/image|icons|brands|fonts|manifest.webmanifest|favicon.ico|sw.js|api/capture/).*)',
   ],
 };

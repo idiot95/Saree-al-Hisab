@@ -1,6 +1,5 @@
 import { withHousehold } from '@/db/client';
-import { insertDraft, lookupCaptureToken, touchCaptureToken } from '@/db/capture';
-import { roleIn } from '@/db/membership';
+import { draftExists, insertDraft, lookupCaptureToken, touchCaptureToken } from '@/db/capture';
 import { tooManyIn } from '@/db/rate-limit';
 import { geminiKeyFor } from '@/db/queries';
 import { readSmsWithModel } from '@/db/gemini';
@@ -14,7 +13,7 @@ import { isOtp, parseSms, validateCapture, type ParsedSms } from '@/lib/sms';
 
    The answer is a bare status and an empty body, always: 401 for anything
    wrong with who is asking, 413 over 2 KB of bytes, 400 for a body that is not
-   the JSON we take, 429 past 60 an hour for one token, and 202 for everything
+   the JSON we take or has not all arrived within five seconds, 429 past 60 an hour for one token, and 202 for everything
    else — a new draft, a duplicate, a one-time password that was dropped, a
    message nothing could be read from. Which of those it was is nobody's
    business but the household's. Logs carry the status and a reason code;
@@ -25,6 +24,7 @@ import { isOtp, parseSms, validateCapture, type ParsedSms } from '@/lib/sms';
    browser, and a browser on another origin should be refused. */
 
 const MAX_BYTES = 2048;
+const READ_MS = 5_000;
 const PER_HOUR = 60;
 const BEARER = /^Bearer ([A-Za-z0-9_-]{43})$/i;
 
@@ -36,17 +36,26 @@ function refuse(status: number, reason: string) {
   return bare(status);
 }
 
-/** The raw body, or 'over' once it passes the cap — counted in bytes as they
- *  arrive, so a body with no Content-Length (or a false one) is cut off too. */
-async function readCapped(req: Request): Promise<Uint8Array | 'over'> {
+/** The raw body, 'over' once it passes the cap, or 'slow' when it has not
+ *  all arrived within READ_MS. Counted in bytes as they arrive, so a body with
+ *  no Content-Length (or a false one) is cut off too; the deadline stops a
+ *  caller holding a connection open by trickling it. */
+async function readCapped(req: Request): Promise<Uint8Array | 'over' | 'slow'> {
   const declared = req.headers.get('content-length');
   if (declared !== null && Number(declared) > MAX_BYTES) return 'over';
   if (!req.body) return new Uint8Array(0);
   const reader = req.body.getReader();
+  const deadline = AbortSignal.timeout(READ_MS);
+  const late = new Promise<'slow'>((resolve) => deadline.addEventListener('abort', () => resolve('slow'), { once: true }));
   const chunks: Uint8Array[] = [];
   let size = 0;
   for (;;) {
-    const { done, value } = await reader.read();
+    const next = await Promise.race([reader.read(), late]);
+    if (next === 'slow') {
+      await reader.cancel().catch(() => {});
+      return 'slow';
+    }
+    const { done, value } = next;
     if (done) break;
     size += value.byteLength;
     if (size > MAX_BYTES) {
@@ -96,12 +105,13 @@ export async function POST(req: Request): Promise<Response> {
   try {
     // 1. The header's shape. Nothing else is looked at without one.
     const m = BEARER.exec(req.headers.get('authorization') ?? '');
-    if (!m) return refuse(401, 'header');
+    if (!m) return bare(401);   // not logged: scanners and stray requests are noise
     const token = m[1];
 
     // 2. The byte cap, before anything is parsed.
     const raw = await readCapped(req);
     if (raw === 'over') return refuse(413, 'size');
+    if (raw === 'slow') return refuse(400, 'slow');
 
     // 3. JSON, and the shape we take.
     let json: unknown;
@@ -113,14 +123,11 @@ export async function POST(req: Request): Promise<Response> {
     const capture = validateCapture(json);
     if ('error' in capture) return refuse(400, capture.error);
 
-    // 4. The token, by its hash only.
+    // 4–5. The token, by its hash only, live, and held by someone still in
+    // that household who may write there: one query, one reason, so an
+    // unknown, revoked, removed and viewer token cannot be told apart.
     const t = await lookupCaptureToken(token);
     if (!t) return refuse(401, 'token');
-
-    // 5. Its person is still in that household, and may write there.
-    const role = await roleIn(t.user_id, t.household_id);
-    if (!role) return refuse(401, 'member');
-    if (role === 'viewer') return refuse(401, 'role');
 
     // 6. Sixty an hour, per token.
     const wait = await tooManyIn(`capture:${t.id}`, PER_HOUR, 60 * 60);
@@ -142,7 +149,8 @@ export async function POST(req: Request): Promise<Response> {
 
     // 9. The model, only for a message with no direction and a household key.
     let via: 'sms' | 'model' = 'sms';
-    if (parsed.direction === null) {
+    // A message already stored is not worth the household's quota twice.
+    if (parsed.direction === null && !(await draftExists(t.household_id, capture.text))) {
       const better = await withModel(t.household_id, capture.text, parsed);
       if (better) { parsed = better; via = 'model'; }
     }

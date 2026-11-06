@@ -97,6 +97,21 @@ try {
     const text = await r.text(); bodies.push({ status: r.status, text, r });
     ok(r.status === 413, `a chunked body over 2048 bytes (${big.byteLength}) → 413`);
   }
+  {
+    // A body that trickles: half now, the rest after the five-second read deadline.
+    const part = new TextEncoder().encode(JSON.stringify({ text: HDFC }));
+    let sent = 0;
+    const stream = new ReadableStream({ async pull(c) {
+      if (sent === 0) { c.enqueue(part.slice(0, 20)); sent = 1; return; }
+      await new Promise((r) => setTimeout(r, 6500));
+      try { c.enqueue(part.slice(20)); c.close(); } catch { /* the server hung up */ }
+    } });
+    const r = await fetch(EP, { method: 'POST', body: stream, duplex: 'half', redirect: 'manual',
+      headers: { 'content-type': 'application/json', authorization: `Bearer ${main.t}` } }).catch(() => null);
+    const text = r ? await r.text().catch(() => '') : '';
+    if (r) bodies.push({ status: r.status, text, r });
+    ok(r?.status === 400, `a body still arriving after five seconds → 400 (${r?.status})`);
+  }
   ok(await drafts() === 0, 'and none of those stored anything');
 
   // ── a real message ────────────────────────────────────────────────────
@@ -165,6 +180,15 @@ try {
   ok(bodies.every((b) => ![...b.r.headers.keys()].some((k) => k.startsWith('access-control-'))), 'no response carries a CORS header');
   ok(bodies.every((b) => !b.r.headers.has('content-security-policy')), 'no response carries the page CSP');
   ok(bodies.every((b) => b.r.headers.get('location') === null), 'no response redirects');
+
+  // ── the proxy skips exactly /api/capture/, nothing beside it ─────────
+  const sms = await fetch(EP, { method: 'POST', redirect: 'manual', body: json,
+    headers: { 'content-type': 'application/json', authorization: `Bearer ${main.t}` } });
+  ok(!sms.headers.has('content-security-policy') && sms.headers.getSetCookie().length === 0,
+    '/api/capture/sms has no page CSP and sets no cookie');
+  const near = await fetch(B + '/api/captureX', { redirect: 'manual' });
+  ok(/nonce-/.test(near.headers.get('content-security-policy') ?? ''),
+    `/api/captureX is still under the proxy: it carries the page CSP (${near.status})`);
 } finally {
   await sql`delete from rate_limit where bucket in ${sql([main, burst, revoked, view, removed].map((t) => `capture:${t.id}`))}`;
   await sql`delete from household where id = ${hh.id}`;            // cascades tokens and drafts

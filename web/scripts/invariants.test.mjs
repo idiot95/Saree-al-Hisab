@@ -54,7 +54,7 @@ async function allows(what, fn) {
 // ── a household to work in ─────────────────────────────────────────────────
 // Clear anything a previous run left behind, so this is repeatable even after
 // a crash. Everything below is namespaced to a test household and two phones.
-const PHONES = ['+910000000001', '+910000000002', '+910000000003'];
+const PHONES = ['+910000000001', '+910000000002', '+910000000003', '+910000000004'];
 const EMAILS = ['invited@invariant.test', 'someone.else@invariant.test',
                 'passing@invariant.test', 'negative@invariant.test',
                 'google.a@invariant.test', 'google.b@invariant.test',
@@ -956,7 +956,12 @@ try {
   await refusesWith('a snapshot filed under another household than its holding is refused', /same_household/,
     () => sql`insert into holding_snapshot ${sql({ holding_id: kwd, household_id: elsewhere.id, as_of: yesterday, quantity: 1 })}`);
 
-  ok((await valued(kwd)).value_minor === null, 'with a snapshot but no rate, value_minor is NULL');
+  /* Asked of XTS, which no real quote names: a real KWD rate cached in price_quote by the app
+     must not decide this. */
+  const unrated = await pot({ currency: 'XTS', name: 'No rate' });
+  await snap(unrated, 1500);
+  ok((await valued(unrated)).value_minor === null, 'with a snapshot but no rate, value_minor is NULL');
+  await sql`delete from holding where id = ${unrated}`;
   await snap(kwd, 9999, tomorrow);
   const fut = await valued(kwd);
   ok(Number(fut.q) === 1500 && fut.as_of === today,
@@ -1322,6 +1327,18 @@ try {
     await sql`update capture_token set revoked_at = now() where token_hash = ${HEX('b')}`;
     ok((await app`select * from capture_lookup(${HEX('b')})`).length === 0, 'and none for a revoked token');
     await sql`update capture_token set revoked_at = null where token_hash = ${HEX('b')}`;
+    /* Membership is part of the lookup (0113), so every refusal about who is asking is one query. */
+    const [ph] = await sql`insert into app_user ${sql({ phone: '+910000000004', name: 'Phone owner' })} returning id`;
+    await sql`insert into member ${sql({ household_id: hh.id, user_id: ph.id, role: 'viewer' })}`;
+    await sql`insert into capture_token ${sql({ user_id: ph.id, household_id: hh.id, token_hash: HEX('5'), label: 'Viewer phone' })}`;
+    ok((await app`select * from capture_lookup(${HEX('5')})`).length === 0, "and none for a viewer's token");
+    await sql`update member set role = 'adult' where household_id = ${hh.id} and user_id = ${ph.id}`;
+    ok((await app`select * from capture_lookup(${HEX('5')})`).length === 1, 'the same token answers once its person may write');
+    await sql`delete from member where household_id = ${hh.id} and user_id = ${ph.id}`;
+    ok((await app`select * from capture_lookup(${HEX('5')})`).length === 0,
+      'and none for a token whose person was removed from the household');
+    await sql`delete from capture_token where token_hash = ${HEX('5')}`;
+    await sql`delete from app_user where id = ${ph.id}`;
     ok((await app`select count(*)::int as n from pg_proc p join pg_roles r on r.oid = p.proowner
       where p.proname = 'capture_lookup' and p.prosecdef and r.rolname <> current_user`)[0].n === 1,
       'capture_lookup is a security-definer function owned by the owner, not the app role');
