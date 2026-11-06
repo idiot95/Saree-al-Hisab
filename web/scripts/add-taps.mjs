@@ -21,6 +21,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import assert from 'node:assert/strict';
+import { localOwnerUrl } from './local-only.mjs';
 
 const require = createRequire(import.meta.url);
 const { chromium, devices } = require('playwright');
@@ -35,8 +36,7 @@ const LOGIN = arg('--login') ?? 'ammar@example.com:Correct-horse-9';
 const SHOTS = arg('--shots');
 const KEEP = argv.includes('--keep');
 
-const env = fs.readFileSync(path.join(ROOT, '.env.local'), 'utf8');
-const url = /^OWNER_DATABASE_URL="?([^"\n]+)/m.exec(env)[1];
+const url = localOwnerUrl(ROOT);
 const sql = postgres(url, { ssl: 'require', max: 1, onnotice: () => {} });
 
 const email = LOGIN.slice(0, LOGIN.indexOf(':')), password = LOGIN.slice(LOGIN.indexOf(':') + 1);

@@ -233,6 +233,11 @@ The in-place forms share `src/app/form-bits.tsx` (`fieldLabel`, `selectCls`, `fo
 next start -p 3000`; offline-taps needs exactly that, a production build) with a signed-in Playwright state in
 `.sweep-state.json`, which `node scripts/sweep.mjs --login ammar@example.com:Correct-horse-9` writes. Each reads
 `OWNER_DATABASE_URL` from `.env.local` to check what landed, and removes everything it made, even on a failure.
+**They run against a local database only**: every script that writes (the taps, frames.check, drawers.check,
+capture.test, prices.check, revocation.check) takes `scripts/local-only.mjs` first, which exits 2 unless both the
+owner and the app URL are on `localhost` or `127.0.0.1` — on the owner's laptop `.env.local` names production. There
+is no override. Each cleanup deletes only rows the run made, by id or by a run-unique name, note or message stamp
+(sms-taps clears only its own keys' `capture:<id>` rate limits).
 - `npm run sweep -- [--routes /,/add] [--engine chromium|webkit|all] [--out dir] [--csp] [--signed-in-links]
   [--note text]`: every route at 360×780, 375×667, 393×852, 412×915 and 430×932 (iPhone and Pixel emulation), light
   and dark: no sideways scroll, no fixed bar over text at rest, no ellipsis unless opted in (`data-truncate-ok`), tap

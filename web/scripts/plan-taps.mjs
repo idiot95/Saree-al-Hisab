@@ -18,10 +18,10 @@
    The budget set this run made is deleted and this month's and later budget rows are put back as they were,
    unless --keep.                                                                                              */
 import { createRequire } from 'node:module';
-import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import assert from 'node:assert/strict';
+import { localOwnerUrl } from './local-only.mjs';
 
 const require = createRequire(import.meta.url);
 const { chromium, devices } = require('playwright');
@@ -35,8 +35,7 @@ const arg = (k) => { const i = argv.indexOf(k); return i >= 0 ? argv[i + 1] : nu
 const STATE = arg('--state') ?? path.join(ROOT, '.sweep-state.json');
 const KEEP = argv.includes('--keep');
 
-const env = fs.readFileSync(path.join(ROOT, '.env.local'), 'utf8');
-const sql = postgres(/^OWNER_DATABASE_URL="?([^"\n]+)/m.exec(env)[1], { ssl: 'require', max: 1, onnotice: () => {} });
+const sql = postgres(localOwnerUrl(ROOT), { ssl: 'require', max: 1, onnotice: () => {} });
 
 let n = 0;
 const ok = (what) => { n++; console.log(`  ok   ${what}`); };
@@ -181,11 +180,29 @@ try {
 } finally {
   if (!KEEP && hh) {
     await sql.begin(async (tx) => {
+      /* The run's own sets, by their run-unique names. Then the budget from this month on is put back to the snapshot
+         taken before the run, touching only rows that differ from it: a row the run's Make current or Adjust wrote
+         where there was none is deleted by its (category, month); a changed amount is set back; a row the run
+         cleared is written again. A row the run did not change is left alone. */
       await tx`delete from budget_set where household_id = ${hh} and name in (${NAME}, ${NAME2})`;
-      await tx`delete from budget where household_id = ${hh} and month >= ${MONTH}::date`;
-      for (const c of wasCurrent) await tx`update budget_set set current_at = ${c.current_at} where id = ${c.id}`;
+      const key = (r) => `${r.category_id}|${new Date(r.month).toISOString().slice(0, 10)}`;
+      const before = new Map(saved.map((r) => [key(r), r]));
+      const nowRows = await tx`select category_id, month, amount from budget where household_id = ${hh} and month >= ${MONTH}::date`;
+      const present = new Set(nowRows.map(key));
+      for (const r of nowRows) {
+        const was = before.get(key(r));
+        if (!was) await tx`delete from budget where household_id = ${hh} and category_id = ${r.category_id} and month = ${r.month}`;
+        else if (String(was.amount) !== String(r.amount)) {
+          await tx`update budget set amount = ${was.amount} where household_id = ${hh} and category_id = ${r.category_id} and month = ${r.month}`;
+        }
+      }
       for (const r of saved) {
-        await tx`insert into budget (household_id, category_id, month, amount) values (${hh}, ${r.category_id}, ${r.month}, ${r.amount})`;
+        if (!present.has(key(r))) {
+          await tx`insert into budget (household_id, category_id, month, amount) values (${hh}, ${r.category_id}, ${r.month}, ${r.amount})`;
+        }
+      }
+      for (const c of wasCurrent) {
+        await tx`update budget_set set current_at = ${c.current_at} where id = ${c.id} and current_at is distinct from ${c.current_at}`;
       }
     });
   }

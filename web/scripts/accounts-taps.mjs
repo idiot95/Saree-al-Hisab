@@ -33,6 +33,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import assert from 'node:assert/strict';
+import { localOwnerUrl } from './local-only.mjs';
 
 const require = createRequire(import.meta.url);
 const { chromium, devices } = require('playwright');
@@ -49,8 +50,7 @@ const STATE = arg('--state') ?? path.join(ROOT, '.sweep-state.json');
    Pixel, light and dark. */
 const SHOTS = arg('--shots');
 
-const env = fs.readFileSync(path.join(ROOT, '.env.local'), 'utf8');
-const sql = postgres(/^OWNER_DATABASE_URL="?([^"\n]+)/m.exec(env)[1], { ssl: 'require', max: 1, onnotice: () => {} });
+const sql = postgres(localOwnerUrl(ROOT), { ssl: 'require', max: 1, onnotice: () => {} });
 
 let n = 0;
 const ok = (what) => { n++; console.log(`  ok   ${what}`); };
@@ -98,12 +98,14 @@ async function closedWell(where, text) {
   assert.ok(now.includes(where), `focus is on "${where}" (it is on "${now}")`);
 }
 let hh = null;
+let started = null;     // the database's clock when the run began
 let acc = null;          // { id, name, opening }
 let madeRecon = null;    // the reconciliation this run made, and its adjustment entry, for the cleanup
 let madeAdjust = null;
 let cat = null;          // { id, name }
 
 try {
+  [{ started }] = await sql`select now() as started`;
   [{ hh }] = await sql`select active_household_id as hh from app_user where lower(email) = lower(${EMAIL})`;
   /* A bank account picked by what it holds, not by its name: the live spending account in credit (so "₹1 above the
      books" is ₹1 more on the statement) with the most entries. */
@@ -132,9 +134,9 @@ try {
   await page.goto(`${BASE}/people`);
   const loansOwed = await figureIn(page.getByRole('region', { name: 'Owed to you' })).getAttribute('aria-label');
   await page.goto(`${BASE}/accounts`);
-  const card = page.getByRole('link', { name: 'Net worth, open Wealth' });
-  const accountsWorth = await figureIn(card).getAttribute('aria-label');
-  const mini = (term) => card.locator('dl > div').filter({ has: page.locator('dt', { hasText: exactly(term) }) }).getByRole('img');
+  const worthCard = page.getByRole('link', { name: 'Net worth, open Wealth' });
+  const accountsWorth = await figureIn(worthCard).getAttribute('aria-label');
+  const mini = (term) => worthCard.locator('dl > div').filter({ has: page.locator('dt', { hasText: exactly(term) }) }).getByRole('img');
   const accountsOwed = await mini('Owed to you').getAttribute('aria-label');
   const [{ holdings }] = await sql`select coalesce(sum(value_minor), 0)::text as holdings
     from holding_value where household_id = ${hh} and archived_at is null`;
@@ -596,7 +598,8 @@ try {
       if (cat) await tx`update category set name = ${cat.name} where id = ${cat.id} and name <> ${cat.name}`;
       await tx`delete from invite where household_id = ${hh} and email in (${INVITEE}, ${`other-${INVITEE}`})`;
       await tx`delete from category where household_id = ${hh} and name = ${NEWCAT}`;
-      if (claimTxn) await tx`delete from claim where txn_id = ${claimTxn.id} and created_at >= now() - interval '1 hour'`;
+      /* claimTxn was picked because it had no claim at all, so a claim on it made since the run began is this run's. */
+      if (claimTxn) await tx`delete from claim where txn_id = ${claimTxn.id} and created_at >= ${started}`;
     });
   }
   await browser.close();

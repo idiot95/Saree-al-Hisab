@@ -3,7 +3,7 @@
 
      node scripts/sms-taps.mjs [--state file] [--shots dir] [--keep]
 
-   Env: SMS_BASE (default http://localhost:3000). Reads OWNER_DATABASE_URL from .env.local to check what landed.
+   Env: SMS_BASE (default http://localhost:3000), SMS_EMAIL (default ammar@example.com, the person --state is). Reads OWNER_DATABASE_URL from .env.local to check what landed.
    --state is a signed-in Playwright storage state (default .sweep-state.json) for an owner or contributing member.
 
    1. Household → SMS capture: Add a phone, and read the key it shows once.
@@ -18,9 +18,11 @@
    393x852 and Pixel 412x915, light and dark. Rows this run wrote are removed unless --keep.                   */
 import { createRequire } from 'node:module';
 import fs from 'node:fs';
+import { createHash } from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import assert from 'node:assert/strict';
+import { localOwnerUrl } from './local-only.mjs';
 
 const require = createRequire(import.meta.url);
 const { chromium, devices } = require('playwright');
@@ -36,11 +38,12 @@ const SHOTS = arg('--shots');
 const KEEP = argv.includes('--keep');
 if (SHOTS) fs.mkdirSync(SHOTS, { recursive: true });
 
-const env = fs.readFileSync(path.join(ROOT, '.env.local'), 'utf8');
-const sql = postgres(/^OWNER_DATABASE_URL="?([^"\n]+)/m.exec(env)[1], { ssl: 'require', max: 1, onnotice: () => {} });
+const sql = postgres(localOwnerUrl(ROOT), { ssl: 'require', max: 1, onnotice: () => {} });
 
 const started = (await sql`select now() as t`)[0].t;
 const stamp = Date.now().toString(36);
+/* What the endpoint keys a draft by (lib/sms.ts bodyHash), so the cleanup can name this run's drafts exactly. */
+const bodyHash = (text) => createHash('sha256').update(text.trim().replace(/\s+/g, ' ')).digest('hex');
 
 let n = 0;
 const ok = (what) => { n++; console.log(`  ok   ${what}`); };
@@ -72,8 +75,13 @@ async function addPhone(page, label) {
   return (await key.innerText()).trim();
 }
 
-const [hdfc] = await sql`select id, household_id from real_account where name = 'HDFC Savings' and last4 = '4471' and archived_at is null`;
-assert.ok(hdfc, 'the seeded books have HDFC Savings ending 4471');
+/* The household is the signed-in person's (SMS_EMAIL, the one --state signs in as), never whichever household in
+   the database happens to hold an account by that name. */
+const EMAIL = process.env.SMS_EMAIL || 'ammar@example.com';
+const [hdfc] = await sql`select ra.id, ra.household_id from real_account ra
+  join app_user u on u.active_household_id = ra.household_id and lower(u.email) = lower(${EMAIL})
+  where ra.name = 'HDFC Savings' and ra.last4 = '4471' and ra.archived_at is null`;
+assert.ok(hdfc, `${EMAIL}'s seeded books have HDFC Savings ending 4471`);
 const HH = hdfc.household_id;
 const DEBIT = `Sent Rs.450.00 From HDFC Bank A/c XX4471 To ZOMATO On 06/11/26 Ref 61${stamp}. Not you? Call 18002586161`;
 const CREDIT = `Rs.1,200.00 credited to HDFC Bank A/c XX4471 on 05-11-26 by VPA ravi@okaxis (UPI Ref No 51${stamp}).`;
@@ -97,7 +105,8 @@ try {
   assert.equal((await post(token, { text: DEBIT, sender: 'AD-HDFCBK', received_at: new Date().toISOString() })).status, 202);
   assert.equal((await post(token, { text: CREDIT, sender: 'AD-HDFCBK' })).status, 202);
   ok('two bank messages POSTed with the key: 202 each');
-  const drafts = await sql`select id, status, body, parsed from sms_draft where household_id = ${HH} and created_at >= ${started} order by created_at`;
+  const drafts = await sql`select id, status, body, parsed from sms_draft
+    where household_id = ${HH} and body_hash in ${sql([DEBIT, CREDIT].map(bodyHash))} order by created_at`;
   assert.equal(drafts.length, 2);
   const [debit, credit] = drafts;
   assert.equal(debit.parsed.amountMinor, 45000);
@@ -192,7 +201,7 @@ try {
           await p.waitForTimeout(300);
           await p.screenshot({ path: at('3-add-prefilled') });
         }
-        await addPhone(p, `Shot ${name} ${theme}`);
+        await addPhone(p, `Shot ${name} ${theme} ${stamp}`);
         await settle(p);
         await p.screenshot({ path: at('4-setup-key'), fullPage: true });
         await p.getByRole('tab', { name: 'Android' }).click();
@@ -263,12 +272,19 @@ try {
 } finally {
   await browser.close();
   if (!KEEP) {
-    const ids = (await sql`select id, txn_id from sms_draft where household_id = ${HH} and created_at >= ${started}`);
-    const txns = ids.map((r) => r.txn_id).filter(Boolean);
-    await sql`delete from sms_draft where household_id = ${HH} and created_at >= ${started}`;
-    if (txns.length) await sql`delete from txn where id in ${sql(txns)}`;
-    await sql`delete from capture_token where household_id = ${HH} and created_at >= ${started}`;
-    await sql`delete from rate_limit where bucket like 'capture:%'`.catch(() => {});
+    /* Only what this run made: its drafts by the hash of the three messages it sent (each carries the run's stamp),
+       the entries those drafts became, its keys by their stamped labels, and those keys' own rate-limit buckets. */
+    const hashes = [DEBIT, CREDIT, `${DEBIT} again`].map(bodyHash);
+    const drafts = await sql`select id, txn_id from sms_draft where household_id = ${HH} and body_hash in ${sql(hashes)}`;
+    const txns = drafts.map((r) => r.txn_id).filter(Boolean);
+    if (drafts.length) await sql`delete from sms_draft where id in ${sql(drafts.map((r) => r.id))}`;
+    if (txns.length) await sql`delete from txn where id in ${sql(txns)} and household_id = ${HH}`;
+    const keys = await sql`select id from capture_token where household_id = ${HH} and created_at >= ${started}
+      and (label = ${`E2E phone ${stamp}`} or label like ${`Shot % ${stamp}`})`;
+    if (keys.length) {
+      await sql`delete from rate_limit where bucket in ${sql(keys.map((k) => `capture:${k.id}`))}`.catch(() => {});
+      await sql`delete from capture_token where id in ${sql(keys.map((k) => k.id))}`;
+    }
   }
   await sql.end();
 }

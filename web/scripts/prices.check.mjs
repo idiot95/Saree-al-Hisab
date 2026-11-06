@@ -15,12 +15,15 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { build } from 'esbuild';
 import postgres from 'postgres';
+import { localOwnerUrl, assertLocal } from './local-only.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const envFile = readFileSync(join(root, '.env.local'), 'utf8');
 const url = process.env.DATABASE_URL
   ?? /^OWNER_DATABASE_URL="?([^"\n]+)/m.exec(envFile)?.[1]
   ?? /^DATABASE_URL="?([^"\n]+)/m.exec(envFile)[1];
+assertLocal(url);
+localOwnerUrl(root);
 const sql = postgres(url, { ssl: 'require', max: 2, onnotice: () => {} });
 globalThis.__checkSql = sql;
 

@@ -22,6 +22,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import assert from 'node:assert/strict';
+import { localOwnerUrl } from './local-only.mjs';
 
 const require = createRequire(import.meta.url);
 const { chromium, devices } = require('playwright');
@@ -37,8 +38,7 @@ const KEEP = argv.includes('--keep');
 const SHOTS = arg('--shots');
 if (SHOTS) fs.mkdirSync(SHOTS, { recursive: true });
 
-const env = fs.readFileSync(path.join(ROOT, '.env.local'), 'utf8');
-const sql = postgres(/^OWNER_DATABASE_URL="?([^"\n]+)/m.exec(env)[1], { ssl: 'require', max: 1, onnotice: () => {} });
+const sql = postgres(localOwnerUrl(ROOT), { ssl: 'require', max: 1, onnotice: () => {} });
 
 let n = 0;
 const ok = (what) => { n++; console.log(`  ok   ${what}`); };
@@ -52,13 +52,14 @@ const errors = [];
 page.on('pageerror', (e) => errors.push(e.message));
 
 let ref = null;
+let hh = null;      // the household the queued entry was typed under
 let SHOWN = '';
 let user = null;
 try {
   /* ── 1. online: the worker, the shell, the pickers ───────────────────── */
   await page.goto(`${BASE}/add`);
   await page.getByLabel(/^Amount in/).waitFor();
-  const hh = await page.evaluate(() => JSON.parse(localStorage.getItem('ql.pickers.v1') ?? 'null')?.householdId);
+  hh = await page.evaluate(() => JSON.parse(localStorage.getItem('ql.pickers.v1') ?? 'null')?.householdId);
   assert.ok(hh, 'Add Entry opened online keeps the pickers on the phone');
   [user] = await sql`select u.id, u.last_paid_with from app_user u join member m on m.user_id = u.id where m.household_id = ${hh}
     order by (u.active_household_id = ${hh}) desc limit 1`;
@@ -143,7 +144,8 @@ try {
 } finally {
   await browser.close();
   if (ref && !KEEP) {
-    await sql`delete from txn where household_id is not null and client_ref = ${ref}`.catch((e) => console.error(e.message));
+    /* The one row this run wrote: its client_ref is a UUID minted for this run, in the signed-in household. */
+    if (hh) await sql`delete from txn where household_id = ${hh} and client_ref = ${ref}`.catch((e) => console.error(e.message));
     if (user) await sql`update app_user set last_paid_with = ${user.last_paid_with} where id = ${user.id}`;
     console.log('  cleaned up the row this run wrote');
   }

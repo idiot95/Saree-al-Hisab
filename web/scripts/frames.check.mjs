@@ -59,14 +59,9 @@ const routes = arg('--routes') ? arg('--routes').split(',').map((s) => s.trim())
    member and household; locking those would hold the layout too, and nothing would stream. */
 const LAYOUT_TABLES = new Set(['app_user', 'member', 'household']);
 
-const env = fs.readFileSync(path.join(ROOT, '.env.local'), 'utf8');
-const url = process.env.OWNER_DATABASE_URL || /^OWNER_DATABASE_URL="?([^"\n]+)/m.exec(env)[1];
-/* It takes ACCESS EXCLUSIVE locks on nearly every table: a local verification database only, never a shared one. */
-const dbHost = new URL(url).hostname;
-if (!['localhost', '127.0.0.1'].includes(dbHost)) {
-  console.error(`refusing to run: the database is on ${dbHost}, and this check locks its tables. Point it at localhost.`);
-  process.exit(2);
-}
+/* It takes ACCESS EXCLUSIVE locks on nearly every table: a local verification database only, never a shared one.
+   The shared guard (local-only.mjs) exits 2 for any other host. */
+const url = localOwnerUrl(ROOT);
 const sql = postgres(url, { ssl: 'require', max: 2, onnotice: () => {} });
 const tables = (await sql`
   select tablename from pg_tables where schemaname = 'public' and tablename not like '\\_%'`)

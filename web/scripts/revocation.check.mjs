@@ -16,10 +16,11 @@ import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import postgres from 'postgres';
+import { localOwnerUrl } from './local-only.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const envFile = readFileSync(join(root, '.env.local'), 'utf8');
-const url = /^OWNER_DATABASE_URL="?([^"\n]+)/m.exec(envFile)?.[1] ?? process.env.DATABASE_URL;
+const url = localOwnerUrl(root);
 const sql = postgres(url, { ssl: 'require', max: 1, onnotice: () => {} });
 const B = process.env.BASE_URL ?? 'http://localhost:3000';
 const EMAIL = process.env.CHECK_EMAIL ?? 'ammar@example.com';

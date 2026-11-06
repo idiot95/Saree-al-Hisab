@@ -20,10 +20,10 @@
    6. On a person: Lend ₹50, and their figure goes up by ₹50; Got money back ₹50, and it comes back down.
    The receipts, loans and tabs this run made are removed afterwards, unless --keep.                                          */
 import { createRequire } from 'node:module';
-import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import assert from 'node:assert/strict';
+import { localOwnerUrl } from './local-only.mjs';
 
 const require = createRequire(import.meta.url);
 const { chromium, devices } = require('playwright');
@@ -38,8 +38,7 @@ const arg = (k) => { const i = argv.indexOf(k); return i >= 0 ? argv[i + 1] : nu
 const STATE = arg('--state') ?? path.join(ROOT, '.sweep-state.json');
 const KEEP = argv.includes('--keep');
 
-const env = fs.readFileSync(path.join(ROOT, '.env.local'), 'utf8');
-const sql = postgres(/^OWNER_DATABASE_URL="?([^"\n]+)/m.exec(env)[1], { ssl: 'require', max: 1, onnotice: () => {} });
+const sql = postgres(localOwnerUrl(ROOT), { ssl: 'require', max: 1, onnotice: () => {} });
 
 let n = 0;
 const ok = (what) => { n++; console.log(`  ok   ${what}`); };
@@ -61,9 +60,12 @@ let tabId = null;
 const RUN = Date.now().toString(36);
 const TAB = `Loans taps ${RUN}`;
 let personAcc = null;
+let me = null;              // the signed-in person, whose entries these are
+let receiptsBefore = null;  // the tab's money back before step 2: anything new on it by `me` is this run's
+const NOTE = `Loans taps ${RUN}`;   // the lend and the repayment carry it, so the cleanup takes exactly those two
 
 try {
-  [{ hh }] = await sql`select active_household_id as hh from app_user where lower(email) = lower(${EMAIL})`;
+  [{ hh, me }] = await sql`select active_household_id as hh, id as me from app_user where lower(email) = lower(${EMAIL})`;
   const [tab] = await sql`select b.id, b.name, coalesce(sum(tb.outstanding), 0)::bigint as out
     from ledger_book b join tab_balance tb on tb.book_id = b.id
     where b.household_id = ${hh} and b.closed_at is null
@@ -87,6 +89,8 @@ try {
   const still = page.getByRole('region', { name: 'Still to come back' });
   const before = minor(await figureIn(still).getAttribute('aria-label'));
   assert.equal(before, Number(tab.out), 'the tab figure is what the books say is outstanding');
+  receiptsBefore = (await sql`select t.id from txn t join claim c on c.id = t.claim_id join txn o on o.id = c.txn_id
+    where t.kind = 'claim_receipt' and o.book_id = ${tabId}`).map((r) => r.id);
   await page.getByRole('button', { name: 'Money back' }).click();
   const sheet = page.getByRole('dialog', { name: 'Money back' });
   await sheet.getByLabel(/^Amount/).fill('100');
@@ -272,6 +276,7 @@ try {
   const p0 = await heroFigure();
   await page.getByRole('button', { name: 'Lend money' }).click();
   await page.getByLabel('Amount').fill('50');
+  await page.getByLabel('Note (optional)').fill(NOTE);
   await page.getByRole('button', { name: 'Record loan' }).click();
   await page.waitForFunction((want) => {
     const el = document.querySelector('main section [role=img]');
@@ -282,14 +287,16 @@ try {
   await page.goto(`${BASE}/people/${who.id}`);
   await page.getByRole('button', { name: 'Got money back' }).click();
   await page.getByLabel('Amount').fill('50');
+  await page.getByLabel('Note (optional)').fill(NOTE);
   await page.getByRole('button', { name: 'Record repayment' }).click();
   await page.waitForFunction((want) => {
     const el = document.querySelector('main section [role=img]');
     return el && Math.round(Number(el.getAttribute('aria-label').replace(/[^0-9.]/g, '')) * 100) === want;
   }, p0, { timeout: 20000 });
-  const moved = await sql`select kind, amount::bigint as amount from txn
+  const moved = await sql`select kind, amount::bigint as amount, note from txn
     where household_id = ${hh} and created_at >= ${stepStarted} and deleted_at is null
       and (account_id = ${personAcc} or counter_account_id = ${personAcc})`;
+  assert.ok(moved.every((r) => r.note === NOTE), 'both carry this run\'s note');
   assert.equal(moved.length, 2, `one loan and one repayment in the books (${moved.map((r) => r.kind).join(', ')})`);
   ok(`Got ₹50 back from ${who.name}: the figure is back at ${p0 / 100}, and both transfers are in the books`);
 } finally {
@@ -298,23 +305,26 @@ try {
   const tidy = async (what, fn) => {
     try { await fn(); } catch (e) { process.exitCode = 1; console.error(`  cleanup failed (${what}): ${e.message}`); }
   };
-  if (!KEEP && hh && tabId) {
+  /* Only what this run made: the money back that was not on the tab before step 2 and that this person entered
+     since the run began; the lend and repayment by their run-unique note; the throwaway tab by its run-unique name. */
+  if (!KEEP && hh && tabId && receiptsBefore) {
     await tidy('money back', () => sql`delete from txn t using claim c, txn o
       where c.id = t.claim_id and o.id = c.txn_id and o.book_id = ${tabId}
-        and t.household_id = ${hh} and t.kind = 'claim_receipt' and t.created_at >= ${started}`);
+        and t.household_id = ${hh} and t.kind = 'claim_receipt' and t.created_by = ${me}
+        and t.created_at >= ${started} and not (t.id = any(${receiptsBefore}::uuid[]))`);
   }
   if (!KEEP && hh) {
     if (personAcc) {
-      await tidy('the loan', () => sql`delete from txn where household_id = ${hh} and created_at >= ${started}
+      await tidy('the loan', () => sql`delete from txn where household_id = ${hh} and note = ${NOTE}
         and (account_id = ${personAcc} or counter_account_id = ${personAcc})`);
     }
-    /* Normally already deleted by step 5; a run that stopped part way leaves its tab here, and so may an earlier
-       run's (every throwaway tab is named "Loans taps <run>"). Deleting a tab does not fail on its entries or
+    /* Normally already deleted by step 5; a run that stopped part way leaves its tab here (named "Loans taps <run>",
+       or that with " renamed"; only this run's). Deleting a tab does not fail on its entries or
        regular payments — txn.book_id and schedule.book_id are ON DELETE SET NULL — it would leave them in the
        main books. So what hangs off each throwaway tab goes first, whatever its age: the money back on its
        costs, the costs (their claims cascade), the regular payments and their dues; members cascade with it. */
     await tidy('the throwaway tabs', () => sql.begin(async (tx) => {
-      const tabs = await tx`select id from ledger_book where household_id = ${hh} and name like ${'Loans taps %'}`;
+      const tabs = await tx`select id from ledger_book where household_id = ${hh} and name in (${TAB}, ${`${TAB} renamed`})`;
       for (const { id } of tabs) {
         await tx`delete from txn where claim_id in (select c.id from claim c join txn t on t.id = c.txn_id where t.book_id = ${id})`;
         await tx`delete from txn where book_id = ${id}`;

@@ -3,7 +3,7 @@
 
      node scripts/activity-taps.mjs [--state file] [--keep]
 
-   Env: ACTIVITY_BASE (default http://localhost:3000). Reads OWNER_DATABASE_URL from .env.local.
+   Env: ACTIVITY_BASE (default http://localhost:3000), ACTIVITY_EMAIL (default ammar@example.com, the person --state is). Reads OWNER_DATABASE_URL from .env.local.
    --state is a signed-in Playwright storage state for an owner or contributing member (default .sweep-state.json).
 
    1. At 360px the four chips wrap and never scroll sideways; each is a link to ?f=…, and each lands lit.
@@ -13,10 +13,10 @@
       that entry's Save lands on ?f=upcoming, and so does its Delete.
    Rows this run wrote (one entry and its occurrence) are removed unless --keep.                               */
 import { createRequire } from 'node:module';
-import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import assert from 'node:assert/strict';
+import { localOwnerUrl } from './local-only.mjs';
 
 const require = createRequire(import.meta.url);
 const { chromium, devices } = require('playwright');
@@ -30,9 +30,19 @@ const arg = (k) => { const i = argv.indexOf(k); return i >= 0 ? argv[i + 1] : nu
 const STATE = arg('--state') ?? path.join(ROOT, '.sweep-state.json');
 const KEEP = argv.includes('--keep');
 
-const env = fs.readFileSync(path.join(ROOT, '.env.local'), 'utf8');
-const sql = postgres(/^OWNER_DATABASE_URL="?([^"\n]+)/m.exec(env)[1], { ssl: 'require', max: 1, onnotice: () => {} });
+const sql = postgres(localOwnerUrl(ROOT), { ssl: 'require', max: 1, onnotice: () => {} });
 const started = (await sql`select now() as t`)[0].t;
+/* Whose books: the person --state signs in as. Only their household, and only what they record during the run that
+   was not there before, is this run's to clean up. */
+const EMAIL = process.env.ACTIVITY_EMAIL || 'ammar@example.com';
+const [me] = await sql`select id, active_household_id as hh from app_user where lower(email) = lower(${EMAIL})`;
+assert.ok(me?.hh, `${EMAIL} has books`);
+let occBefore = null;      // the household's occurrence ids before step 4
+let madeOcc = null;        // the one step 4 recorded
+const runOccurrences = () => sql`select o.id, o.schedule_id, o.due_on::text as due_on, o.txn_id
+  from occurrence o join schedule s on s.id = o.schedule_id join txn t on t.id = o.txn_id
+  where s.household_id = ${me.hh} and t.household_id = ${me.hh} and t.created_by = ${me.id}
+    and t.created_at >= ${started} and not (o.id = any(${occBefore}::uuid[]))`;
 
 let n = 0;
 const ok = (what) => { n++; console.log(`  ok   ${what}`); };
@@ -89,13 +99,15 @@ try {
   // The grip's label flips to "Hide actions" once open, so it is found by what does not change.
   const firstGrip = dueCard.locator('button[aria-expanded]').first();
   const row = firstGrip.locator('xpath=ancestor::*[button[@aria-expanded]][1]/..');
+  occBefore = (await sql`select o.id from occurrence o join schedule s on s.id = o.schedule_id
+    where s.household_id = ${me.hh}`).map((r) => r.id);
   await firstGrip.click();
   await row.getByRole('button', { name: /^(Record|Came in)$/ }).click();
   await page.getByRole('button', { name: /^Record (the payment|that it came in)$/ }).click();
   let occ;
   for (let i = 0; i < 75 && !occ; i++) {
-    [occ] = await sql`select o.schedule_id, o.due_on::text as due_on, o.txn_id from occurrence o join txn t on t.id = o.txn_id
-                      where o.status = 'paid' and t.created_at >= ${started}`;
+    [occ] = await runOccurrences();
+    if (occ) madeOcc = occ;
     if (!occ) await new Promise((r) => setTimeout(r, 200));
   }
   assert.ok(occ, 'recording wrote a paid occurrence with its entry');
@@ -133,10 +145,12 @@ try {
 } finally {
   await browser.close();
   if (!KEEP) {
-    const rows = await sql`select o.id, o.txn_id from occurrence o join txn t on t.id = o.txn_id where t.created_at >= ${started}`;
+    /* The due step 4 recorded, by id; or, if the run stopped before it was seen, what this person recorded in this
+       household since the run began that was not there before. */
+    const rows = madeOcc ? [madeOcc] : occBefore ? await runOccurrences() : [];
     for (const r of rows) {
       await sql`delete from occurrence where id = ${r.id}`;
-      await sql`delete from txn where id = ${r.txn_id}`;
+      await sql`delete from txn where id = ${r.txn_id} and household_id = ${me.hh}`;
     }
     if (rows.length) console.log(`  cleaned up ${rows.length} recorded due(s)`);
   }

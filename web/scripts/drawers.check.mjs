@@ -11,10 +11,13 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import assert from 'node:assert/strict';
+import { localOwnerUrl } from './local-only.mjs';
 
 const require = createRequire(import.meta.url);
 const { chromium, devices } = require('playwright');
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
+/* Nothing is saved here, but the server it drives writes through .env.local's database: local only, as for every tap. */
+localOwnerUrl(ROOT);
 const BASE = (process.env.DRAWERS_BASE || 'http://localhost:3000').replace(/\/$/, '');
 const argv = process.argv.slice(2);
 const i = argv.indexOf('--state');
