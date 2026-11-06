@@ -34,13 +34,11 @@ export type Frame = {
   rows?: number;
   /** A small line above the title — "Reconcile" over the account's name. */
   eyebrow?: string;
-  /** How many views the tab's segmented switch has (Activity 3, Plan 2, Money 3); 0 for none. */
-  segments?: number;
   /** A screen pushed on top of a tab: it gets a back arrow, not a switch. */
   back?: boolean;
   /** The big figure a tab, a person or a balance leads with. */
   figure?: boolean;
-  /** Chips in the header — the people on a tab. */
+  /** Chips in the header — the people on a tab, Wealth's owners, Activity's filters. */
   chips?: number;
   /** A form card before the rows. */
   form?: boolean;
@@ -49,7 +47,7 @@ export type Frame = {
 };
 
 /* The Quiet Ledger header, drawn: paper, the serif title, and the switch or the back arrow the screen will have. */
-function Head({ title, eyebrow, segments = 0, back = false, chips = 0 }: Frame) {
+function Head({ title, eyebrow, back = false, chips = 0 }: Frame) {
   return (
     <header style={{ padding: '16px var(--gutter) 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
       {back && (
@@ -70,15 +68,8 @@ function Head({ title, eyebrow, segments = 0, back = false, chips = 0 }: Frame) 
           : <Bar w="52%" h={28} r={8} />}
         <Bar w="38%" h={11} o={.6} />
       </span>
-      {segments > 0 && (
-        <span style={{ display: 'grid', gridTemplateColumns: `repeat(${segments}, 1fr)`, gap: 4, padding: 4, borderRadius: 14, background: 'var(--muted)' }}>
-          {Array.from({ length: segments }, (_, i) => (
-            <span key={i} style={{ height: 44, borderRadius: 11, background: i === 0 ? 'var(--card)' : 'transparent' }} />
-          ))}
-        </span>
-      )}
       {chips > 0 && (
-        <span style={{ display: 'flex', gap: 8 }}>
+        <span style={{ display: 'flex', gap: 8, overflow: 'hidden' }}>
           {Array.from({ length: chips }, (_, i) => <span key={i} className="shim" style={{ width: 92 - i * 8, height: 44, borderRadius: 999 }} />)}
         </span>
       )}
@@ -89,7 +80,7 @@ function Head({ title, eyebrow, segments = 0, back = false, chips = 0 }: Frame) 
 const CARD: React.CSSProperties = { borderRadius: 16, background: 'var(--card)', border: '1px solid var(--border)' };
 
 export default function Skeleton({
-  title, current, rows = 4, eyebrow, segments = 0, back = false, figure = false, chips = 0, form = false, footer = false,
+  title, current, rows = 4, eyebrow, back = false, figure = false, chips = 0, form = false, footer = false,
   stillBar = true,
 }: Frame & { stillBar?: boolean }) {
   return (
@@ -97,7 +88,7 @@ export default function Skeleton({
       minHeight: '100dvh', background: 'var(--background)', color: 'var(--foreground)',
       paddingBottom: current ? TAB_BAR_SPACE : footer ? 104 : 44,
     }}>
-      <Head title={title} current={current} eyebrow={eyebrow} segments={segments} back={back} chips={chips} />
+      <Head title={title} current={current} eyebrow={eyebrow} back={back} chips={chips} />
       <div style={{ padding: '0 var(--gutter)', display: 'flex', flexDirection: 'column', gap: 14 }}
         aria-busy="true" aria-live="polite">
         <span className="sr-only">Loading {title ?? 'the screen'}</span>
@@ -210,7 +201,8 @@ const is = (path: string, pattern: string) => new RegExp(`^${pattern}/?$`).test(
 /** Which frame a path gets, or null for a screen that draws none (sign-in and friends). */
 export function frameFor(path: string): Frame | 'home' | null {
   if (path === '/') return 'home';
-  if (is(path, '/entries') || is(path, '/inbox') || is(path, '/schedules')) return { title: 'Activity', current: '/entries', segments: 3, rows: 6 };
+  // Activity, whichever chip: the title, the four filter chips, rows. (/inbox and /schedules redirect here.)
+  if (is(path, '/entries')) return { title: 'Activity', current: '/entries', chips: 4, rows: 6 };
   if (is(path, `/entries/${ID}`)) return { title: 'Entry', current: null, back: true, rows: 0, form: true };
   if (is(path, '/budget') || is(path, '/trends')) return { title: 'Plan', current: '/budget', back: true, rows: 5, figure: true };
   if (is(path, '/categories')) return { title: 'Categories', current: '/budget', back: true, rows: 6 };

@@ -122,8 +122,7 @@ export async function createSchedule(_prev: Result | null, fd: FormData): Promis
               ${paid.account_id}, ${cat.id}, ${counts}, ${bookId},
               ${cal === 'gregorian' ? rule : null}, ${cal === 'hijri' ? rule : null})`;
 
-    revalidatePath('/schedules');
-    revalidatePath('/inbox');
+    revalidatePath('/entries');
     return { ok: true, message: `${name} added.` };
   });
 }
@@ -138,8 +137,7 @@ export async function archiveSchedule(_prev: Result | null, fd: FormData): Promi
       where id = ${String(fd.get('scheduleId') ?? '')} and household_id = ${actor.household_id}
         and archived_at is null returning id`;
     if (!done.length) return { ok: false, error: 'That schedule is not one of yours.' };
-    revalidatePath('/schedules');
-    revalidatePath('/inbox');
+    revalidatePath('/entries');
     return { ok: true, message: 'Stopped. Entries already recorded are untouched.' };
   });
 }
@@ -208,10 +206,8 @@ export async function recordDue(_prev: Result | null, fd: FormData): Promise<Res
       return { ok: false, error: 'That could not be recorded.' };
     }
 
-    revalidatePath('/schedules');
-    revalidatePath('/inbox');
-    revalidatePath('/');
     revalidatePath('/entries');
+    revalidatePath('/');
     return { ok: true, message: 'Recorded.' };
   });
 }
@@ -236,8 +232,7 @@ export async function skipDue(_prev: Result | null, fd: FormData): Promise<Resul
       values (${s.id}, ${dueOn}::date, 'skipped')
       on conflict (schedule_id, due_on) do update set status = 'skipped', txn_id = null`;
 
-    revalidatePath('/schedules');
-    revalidatePath('/inbox');
+    revalidatePath('/entries');
     return { ok: true, message: 'Skipped.' };
   });
 }
@@ -282,7 +277,7 @@ export async function moveDue(_prev: Result | null, fd: FormData): Promise<Resul
         insert into occurrence (schedule_id, due_on, status, shifted_to)
         values (${s.id}, ${dueOn}::date, 'pending', ${to}::date)
         on conflict (schedule_id, due_on) do update set shifted_to = excluded.shifted_to`;
-      revalidatePath('/schedules'); revalidatePath('/inbox'); revalidatePath('/');
+      revalidatePath('/entries'); revalidatePath('/');
       return { ok: true, message: `${s.name} moved to ${friendlyDate(to)}, this once.` };
     }
 
@@ -302,7 +297,7 @@ export async function moveDue(_prev: Result | null, fd: FormData): Promise<Resul
                             rule_since = ${to}::date
         where id = ${s.id} and household_id = ${actor.household_id}`;
     });
-    revalidatePath('/schedules'); revalidatePath('/inbox'); revalidatePath('/');
+    revalidatePath('/entries'); revalidatePath('/');
     return { ok: true, message: `${s.name} is now ${describeRule(next, r.cal)}, from ${friendlyDate(to)}.` };
   });
 }

@@ -64,6 +64,9 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ s
   const dueNow = canAct ? allDues.filter((d) => d.daysAway <= 0) : [];
   /* The same count as Activity's "To review" badge, so the two never disagree. What is due comes under Upcoming. */
   const review = reviewCount(inbox);
+  /* The tile opens the chip that holds what it counts: To review for bills and duplicates, From SMS when bank
+     messages are all there is. */
+  const reviewHref = inbox.bills + inbox.duplicates === 0 && inbox.sms > 0 ? '/entries?f=sms' : '/entries?f=review';
   const byId = new Map(schedules.map((s) => [s.id, s]));
   const monthName = new Date(month).toLocaleDateString('en-IN', { month: 'long' });
 
@@ -99,7 +102,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ s
 
           {/* Decisions waiting, and what comes round this week (or the bank messages, when nothing does). */}
           <div className="grid grid-cols-2 gap-3">
-            <Link href="/inbox" transitionTypes={['nav-forward']}
+            <Link href={reviewHref} transitionTypes={['nav-lateral']}
               className={`press flex min-h-[96px] flex-col gap-1.5 rounded-[18px] p-3.5 ${review > 0
                 ? 'bg-attention-soft text-attention-soft-foreground' : 'bg-card'}`}>
               <Icon name="rule" size={22} className={review > 0 ? '' : 'text-primary'} />
@@ -109,7 +112,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ s
               </span>
             </Link>
             {fromSms ? (
-              <Link href="/inbox" transitionTypes={['nav-forward']}
+              <Link href="/entries?f=sms" transitionTypes={['nav-lateral']}
                 className="press flex min-h-[96px] flex-col gap-1.5 rounded-[18px] bg-card p-3.5">
                 <Icon name="sms" size={22} className="text-primary" />
                 <span className="text-xs text-muted-foreground">From SMS</span>
@@ -118,7 +121,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ s
                 </span>
               </Link>
             ) : (
-              <Link href="/schedules" transitionTypes={['nav-forward']}
+              <Link href="/entries?f=upcoming" transitionTypes={['nav-lateral']}
                 className="press flex min-h-[96px] flex-col gap-1.5 rounded-[18px] bg-card p-3.5">
                 <Icon name="event_upcoming" size={22} className="text-primary" />
                 <span className="text-xs text-muted-foreground">Due this week</span>
@@ -152,10 +155,13 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ s
 
           {dueNow.length > 0 && (
             <section aria-label="Due today" className="flex flex-col gap-1">
-              <h2 className="px-0.5 py-1 text-[13px] font-semibold text-muted-foreground">
-                {dueNow.some((d) => d.daysAway < 0) ? 'Due now' : 'Due today'} · paid, or moved?
-              </h2>
-              <div className="overflow-hidden rounded-[18px] bg-card px-3.5">
+              <div className="flex items-baseline justify-between gap-3 px-0.5">
+                <h2 className="py-1 text-[13px] font-semibold text-muted-foreground">
+                  {dueNow.some((d) => d.daysAway < 0) ? 'Due now' : 'Due today'} · paid, or moved?
+                </h2>
+                <Link href="/entries?f=upcoming" transitionTypes={['nav-lateral']} className="-my-3 flex min-h-11 flex-none items-center px-1 text-sm font-medium text-primary">See all</Link>
+              </div>
+              <div className="overflow-hidden rounded-[18px] bg-card px-[var(--pad)]">
                 {dueNow.map((d) => {
                   const s = byId.get(d.scheduleId)!;
                   return (

@@ -4,7 +4,7 @@ import { useActionState } from 'react';
 import { dismissDraft, type Result } from '../../actions';
 import { Icon } from '../../../Icon';
 
-/* Dismiss from the message's own screen; the action sends the person back to To review. */
+/* Dismiss from the message's own screen; the action sends the person back to Activity › From SMS. */
 export default function DismissDraft({ id }: { id: string }) {
   const [state, act, pending] = useActionState<Result | null, FormData>(dismissDraft, null);
   return (

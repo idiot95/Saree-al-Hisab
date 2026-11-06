@@ -44,7 +44,7 @@ export async function notDuplicate(_prev: Result | null, fd: FormData): Promise<
       insert into duplicate_dismissed (low_id, high_id, dismissed_by)
       values (${a}, ${b}, ${actor.user_id}) on conflict do nothing`;
 
-    revalidatePath('/inbox');
+    revalidatePath('/entries');
     return { ok: true, message: 'Kept both.' };
   });
 }
@@ -64,7 +64,6 @@ export async function dropDuplicate(_prev: Result | null, fd: FormData): Promise
       returning id`;
     if (!done.length) return { ok: false, error: 'That entry is not one of yours.' };
 
-    revalidatePath('/inbox');
     revalidatePath('/entries');
     revalidatePath('/');
     return { ok: true, message: 'Removed the copy.' };
@@ -87,11 +86,10 @@ export async function dismissDraft(_prev: Result | null, fd: FormData): Promise<
     if (!(await dismissDraftIn(sql, actor.household_id, id))) {
       return { ok: false, error: 'That message is not waiting here any more.' };
     }
-    revalidatePath('/inbox');
     revalidatePath('/entries');
     revalidatePath('/');
-    // From the message's own screen, back to the list it left: that screen no longer offers anything to do.
-    if (fd.get('then') === 'inbox') redirect(`/inbox?dismissed=${id}`);
+    // From the message's own screen, back to the list it left (with the Undo): that screen has nothing left to do.
+    if (fd.get('then') === 'inbox') redirect(`/entries?f=sms&dismissed=${id}`);
     return { ok: true, message: 'Dismissed.' };
   });
 }
@@ -106,7 +104,6 @@ export async function restoreDraft(id: unknown): Promise<Result> {
     if (!(await restoreDraftIn(sql, actor.household_id, id))) {
       return { ok: false, error: 'That message could not be brought back.' };
     }
-    revalidatePath('/inbox');
     revalidatePath('/entries');
     revalidatePath('/');
     return { ok: true };

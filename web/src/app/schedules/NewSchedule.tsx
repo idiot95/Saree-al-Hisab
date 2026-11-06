@@ -72,20 +72,9 @@ export default function NewSchedule({ ways, categories, tabs, startOpen = false 
 
   if (!open) {
     return (
-      <button type="button" onClick={() => setOpen(true)} className="border border-border" style={{
-        margin: '0 var(--gutter) 22px', width: 'calc(100% - 36px)', minHeight: 56, borderRadius: 16,
-        display: 'flex', alignItems: 'center', gap: 11, padding: '0 var(--pad)',
-        background: 'var(--card)', border: '1px dashed var(--input)',
-        color: 'var(--foreground)', fontSize: 'var(--step-0)', fontWeight: 600,
-      }}>
-        <span style={{
-          width: 32, height: 32, flex: 'none', borderRadius: 999, display: 'flex',
-          alignItems: 'center', justifyContent: 'center',
-          background: 'var(--muted)', color: 'var(--muted-foreground)',
-        }}>
-          <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-            strokeWidth={2.2} strokeLinecap="round" aria-hidden><path d="M12 5v14M5 12h14" /></svg>
-        </span>
+      <button type="button" onClick={() => setOpen(true)}
+        className="press mx-[var(--gutter)] flex min-h-14 items-center gap-3 rounded-[18px] border border-dashed border-input bg-card px-3.5 text-left text-[15px] font-semibold text-foreground">
+        <span className="grid size-8 flex-none place-items-center rounded-full bg-accent text-accent-foreground"><Icon name="add" size={18} /></span>
         Add a payment or income that comes round
       </button>
     );
@@ -93,7 +82,7 @@ export default function NewSchedule({ ways, categories, tabs, startOpen = false 
 
   return (
     <form action={act} className="border border-border" style={{
-      margin: '0 var(--gutter) 22px', background: 'var(--card)', borderRadius: 18, padding: 16,
+      margin: '0 var(--gutter)', background: 'var(--card)', borderRadius: 18, padding: 16,
       display: 'flex', flexDirection: 'column', gap: 13,
     }}>
       <div role="tablist" aria-label="Expense or income" style={{

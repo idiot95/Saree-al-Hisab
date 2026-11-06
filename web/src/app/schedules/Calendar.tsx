@@ -133,8 +133,8 @@ export default function Calendar({ schedules, canWrite, today }: {
   );
 
   return (
-    <section className="border border-border" style={{
-      margin: '0 var(--gutter) 22px', background: 'var(--card)', borderRadius: 18,
+    <section style={{
+      margin: '0 var(--gutter)', background: 'var(--card)', borderRadius: 18,
       padding: '6px var(--pad)', display: 'flex', flexDirection: 'column', gap: 8,
     }}>
       <button type="button" onClick={toggle} aria-expanded={open} aria-controls="cal-grid" style={{

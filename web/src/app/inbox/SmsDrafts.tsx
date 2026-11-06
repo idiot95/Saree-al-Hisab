@@ -7,7 +7,6 @@ import SwipeRow from '../SwipeRow';
 import Snack, { type SnackState } from '../Snack';
 import { Icon } from '../Icon';
 import { Figure } from '../Figure';
-import { Label } from '../PageHead';
 import { startPending } from '../pending';
 import { dismissDraft, restoreDraft } from './actions';
 import { DIRECTION } from './direction';
@@ -23,10 +22,12 @@ export type SmsRow = {
 };
 
 
-export default function SmsDrafts({ rows, canWrite, justDismissed = null }: {
+export default function SmsDrafts({ rows, canWrite, justDismissed = null, empty = null }: {
   rows: SmsRow[]; canWrite: boolean;
   /** Dismissed a moment ago on the message's own screen: offer its Undo here. */
   justDismissed?: string | null;
+  /** What to say when nothing is waiting, the last row dismissed here included. */
+  empty?: React.ReactNode;
 }) {
   const router = useRouter();
   const [gone, setGone] = useState<Set<string>>(() => new Set());
@@ -38,7 +39,7 @@ export default function SmsDrafts({ rows, canWrite, justDismissed = null }: {
     setSnack(null);
     setOffer(null);
     // The ?dismissed= comes off the address, so a reload does not offer the Undo twice.
-    if (justDismissed) router.replace('/inbox', { scroll: false });
+    if (justDismissed) router.replace('/entries?f=sms', { scroll: false });
   }, [justDismissed, router]);
   const undoElsewhere = (id: string) => start(async () => {
     const back = await restoreDraft(id);
@@ -73,14 +74,17 @@ export default function SmsDrafts({ rows, canWrite, justDismissed = null }: {
   }
 
   const shown = rows.filter((r) => !gone.has(r.id));
-  if (shown.length === 0) return <Snack snack={line} onClose={closeSnack} />;
+  if (shown.length === 0) return <>{empty}<Snack snack={line} onClose={closeSnack} /></>;
   return (
-    <section id="sms" aria-label="From SMS" className="mx-[var(--gutter)] mb-5 flex flex-col gap-2">
-      <Label action={<Link href="/household/capture" transitionTypes={['nav-forward']}
-        className="-mr-2 flex min-h-11 min-w-11 items-center justify-center px-2 text-xs font-semibold text-primary in-data-[platform=android]:min-h-12 in-data-[platform=android]:min-w-12">Set up</Link>}>
-        From SMS · {shown.length}
-      </Label>
-      <div className="overflow-hidden rounded-2xl border border-border bg-card px-[var(--pad)]">
+    <section id="sms" aria-label="From SMS" className="mx-[var(--gutter)] flex flex-col gap-1.5">
+      <div className="flex min-h-6 items-center justify-between gap-3 px-0.5">
+        <h2 className="text-[13px] font-semibold text-muted-foreground">
+          {shown.length} bank {shown.length === 1 ? 'message' : 'messages'} waiting
+        </h2>
+        <Link href="/household/capture" transitionTypes={['nav-forward']}
+          className="-my-2.5 -mr-2 flex min-h-11 min-w-11 items-center justify-center px-2 text-sm font-medium text-primary in-data-[platform=android]:min-h-12 in-data-[platform=android]:min-w-12">Set up</Link>
+      </div>
+      <div className="overflow-hidden rounded-[18px] bg-card px-[var(--pad)]">
         {shown.map((r, i) => (
           <SwipeRow key={r.id} commit={false} actions={canWrite ? [
             { label: 'Add', tone: 'primary', icon: <Icon name="add" size={20} />, act: () => review(r.id) },
@@ -90,7 +94,7 @@ export default function SmsDrafts({ rows, canWrite, justDismissed = null }: {
           </SwipeRow>
         ))}
       </div>
-      <p className="px-1 text-xs leading-relaxed text-muted-foreground">
+      <p className="px-0.5 text-xs leading-relaxed text-muted-foreground">
         {canWrite
           ? 'Review opens a new entry with what the message said. Nothing is recorded until you save it.'
           : 'Only owners and contributing members can turn these into entries.'}
@@ -104,19 +108,19 @@ function Row({ r, last, canWrite }: { r: SmsRow; last: boolean; canWrite: boolea
   const d = DIRECTION[r.direction ?? 'none'];
   const where = r.account ?? (r.last4 ? `Account ending ${r.last4}` : null);
   return (
-    <div className={`flex min-h-[84px] items-center gap-3 py-3 ${last ? '' : 'border-b border-border'}`}>
+    <div className={`flex min-h-[76px] items-center gap-3 py-2.5 ${last ? '' : 'border-b border-border'}`}>
       <Link href={`/inbox/sms/${r.id}`} transitionTypes={['nav-forward']} draggable={false}
         className="flex min-h-11 min-w-0 flex-1 items-center gap-3 text-foreground no-underline in-data-[platform=android]:min-h-12">
-        <span className={`grid size-10 flex-none place-items-center rounded-[11px] ${d.tone}`}>
+        <span className={`grid size-10 flex-none place-items-center rounded-xl ${d.tone}`}>
           <Icon name={d.icon} size={20} />
         </span>
         <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-          <span className="text-base font-semibold [overflow-wrap:anywhere]">
+          <span className="text-[15px] font-medium [overflow-wrap:anywhere]">
             {r.amount !== null
               ? <><Figure minor={r.amount} paise="auto" className="tabular-nums" />{r.merchant ? ` · ${r.merchant}` : ''}</>
               : <>Amount not found{r.merchant ? ` · ${r.merchant}` : ''}</>}
           </span>
-          <span className="text-sm text-muted-foreground">{d.word} · {r.when}</span>
+          <span className="text-xs text-muted-foreground">{d.word} · {r.when}</span>
           {(where || r.sender) && (
             <span className="text-xs text-muted-foreground [overflow-wrap:anywhere]">
               {[where, r.sender ? `from ${r.sender}` : null].filter(Boolean).join(' · ')}

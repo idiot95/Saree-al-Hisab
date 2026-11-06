@@ -8,11 +8,11 @@
 
    1. Household → SMS capture: Add a phone, and read the key it shows once.
    2. POST an HDFC debit (and a second message) to /api/capture/sms with it: 202.
-   3. To review → From SMS shows it: the amount, Money out, the merchant, and the account its last four name.
+   3. Activity › From SMS shows it: the amount, Money out, the merchant, and the account its last four name.
    4. Review opens Add entry prefilled (amount, expense, the account, "From a bank message"); pick a tile, Save.
    5. One entry with client_ref = the draft's id on that account; the draft accepted, its text null, off the list.
    6. The second draft is dismissed from its swipe; Undo brings it back; dismissed from its own screen, and
-      To review offers that Undo too. Then it is saved as income on the matched account itself (no rail).
+      From SMS offers that Undo too. Then it is saved as income on the matched account itself (no rail).
    7. Revoke the phone (two taps); the same POST now answers 401.
    With --shots: To review, a message, Add prefilled and the setup screen (key shown, both guides) at iPhone
    393x852 and Pixel 412x915, light and dark. Rows this run wrote are removed unless --keep.                   */
@@ -106,7 +106,7 @@ try {
   ok('both are open drafts; the debit read as ₹450, money out, ending 4471');
 
   /* ── 3. To review → From SMS ──────────────────────────────────────── */
-  await page.goto(`${BASE}/inbox`);
+  await page.goto(`${BASE}/entries?f=sms`);
   const section = page.getByRole('region', { name: 'From SMS' });
   await section.waitFor();
   const row = section.locator(`a[href="/inbox/sms/${debit.id}"]`);
@@ -118,9 +118,10 @@ try {
   for (const want of ['₹450', 'Money out', 'HDFC Savings', 'from AD-HDFCBK']) assert.ok(text.includes(want), `row says ${want}: ${text}`);
   assert.match(text, /zomato/i);
   ok(`From SMS lists it: "${text.trim()}"`);
-  const tab = page.getByRole('navigation', { name: 'Activity' }).getByRole('link', { name: /To review/ });
-  assert.match(await tab.innerText(), /\d/);
-  ok('and To review carries a count');
+  const chip = page.getByRole('navigation', { name: 'Activity' }).getByRole('link', { name: /From SMS/ });
+  assert.match(await chip.innerText(), /\d/);
+  assert.equal(await chip.getAttribute('aria-current'), 'page');
+  ok('on Activity › From SMS, whose chip carries a count');
 
   /* ── 4. Review → Add entry, prefilled → Save ──────────────────────── */
   await section.locator(`a[href="/add?draft=${debit.id}"]`).click();
@@ -152,14 +153,15 @@ try {
   assert.equal(after.txn_id, entries[0].id);
   assert.equal(after.body, null);
   ok('the draft is accepted, points at the entry, and its text is null');
-  await page.goto(`${BASE}/inbox`);
+  await page.goto(`${BASE}/entries?f=sms`);
   await page.getByRole('region', { name: 'From SMS' }).waitFor();
   assert.equal(await page.locator(`a[href="/inbox/sms/${debit.id}"]`).count(), 0);
   ok('and it is gone from From SMS');
 
   /* ── 6. dismiss, undo, dismiss ────────────────────────────────────── */
   const crow = page.getByRole('region', { name: 'From SMS' }).locator(`a[href="/inbox/sms/${credit.id}"]`);
-  const swipe = crow.locator('xpath=ancestor::*[.//button[@aria-label="Show actions"]][1]');
+  // The row's own swipe: the parent of the layer that holds its grip (the actions sit beside that layer).
+  const swipe = crow.locator('xpath=ancestor::*[button[@aria-expanded]][1]/..');
   await swipe.getByRole('button', { name: 'Show actions' }).click();
   await swipe.getByRole('button', { name: 'Dismiss' }).click();
   await page.getByText(/dismissed$/).waitFor();
@@ -180,7 +182,7 @@ try {
         const c = await context(dev, theme);
         const p = c.page;
         const at = (s) => path.join(SHOTS, `${name}-${theme}-${s}.png`);
-        await p.goto(`${BASE}/inbox`); await settle(p);
+        await p.goto(`${BASE}/entries?f=sms`); await settle(p);
         await p.screenshot({ path: at('1-to-review') });
         await p.goto(`${BASE}/inbox/sms/${credit.id}`); await settle(p);
         await p.screenshot({ path: at('2-message'), fullPage: true });
@@ -205,14 +207,14 @@ try {
 
   await page.goto(`${BASE}/inbox/sms/${credit.id}`);
   await page.getByRole('button', { name: 'Dismiss' }).click();
-  await page.waitForURL(/\/inbox\?dismissed=/, { timeout: 15000 });
+  await page.waitForURL(/\/entries\?f=sms&dismissed=/, { timeout: 15000 });
   assert.equal((await sql`select status from sms_draft where id = ${credit.id}`)[0].status, 'dismissed');
-  ok('dismissed again from the message screen, back to To review');
+  ok('dismissed again from the message screen, back to Activity › From SMS');
   await page.getByRole('button', { name: 'Undo' }).click();
   for (let i = 0; i < 50 && (await sql`select status from sms_draft where id = ${credit.id}`)[0].status !== 'open'; i++) await new Promise((r) => setTimeout(r, 200));
   assert.equal((await sql`select status from sms_draft where id = ${credit.id}`)[0].status, 'open');
-  await page.waitForURL(/\/inbox$/, { timeout: 15000 });
-  ok('and To review offers its Undo, which reopens it');
+  await page.waitForURL(/\/entries\?f=sms$/, { timeout: 15000 });
+  ok('and From SMS offers its Undo, which reopens it');
 
   /* ── 6b. money in lands on the account itself ─────────────────────── */
   await page.goto(`${BASE}/add?draft=${credit.id}`);
@@ -241,6 +243,9 @@ try {
   ok('amount corrected to ₹1,250 and saved as income on HDFC Savings itself, no rail (payment_method_id null)');
   assert.equal((await sql`select status from sms_draft where id = ${credit.id}`)[0].status, 'accepted');
   await page.goto(`${BASE}/inbox`);
+  await page.waitForURL(/\/entries\?f=review$/, { timeout: 15000 });
+  ok('the old /inbox address lands on Activity › To review');
+  await page.goto(`${BASE}/entries?f=sms`);
   await page.locator('main').first().waitFor();
   assert.equal(await page.locator(`a[href="/inbox/sms/${credit.id}"]`).count(), 0);
   ok('the edited amount still accepts the draft, and it is gone from the list');

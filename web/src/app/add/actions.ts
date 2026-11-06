@@ -333,7 +333,7 @@ export async function saveEntry(d: Draft): Promise<SaveResult> {
       if (tab) { revalidatePath(`/tab/${tab.id}`); revalidatePath('/people'); revalidatePath('/worth'); }
       if (settles.length) { revalidatePath('/people'); revalidatePath('/worth'); revalidatePath('/entries'); }
       revalidatePath('/');
-      if (accepted) revalidatePath('/inbox');
+      if (accepted) revalidatePath('/entries');
       if (row) return { ok: true, id: row.id };
       /* Lost the race with our own retry: the other delivery landed between
          the check above and this insert. The unique index kept it to one row;

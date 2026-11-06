@@ -50,7 +50,7 @@ export default async function SmsDraft({ params }: { params: Promise<{ id: strin
   return (
     <Screen>
       <main className="min-h-dvh bg-background text-foreground" style={{ paddingBottom: TAB_BAR_SPACE }}>
-        <PageHead back="/inbox" title="Bank message" sub={`${d.sender ? `From ${d.sender} · ` : ''}${received}`} />
+        <PageHead back="/entries?f=sms" title="Bank message" sub={`${d.sender ? `From ${d.sender} · ` : ''}${received}`} />
         <div className="flex flex-col gap-5 px-[var(--gutter)]">
           <p className="flex min-h-11 items-center gap-2 self-start rounded-full bg-muted px-3.5 text-sm font-semibold">
             <Icon name={status.icon} size={18} /> {status.word}
@@ -94,7 +94,7 @@ export default async function SmsDraft({ params }: { params: Promise<{ id: strin
             </div>
           )}
         </div>
-        <TabBar current="/inbox" />
+        <TabBar current="/entries" />
       </main>
     </Screen>
   );

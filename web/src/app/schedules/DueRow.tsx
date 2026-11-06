@@ -10,7 +10,7 @@ import { useMoney } from '@/app/currency';
 
 export default function DueRow({
   scheduleId, name, kind = 'expense', dueOn, on = dueOn, movedFrom, daysAway, amount, category,
-  icon, tint, rule, cal = 'gregorian', today, canRecord = true,
+  icon, rule, cal = 'gregorian', today, canRecord = true,
 }: {
   scheduleId: string; name: string; kind?: 'expense' | 'income';
   /** The rule's date — what the occurrence is keyed by. */
@@ -45,10 +45,7 @@ export default function DueRow({
   });
 
   return (
-    <div style={{
-      display: 'flex', flexDirection: 'column', gap: 10, padding: '14px 0',
-      borderBottom: '1px solid var(--border)',
-    }}>
+    <div className="flex flex-col gap-2.5 border-b border-border py-2.5 last:border-b-0">
       <SwipeRow actions={open ? [] : [
         { label: 'Skip', icon: <Icon name="skip" size={20} />, act: skipNow },
         ...(canMove ? [{ label: 'Move', icon: <Icon name="move" size={20} />,
@@ -56,24 +53,20 @@ export default function DueRow({
         ...(canRecord ? [{ label: income ? 'Came in' : 'Record', tone: 'primary' as const,
           icon: <Icon name="check" size={20} />, act: () => setMode('record') }] : []),
       ]}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, minHeight: 44 }}>
-        <span style={{
-          width: 40, height: 40, flex: 'none', borderRadius: 11, display: 'flex',
-          alignItems: 'center', justifyContent: 'center',
-          background: overdue ? 'color-mix(in srgb, var(--destructive) 12%, transparent)' : 'var(--attention-soft)',
-          color: overdue ? 'var(--destructive)' : 'var(--attention-soft-foreground)',
-        }}>
-          <Icon name={icon ?? 'autodebit'} size={19} />
+      <div className="flex min-h-[52px] items-center gap-3">
+        <span className={`grid size-10 flex-none place-items-center rounded-xl ${overdue
+          ? 'bg-destructive/10 text-destructive' : 'bg-attention-soft text-attention-soft-foreground'}`}>
+          <Icon name={icon ?? 'autodebit'} size={20} />
         </span>
-        <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
-          <span style={{ fontSize: 'var(--step-0)', fontWeight: 600, overflowWrap: 'anywhere' }}>{name}</span>
-          <span style={{ fontSize: 'var(--step--1)', color: overdue ? 'var(--destructive)' : 'var(--muted-foreground)', overflowWrap: 'anywhere' }}>
+        <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+          <span className="text-[15px] font-medium [overflow-wrap:anywhere]">{name}</span>
+          <span className={`text-xs [overflow-wrap:anywhere] ${overdue ? 'text-destructive' : 'text-muted-foreground'}`}>
             {whenLine(income, on, daysAway, today)}
             {movedFrom && ` · moved from ${friendlyDay(movedFrom, today)}`}
             {category && ` · ${category}`}
           </span>
         </span>
-        <span className="t" style={{ flex: 'none', fontSize: 'var(--step-1)', color: income ? 'var(--money-in)' : 'var(--money-out)' }}>
+        <span className={`flex-none text-[15px] font-semibold tabular-nums ${income ? 'text-money-in' : ''}`}>
           {income ? '+' : ''}{format(amount)}
         </span>
       </div>
@@ -83,35 +76,23 @@ export default function DueRow({
         <MoveDue scheduleId={scheduleId} name={name} dueOn={dueOn} on={on}
           rule={rule!} cal={cal} today={today!} onDone={idle} onCancel={idle} />
       ) : (
-        <form action={record} style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
+        <form action={record} className="flex flex-col gap-2 pb-1">
           <input type="hidden" name="scheduleId" value={scheduleId} />
           <input type="hidden" name="dueOn" value={dueOn} />
-          <label style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-            <span style={{ fontSize: 'var(--step--2)', fontWeight: 600, color: 'var(--muted-foreground)' }}>
-              Amount — change it if this month differed
-            </span>
+          <label className="flex flex-col gap-1.5">
+            <span className="text-xs font-semibold text-muted-foreground">Amount — change it if this month differed</span>
             <input name="amount" inputMode="decimal" defaultValue={toKeys(amount)}
-              style={{
-                minHeight: 48, borderRadius: 12, border: '1px solid var(--border)',
-                background: 'var(--card)', color: 'var(--foreground)', fontSize: 'var(--field)',
-                fontWeight: 600, padding: '0 12px',
-              }} />
+              className="min-h-12 rounded-xl border border-input bg-card px-3 font-semibold text-foreground" />
           </label>
           {recState && !recState.ok && (
-            <span role="alert" style={{ fontSize: 'var(--step--1)', color: 'var(--destructive)' }}>
-              {recState.error}
-            </span>
+            <span role="alert" className="flex items-center gap-1.5 text-sm text-destructive"><Icon name="error" size={18} />{recState.error}</span>
           )}
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button className="cta" type="button" onClick={idle} style={{
-              minHeight: 46, padding: '0 14px', borderRadius: 11, fontSize: 'var(--step--1)',
-              fontWeight: 600, background: 'var(--muted)', color: 'var(--muted-foreground)',
-            }}>Cancel</button>
-            <button className="cta" type="submit" disabled={recording} style={{
-              flex: 1, minHeight: 46, borderRadius: 11, fontSize: 'var(--step-0)', fontWeight: 600,
-              background: 'var(--primary)', color: 'var(--primary-foreground)',
-              opacity: recording ? 0.6 : 1,
-            }}>{recording ? 'Saving…' : 'Record the payment'}</button>
+          <div className="flex gap-2">
+            <button type="button" onClick={idle}
+              className="press min-h-12 rounded-xl bg-muted px-4 text-sm font-semibold text-muted-foreground">Cancel</button>
+            <button type="submit" disabled={recording}
+              className="press min-h-12 flex-1 rounded-xl bg-primary text-[15px] font-semibold text-primary-foreground disabled:opacity-60">
+              {recording ? 'Saving…' : income ? 'Record that it came in' : 'Record the payment'}</button>
           </div>
         </form>
       )}

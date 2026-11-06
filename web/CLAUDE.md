@@ -46,8 +46,17 @@ paragraph below says otherwise. Where an older section disagrees, this wins:
   one "Owed to you" line into it (`owedToYou()` in lib/worth.ts). Plan (`/budget`, `/trends`), Categories and the
   household belong to Home (`OWNED_BY` lights it) and open as pushed screens with a back arrow; `/accounts` is
   pushed from Wealth (`/worth`). The active tab is a filled icon with a `text-primary` label on iOS, and a 56x30
-  `bg-accent` pill on Android (`in-data-[platform=android]:` (data-platform is on <html>, the group class on <body>, so group-data would never match)). Activity still has its `Segments` switch
-  until the filter chips replace it.
+  `bg-accent` pill on Android (`in-data-[platform=android]:` (data-platform is on <html>, the group class on <body>, so group-data would never match)).
+- **Activity is one screen** (`/entries`, Task 24): under the title a row of link chips (`ActivityChips.tsx`)
+  *All · To review (n) · Upcoming · From SMS (n)* picks the view by `?f=all|review|upcoming|sms` (default all;
+  each view's data is loaded only for its chip: `ReviewView`, `UpcomingView`, `SmsView`). To review's badge is
+  bills + duplicates and From SMS's is open drafts, so the two add up to Home's tile. The month pill and search
+  belong to All (`?m=`, `?q=`, `?c=` as before); Upcoming keeps its own calendar month; review and SMS are not
+  month-filtered. `/inbox` and `/schedules` are redirects that keep every param (`/inbox?dismissed=` goes to
+  `?f=sms`); `/inbox/sms/[id]` stays the message screen and returns to `/entries?f=sms`. `purgeSmsBodies` runs
+  on every render of the page. `Segments`/`ActivityNav` are gone. A card holding swipe rows keeps
+  `px-[var(--pad)]`: SwipeRow's negative margin is `--pad`, and any other padding makes the card scrollable, so
+  opening a row scrolls it and the scroll closes the row again.
 - **One name per thing**, the same on the tab, the switch, the page and the
   browser title: To review (was Inbox / Needs you), Upcoming (was Scheduled),
   Loans (was Loan centre, then a Money view), Money (was Accounts), categories (never headings).
@@ -303,7 +312,7 @@ hidden input; there is no `<select>` of payment modes anywhere, because one
 listing every rail under every account showed "ICICI Amazon Pay" twice and
 read as nonsense. Wrap it in a `<div role="group">`, never a `<label>` — a
 label around buttons activates the first chip. The entries list shows the
-rail when there is one and the account when there is not. `sw.js` is v33 (SMS drafts reach Add).
+rail when there is one and the account when there is not. `sw.js` is v34 (pay tiles wrap instead of clamping).
 Before Save, a debounced
 `checkDuplicate` shows what a household member already recorded within ±1% and
 ±2 days, which is the prevention half of the duplicate rule; the Inbox card is
@@ -948,7 +957,7 @@ another table. Fifteen assertions cover the tab rules.
 
 ## The inbox
 
-`/inbox` is where things that want a decision surface, and nothing else does.
+To review (`/entries?f=review`; `/inbox` redirects there) is where things that want a decision surface, and nothing else does.
 An inbox that collects notices nobody can act on stops being read, and then the
 one item that mattered is missed along with the rest.
 
@@ -985,16 +994,16 @@ draft statements live in `src/lib/sms-draft.ts` (handle-taking, so the
 invariants run them): accept and dismiss null the body at once and stamp
 `decided_at` (0039); `restoreDraftIn` is Undo for 15 minutes;
 `purgeSmsBodiesIn` nulls the text of anything decided or older than 30 days,
-called as `/entries`, `/inbox` and the message screen render and on every
+called as `/entries` and the message screen render and on every
 arrival at the endpoint — there is no scheduler. Dismissing on the message
-screen redirects to `/inbox?dismissed=<id>`, which offers the Undo. Phones get keys on `/household/capture` (shown once; owners see
+screen redirects to `/entries?f=sms&dismissed=<id>`, which offers the Undo. Phones get keys on `/household/capture` (shown once; owners see
 and revoke everyone's, others their own; viewers add none) with the iPhone
 Shortcuts and Android forwarder guides. `scripts/sms-taps.mjs` drives the
 whole path against a running build.
 
 ## Scheduled payments, without a scheduler
 
-`/schedules` holds the things that come round anyway — rent, fees, an EMI.
+Upcoming (`/entries?f=upcoming`; `/schedules` redirects there) holds the things that come round anyway — rent, fees, an EMI.
 
 **Nothing is materialised ahead of time.** Upcoming dates are computed from the
 rule when they are asked for, and an `occurrence` row is written only when

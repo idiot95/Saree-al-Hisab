@@ -170,8 +170,9 @@ export function MonthGrid({ value, today, min, max, onPick }: {
 export function DayOfMonth({ value, top, onPick, label = 'Day of the month' }: {
   value: number; top: number; onPick: (d: number) => void; label?: string;
 }) {
+  // As many 44px columns as fit (seven on most phones, fewer on the narrowest): a weekday means nothing here.
   return (
-    <div role="radiogroup" aria-label={label} style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4 }}>
+    <div role="radiogroup" aria-label={label} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(44px, 1fr))', gap: 4 }}>
       {Array.from({ length: top }, (_, i) => i + 1).map((d) => {
         const on = d === value;
         return (

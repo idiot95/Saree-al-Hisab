@@ -1,123 +1,157 @@
 import Link from '@/app/NavLink';
 import { redirect } from 'next/navigation';
-import { actorOrNull, budgetFor, entriesFor, inboxCount, reviewCount, monthTotals, purgeSmsBodies, searchEntries } from '@/db/queries';
+import { actorOrNull, budgetFor, entriesFor, inboxCount, monthTotals, purgeSmsBodies, searchEntries } from '@/db/queries';
 import { withHousehold } from '@/db/client';
 import { digitsOf, format, monthKey } from '@/lib/money';
 import TabBar from '../TabBar';
 import { TAB_BAR_SPACE } from '../tabs';
 import Screen from '../Screen';
 import EntryList from './EntryList';
-import ActivityNav from './ActivityNav';
+import ActivityChips, { type ActivityFilter } from './ActivityChips';
 import { byDay } from './rows';
 import MonthPill from '../MonthPill';
 import { Icon } from '../Icon';
+import { Empty } from './parts';
+import { loadReview } from './ReviewView';
+import { loadUpcoming } from './UpcomingView';
+import { loadSms } from './SmsView';
 
-export const metadata = { title: 'Entries · Saree al-Hisab' };
+export const metadata = { title: 'Activity · Saree al-Hisab' };
 export const dynamic = 'force-dynamic';
 
 const MONTH = /^\d{4}-\d{2}-01$/;
+const FILTERS = new Set<ActivityFilter>(['all', 'review', 'upcoming', 'sms']);
 const monthLabel = (m: string) =>
   new Date(m).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
 
+type Params = { m?: string; c?: string; q?: string; f?: string; dismissed?: string; new?: string };
 
-export default async function Entries({ searchParams }: {
-  searchParams: Promise<{ m?: string; c?: string; q?: string }>;
-}) {
+/* Activity is one screen: the month's entries, and three other views of the same books chosen by the chips under
+   the title — what wants a decision (To review), what comes round next (Upcoming) and the bank messages a phone
+   forwarded (From SMS). `?f=` picks the view and every chip is a link, so it all works without script. The month
+   pill and search belong to All; Upcoming keeps its own month in its calendar, and what waits for a decision
+   waits whatever the month. */
+export default async function Activity({ searchParams }: { searchParams: Promise<Params> }) {
   const actor = await actorOrNull();
   if (!actor) redirect('/signin');
   if (!actor.household_id) redirect('/no-household');
 
-  const { m, c, q } = await searchParams;
-  const words = typeof q === 'string' ? q.trim().slice(0, 60) : '';
-  if (words) return <Search householdId={actor.household_id} words={words} currency={actor.currency} canEdit={actor.role !== 'viewer'} />;
-  const month = m && MONTH.test(m) ? m : monthKey(new Date());
-  const categoryId = c && /^[0-9a-f-]{36}$/.test(c) ? c : null;
+  const sp = await searchParams;
+  const f: ActivityFilter = FILTERS.has(sp.f as ActivityFilter) ? sp.f as ActivityFilter : 'all';
   const hh = actor.household_id;
+  const canWrite = actor.role !== 'viewer';
+  const month = sp.m && MONTH.test(sp.m) ? sp.m : null;
   /* Forwarded bank messages lose their text once handled or after thirty days. There is no scheduler, so the
-     screens that list them do it as they open. */
-  const [entries, categories, totals, inbox] = await withHousehold(hh, async () => {
+     screen that lists them does it as it opens, whichever chip it opens on. The counts feed the chips' badges:
+     card bills and duplicates on To review, open drafts on From SMS — together, Home's To review tile. */
+  const inbox = await withHousehold(hh, async () => {
     await purgeSmsBodies(hh);
-    return Promise.all([
-      entriesFor(hh, month, categoryId),
-      budgetFor(hh, month),
-      monthTotals(hh, month),
-      inboxCount(hh),
-    ]);
+    return inboxCount(hh);
   });
+  const review = inbox.bills + inbox.duplicates;
+  const chips = <ActivityChips current={f} review={review} sms={inbox.sms} month={month} />;
+
+  if (f === 'review') {
+    const v = await loadReview(hh, canWrite, inbox.sms);
+    return <Shell sub={v.sub} chips={chips}>{v.body}</Shell>;
+  }
+  if (f === 'upcoming') {
+    const v = await loadUpcoming(hh, canWrite, sp.new === '1');
+    return <Shell sub={v.sub} chips={chips}>{v.body}</Shell>;
+  }
+  if (f === 'sms') {
+    const v = await loadSms(hh, canWrite, sp.dismissed);
+    return <Shell sub={v.sub} chips={chips}>{v.body}</Shell>;
+  }
+
+  const words = typeof sp.q === 'string' ? sp.q.trim().slice(0, 60) : '';
+  if (words) return <Search householdId={hh} words={words} currency={actor.currency} canEdit={canWrite} chips={chips} />;
+
+  const shown = month ?? monthKey(new Date());
+  const categoryId = sp.c && /^[0-9a-f-]{36}$/.test(sp.c) ? sp.c : null;
+  const [entries, categories, totals] = await withHousehold(hh, () => Promise.all([
+    entriesFor(hh, shown, categoryId),
+    budgetFor(hh, shown),
+    monthTotals(hh, shown),
+  ]));
   const filtered = categories.find((x) => x.category_id === categoryId)
     ?? categories.flatMap((x) => x.kids.map((k) => ({ ...k, name: `${x.name} › ${k.name}` })))
       .find((k) => k.id === categoryId);
   const days = byDay(entries);
 
-  /* What the month cost comes from spend_txn, never from adding up the rows
-     on screen. A cost laid out for someone shows here as the payment that
-     happened, and none of it is spending — summing the list would count it. */
+  /* What the month cost comes from spend_txn, never from adding up the rows on screen. A cost laid out for
+     someone shows here as the payment that happened, and none of it is spending — summing the list would count it. */
   const spent = filtered ? Number(filtered.spent) : Number(totals.spent);
   const keep = categoryId ? `&c=${categoryId}` : '';
 
   return (
-    <Screen>
-      <main className="min-h-dvh bg-background text-foreground" style={{ paddingBottom: TAB_BAR_SPACE }}>
-        <header className="flex flex-col gap-3 px-[var(--gutter)] pb-4 pt-4">
-          <div className="flex items-end justify-between gap-3">
-            <div className="min-w-0">
-              <h1 className="truncate font-display text-[30px] leading-tight">{filtered ? filtered.name : 'Activity'}</h1>
-              <p className="text-sm text-muted-foreground">
-                <span className="whitespace-nowrap">{entries.length} {entries.length === 1 ? 'entry' : 'entries'} ·</span>
-                {' '}<span className="whitespace-nowrap">{format(spent)} spent</span>
-              </p>
-            </div>
-            <MonthPill month={month} path="/entries" keep={keep} />
-          </div>
-          {!filtered && <ActivityNav current="entries" review={reviewCount(inbox)} />}
-          {filtered && (
-            <Link href={`/entries?m=${month}`} className="flex min-h-11 items-center gap-1.5 self-start rounded-full bg-accent px-3.5 text-sm font-semibold text-accent-foreground">
-              <Icon name="close" size={14} /> Showing one category
-            </Link>
-          )}
-        </header>
-        {entries.length === 0 ? (
-          <p className="px-8 py-10 text-center text-muted-foreground">
-            Nothing recorded for {monthLabel(month)}{filtered ? ` under ${filtered.name}` : ''} yet.
-          </p>
-        ) : (
-          <EntryList days={days} canEdit={actor.role !== 'viewer'} tools />
-        )}
-        <TabBar current="/entries" />
-      </main>
-    </Screen>
+    <Shell title={filtered ? filtered.name : 'Activity'}
+      sub={<><span className="whitespace-nowrap">{entries.length} {entries.length === 1 ? 'entry' : 'entries'} ·</span>
+        {' '}<span className="whitespace-nowrap">{format(spent)} spent</span></>}
+      right={<MonthPill month={shown} path="/entries" keep={keep} />}
+      chips={filtered ? (
+        /* One category, from a budget line: the chips would mean "all of Activity", so the way out is one chip. */
+        <Link href={`/entries?m=${shown}`} replace
+          className="press flex min-h-11 items-center gap-1.5 self-start rounded-full bg-accent px-3.5 text-sm font-semibold text-accent-foreground">
+          <Icon name="close" size={16} /> Showing one category
+        </Link>
+      ) : chips}>
+      {entries.length === 0 ? (
+        <div className="pt-3">
+          <Empty icon="receipt_long"
+            text={`Nothing recorded for ${monthLabel(shown)}${filtered ? ` under ${filtered.name}` : ''} yet. Everything spent, earned or moved shows up here, a day at a time.`}
+            action={canWrite ? { href: '/add', label: 'Add an entry', icon: 'add' } : undefined} />
+        </div>
+      ) : (
+        <EntryList days={days} canEdit={canWrite} tools />
+      )}
+    </Shell>
   );
 }
 
 /* Every month at once: what was typed, matched against the words on an entry (and its amount, when it is a number),
    newest first. Postel: "1,250", "₹1250" and "1250" are the same figure. */
-async function Search({ householdId, words, currency, canEdit }: {
-  householdId: string; words: string; currency: string; canEdit: boolean;
+async function Search({ householdId, words, currency, canEdit, chips }: {
+  householdId: string; words: string; currency: string; canEdit: boolean; chips: React.ReactNode;
 }) {
   const figure = words.replace(/[^0-9.]/g, '');
   const amountMinor = /^\d+(\.\d+)?$/.test(figure) && /^[\s₹$€£,.\d]+$/.test(words)
     ? Math.round(Number(figure) * 10 ** digitsOf(currency)) : null;
-  const [entries, inbox] = await withHousehold(householdId, () => Promise.all([
-    searchEntries(householdId, words, amountMinor),
-    inboxCount(householdId),
-  ]));
+  const entries = await withHousehold(householdId, () => searchEntries(householdId, words, amountMinor));
   const days = byDay(entries);
+  return (
+    <Shell sub={`${entries.length === 0 ? 'Nothing found' : `${entries.length}${entries.length >= 200 ? '+' : ''} found`} in every month`}
+      chips={<>
+        {chips}
+        <Link href="/entries" replace
+          className="press flex min-h-11 items-center gap-1.5 self-start rounded-full bg-accent px-3.5 text-sm font-semibold text-accent-foreground">
+          <Icon name="close" size={16} /> Back to this month
+        </Link>
+      </>}>
+      <EntryList days={days} canEdit={canEdit} tools initialQ={words} everyMonth />
+    </Shell>
+  );
+}
+
+/* The header every view shares — the title large, a line under it, the month pill where it applies, then the
+   chips — and the breathing gap above the tab bar. */
+function Shell({ title = 'Activity', sub, right, chips, children }: {
+  title?: string; sub: React.ReactNode; right?: React.ReactNode; chips: React.ReactNode; children: React.ReactNode;
+}) {
   return (
     <Screen>
       <main className="min-h-dvh bg-background text-foreground" style={{ paddingBottom: TAB_BAR_SPACE }}>
-        <header className="flex flex-col gap-3 px-[var(--gutter)] pb-4 pt-4">
-          <div className="min-w-0">
-            <h1 className="font-display text-[30px] leading-tight">Activity</h1>
-            <p className="text-sm text-muted-foreground">
-              {entries.length === 0 ? 'Nothing found' : `${entries.length}${entries.length >= 200 ? '+' : ''} found`} in every month
-            </p>
+        <header className="flex flex-col gap-3 px-[var(--gutter)] pb-3 pt-4">
+          <div className="flex items-end justify-between gap-3">
+            <div className="min-w-0">
+              <h1 className="text-[32px] font-bold leading-tight tracking-tight [overflow-wrap:anywhere]">{title}</h1>
+              <p className="text-sm text-muted-foreground">{sub}</p>
+            </div>
+            {right}
           </div>
-          <ActivityNav current="entries" review={reviewCount(inbox)} />
-          <Link href="/entries" className="flex min-h-11 items-center gap-1.5 self-start rounded-full bg-accent px-3.5 text-sm font-semibold text-accent-foreground">
-            <Icon name="close" size={14} /> Back to this month
-          </Link>
+          {chips}
         </header>
-        <EntryList days={days} canEdit={canEdit} tools initialQ={words} everyMonth />
+        <div className="pb-6">{children}</div>
         <TabBar current="/entries" />
       </main>
     </Screen>

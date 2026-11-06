@@ -28,7 +28,7 @@ const BASE = (process.env.SWEEP_BASE || 'http://localhost:3000').replace(/\/$/, 
 const STATE = process.env.SWEEP_STATE || path.join(HERE, '..', '.sweep-state.json');
 
 const DEFAULT_ROUTES = ['/', '/entries', '/budget', '/trends', '/people', '/worth', '/accounts',
-  '/add', '/household', '/categories', '/schedules', '/inbox', '/signin', '/signup', '/terms', '/offline'];
+  '/add', '/household', '/categories', '/entries?f=review', '/entries?f=upcoming', '/entries?f=sms', '/signin', '/signup', '/terms', '/offline'];
 /* Public routes are measured with NO session: with one, /signin bounces to /. */
 const PUBLIC_ROUTES = new Set(['/signin', '/signup', '/terms', '/offline']);
 

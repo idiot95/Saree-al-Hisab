@@ -92,7 +92,7 @@ const SECTIONS = [
   },
   {
     title: 'Things that come round every month',
-    href: '/schedules', link: 'Activity › Upcoming',
+    href: '/entries?f=upcoming', link: 'Activity › Upcoming',
     lines: [
       'Rent, school fees, an EMI — set the amount, the day and how it is paid, once.',
       'Nothing is recorded until you say so. A schedule is a reminder with the details already filled in, not a standing instruction writing entries behind your back.',
@@ -102,7 +102,7 @@ const SECTIONS = [
   },
   {
     title: 'To review catches what slips',
-    href: '/inbox', link: 'Activity › To review',
+    href: '/entries?f=review', link: 'Activity › To review',
     lines: [
       'If the same purchase looks like it was recorded twice, both entries are shown side by side and you decide.',
       'Two people in a household often record one purchase differently — he paid by card, she assumed cash — so that check deliberately ignores which account it was on.',
