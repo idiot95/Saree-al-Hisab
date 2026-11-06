@@ -54,7 +54,7 @@ function Picker({ icon, tint, onIcon, onTint }: {
             return (
               <button key={t} type="button" onClick={() => { haptic('tap'); onTint(t); }}
                 aria-label={t} aria-pressed={on}
-                className="grid size-11 place-items-center rounded-full border-2"
+                className="grid size-11 place-items-center rounded-full border-2 in-data-[platform=android]:size-12"
                 style={{ background: bg, color: ink, borderColor: on ? ink : 'transparent' }}>
                 {on && <Icon name="check" size={18} />}
               </button>
@@ -68,7 +68,9 @@ function Picker({ icon, tint, onIcon, onTint }: {
         <input type="search" value={find} onChange={(e) => setFind(e.target.value)}
           placeholder="Find an icon" aria-label="Find an icon" autoComplete="off"
           className="h-12 w-full rounded-xl border border-input bg-card px-3.5 text-[length:var(--field)] text-foreground" />
-        <div className="grid max-h-[200px] grid-cols-[repeat(auto-fill,minmax(46px,1fr))] gap-2 overflow-y-auto">
+        {/* The whole set, in the page's own scroll: a box that scrolled by itself inside the page hid most icons
+            (and, measured, laid them under the tab bar). 32 icons are five or six rows. */}
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(48px,1fr))] gap-2">
           {shown.length === 0 && (
             <span className="col-span-full py-2 text-sm text-muted-foreground">
               Nothing called that. Try another word.
@@ -79,7 +81,7 @@ function Picker({ icon, tint, onIcon, onTint }: {
             return (
               <button key={n} type="button" onClick={() => { haptic('tap'); onIcon(n); }}
                 aria-label={n} aria-pressed={on}
-                className={`flex min-h-[46px] items-center justify-center rounded-xl border ${on ? '' : 'border-border bg-background text-muted-foreground'}`}
+                className={`flex min-h-12 items-center justify-center rounded-xl border ${on ? '' : 'border-border bg-background text-muted-foreground'}`}
                 style={on ? { background: ibg, color: iink, borderColor: iink } : undefined}>
                 <Icon name={n} size={20} />
               </button>

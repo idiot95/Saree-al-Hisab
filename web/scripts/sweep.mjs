@@ -32,7 +32,7 @@ const BASE = (process.env.SWEEP_BASE || 'http://localhost:3000').replace(/\/$/, 
 const STATE = process.env.SWEEP_STATE || path.join(HERE, '..', '.sweep-state.json');
 
 const DEFAULT_ROUTES = ['/', '/entries', '/budget', '/people', '/worth', '/accounts',
-  '/add', '/household', '/categories', '/entries?f=review', '/entries?f=upcoming', '/entries?f=sms', '/signin', '/signup', '/terms', '/offline'];
+  '/add', '/household', '/categories', '/categories|tap=^Add a category$', '/entries?f=review', '/entries?f=upcoming', '/entries?f=sms', '/signin', '/signup', '/terms', '/offline'];
 /* Public routes are measured with NO session: with one, /signin bounces to /. */
 const PUBLIC_ROUTES = new Set(['/signin', '/signup', '/terms', '/offline']);
 /* A link's own page is opened by someone not signed in yet: /join/<token> and /reset/<token> too, by default.
