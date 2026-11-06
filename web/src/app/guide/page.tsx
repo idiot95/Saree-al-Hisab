@@ -112,10 +112,10 @@ const SECTIONS = [
   },
   {
     title: 'Seeing the shape of it',
-    href: '/trends', link: 'Plan › Trends',
+    href: '/budget#trends', link: 'Plan › Trends',
     lines: [
-      'Six months of spending as bars, with the budget marked on each one.',
-      'This month broken down by category, with the amounts written out beside it.',
+      'Six months of spending as a line, with the budget as a dashed line beside it.',
+      'This month by category, largest first, with the amounts written out beside each bar.',
       'The biggest changes on last month, so a jump is visible before the statement arrives.',
       'Tap any category to see the entries behind the number.',
     ],

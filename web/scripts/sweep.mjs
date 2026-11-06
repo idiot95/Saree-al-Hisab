@@ -27,7 +27,7 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 const BASE = (process.env.SWEEP_BASE || 'http://localhost:3000').replace(/\/$/, '');
 const STATE = process.env.SWEEP_STATE || path.join(HERE, '..', '.sweep-state.json');
 
-const DEFAULT_ROUTES = ['/', '/entries', '/budget', '/trends', '/people', '/worth', '/accounts',
+const DEFAULT_ROUTES = ['/', '/entries', '/budget', '/people', '/worth', '/accounts',
   '/add', '/household', '/categories', '/entries?f=review', '/entries?f=upcoming', '/entries?f=sms', '/signin', '/signup', '/terms', '/offline'];
 /* Public routes are measured with NO session: with one, /signin bounces to /. */
 const PUBLIC_ROUTES = new Set(['/signin', '/signup', '/terms', '/offline']);
@@ -100,6 +100,10 @@ function checkFixedOverlap(edge /* 'top' | 'bottom' */, vw, vh) {
   const visible = (el) => {
     const cs = getComputedStyle(el);
     if (cs.display === 'none' || cs.visibility === 'hidden' || parseFloat(cs.opacity) === 0) return false;
+    /* A shut <details> keeps its content laid out (Chromium hides it with content-visibility), so its rects are
+       real numbers for text nobody can see. Only the summary is on screen. */
+    const shut = el.closest('details:not([open])');
+    if (shut && !el.closest('summary')) return false;
     const r = el.getBoundingClientRect();
     return r.width > 0 && r.height > 0;
   };

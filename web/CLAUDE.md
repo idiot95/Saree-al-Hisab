@@ -82,8 +82,21 @@ paragraph below says otherwise. Where an older section disagrees, this wins:
 - **Net worth has one definition**, `lib/worth.ts` `netWorth()`, fed by one read,
   `db/worth.ts` `worthInput()` (rates first, then accounts, owed, members, holdings),
   used by Wealth and Home's dark net-worth row alike. (Home's old figure counted money lent twice.)
-- **Trends** takes `?m=`; the running month is compared day for day with last
-  month (`categoryTrend(…, days)`), the average is of finished months only.
+- **Plan is one screen** (`/budget`, Task 25), pushed from Home's month card (back arrow to `/`). Top to bottom:
+  the month's figures (`?m=`; Left to spend / Over budget by as a `Figure`, the pace tick and status from
+  `home/LeftToSpend.tsx` `paceOf`, so Home and Plan agree), the budget lines by top-level category (primary bars,
+  red only over budget with the icon and the words, "of which" children, each into `/entries?m=&c=`), *Your
+  budgets* (the sets), *Adjust <month> only* (a native `<details>`), then **Trends** (`budget/Trends.tsx`,
+  `id="trends"`). `/trends` is a redirect that keeps every param and puts the fragment last
+  (`/trends?m=X` → `/budget?m=X#trends`). Trends takes the month shown (or this one, for a month not yet started);
+  the running month is compared day for day with last month (`categoryTrend(…, days)`), the average is of
+  finished months only. Its cards: where the month went as a bar list (category colour on the icon only), the
+  changes on last month, six months of spending as a line with the budget dashed, owed to you by tab, six months
+  of money back. Charts are shadcn Chart (Recharts) in `budget/TrendCharts.tsx`, loaded through `next/dynamic`
+  `ssr:false` inside `WhenNear` (`src/app/WhenNear.tsx`, shared with Wealth): the box is the plot's fixed height
+  and a chart's caption is drawn by the page outside it, so nothing moves when the chart arrives.
+  `scripts/plan-taps.mjs` drives the redirect, a two-step create with the box unticked, Make current, and an
+  "Adjust this month only" save that changes the bar.
 - **Back returns to where you were** (`backStack.ts`): `NavTrail` in the root
   layout records each in-app address for the session; the header arrow
   (`BackLink`) and the edge swipe step back through history when there is an
@@ -732,13 +745,15 @@ August budgeted and "Normal months" running Sept–Aug, adopting a Feb–Mar
 "Ramadan" left August untouched, cleared Sept–Jan, and wrote Feb–Mar.
 
 **One list, every budget the same shape**, the one in use wearing a badge and a
-green edge. A row shut is its name, what it costs a month and how many
+primary edge. A row shut is its name, what it costs a month and how many
 headings; tapped, it opens the headings with their figures — and, on the one in
 use only, how each is going this month, because a bar on a budget nobody is
 spending against measures against a figure that does not apply. Making current
 and Delete are the swipe (`SwipeRow`, `commit={false}` so a long swipe never
-fires either outright), and the open row repeats both as buttons, so neither is
-reachable only by gesture. Creating asks in two steps and ends with a
+fires either outright), and the open row repeats both as buttons (Delete on every
+budget, a second tap to confirm), so neither is reachable only by gesture. The
+create/edit form passes its action straight to `useActionState` with every field
+controlled; its two steps still need script. Creating asks in two steps and ends with a
 **checkbox**: a budget written for next Ramadan is not one to apply to this
 month, so whether it takes over is asked rather than assumed — and an unchecked
 box sends nothing at all, so the action reads `=== 'yes'` rather than `!== 'no'`.

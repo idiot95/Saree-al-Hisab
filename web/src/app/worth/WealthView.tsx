@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import Link from '@/app/NavLink';
 import { Figure } from '../Figure';
 import { Icon } from '../Icon';
@@ -8,13 +8,14 @@ import { useMoney } from '../currency';
 import OwnerChips from './OwnerChips';
 import HoldingRow from './HoldingRow';
 import dynamic from 'next/dynamic';
+import WhenNear from '../WhenNear';
 import type { HoldingItem, RateNote, SeriesPoint, WealthView as View } from './types';
 
 /* The part of Wealth that changes with the owner chip. Every set of figures arrived with the page; a chip only
    picks which one is drawn, so the headline and the legend roll to their new values (Figure) and nothing is
    fetched. The holdings listed follow the same choice: a member's own, the joint ones, or all of them. */
 /* Recharts is a large library and the chart is below the fold on one view only: it loads when it is drawn. */
-const WorthChart = dynamic(() => import('./WorthChart'), { ssr: false, loading: () => <div className="h-36" /> });
+const WorthChart = dynamic(() => import('./WorthChart'), { ssr: false });
 
 const CLASSES = [
   { key: 'bank', word: 'Bank & cash', swatch: 'bg-hero-1' },
@@ -101,7 +102,12 @@ export default function WealthView({ views, initial, items, potRates, metalRates
         <section aria-label="Month by month" className="mx-[var(--gutter)] flex flex-col gap-2">
           <h2 className="px-0.5 text-[13px] font-semibold text-muted-foreground">Month by month</h2>
           <div className="rounded-[18px] bg-card p-4">
-            <WhenNear><WorthChart series={series} /></WhenNear>
+            <figure className="flex flex-col gap-2">
+              <WhenNear className="h-36"><WorthChart series={series} /></WhenNear>
+              <figcaption className="text-xs leading-relaxed text-muted-foreground">
+                {heldChange(series, format)} What people owe you is in the figure above but not in this line.
+              </figcaption>
+            </figure>
           </div>
         </section>
       )}
@@ -138,18 +144,12 @@ function Row({ href, icon, word, value, lateral }: { href: string; icon: string;
   );
 }
 
-/* The chart's code is fetched only when its card comes near the screen. Rendering the lazy component on the
-   first paint would have Next put its chunk among the page's first scripts, which is what lazy was for. */
-function WhenNear({ children }: { children: React.ReactNode }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [near, setNear] = useState(false);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const io = new IntersectionObserver((es) => { if (es.some((e) => e.isIntersecting)) { setNear(true); io.disconnect(); } },
-      { rootMargin: '300px 0px' });
-    io.observe(el);
-    return () => io.disconnect();
-  }, []);
-  return <div ref={ref} className="min-h-36">{near ? children : <div className="h-36" />}</div>;
+/* The line's caption, in words: drawn with the page, not with the lazy chart, so its height is there from the first
+   paint and nothing moves when the chart arrives. */
+function heldChange(series: SeriesPoint[], format: (minor: number) => string) {
+  const total = (p: SeriesPoint) => p.held + p.holdings;
+  const a = series[0], b = series[series.length - 1];
+  const change = total(b) - total(a);
+  return change === 0 ? `Level since ${a.month}.`
+    : `${format(Math.abs(change))} ${change > 0 ? 'more' : 'less'} than in ${a.month}, in accounts and holdings.`;
 }

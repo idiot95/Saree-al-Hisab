@@ -204,6 +204,7 @@ export function frameFor(path: string): Frame | 'home' | null {
   // Activity, whichever chip: the title, the four filter chips, rows. (/inbox and /schedules redirect here.)
   if (is(path, '/entries')) return { title: 'Activity', current: '/entries', chips: 4, rows: 6 };
   if (is(path, `/entries/${ID}`)) return { title: 'Entry', current: null, back: true, rows: 0, form: true };
+  // Plan: the month's figures, then the budget lines. (/trends redirects to Plan's #trends.)
   if (is(path, '/budget') || is(path, '/trends')) return { title: 'Plan', current: '/budget', back: true, rows: 5, figure: true };
   if (is(path, '/categories')) return { title: 'Categories', current: '/budget', back: true, rows: 6 };
   if (is(path, '/accounts')) return { title: 'Accounts', current: '/accounts', back: true, rows: 4, figure: true };
