@@ -6,7 +6,7 @@ import { buildRule, describeRule, friendlyDay, maxDay, nextDates, type Calendar 
 import { HIJRI_MONTHS_SHORT, formatHijri, toHijri } from '@/lib/hijri';
 import { DateChips, DayOfMonth, MonthOfYear, Segmented } from '../DatePick';
 import { createSchedule } from './actions';
-import { useKeepOnRefusal } from '../worth/fields';
+import { useKeepOnRefusal, useOnSuccess } from '../worth/fields';
 import PayPicker, { CHIP, CHIP_TEXT } from '../PayPicker';
 import CategoryPick from '../CategoryPick';
 import type { Category } from '../CategoryFinder';
@@ -31,14 +31,31 @@ const ENDS = [['never', 'Never'], ['after', 'After a number'], ['on', 'On a date
    the rule will be and when it first lands. The end is one line, "Ends
    never", until someone wants otherwise. */
 
-export default function NewSchedule({ ways, categories, tabs, startOpen = false }: {
+export default function NewSchedule({ startOpen = false, ...form }: {
   ways: Way[]; categories: Category[]; tabs: { id: string; name: string }[]; startOpen?: boolean;
+}) {
+  /* The form is its own component, so closing it (Cancel, or a success) drops every choice with it: the next
+     one starts from the defaults in React's state and in the DOM alike. */
+  const [open, setOpen] = useState(startOpen);
+  if (!open) {
+    return (
+      <div className="mx-[var(--gutter)]">
+        <AddRow onClick={() => setOpen(true)}>Add a payment or income that comes round</AddRow>
+      </div>
+    );
+  }
+  return <ScheduleForm {...form} onClose={() => setOpen(false)} />;
+}
+
+function ScheduleForm({ ways, categories, tabs, onClose }: {
+  ways: Way[]; categories: Category[]; tabs: { id: string; name: string }[]; onClose: () => void;
 }) {
   const [state, act, pending] = useActionState(createSchedule, null);
   /* It can open itself (?new=1, a plain link), so it posts directly and works without script; with script, a
      refusal's form reset is undone so Income, Once a year, Hijri and the rest stay as chosen for the resubmit. */
   const keep = useKeepOnRefusal(state);
-  const [open, setOpen] = useState(startOpen);
+  // Saved: close, so the reset React does after a success never leaves this form's switches and DOM disagreeing.
+  useOnSuccess(state, onClose);
   const [freq, setFreq] = useState<'MONTHLY' | 'YEARLY'>('MONTHLY');
   const [kind, setKind] = useState<'expense' | 'income'>('expense');
   const [counts, setCounts] = useState(true);
@@ -74,14 +91,6 @@ export default function NewSchedule({ ways, categories, tabs, startOpen = false 
     : ends === 'after' ? `Ends after ${times === 1 ? 'once' : `${times} times`}${last ? `, on ${friendlyDay(last, iso)}` : ''}`
     : untilDate ? `Ends on ${friendlyDay(untilDate, iso)}${last && last !== untilDate ? ` — the last is ${friendlyDay(last, iso)}` : ''}` : 'Ends on a date';
   const later = [[6, 'In 6 months'], [12, 'In a year'], [24, 'In 2 years']] as const;
-
-  if (!open) {
-    return (
-      <div className="mx-[var(--gutter)]">
-        <AddRow onClick={() => setOpen(true)}>Add a payment or income that comes round</AddRow>
-      </div>
-    );
-  }
 
   return (
     <form action={act} {...keep} aria-label="Add a regular payment" className={`mx-[var(--gutter)] ${formCard}`}>
@@ -246,7 +255,7 @@ export default function NewSchedule({ ways, categories, tabs, startOpen = false 
 
       {state && !state.ok && <ErrorNote>{state.error}</ErrorNote>}
       <div className="flex gap-2">
-        <button type="button" onClick={() => setOpen(false)} className={ghost}>Cancel</button>
+        <button type="button" onClick={onClose} className={ghost}>Cancel</button>
         <button type="submit" disabled={pending} className={solid}>{pending ? 'Saving…' : 'Add it'}</button>
       </div>
     </form>

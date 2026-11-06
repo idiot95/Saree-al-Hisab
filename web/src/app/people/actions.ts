@@ -69,6 +69,9 @@ export async function addPerson(_prev: Result | null, fd: FormData): Promise<Res
 }
 
 async function personAccount(householdId: string, id: string) {
+  /* '' or a malformed id would fail Postgres's uuid cast as a 500; undefined lets each caller refuse it with its
+     own "not one of yours" sentence, before any query. */
+  if (!isUuid(id)) return undefined;
   const [p] = await sql`
     select c.id, c.name, c.account_id from counterparty c
     where c.id = ${id} and c.household_id = ${householdId} and c.archived_at is null`;

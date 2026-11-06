@@ -6,7 +6,7 @@ import { haptic } from '../haptics';
 import { Icon } from '../Icon';
 import { ErrorNote, Field } from '../auth-ui';
 import { solid } from './rows';
-import { useKeepOnRefusal } from '../worth/fields';
+import { useKeepOnRefusal, useOnSuccess } from '../worth/fields';
 
 /* Say plainly what this link is. Accepted with Google it is bound to the
    address it was sent to; but until the password window closes it can also be
@@ -22,12 +22,16 @@ export default function InviteForm({ origin, household, inviter, passwordOpen }:
   const keep = useKeepOnRefusal(state);
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<'adult' | 'viewer'>('adult');
+  /* Created: the message below is written from this email and role, so they stay; the form is redrawn (a new key)
+     so React's reset after a success cannot leave its radios and the role in state disagreeing. */
+  const [round, setRound] = useState(0);
+  useOnSuccess(state, () => setRound((r) => r + 1));
   const token = state?.ok ? state.message : undefined;
   const until = state?.ok ? state.until ?? '' : '';
 
   return (
     <div className="flex flex-col gap-4 rounded-[18px] bg-card p-[var(--pad)]">
-      <form action={act} {...keep} className="flex flex-col gap-3">
+      <form key={round} action={act} {...keep} className="flex flex-col gap-3">
         <Field label="Email address" name="email" type="email" inputMode="email" autoComplete="off"
           placeholder="name@example.com" required
           value={email} onChange={(e) => setEmail(e.target.value)} />

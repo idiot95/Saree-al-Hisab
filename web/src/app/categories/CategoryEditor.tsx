@@ -14,7 +14,7 @@ import { ICONS, TINTS } from './options';
 import { Segmented } from '../DatePick';
 import { SCOPE_LABEL, type Scope } from '@/lib/scope';
 import Suggested from './Suggested';
-import { keepFields } from '../worth/fields';
+import { keepFields, useOnSuccess } from '../worth/fields';
 
 type Cat = {
   id: string; name: string; icon: string; tint: string; scope: Scope; parent_id: string | null;
@@ -483,6 +483,8 @@ function AddRow({ parents, takes, onDone }: {
   parents: Parent[]; takes: (p: Parent, scope: Scope) => boolean; onDone: () => void;
 }) {
   const [state, act, pending] = useActionState(addCategory, null);
+  // Added: close, so the next one starts from the defaults rather than this one's name, colour and icon.
+  useOnSuccess(state, onDone);
   const [icon, setIcon] = useState<string>('tag');
   const [tint, setTint] = useState<string>('blue');
   const [scope, setScope] = useState<Scope>('expense');

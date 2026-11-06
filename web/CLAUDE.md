@@ -117,7 +117,9 @@ paragraph below says otherwise. Where an older section disagrees, this wins:
   (`fieldLabel`, `selectCls`, `formCard`, `Info`, `AddRow`, and the `solid`/`ghost`/`danger` buttons household's rows re-export)
   with auth-ui's `Field`/`ErrorNote` (the one error note; worth/fields' `Problem` is it re-exported). A form that
   posts straight to its action (it works without script) spreads `useKeepOnRefusal(state)` from worth/fields, which puts
-  back what React's post-action reset undid after a refusal; one that opens only after a tap uses `keepFields`. CardDeck and the schedules Calendar/MonthGrid are untouched (Task 28).
+  back what React's post-action reset undid after a refusal; one that opens only after a tap uses `keepFields`. A form that stays
+  mounted after a success closes or is redrawn with a new key through `useOnSuccess(state, fn)`, because the reset runs
+  after a success too and would leave its radios and selects on the defaults while its state keeps the last choice. CardDeck and the schedules Calendar/MonthGrid are untouched (Task 28).
   `scripts/accounts-taps.mjs` edits a bank account's starting balance and a ₹1 reconciliation (with Undo), watching
   the Figures move, adds and stops a throwaway regular payment, and renames a category and back.
 - **Back returns to where you were** (`backStack.ts`): `NavTrail` in the root

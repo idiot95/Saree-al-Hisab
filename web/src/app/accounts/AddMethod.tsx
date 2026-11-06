@@ -4,7 +4,7 @@ import { useActionState, useState } from 'react';
 import { Icon, RAIL_ICON } from '../Icon';
 import { Field, ErrorNote } from '../auth-ui';
 import { addMethod } from './actions';
-import { useKeepOnRefusal } from '../worth/fields';
+import { useKeepOnRefusal, useOnSuccess } from '../worth/fields';
 import { AddRow, fieldLabel, formCard, ghost, selectCls, solid } from '../form-bits';
 
 type Acc = { id: string; name: string; kind: string };
@@ -29,6 +29,8 @@ export default function AddMethod({ accounts, startOpen = false }: { accounts: A
   const keep = useKeepOnRefusal(state);
   const [open, setOpen] = useState(startOpen);
   const [accountId, setAccountId] = useState(accounts[0]?.id ?? '');
+  // Added: close, so React's reset after a success never leaves "Takes money from" and the type disagreeing with state.
+  useOnSuccess(state, () => { setOpen(false); setAccountId(accounts[0]?.id ?? ''); });
 
   const account = accounts.find((a) => a.id === accountId);
   const allowed = RAILS.filter((r) => account && (r.on as readonly string[]).includes(account.kind));

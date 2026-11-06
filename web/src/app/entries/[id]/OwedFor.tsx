@@ -4,7 +4,7 @@ import { useActionState, useState } from 'react';
 import { Field, ErrorNote } from '../../auth-ui';
 import { addClaim, abandonClaim } from '../../people/actions';
 import { useMoney } from '@/app/currency';
-import { useKeepOnRefusal } from '../../worth/fields';
+import { useKeepOnRefusal, useOnSuccess } from '../../worth/fields';
 
 type Person = { id: string; name: string };
 type Claim = {
@@ -31,6 +31,8 @@ export default function OwedFor({ txnId, entryAmount, people, claims, canEdit }:
   const keep = useKeepOnRefusal(state);
   const [, drop] = useActionState(abandonClaim, null);
   const [open, setOpen] = useState(false);
+  // Added: close, so React's reset after a success never leaves the person and the amount disagreeing with the screen.
+  useOnSuccess(state, () => setOpen(false));
 
   if (people.length === 0 && claims.length === 0) return null;
 

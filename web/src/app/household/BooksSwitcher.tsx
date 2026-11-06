@@ -6,7 +6,7 @@ import { CURRENCIES } from '@/lib/money';
 import { setCurrency, startAnotherHousehold, switchTo, renameHousehold } from './actions';
 import { Icon } from '../Icon';
 import { Card, Chevron, ghost, Glyph, row, solid, Words } from './rows';
-import { useKeepOnRefusal } from '../worth/fields';
+import { useKeepOnRefusal, useOnSuccess } from '../worth/fields';
 
 type Book = { id: string; name: string; role: 'owner' | 'adult' | 'viewer'; active: boolean; people: number };
 
@@ -28,6 +28,12 @@ export default function BooksSwitcher({ books, canRename, currency, currencyFixe
   const keepNew = useKeepOnRefusal(newState);
   const keepName = useKeepOnRefusal(renameState);
   const keepCcy = useKeepOnRefusal(ccyState);
+  /* Saved: these two stay open to say Done, so each is redrawn (a new key) and its field starts again from the
+     saved name or currency, rather than from what React's post-success reset left in the DOM. */
+  const [nameRound, setNameRound] = useState(0);
+  const [ccyRound, setCcyRound] = useState(0);
+  useOnSuccess(renameState, () => setNameRound((r) => r + 1));
+  useOnSuccess(ccyState, () => setCcyRound((r) => r + 1));
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState(false);
   const [choosing, setChoosing] = useState(false);
@@ -60,7 +66,7 @@ export default function BooksSwitcher({ books, canRename, currency, currencyFixe
       ))}
 
       {canRename && (editing ? (
-        <form action={renameAct} {...keepName} className="flex flex-col gap-3 px-[var(--pad)] py-4">
+        <form key={nameRound} action={renameAct} {...keepName} className="flex flex-col gap-3 px-[var(--pad)] py-4">
           <Field label="Household name" name="name"
             defaultValue={books.find((b) => b.active)?.name} required maxLength={60} autoFocus />
           {renameState && !renameState.ok && <ErrorNote>{renameState.error}</ErrorNote>}
@@ -84,7 +90,7 @@ export default function BooksSwitcher({ books, canRename, currency, currencyFixe
           are empty. Once fixed it is a row that says so rather than a
           control that fails. */}
       {canRename && !currencyFixed && choosing ? (
-        <form action={ccyAct} {...keepCcy} className="flex flex-col gap-3 px-[var(--pad)] py-4">
+        <form key={ccyRound} action={ccyAct} {...keepCcy} className="flex flex-col gap-3 px-[var(--pad)] py-4">
           <CurrencyField defaultValue={currency} autoFocus
             hint="Every entry is recorded in this. It is fixed the moment the books hold one." />
           {ccyState && !ccyState.ok && <ErrorNote>{ccyState.error}</ErrorNote>}

@@ -13,9 +13,10 @@
       the "in the books today" Figure says ₹1 more. Undo (two taps) and it is back where it was.
    2b. Add a credit card, refused once (statement day 31): Credit card, the name, the bank and the network are
       still chosen; corrected and sent again, the row in the database is a credit card on that bank and network.
+      Then a second card from the same screen without a reload: also a credit card, owing what was typed.
    3. /schedules (a redirect to Upcoming): a throwaway regular payment, Once a year on the Hijri calendar, refused
       with no category (a refusal, not a 500), then with no amount (both choices still ticked after); with both it is saved as a yearly Hijri
-      rule and listed, then Stopped from its swipe grip and gone.
+      rule and listed; the form closes and a new one opens on the defaults. Then it is Stopped from its swipe grip.
    4. /categories: rename the top-level spending category with the most entries and see the row follow; rename it
       back.
    Everything the run made is removed, and every name and balance it touched is put back, even on a failure. */
@@ -68,6 +69,7 @@ const exactly = (name) => new RegExp(`^${name.replace(/[.*+?^${}()|[\]\\]/g, '\\
 const TAG = Date.now().toString(36);
 const SCHEDULE = `Accounts taps ${TAG}`;
 const CARD = `Taps card ${TAG}`;
+const CARD2 = `${CARD} 2`;
 let hh = null;
 let acc = null;          // { id, name, opening }
 let madeRecon = null;    // the reconciliation this run made, and its adjustment entry, for the cleanup
@@ -165,6 +167,28 @@ try {
   }
   assert.deepEqual({ ...card[0] }, { kind: 'credit', bank_key: 'hdfc', card_network: 'visa', statement_day: 5 });
   ok('corrected and sent again, it is saved as a credit card on HDFC and Visa, statement day 5');
+  /* A second card from the same flow, without a reload. React resets a <form action> after a success too, which
+     used to leave the open form showing Credit card while the DOM held Bank account, so the second add was saved
+     as a bank account with "Currently owed" as a positive balance. The form closes on success now; open it again. */
+  await add.waitFor({ state: 'detached', timeout: 20000 });
+  await page.getByRole('button', { name: /^Add an account/ }).click();
+  await add.getByText('Credit card', { exact: true }).click();
+  await add.getByLabel('Name').fill(CARD2);
+  await add.getByLabel('Last four digits').fill('8765');
+  await add.getByText('HDFC Bank', { exact: true }).click();
+  await add.getByText('Visa', { exact: true }).click();
+  await add.getByLabel('Currently owed').fill('500');
+  await add.getByLabel('Statement day').fill('6');
+  await add.getByLabel('Bill due day').fill('14');
+  await add.getByRole('button', { name: 'Add account' }).click();
+  let both = [];
+  for (let i = 0; i < 100 && both.length < 2; i++) {
+    both = await sql`select name, kind, opening_balance::text as opening from account where household_id = ${hh} and name in (${CARD}, ${CARD2}) order by name`;
+    if (both.length < 2) await page.waitForTimeout(200);
+  }
+  assert.deepEqual(both.map((r) => r.kind), ['credit', 'credit'], 'both cards are credit cards');
+  assert.ok(Number(both[1].opening) < 0, `the second card owes ₹500 (opening ${both[1].opening}), not a positive balance`);
+  ok('a second card added from the same screen without a reload is a credit card too, owing ₹500');
 
   /* ── 3. a throwaway regular payment ───────────────────────────────── */
   await page.goto(`${BASE}/schedules`);
@@ -211,6 +235,15 @@ try {
   assert.equal(rule.rrule, null, 'no Gregorian rule');
   assert.match(rule.hijri_rule ?? '', /^FREQ=YEARLY;/, 'a yearly Hijri rule');
   ok(`"${SCHEDULE}" added under ${spend.name} as ${rule.hijri_rule} on the Hijri calendar, and listed`);
+  /* Saved, the form closes (React's post-success reset can then never leave its switches and the DOM apart), and
+     a new one starts from the defaults on screen and in the DOM alike. */
+  await form.waitFor({ state: 'detached', timeout: 20000 });
+  await page.getByRole('button', { name: 'Add a payment or income that comes round' }).click();
+  for (const [name, on] of [['Every month', true], ['Once a year', false], ['English', true], ['Hijri', false], ['Expense', true]]) {
+    assert.equal(await form.getByRole('radio', { name }).isChecked(), on, `a fresh form: ${name} ${on ? 'ticked' : 'not ticked'}`);
+  }
+  await form.getByRole('button', { name: 'Cancel' }).click();
+  ok('after a save the form closes, and the next one opens on Every month, English and Expense');
   // The row's own swipe: the parent of the layer that holds its grip (the actions sit beside that layer).
   const swipe = list.getByText(SCHEDULE, { exact: true }).locator('xpath=ancestor::*[button[@aria-expanded]][1]/..');
   /* Let the page settle after the form closes (a scroll shuts an open row), then open it from the grip. */
@@ -267,7 +300,7 @@ try {
         }
         if (madeAdjust) await tx`delete from txn where id = ${madeAdjust} and kind in ('adjust_in', 'adjust_out')`;
       }
-      const cards = await tx`select id from account where household_id = ${hh} and name = ${CARD}`;
+      const cards = await tx`select id from account where household_id = ${hh} and name in (${CARD}, ${CARD2})`;
       for (const c of cards) {
         await tx`delete from payment_method where funding_account_id = ${c.id}`;
         await tx`delete from account where id = ${c.id}`;

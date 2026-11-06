@@ -5,7 +5,7 @@ import { Chip, Icon, ACCOUNT_ICON, ACCOUNT_TINT } from '../Icon';
 import { AddRow, Info, fieldLabel, formCard, ghost, solid } from '../form-bits';
 import { Field, ErrorNote } from '../auth-ui';
 import { addAccount } from './actions';
-import { useKeepOnRefusal } from '../worth/fields';
+import { useKeepOnRefusal, useOnSuccess } from '../worth/fields';
 import CardIdentityFields from './CardIdentityFields';
 
 const KINDS = [
@@ -21,6 +21,9 @@ export default function AddAccount({ startOpen = false }: { startOpen?: boolean 
   const keep = useKeepOnRefusal(state);
   const [open, setOpen] = useState(startOpen);
   const [kind, setKind] = useState<string>('spending');
+  // Added: close, and start the next one from Bank account, so React's reset after a success never leaves the
+  // kind on screen (state) and the kind sent (DOM) disagreeing.
+  useOnSuccess(state, () => { setOpen(false); setKind('spending'); });
 
   if (!open) {
     return (
