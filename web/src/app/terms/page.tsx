@@ -48,7 +48,8 @@ const SECTIONS: { title: string; lines: React.ReactNode[] }[] = [
     lines: [
       'Entries go to the app’s own server and nowhere else. An entry saved without signal waits on the phone and goes when there is one.',
       'Signing in sends you to Google and back. Google learns that you signed in to this app, and when; it is not sent your entries or anything in your books. What the app keeps from Google is the account’s id and your email address as it was when you linked it, plus your name and picture if Google made your account here. It asks for no access to your Google data beyond that.',
-      'If you turn on receipt scanning, the photo you scan goes to Google’s Gemini API under your own key and your own quota. Google is the only third party, for sign-in, and for scanning (and reading a forwarded bank message the server could not place) only when you have added that key.',
+      'If you turn on receipt scanning, the photo you scan goes to Google’s Gemini API under your own key and your own quota. Google is the third party for sign-in, and for scanning (and reading a forwarded bank message the server could not place) only when you have added that key.',
+      'To value pots in other currencies and gold and silver, the server fetches public rates: exchange rates from open.er-api.com, and metal prices from api.gold-api.com. The request names only a currency code (your household’s currency) or a metal’s code (XAU, XAG), and comes from the server, not your phone. Nothing about you, your household or your books is sent with it.',
     ],
   },
   {
