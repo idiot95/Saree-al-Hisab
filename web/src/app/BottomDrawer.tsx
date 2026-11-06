@@ -1,9 +1,8 @@
 'use client';
 
-import { createContext, useContext, useRef } from 'react';
+import { createContext, useContext, useRef, useState } from 'react';
 import { Drawer as Vaul } from 'vaul';
-import { Drawer, DrawerClose, DrawerContent, DrawerTitle } from '@/components/ui/drawer';
-import { cn } from '@/lib/utils';
+import { Drawer, DrawerContent, DrawerGrip, DrawerTitle } from '@/components/ui/drawer';
 
 /* The app's bottom drawer: shadcn's Drawer (vaul) with the few things every drawer here wants, so the call sites
    only say what is in it. It rises over the screen it came from, which stays visible above it under the overlay.
@@ -38,46 +37,30 @@ export default function BottomDrawer({ open, onClose, label, showTitle = false, 
 }) {
   const Root = useContext(InDrawer) ? Vaul.NestedRoot : Drawer;
   const close = useRef<HTMLButtonElement>(null);
-  /* A drag that starts on the handle and lets go there is a drag, not a tap: its click must not also close. Where the
-     pointer went down is kept only until it comes up (or the gesture is cancelled), and whether it moved is decided
-     then, so a stale press can never swallow a later click. */
-  const grab = useRef<{ x: number; y: number } | null>(null);
-  const dragged = useRef(false);
   /* Where focus was when the drawer opened, so closing puts it back. Radix only returns focus to a DrawerTrigger,
-     and these drawers are opened by the caller's own button (and, nested, from inside another drawer). */
-  const opener = useRef<HTMLElement | null>(null);
+     and these drawers are opened by the caller's own button (and, nested, from inside another drawer). Noted as the
+     drawer is asked to open, before anything inside it mounts: a field with autoFocus takes focus as it mounts, and
+     then Radix skips onOpenAutoFocus altogether, so noting it there lost the opener for every such drawer. */
+  const [seen, setSeen] = useState<{ open: boolean; from: HTMLElement | null }>({ open: false, from: null });
+  if (seen.open !== open) {
+    const active = open && typeof document !== 'undefined' ? document.activeElement : null;
+    setSeen({ open, from: open ? (active instanceof HTMLElement ? active : null) : seen.from });
+  }
   return (
     <Root open={open} onOpenChange={(o) => { if (!o) onClose(); }} repositionInputs={repositionInputs}>
       <DrawerContent handle={false} aria-describedby={undefined}
         onOpenAutoFocus={(e) => {
           e.preventDefault();
-          opener.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
           (focus?.current ?? close.current)?.focus({ preventScroll: true });
         }}
         onCloseAutoFocus={(e) => {
-          const back = opener.current;
-          opener.current = null;
+          const back = seen.from;
           if (back?.isConnected) { e.preventDefault(); back.focus({ preventScroll: true }); }
         }}
-        className={cn('bg-card text-foreground outline-none',
-          /* Sheet's height; the same data variant as shadcn's 80vh, so this one wins rather than losing on specificity. */
-          'data-[vaul-drawer-direction=bottom]:max-h-[86dvh]',
-          'data-[vaul-drawer-direction=bottom]:rounded-t-[24px] data-[vaul-drawer-direction=bottom]:border-t-0')}>
-        <DrawerClose ref={close} aria-label="Close"
-          onPointerDown={(e) => { grab.current = { x: e.clientX, y: e.clientY }; dragged.current = false; }}
-          onPointerUp={(e) => {
-            const g = grab.current; grab.current = null;
-            dragged.current = !!g && Math.hypot(e.clientX - g.x, e.clientY - g.y) > 6;
-          }}
-          onPointerCancel={() => { grab.current = null; dragged.current = false; }}
-          onClick={(e) => {
-            const wasDrag = dragged.current; dragged.current = false;
-            /* detail 0: a keyboard or a screen reader activated it — no pointer, so nothing to have dragged. */
-            if (e.detail !== 0 && wasDrag) e.preventDefault();
-          }}
-          className="flex min-h-11 w-full flex-none cursor-grab items-center justify-center rounded-t-[24px] outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset in-data-[platform=android]:min-h-12">
-          <span aria-hidden className="h-[5px] w-10 rounded-full bg-border" />
-        </DrawerClose>
+        /* 86dvh, the 24px corners and the grip are DrawerContent's own for a bottom drawer, so every drawer has them;
+           the grip is placed here only to be handed focus. */
+        className="bg-card text-foreground outline-none">
+        <DrawerGrip ref={close} />
         <DrawerTitle className={showTitle ? 'px-[var(--gutter)] pb-1 text-xl font-bold' : 'sr-only'}>{label}</DrawerTitle>
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-[var(--gutter)] pt-2 pb-[calc(18px+env(safe-area-inset-bottom))]">
           <InDrawer.Provider value={true}>{children}</InDrawer.Provider>

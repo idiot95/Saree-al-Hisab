@@ -1,12 +1,10 @@
 'use client';
 
-import { useContext, useState } from 'react';
-import { Drawer as Vaul } from 'vaul';
-import { Drawer, DrawerContent, DrawerTitle } from '@/components/ui/drawer';
+import { useState } from 'react';
 import { Icon, ACCOUNT_ICON } from '../Icon';
 import PayPicker, { WayTile, describe } from '../PayPicker';
 import { MonthGrid } from '../DatePick';
-import { InDrawer } from '../BottomDrawer';
+import BottomDrawer, { InDrawer } from '../BottomDrawer';
 import { findRef, payLabel, type Way } from '@/lib/pay';
 import { friendlyDay, shiftDay } from '@/lib/recur';
 import { formatHijri, toHijri } from '@/lib/hijri';
@@ -21,20 +19,15 @@ import { cn } from '@/lib/utils';
    behind it scales back and a drag on the question is not also a drag on Add. On the full page there is no parent. */
 export { InDrawer };
 
-/** A vaul drawer holding one question. Over the Add drawer or the full page alike. */
+/** A drawer holding one question, over the Add drawer (nested) or the full page alike: the app's BottomDrawer, so it
+ *  has the Close grip, takes focus and gives it back to the row that opened it. No text fields, so no repositioning. */
 export function PickDrawer({ open, onClose, title, children }: {
   open: boolean; onClose: () => void; title: string; children: React.ReactNode;
 }) {
-  const Root = useContext(InDrawer) ? Vaul.NestedRoot : Drawer;
   return (
-    <Root open={open} onOpenChange={(o) => { if (!o) onClose(); }} repositionInputs={false}>
-      <DrawerContent className="max-h-[88dvh] bg-background">
-        <DrawerTitle className="px-4 pt-3 pb-2 text-base font-semibold">{title}</DrawerTitle>
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-[calc(16px+env(safe-area-inset-bottom))]">
-          {children}
-        </div>
-      </DrawerContent>
-    </Root>
+    <BottomDrawer open={open} onClose={onClose} label={title} showTitle repositionInputs={false}>
+      {children}
+    </BottomDrawer>
   );
 }
 

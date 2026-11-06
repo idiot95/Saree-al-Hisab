@@ -55,14 +55,16 @@ export function PhotoField({ files, onChange }: { files: File[]; onChange: (next
         </ul>
       )}
       {files.length < BILL_MAX_FILES && (
+        /* data-truncate-ok on the visually hidden inputs: Chromium forces text-overflow: ellipsis on a file input (no
+           author style can clear it), and its "No file chosen", which nobody sees, would read as cut text. */
         <div className="flex gap-2">
           <label className={pick}>
-            <input type="file" name="photo" accept="image/*,application/pdf" multiple capture="environment" className="sr-only"
+            <input type="file" name="photo" accept="image/*,application/pdf" multiple capture="environment" className="sr-only" data-truncate-ok="visually hidden file input"
               disabled={busy} onChange={(e) => take(e.target.files, e.target)} />
             <Icon name="photo_camera" size={18} />{busy ? 'Adding…' : 'Take a photo'}
           </label>
           <label className={pick}>
-            <input type="file" name="photo" accept="image/*,application/pdf" multiple className="sr-only"
+            <input type="file" name="photo" accept="image/*,application/pdf" multiple className="sr-only" data-truncate-ok="visually hidden file input"
               disabled={busy} onChange={(e) => take(e.target.files, e.target)} />
             <Icon name="photo_library" size={18} />Choose files
           </label>

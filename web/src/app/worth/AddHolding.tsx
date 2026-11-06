@@ -2,7 +2,7 @@
 
 import { useActionState, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Drawer, DrawerContent, DrawerDescription, DrawerTitle, DrawerTrigger } from '@/components/ui/drawer';
+import BottomDrawer from '../BottomDrawer';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Button } from '@/components/ui/button';
 import { CURRENCIES } from '@/lib/money';
@@ -39,68 +39,63 @@ export default function AddHolding({ base, members }: { base: string; members: {
   }, null);
 
   return (
-    <Drawer open={open} onOpenChange={(o) => { setOpen(o); if (o) haptic('tap'); }}>
-      <DrawerTrigger asChild>
-        <button type="button" aria-label="Add a pot, gold or silver"
-          className="press grid size-11 flex-none place-items-center rounded-full bg-card text-foreground in-data-[platform=android]:size-12">
-          <Icon name="add" size={24} />
-        </button>
-      </DrawerTrigger>
-      <DrawerContent className="max-h-[94dvh] bg-background">
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-[var(--gutter)] pb-[calc(16px+env(safe-area-inset-bottom))]">
-          <DrawerTitle className="pt-3 text-xl font-bold">Add to Wealth</DrawerTitle>
-          <DrawerDescription className="sr-only">A pot in another currency, gold or silver.</DrawerDescription>
-          {/* JS-only on purpose: the drawer cannot open without script, so wrapping the action in a client closure loses no no-JS path. */}
-          <form noValidate onSubmit={keepFields(act)} className="flex flex-col gap-4 pt-4">
-            <ToggleGroup type="single" value={kind} aria-label="What is it"
-              onValueChange={(v) => { if (v) { setKind(v as Kind); setPurity(v === 'silver' ? 'sterling' : '22k'); } }}
-              className="flex w-full flex-wrap gap-2">
-              {KINDS.map((k) => <ToggleGroupItem key={k.key} value={k.key} className={chip}>{k.word}</ToggleGroupItem>)}
-            </ToggleGroup>
-            <input type="hidden" name="kind" value={metal ? 'metal' : 'fx_cash'} />
-            {metal && <input type="hidden" name="metal" value={metal} />}
+    <>
+      <button type="button" aria-label="Add a pot, gold or silver" aria-haspopup="dialog"
+        onClick={() => { haptic('tap'); setOpen(true); }}
+        className="press grid size-11 flex-none place-items-center rounded-full bg-card text-foreground in-data-[platform=android]:size-12">
+        <Icon name="add" size={24} />
+      </button>
+      <BottomDrawer open={open} onClose={() => setOpen(false)} label="Add to Wealth" showTitle>
+        {/* JS-only on purpose: the drawer cannot open without script, so wrapping the action in a client closure loses no no-JS path. */}
+        <form noValidate onSubmit={keepFields(act)} className="flex flex-col gap-4 pt-4">
+          <ToggleGroup type="single" value={kind} aria-label="What is it"
+            onValueChange={(v) => { if (v) { setKind(v as Kind); setPurity(v === 'silver' ? 'sterling' : '22k'); } }}
+            className="flex w-full flex-wrap gap-2">
+            {KINDS.map((k) => <ToggleGroupItem key={k.key} value={k.key} className={chip}>{k.word}</ToggleGroupItem>)}
+          </ToggleGroup>
+          <input type="hidden" name="kind" value={metal ? 'metal' : 'fx_cash'} />
+          {metal && <input type="hidden" name="metal" value={metal} />}
 
-            <Field label="Name" name="name" required minLength={2} maxLength={60}
-              placeholder={metal === 'gold' ? 'Jewellery' : metal === 'silver' ? 'Silver coins' : 'US savings'} />
+          <Field label="Name" name="name" required minLength={2} maxLength={60}
+            placeholder={metal === 'gold' ? 'Jewellery' : metal === 'silver' ? 'Silver coins' : 'US savings'} />
 
-            {metal ? (
-              <>
-                <div className="flex flex-col gap-1.5">
-                  <span className="text-sm font-medium text-muted-foreground">Purity</span>
-                  <input type="hidden" name="purity" value={purity} />
-                  <ToggleGroup type="single" value={purity} aria-label="Purity"
-                    onValueChange={(v) => v && setPurity(v)} className="flex w-full flex-wrap gap-2">
-                    {PURITY[metal].map((p) => <ToggleGroupItem key={p.key} value={p.key} className={chip}>{p.word}</ToggleGroupItem>)}
-                  </ToggleGroup>
-                </div>
-                <Field label="Weight in grams" name="quantity" inputMode="decimal" required placeholder="50"
-                  hint="Up to three decimals: 12.345 g." />
-              </>
-            ) : (
-              <>
-                <label className="flex flex-col gap-1.5">
-                  <span className="text-sm font-medium text-muted-foreground">Currency</span>
-                  {/* Native on purpose, like the household's own currency field: fifty-odd options are a wheel on a phone. */}
-                  <select name="currency" required defaultValue={base === 'USD' ? 'EUR' : 'USD'}
-                    className="h-12 rounded-xl border border-input bg-card px-3 text-[length:var(--field)] text-foreground">
-                    {CURRENCIES.filter((c) => c.code !== base).map((c) => (
-                      <option key={c.code} value={c.code}>{c.code} · {c.name}</option>
-                    ))}
-                  </select>
-                </label>
-                <Field label="Balance today" name="quantity" inputMode="decimal" required placeholder="1500" />
-              </>
-            )}
+          {metal ? (
+            <>
+              <div className="flex flex-col gap-1.5">
+                <span className="text-sm font-medium text-muted-foreground">Purity</span>
+                <input type="hidden" name="purity" value={purity} />
+                <ToggleGroup type="single" value={purity} aria-label="Purity"
+                  onValueChange={(v) => v && setPurity(v)} className="flex w-full flex-wrap gap-2">
+                  {PURITY[metal].map((p) => <ToggleGroupItem key={p.key} value={p.key} className={chip}>{p.word}</ToggleGroupItem>)}
+                </ToggleGroup>
+              </div>
+              <Field label="Weight in grams" name="quantity" inputMode="decimal" required placeholder="50"
+                hint="Up to three decimals: 12.345 g." />
+            </>
+          ) : (
+            <>
+              <label className="flex flex-col gap-1.5">
+                <span className="text-sm font-medium text-muted-foreground">Currency</span>
+                {/* Native on purpose, like the household's own currency field: fifty-odd options are a wheel on a phone. */}
+                <select name="currency" required defaultValue={base === 'USD' ? 'EUR' : 'USD'}
+                  className="h-12 rounded-xl border border-input bg-card px-3 text-[length:var(--field)] text-foreground">
+                  {CURRENCIES.filter((c) => c.code !== base).map((c) => (
+                    <option key={c.code} value={c.code}>{c.code} · {c.name}</option>
+                  ))}
+                </select>
+              </label>
+              <Field label="Balance today" name="quantity" inputMode="decimal" required placeholder="1500" />
+            </>
+          )}
 
-            <OwnerSelect members={members} />
-            <PhotoField files={files} onChange={setFiles} />
-            {state && !state.ok && <Problem>{state.error}</Problem>}
-            <Button type="submit" disabled={pending} className="h-12 rounded-xl text-base font-semibold">
-              {pending ? 'Adding…' : 'Add'}
-            </Button>
-          </form>
-        </div>
-      </DrawerContent>
-    </Drawer>
+          <OwnerSelect members={members} />
+          <PhotoField files={files} onChange={setFiles} />
+          {state && !state.ok && <Problem>{state.error}</Problem>}
+          <Button type="submit" disabled={pending} className="h-12 rounded-xl text-base font-semibold">
+            {pending ? 'Adding…' : 'Add'}
+          </Button>
+        </form>
+      </BottomDrawer>
+    </>
   );
 }

@@ -110,6 +110,13 @@ const said = (loc) => loc.evaluate((el) => {
   c.querySelectorAll('[aria-hidden=true]').forEach((f) => { if (!f.textContent.trim().match(/^·$/)) f.remove(); });
   return c.textContent.replace(/\s+/g, ' ').trim();
 });
+/** A drawer's shape: every drawer has a Close button and is capped at 86% of the screen (Task 30: the Add drawer and
+ *  the pickers used to stop at 80vh, and only the newer drawers had a Close). */
+async function drawerHasCloseAndCap(page, drawer, what) {
+  await drawer.getByRole('button', { name: 'Close', exact: true }).first().waitFor();
+  const { cap, vh } = await drawer.evaluate((el) => ({ cap: parseFloat(getComputedStyle(el).maxHeight), vh: innerHeight }));
+  assert.ok(Math.abs(cap - vh * 0.86) <= 1, `${what}: capped at 86dvh (${cap}px of ${vh}px)`);
+}
 const keysFor = (minor) => (minor % 100 === 0 ? String(minor / 100) : (minor / 100).toFixed(2));
 
 try {
@@ -117,6 +124,7 @@ try {
   {
     const { ctx, page } = await context(ios);
     const drawer = await openDrawer(page);
+    await drawerHasCloseAndCap(page, drawer, 'the Add drawer');
     let taps = 0;
     await page.keyboard.type('2340'); taps++;                       // 1: the amount
     const tile = drawer.locator('[data-category-tile]').first();
@@ -130,7 +138,7 @@ try {
     await save.click(); taps++;                                      // 3: Save
     assert.equal(taps, 3);
     await page.getByText('Entry saved.').waitFor({ timeout: 15000 });
-    ok('three interactions after the drawer opens, then "Entry saved."');
+    ok('three interactions after the drawer opens, then "Entry saved." (the drawer has a Close button and an 86dvh cap)');
     const [row] = await waitRows((r) => r.kind === 'expense' && Number(r.amount) === 234000, '2340 expense');
     assert.ok(row.category_id);
     ok('one new expense row of ₹2,340 with its category');
@@ -181,7 +189,15 @@ try {
     const save = page.locator('[data-save]');
     assert.ok(await save.isDisabled());
     ok('Move: Save waits for To');
-    await page.getByRole('button', { name: /^To/ }).click();
+    const toRow = page.getByRole('button', { name: /^To/ });
+    await toRow.click();
+    const toDrawer = page.getByRole('dialog', { name: 'To which account' });
+    await drawerHasCloseAndCap(page, toDrawer, 'the To drawer');
+    await toDrawer.getByRole('button', { name: 'Close', exact: true }).click();
+    await toDrawer.waitFor({ state: 'detached' });
+    await page.waitForFunction(() => document.activeElement?.textContent?.includes('Choose an account'));
+    ok('the To picker has a Close button and an 86dvh cap; Close puts focus back on the To row');
+    await toRow.click();
     const to = page.getByRole('radiogroup', { name: 'To which account' }).getByRole('radio').first();
     await to.click();
     assert.ok(await save.isEnabled());

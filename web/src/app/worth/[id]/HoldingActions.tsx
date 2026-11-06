@@ -2,7 +2,8 @@
 
 import { useActionState, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Drawer, DrawerContent, DrawerDescription, DrawerTitle, DrawerTrigger } from '@/components/ui/drawer';
+import { Slot } from 'radix-ui';
+import BottomDrawer from '../../BottomDrawer';
 import { Button } from '@/components/ui/button';
 import { Icon } from '../../Icon';
 import { haptic } from '../../haptics';
@@ -29,17 +30,14 @@ function useSheet<T extends (prev: Result | null, fd: FormData) => Promise<Resul
 function Sheet({ open, setOpen, trigger, title, children }: {
   open: boolean; setOpen: (o: boolean) => void; trigger: React.ReactNode; title: string; children: React.ReactNode;
 }) {
+  /* The app's BottomDrawer (86dvh, the Close grip, focus back to the trigger); the trigger is the caller's button. */
   return (
-    <Drawer open={open} onOpenChange={(o) => { setOpen(o); if (o) haptic('tap'); }}>
-      <DrawerTrigger asChild>{trigger}</DrawerTrigger>
-      <DrawerContent className="max-h-[94dvh] bg-background">
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-[var(--gutter)] pb-[calc(16px+env(safe-area-inset-bottom))]">
-          <DrawerTitle className="pt-3 text-xl font-bold">{title}</DrawerTitle>
-          <DrawerDescription className="sr-only">{title}</DrawerDescription>
-          {children}
-        </div>
-      </DrawerContent>
-    </Drawer>
+    <>
+      <Slot.Root aria-haspopup="dialog" onClick={() => { haptic('tap'); setOpen(true); }}>{trigger}</Slot.Root>
+      <BottomDrawer open={open} onClose={() => setOpen(false)} label={title} showTitle>
+        {children}
+      </BottomDrawer>
+    </>
   );
 }
 
