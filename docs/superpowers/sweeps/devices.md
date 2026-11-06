@@ -13,7 +13,7 @@ Mark each line ✅ / ❌ with the phone and the date. A ❌ is worth a screensho
 
 | # | Check | iPhone | Android |
 |---|---|---|---|
-| 1 | **Install.** Add to Home Screen; the icon is ح in cream on charcoal blue (not yet redrawn in plum — see owner-notes.md), the label "Hisab"; it opens standalone (no browser bar), and the status bar matches the screen in light and in dark. | | |
+| 1 | **Install.** Add to Home Screen; the icon is ح in rose gold on plum, the label "Hisab" (an install from before 6 Nov keeps the old charcoal icon on iOS until it is removed and added again); it opens standalone (no browser bar), and the status bar matches the screen in light and in dark. | | |
 | 2 | **Google sign-in in the installed app.** Sign out, tap "Continue with Google", finish at Google. You land back **in the installed app, signed in** — not signed in only in a Safari/Chrome sheet while the app still shows Sign in. Close the app fully and reopen: still signed in. | | |
 | 3 | **Link Google** (an account that has a password): sign in with the password once, Household → Link Google, finish at Google; Household shows the account as linked. Sign out and back in with Google. | | |
 | 4 | **Invite link.** From Household, create an invitation for the other phone's Google address; send the message with Share. On the other phone, open the link, Accept with Google using that address: you land in the household. Then try the same link again: it says it has been used. Try a fresh invite opened with a *different* Google account: it says which address was invited and does not let you in. | | |

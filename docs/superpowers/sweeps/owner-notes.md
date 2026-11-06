@@ -67,9 +67,10 @@ use `(now() at time zone 'Asia/Kolkata')::date`), which is a view change worth i
 
 ## 5. Smaller things
 
-- **The home-screen icon** is still ح in cream on the old charcoal blue (`scripts/make-icons.mjs`); the app inside is
-  plum. Redrawing it is a colour change in that script and `npm run icons`. iOS will not re-icon an installed app:
-  it has to come off the home screen and go back on.
+- **The home-screen icon** was redrawn in Task 30 (fix round): ح in rose gold on the hero plum, from
+  `scripts/make-icons.mjs` (`npm run icons`), with the browser-tab favicon (until then Next's default triangle).
+  **iOS will not re-icon an installed app**: take Hisab off the home screen and add it again to see the new one.
+  Android usually updates it within a day, or on reinstall.
 - **Loading frames on Home and Plan** draw the "Left to spend" card a budgeted month has. A household with no budget
   sees the page settle about 100px higher when it arrives. Accepted (most households budget); a no-budget frame
   would need the frame to know the household's state before the page does.
