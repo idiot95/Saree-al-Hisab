@@ -14,7 +14,7 @@
    2b. Add a credit card, refused once (statement day 31): Credit card, the name, the bank and the network are
       still chosen; corrected and sent again, the row in the database is a credit card on that bank and network.
    3. /schedules (a redirect to Upcoming): a throwaway regular payment, Once a year on the Hijri calendar, refused
-      once for want of an amount (both choices still ticked after); with one it is saved as a yearly Hijri
+      with no category (a refusal, not a 500), then with no amount (both choices still ticked after); with both it is saved as a yearly Hijri
       rule and listed, then Stopped from its swipe grip and gone.
    4. /categories: rename the top-level spending category with the most entries and see the row follow; rename it
       back.
@@ -173,6 +173,19 @@ try {
   const form = page.getByRole('form', { name: 'Add a regular payment' });
   await form.getByLabel('What is it').fill(SCHEDULE);
   await form.getByLabel('Amount').fill('0');
+  /* Once a year on the Hijri calendar, sent first with no category and then with no amount: refused each time.
+     The reset after a refusal used to put both back to Every month and English while the switches still showed
+     the choice, so the corrected Add made a monthly Gregorian rule. No category at all used to be a 500 (the
+     empty id reached Postgres's uuid cast); it is refused in words now. */
+  await form.getByText('Once a year', { exact: true }).click();
+  await form.getByText('Hijri', { exact: true }).click();
+  const failed = [];
+  const onResponse = (r) => { if (r.request().method() === 'POST' && r.status() >= 500) failed.push(`${r.status()} ${r.url()}`); };
+  page.on('response', onResponse);
+  await form.getByRole('button', { name: 'Add it' }).click();
+  await form.getByRole('alert').filter({ hasText: 'Choose a category.' }).waitFor({ timeout: 20000 });
+  assert.deepEqual(failed, [], 'no category is a refusal, not a server error');
+  ok('sent with no category: refused "Choose a category." (no 500)');
   /* A spending category picked by what it is: top-level, live, for spending, the one with the most entries. */
   const [spend] = await sql`select c.name from category c left join txn t on t.category_id = c.id and t.deleted_at is null
     where c.household_id = ${hh} and c.parent_id is null and c.archived_at is null and c.scope in ('expense', 'both')
@@ -181,19 +194,15 @@ try {
   const finder = page.getByRole('dialog');
   await finder.getByLabel('Find a category').fill(spend.name);
   await finder.getByRole('button', { name: new RegExp(`^${exactly(spend.name).source.slice(1, -1)}( |$)`) }).first().click();
-  /* Once a year on the Hijri calendar, sent with no amount: refused. The reset that follows used to put both
-     back to Every month and English while the switches still showed the choice, so the corrected Add made a
-     monthly Gregorian rule. (Refused on the amount, not the category: an empty category is a server error today,
-     not a refusal; see the Task 27b report.) */
-  await form.getByText('Once a year', { exact: true }).click();
-  await form.getByText('Hijri', { exact: true }).click();
   await form.getByRole('button', { name: 'Add it' }).click();
   await form.getByRole('alert').filter({ hasText: 'Enter an amount.' }).waitFor({ timeout: 20000 });
+  page.off('response', onResponse);
+  assert.deepEqual(failed, []);
   await page.waitForTimeout(300);
   assert.equal(await form.getByRole('radio', { name: 'Once a year' }).isChecked(), true, 'Once a year is still ticked');
   assert.equal(await form.getByRole('radio', { name: 'Hijri' }).isChecked(), true, 'Hijri is still ticked');
   assert.equal(await form.getByLabel('What is it').inputValue(), SCHEDULE, 'the name is kept');
-  ok('refused for want of an amount, the form keeps the name, Once a year and Hijri');
+  ok('with a category but no amount: refused again, and the form still keeps the name, Once a year and Hijri');
   await form.getByLabel('Amount').fill('123');
   await form.getByRole('button', { name: 'Add it' }).click();
   const list = page.getByRole('region', { name: 'Every regular payment' });

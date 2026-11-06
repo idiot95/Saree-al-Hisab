@@ -1,6 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { isUuid } from '@/lib/bills';
 import { sql, withHousehold } from '@/db/client';
 import { currentActor } from '@/db/queries';
 import { resolvePayment } from '@/db/payment';
@@ -43,8 +44,13 @@ export async function createSchedule(_prev: Result | null, fd: FormData): Promis
     /* A standing cost can sit on a tab, and the tab matters more than who is
        on it: a contactless tab keeps the total, a peopled one raises a claim
        per person every time the rule records a due. */
+    /* Refused before any query: an empty or malformed id would reach Postgres as '' and fail the uuid cast,
+       which surfaced as a 500 instead of the sentence. */
+    const categoryId = String(fd.get('categoryId') ?? '').trim();
+    if (!isUuid(categoryId)) return { ok: false, error: 'Choose a category.' };
     const wantedBook = String(fd.get('bookId') ?? '').trim();
     let bookId: string | null = null;
+    if (wantedBook && !isUuid(wantedBook)) return { ok: false, error: 'That tab is not one of yours, or it is closed.' };
     if (wantedBook) {
       const [b] = await sql`
         select id from ledger_book
@@ -108,7 +114,7 @@ export async function createSchedule(_prev: Result | null, fd: FormData): Promis
 
     const [cat] = await sql`
       select id, name, scope from category
-      where id = ${String(fd.get('categoryId') ?? '')} and household_id = ${actor.household_id}
+      where id = ${categoryId} and household_id = ${actor.household_id}
         and archived_at is null`;
     if (!cat) return { ok: false, error: 'Choose a category.' };
     if (!fits(cat.scope, kind)) return { ok: false, error: misfit(kind, cat.name) };
@@ -133,6 +139,7 @@ export async function archiveSchedule(_prev: Result | null, fd: FormData): Promi
   try { actor = await mustWrite(); }
   catch (e) { rethrowControlFlow(e); return { ok: false, error: (e as Error).message }; }
   return withHousehold(actor.household_id, async () => {
+    if (!isUuid(String(fd.get('scheduleId') ?? ''))) return { ok: false, error: 'That schedule is not one of yours.' };
     const done = await sql`
       update schedule set archived_at = now()
       where id = ${String(fd.get('scheduleId') ?? '')} and household_id = ${actor.household_id}
@@ -154,6 +161,7 @@ export async function recordDue(_prev: Result | null, fd: FormData): Promise<Res
   return withHousehold(actor.household_id, async () => {
 
     const scheduleId = String(fd.get('scheduleId') ?? '');
+    if (!isUuid(scheduleId)) return { ok: false, error: 'That schedule is not one of yours.' };
     const dueOn = String(fd.get('dueOn') ?? '');
     if (!/^\d{4}-\d{2}-\d{2}$/.test(dueOn)) return { ok: false, error: 'That date is not valid.' };
 
@@ -221,6 +229,7 @@ export async function skipDue(_prev: Result | null, fd: FormData): Promise<Resul
   try { actor = await mustWrite(); }
   catch (e) { rethrowControlFlow(e); return { ok: false, error: (e as Error).message }; }
   return withHousehold(actor.household_id, async () => {
+    if (!isUuid(String(fd.get('scheduleId') ?? ''))) return { ok: false, error: 'That schedule is not one of yours.' };
 
     const dueOn = String(fd.get('dueOn') ?? '');
     if (!/^\d{4}-\d{2}-\d{2}$/.test(dueOn)) return { ok: false, error: 'That date is not valid.' };
@@ -250,6 +259,7 @@ export async function moveDue(_prev: Result | null, fd: FormData): Promise<Resul
   try { actor = await mustWrite(); }
   catch (e) { rethrowControlFlow(e); return { ok: false, error: (e as Error).message }; }
   return withHousehold(actor.household_id, async () => {
+    if (!isUuid(String(fd.get('scheduleId') ?? ''))) return { ok: false, error: 'That schedule is not one of yours.' };
 
     const dueOn = String(fd.get('dueOn') ?? '');
     const to = String(fd.get('to') ?? '');

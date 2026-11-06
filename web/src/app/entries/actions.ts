@@ -9,7 +9,7 @@ import { resolvePayment } from '@/db/payment';
 import { fromKeys } from '@/lib/money';
 import { rethrowControlFlow } from '@/lib/rethrow';
 import { fits, misfit } from '@/lib/scope';
-import { BILL_MAX_FILES, billFromBase64, type Bill } from '@/lib/bills';
+import { BILL_MAX_FILES, billFromBase64, isUuid, type Bill } from '@/lib/bills';
 
 
 export type Result = { ok: true; message?: string } | { ok: false; error: string };
@@ -35,6 +35,8 @@ export async function updateEntry(_prev: Result | null, fd: FormData): Promise<R
   return withHousehold(actor.household_id, async () => {
 
     const id = String(fd.get('id') ?? '');
+    // Refused before any query: '' or a malformed id would fail Postgres's uuid cast as a 500.
+    if (!isUuid(id)) return { ok: false, error: 'That entry is not one of yours.' };
     const [existing] = await sql`
       select t.id, t.kind, t.counts_as_spend, t.amount::bigint as amount,
              to_char(t.occurred_on, 'YYYY-MM-DD') as occurred_on, t.account_id,
@@ -66,6 +68,7 @@ export async function updateEntry(_prev: Result | null, fd: FormData): Promise<R
     let categoryId: string | null = null;
     if (wantsCategory) {
       const raw = String(fd.get('category_id') ?? '');
+      if (!isUuid(raw)) return { ok: false, error: 'Choose a category.' };
       const [cat] = await sql`
         select id, name, scope from category
         where id = ${raw} and household_id = ${actor.household_id} and archived_at is null`;
@@ -160,6 +163,7 @@ export async function deleteEntry(_prev: Result | null, fd: FormData): Promise<R
   return withHousehold(actor.household_id, async () => {
 
     const id = String(fd.get('id') ?? '');
+    if (!isUuid(id)) return { ok: false, error: 'That entry is not one of yours.' };
     const done = await sql`
       update txn set deleted_at = now()
       where id = ${id} and household_id = ${actor.household_id} and deleted_at is null
