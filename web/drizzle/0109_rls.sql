@@ -16,15 +16,21 @@
    connects as `saree_app`, a plain login role that owns nothing and cannot
    bypass anything; scripts/app-role.mjs gives it a password and writes the
    connection string. FORCE makes the rule hold for a table's owner too —
-   here the owner bypasses anyway, but a copy of this app whose owner lacks
-   BYPASSRLS is covered without a second thought. The invariants test checks
-   the app role has no such attribute.
+   here the owner bypasses anyway; a copy of this app whose owner lacks
+   BYPASSRLS keeps every policy, but one thing then stops working: the SMS
+   capture endpoint's capture_lookup() (0113) is SECURITY DEFINER and finds a
+   token across households only because its owner bypasses row security.
+   Without that it sees no capture_token row and refuses every token — it
+   fails closed, it never reads past a policy. The invariants test checks the
+   app role has no such attribute.
 
    Three tables are keyed by a household but read before one is known —
    `household`, `member` and `invite` are how a sign-in FINDS its household
    and how a link finds its invitation — so their policies are open when no
-   household is set and scoped once one is. The tables keyed by a person or
-   a token (app_user, password_reset, rate_limit, device) carry no policy.
+   household is set and scoped once one is. The tables with no household_id
+   carry no policy: _migration, app_user, auth_identity, device,
+   password_reset, price_quote (a market price, the same for everyone) and
+   rate_limit — exactly the set invariants.test.mjs expects.
 
    Views run as their caller (security_invoker), or a view owned by the
    bypassing owner would read past every policy. CREATE OR REPLACE VIEW
