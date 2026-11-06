@@ -1102,7 +1102,8 @@ export async function allBalances(householdId: string) {
   });
 }
 
-/* What was held in accounts at the end of each of the last N months.
+/* What was held in accounts at the end of each of the last N months, and
+ * what the holdings were worth on the same days.
  *
  * Deliberately the household's own accounts only — no people. An outstanding
  * claim or a loan is money owed to you today and is in the headline figure,
@@ -1138,10 +1139,21 @@ export async function worthSeries(householdId: string, months = 6) {
                      and a.archived_at is null
                      and a.kind <> 'person'
                      and t.occurred_on < (s.month + interval '1 month')), 0)
-             )::text as held
+             )::text as held,
+             /* Holdings at the same month-end: each one's latest snapshot dated on
+                or before it, times the rate in effect that day, rounded once,
+                half-even — holding_value_at is holding_value for any date. The
+                current month stops at today, so its point is today's figure and
+                a snapshot dated ahead is not counted early. Archived holdings are
+                left out, as archived accounts are. A holding with no snapshot or
+                no rate yet that day contributes nothing. */
+             coalesce((select sum(v.value_minor)
+                       from holding_value_at(${householdId},
+                              least((s.month + interval '1 month - 1 day')::date, current_date)) v
+                       where v.archived_at is null), 0)::text as holdings
       from span s
       order by s.month
-    ` as Promise<{ month: string; held: string }[]>;
+    ` as Promise<{ month: string; held: string; holdings: string }[]>;
   });
 }
 

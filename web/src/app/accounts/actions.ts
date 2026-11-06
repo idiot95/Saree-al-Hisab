@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { rethrowControlFlow } from '@/lib/rethrow';
 import { sql, withHousehold } from '@/db/client';
 import { currentActor } from '@/db/queries';
+import { resolveOwner } from '@/db/holdings';
 import { fromKeys } from '@/lib/money';
 import { BANKS, CARD_NETWORKS } from '@/lib/card-brand';
 
@@ -128,8 +129,19 @@ export async function editAccount(_prev: Result | null, fd: FormData): Promise<R
     const [acc] = await sql`
       select id, kind, statement_day, due_day from account
       where id = ${id} and household_id = ${actor.household_id}
-        and kind <> 'person' and archived_at is null`;
+        and archived_at is null`;
     if (!acc) return { ok: false, error: 'That account is not one of yours.' };
+    if (acc.kind === 'person') {
+      return { ok: false, error: fd.has('owner')
+        ? 'A person’s account has no owner: it belongs to the household.'
+        : 'That account is not one of yours.' };
+    }
+
+    /* Whose it is: '' is joint, otherwise a member of this household. A form
+       that sends no owner field leaves it as it was. Checked now, written
+       with the rest below, so a later refusal does not leave it half-changed. */
+    const owner = fd.has('owner') ? await resolveOwner(actor.household_id, fd.get('owner')) : null;
+    if (owner && !owner.ok) return owner;
     if (last4 && !/^\d{4}$/.test(last4)) return { ok: false, error: acc.kind === 'credit'
       ? 'Enter the card’s last four digits.' : 'Enter exactly four digits, or leave it blank.' };
 
@@ -145,6 +157,10 @@ export async function editAccount(_prev: Result | null, fd: FormData): Promise<R
         update account set name = ${name}, last4 = ${acc.kind === 'cash' ? null : last4},
                            opening_balance = ${opening}
         where id = ${acc.id} and household_id = ${actor.household_id}`;
+      if (owner?.ok) {
+        await sql`update account set owner_user_id = ${owner.id}
+                  where id = ${acc.id} and household_id = ${actor.household_id}`;
+      }
       revalidatePath('/accounts');
       revalidatePath('/');
       return { ok: true, message: `${name} updated.` };
@@ -169,6 +185,10 @@ export async function editAccount(_prev: Result | null, fd: FormData): Promise<R
                            opening_balance = ${-Math.abs(opening)}, credit_limit = ${limit || null},
                            statement_day = ${sday}, due_day = ${dday}
         where id = ${acc.id} and household_id = ${actor.household_id}`;
+      if (owner?.ok) {
+        await tx`update account set owner_user_id = ${owner.id}
+                 where id = ${acc.id} and household_id = ${actor.household_id}`;
+      }
       if (!datesMoved) return;
 
       /* The statement day decides which cycle a purchase belongs to, so moving

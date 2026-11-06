@@ -1030,6 +1030,58 @@ try {
   await sql`update holding_snapshot set quantity = 3 where holding_id = ${silver.id}`; // 7.5 → 8
   ok(String((await valued(silver.id)).value_minor) === '8', 'and 7.5 → 8');
 
+  // What updateSnapshot writes: one figure a day, and a second save that day replaces it.
+  const upsert = (holding, quantity, as_of = today) => sql`
+    insert into holding_snapshot (holding_id, household_id, as_of, quantity, created_by)
+    values (${holding}, ${hh.id}, ${as_of}, ${quantity}, ${user.id})
+    on conflict (holding_id, as_of) do update set quantity = excluded.quantity, created_by = excluded.created_by`;
+  await upsert(kwd, 2000);
+  const nKwd = (await sql`select count(*)::int as n from holding_snapshot where holding_id = ${kwd} and as_of = ${today}`)[0].n;
+  ok(nKwd === 1 && Number((await valued(kwd)).q) === 2000 && String((await valued(kwd)).value_minor) === '54300',
+    `a second save on the same day replaces the figure (${nKwd} row, KD 2.000 at 271.5 → ${(await valued(kwd)).value_minor})`);
+  await upsert(kwd, 1500);
+  await upsert(kwd, 1700, yesterday);
+  ok((await sql`select count(*)::int as n from holding_snapshot where holding_id = ${kwd}`)[0].n === 3,
+    'a different day adds a figure instead (today, yesterday, and the one dated tomorrow)');
+  // An override saved twice on one day is one row: the later save wins (setRateOverride's upsert).
+  const setOverride = (base, rate, as_of = today) => sql`
+    insert into price_override (household_id, base, quote, as_of, rate, set_by) values (${hh.id}, ${base}, 'INR', ${as_of}, ${rate}, ${user.id})
+    on conflict (household_id, base, quote, as_of) do update set rate = excluded.rate, set_by = excluded.set_by, set_at = now()`;
+  await setOverride('KWD', '280.25'); await setOverride('KWD', '271.5');
+  ok((await sql`select count(*)::int as n from price_override where household_id = ${hh.id} and base = 'KWD' and as_of = ${today}`)[0].n === 1
+     && String((await valued(kwd)).value_minor) === '40725', 'an override set twice on one day is one row, the later one');
+  await refusesWith('a rate of zero through the same upsert is refused by the CHECK', /rate_positive/, () => setOverride('KWD', '0'));
+  await refusesWith('a rate of ten decimals plus a billion is refused by the CHECK', /rate_bounded/, () => setOverride('KWD', '1000000000.5'));
+
+  // holding_value_at is holding_value for any date; for today they agree on every holding.
+  const mism = await sql`select v.id from holding_value v
+    full join holding_value_at(${hh.id}, current_date) f on f.id = v.id
+    where v.household_id = ${hh.id} and v.value_minor is distinct from f.value_minor`;
+  const total = (await sql`select count(*)::int as n from holding_value where household_id = ${hh.id}`)[0].n;
+  ok(total >= 6 && mism.length === 0,
+    `holding_value_at(today) equals holding_value for all ${total} holdings, ties, quotes, overrides and nulls included`);
+  const at = async (id, d) => (await sql`select value_minor::text as v from holding_value_at(${hh.id}, ${d}::date) where id = ${id}`)[0]?.v ?? 'missing';
+  await upsert(xts, 100, yesterday);
+  ok(await at(xts, yesterday) === '400', 'on yesterday, the override dated yesterday is the rate: 100 × 4 = 400 (today\'s quote is not yet known)');
+  ok(await at(xts, today) === '300', 'on today, the override dated today beats the quote dated today');
+  ok((await sql`select value_minor from holding_value_at(${hh.id}, ${yesterday}::date) where id = ${kwd}`)[0].value_minor === null,
+    'a holding with a figure but no rate yet that day is valued NULL, not zero');
+  ok((await sql`select value_minor from holding_value_at(${hh.id}, '2000-01-01'::date) where id = ${gold.id}`)[0].value_minor === null,
+    'before its first snapshot a holding has no value');
+  ok((await sql`select count(*)::int as n from holding_value_at(${elsewhere.id}, current_date)`)[0].n === 0,
+    'a household with no holdings gets no rows');
+  const keyed = await sql`select count(*)::int as n from holding_value_at(${elsewhere.id}, current_date) f join holding h on h.id = f.id where h.household_id = ${hh.id}`;
+  ok(keyed[0].n === 0, 'and asking for another household returns none of this one\'s');
+
+  // The expression worthSeries uses: the current month's point is today's figure, and last month's is its own month-end.
+  const point = async (month) => (await sql`
+    select coalesce((select sum(v.value_minor) from holding_value_at(${hh.id},
+             least((${month}::date + interval '1 month - 1 day')::date, current_date)) v where v.archived_at is null), 0)::text as holdings`)[0].holdings;
+  const nowSum = (await sql`select coalesce(sum(value_minor), 0)::text as s from holding_value where household_id = ${hh.id} and archived_at is null`)[0].s;
+  ok(await point((await sql`select date_trunc('month', current_date)::date::text as m`)[0].m) === nowSum,
+    `worthSeries' holdings point for this month is today's holdings total (${nowSum})`);
+  ok(await point('2000-01-01') === '0', 'and a month before any snapshot is 0');
+
   // Digits come from the same list as money.ts.
   const digits = await sql`select code, currency_digits(code) as d from unnest(
     array['INR','KWD','BHD','OMR','JOD','IQD','TND','JPY','KRW','VND','UGX','USD','IDR']) as code`;
@@ -1078,6 +1130,10 @@ try {
     ok(await scoped(elsewhere.id, (tx) => n(tx`select count(*)::int as n from holding_value where household_id = ${hh.id}`)) === 0,
       'nor through holding_value');
     ok(await n(app`select count(*)::int as n from holding`) === 0, 'unscoped, there are no holdings at all');
+    ok(await scoped(elsewhere.id, (tx) => n(tx`select count(*)::int as n from holding_value_at(${hh.id}, current_date)`)) === 0,
+      'holding_value_at, as the app, shows another household none of these holdings');
+    ok(await scoped(hh.id, (tx) => n(tx`select count(*)::int as n from holding_value_at(${hh.id}, current_date)`)) === total,
+      'and its own household all of them');
     await refusesWith('an override written into another household is refused', /row-level security/,
       () => scoped(elsewhere.id, (tx) => tx`insert into price_override ${sql({ household_id: hh.id, base: 'XTS', quote: 'INR',
         as_of: tomorrow, rate: '5' })}`));
