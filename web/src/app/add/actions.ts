@@ -60,7 +60,7 @@ export type Draft = {
      server refuse an entry typed under one sign-in and sent under another. */
   clientRef?: string;
   /** The forwarded bank message this entry is made from. It is marked accepted
-      in the same transaction as the entry (when the amounts agree). Add entry
+      in the same transaction as the entry, whatever amount was saved. Add entry
       also sends the draft's id as clientRef, so a second tap on Save finds the
       first entry rather than making another. */
   draftId?: string;
@@ -257,7 +257,7 @@ export async function saveEntry(d: Draft): Promise<SaveResult> {
             })} returning id`;
             first ??= r.id as string;
           }
-          if (first && draftId) accepted = await acceptDraftIn(tx, household_id, draftId, first, d.amountMinor);
+          if (first && draftId) accepted = await acceptDraftIn(tx, household_id, draftId, first);
           return first ? { id: first } : null;
         }
         const [entry] = await tx`insert into txn ${sql({
@@ -279,10 +279,10 @@ export async function saveEntry(d: Draft): Promise<SaveResult> {
           counts_as_spend: counts,
         })} on conflict (household_id, client_ref) where client_ref is not null do nothing
            returning id`;
-        /* A draft from a bank message becomes this entry, or neither happens.
-           A draft id naming no open draft of this household, or one whose
-           amount differs, changes nothing. */
-        if (entry && draftId) accepted = await acceptDraftIn(tx, household_id, draftId, entry.id, d.amountMinor);
+        /* A draft from a bank message becomes this entry, or neither happens,
+           whatever amount was saved. A draft id naming no open draft of this
+           household changes nothing. */
+        if (entry && draftId) accepted = await acceptDraftIn(tx, household_id, draftId, entry.id);
         /* The entry and the shares land together or not at all: a cost on a tab
            with nobody down as owing for it would be a split that never happened.
            A share of zero paise is nothing owed and is not written. */

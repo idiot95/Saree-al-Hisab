@@ -15,19 +15,13 @@ type Db = Sql<any> | TransactionSql<any>;
 
 /** Mark an open draft as the entry it became, and drop its text. Run in the
  *  same transaction as the entry's insert, so the two land together or not at
- *  all. Only an entry for the amount the message said can accept it — or any
- *  amount, when no amount was read from it — so a draft id sent beside some
- *  unrelated entry closes nothing. False when there is no such open draft of
- *  this household: none by that id, one already decided, or one whose amount
- *  differs. */
-export async function acceptDraftIn(
-  db: Db, householdId: string, draftId: string, txnId: string, amountMinor: number,
-): Promise<boolean> {
+ *  all. Whatever the entry's amount: correcting a misread figure is the
+ *  commonest reason to edit a draft. False when there is no open draft of this
+ *  household by that id — none, or one already decided. */
+export async function acceptDraftIn(db: Db, householdId: string, draftId: string, txnId: string): Promise<boolean> {
   const rows = await db`
     update sms_draft set status = 'accepted', txn_id = ${txnId}, body = null, decided_at = now()
     where id = ${draftId} and household_id = ${householdId} and status = 'open'
-      and (jsonb_typeof(parsed->'amountMinor') is distinct from 'number'
-           or (parsed->>'amountMinor')::numeric = ${amountMinor})
     returning id`;
   return rows.length === 1;
 }

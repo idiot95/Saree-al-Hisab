@@ -223,17 +223,27 @@ try {
   assert.match(into, /HDFC Savings/);
   assert.doesNotMatch(into, /·/);
   ok(`the credit opens as income, ${into.replace(/\s+/g, ' ').trim()}`);
+  // The message's figure corrected before saving: the draft is still the one this entry came from.
+  const field = page.getByLabel(/^Amount in/).first();
+  await field.fill('');
+  await field.fill('1250');
+  await field.blur();
   await page.locator('[data-category-tile]').first().click();
   await page.locator('[data-save]').first().click();
   await page.waitForURL(/\/\?saved=/, { timeout: 20000 });
   const [inc] = await sql`select kind, amount::bigint as amount, account_id, payment_method_id from txn
                           where household_id = ${HH} and client_ref = ${credit.id}`;
   assert.equal(inc?.kind, 'income');
-  assert.equal(Number(inc.amount), 120000);
+  assert.equal(Number(inc.amount), 125000);
   assert.equal(inc.account_id, hdfc.id);
   assert.equal(inc.payment_method_id, null);
   assert.equal((await sql`select status from sms_draft where id = ${credit.id}`)[0].status, 'accepted');
-  ok('saved as ₹1,200 income on HDFC Savings itself, no rail (payment_method_id null); the draft accepted');
+  ok('amount corrected to ₹1,250 and saved as income on HDFC Savings itself, no rail (payment_method_id null)');
+  assert.equal((await sql`select status from sms_draft where id = ${credit.id}`)[0].status, 'accepted');
+  await page.goto(`${BASE}/inbox`);
+  await page.locator('main').first().waitFor();
+  assert.equal(await page.locator(`a[href="/inbox/sms/${credit.id}"]`).count(), 0);
+  ok('the edited amount still accepts the draft, and it is gone from the list');
 
   /* ── 7. revoke ────────────────────────────────────────────────────── */
   await page.goto(`${BASE}/household/capture`);

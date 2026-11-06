@@ -977,9 +977,9 @@ from a household-checked open draft (credit → income, else expense; date;
 merchant → *Where*; the matched account → `fromAccountId` for money out, or
 `paidWith = a:<account>` for money in, so a credit lands on the account and
 not a rail) and AddEntry sends `draftId` and `clientRef`, both the draft id,
-once; `saveEntry` calls `acceptDraftIn` in the entry's own transaction — only
-when the entry's amount equals the amount the message read (or none was
-read) — so a double tap is one entry and an accepted draft. The
+once; `saveEntry` calls `acceptDraftIn` in the entry's own transaction,
+whatever amount was saved (correcting a misread figure is the usual edit), so
+a double tap is one entry and an accepted draft. The
 draft statements live in `src/lib/sms-draft.ts` (handle-taking, so the
 invariants run them): accept and dismiss null the body at once and stamp
 `decided_at` (0039); `restoreDraftIn` is Undo for 15 minutes;
