@@ -103,7 +103,7 @@ export function DayOfMonth({ value, top, onPick, label = 'Day of the month' }: {
         const on = d === value;
         return (
           <button key={d} type="button" role="radio" aria-checked={on} onClick={() => { haptic('select'); onPick(d); }}
-            className="t" style={{
+            className="font-[620] tracking-[-0.018em]" style={{
               minHeight: 44, borderRadius: 10, textAlign: 'center', fontSize: 'var(--step-0)', fontWeight: on ? 700 : 500,
               background: on ? 'var(--primary)' : 'var(--background)',
               color: on ? 'var(--primary-foreground)' : 'var(--foreground)',

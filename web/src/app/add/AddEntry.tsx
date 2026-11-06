@@ -305,11 +305,11 @@ export default function AddEntry({
             shows is grouped in the household's currency; what it holds is
             only ever the digits typed. */}
         <label className="flex min-w-0 items-baseline justify-center gap-1.5 py-2">
-          <span aria-hidden className="n flex-none text-[28px] font-medium text-muted-foreground">{symbol.trim()}</span>
+          <span aria-hidden className="tabular-nums flex-none text-[28px] font-medium text-muted-foreground">{symbol.trim()}</span>
           <input
             ref={amountBox}
             size={Math.max(4, (keys === '' ? (digits ? digits + 2 : 1) : keysDisplay(keys).length) + 1)}
-            className="n w-auto max-w-[78%] min-w-0 flex-initial [field-sizing:content] bg-transparent p-0 text-[52px] leading-tight font-bold tracking-tight text-foreground caret-primary outline-none placeholder:text-muted-foreground/50"
+            className="tabular-nums w-auto max-w-[78%] min-w-0 flex-initial [field-sizing:content] bg-transparent p-0 text-[52px] leading-tight font-bold tracking-tight text-foreground caret-primary outline-none placeholder:text-muted-foreground/50"
             type="text" inputMode="decimal" autoComplete="off" enterKeyHint="done"
             autoFocus={!draft?.amountMinor}
             value={keys === '' ? '' : keysDisplay(keys)}
@@ -323,14 +323,14 @@ export default function AddEntry({
           {/* The code, for a symbol that does not spell it: ₹ says INR to one
               household and nothing to a guest. AED already says AED. */}
           {symbol.trim() !== currency && (
-            <span className="n flex-none text-sm font-semibold text-muted-foreground">{currency}</span>
+            <span className="tabular-nums flex-none text-sm font-semibold text-muted-foreground">{currency}</span>
           )}
         </label>
         {/* The amount as the ledger will write it, digits rolling as they are
             typed — only while it is being typed, since a settled field already
             says exactly this. Decoration only: the field is the control. */}
         <p aria-hidden data-figure-echo className="-mt-1 mb-1 min-h-5 text-center text-sm text-muted-foreground">
-          {minor > 0 && (typing || keys !== settle(keys)) && <Figure minor={minor} paise="auto" className="n" />}
+          {minor > 0 && (typing || keys !== settle(keys)) && <Figure minor={minor} paise="auto" className="tabular-nums" />}
         </p>
       </header>
 
@@ -412,7 +412,7 @@ export default function AddEntry({
               <span className="flex-none">Save</span>
               {minor > 0 && <>
                 {' '}<span aria-hidden className="flex-none">·</span>{' '}
-                <Figure minor={minor} paise="auto" className="n flex-none" />
+                <Figure minor={minor} paise="auto" className="tabular-nums flex-none" />
                 {what && <>{' '}<span className="min-w-0 truncate">{what}</span></>}
               </>}
             </>

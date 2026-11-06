@@ -154,7 +154,7 @@ export default function MoreFields({ kind, state, set, tabs, claims, minor, toda
                   type="text" inputMode="decimal" autoComplete="off"
                   placeholder={minor > 0 ? `all of it — ${format(minor)}` : 'all of it'}
                   aria-label="How much of this comes back"
-                  className="n min-h-11 min-w-0 flex-1 rounded-xl border border-border bg-card px-3 text-[length:var(--field)] text-foreground" />
+                  className="tabular-nums min-h-11 min-w-0 flex-1 rounded-xl border border-border bg-card px-3 text-[length:var(--field)] text-foreground" />
               </label>
             )}
             {/* Two answers, both on screen, because a tab carries both kinds: the petrol you burned and are paid

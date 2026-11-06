@@ -119,15 +119,15 @@ function CardBlock({ card, canWrite }: { card: CardInfo; canWrite: boolean }) {
       {available !== null && (
         <p className="mx-0.5 text-xs text-muted-foreground">
           {available >= 0
-            ? <><b className="n font-bold text-foreground">{format(available)}</b> of {format(limit!)} still available</>
-            : <><b className="n font-bold text-destructive">{format(Math.abs(available))}</b> over the limit</>}
+            ? <><b className="tabular-nums font-bold text-foreground">{format(available)}</b> of {format(limit!)} still available</>
+            : <><b className="tabular-nums font-bold text-destructive">{format(Math.abs(available))}</b> over the limit</>}
         </p>
       )}
 
       {canWrite && (
         <div className="flex min-w-0 gap-2">
           {payable > 0 && (
-            <Link className="cta flex min-h-[46px] min-w-0 flex-1 items-center justify-center gap-[7px] rounded-[13px] bg-primary text-sm font-bold text-primary-foreground no-underline"
+            <Link className="flex min-h-[46px] text-center min-w-0 flex-1 items-center justify-center gap-[7px] rounded-[13px] bg-primary text-sm font-bold text-primary-foreground no-underline"
               href={`/add?kind=transfer&to=${account.id}&amount=${payable}`}
               transitionTypes={['nav-forward']} onClick={() => haptic('select')}
               aria-label={`Pay ${format(payable)} to ${account.name}`}>
@@ -180,7 +180,7 @@ function CardFace({ card }: { card: CardInfo }) {
           )}
         </span>
         {account.last4 && (
-          <span className="n flex-none pt-1 text-[10px] font-semibold tracking-[.08em] text-muted-foreground"
+          <span className="tabular-nums flex-none pt-1 text-[10px] font-semibold tracking-[.08em] text-muted-foreground"
             aria-label={`ending ${account.last4}`}>••{account.last4}</span>
         )}
       </div>
@@ -195,7 +195,7 @@ function CardFace({ card }: { card: CardInfo }) {
         {due && owed > 0 && (
           <span className="flex flex-none flex-col gap-0.5 text-right">
             <span className="text-[9px] font-bold tracking-[.11em] text-muted-foreground uppercase">Due</span>
-            <span className="n text-base leading-[1.1] font-bold whitespace-nowrap">{due}</span>
+            <span className="tabular-nums text-base leading-[1.1] font-bold whitespace-nowrap">{due}</span>
           </span>
         )}
       </div>
