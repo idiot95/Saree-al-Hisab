@@ -237,7 +237,7 @@ next start -p 3000`; offline-taps needs exactly that, a production build) with a
 `.sweep-state.json`, which `node scripts/sweep.mjs --login ammar@example.com:Correct-horse-9` writes. Each reads
 `OWNER_DATABASE_URL` from `.env.local` to check what landed, and removes everything it made, even on a failure.
 **They run against a local database only**: every script that writes (the taps, frames.check, drawers.check,
-capture.test, prices.check, revocation.check) takes `scripts/local-only.mjs` first, which exits 2 unless both the
+capture.test, prices.check, revocation.check) takes `scripts/local-only.mjs` first (seed.mjs refuses a non-local host too), which exits 2 unless both the
 owner and the app URL are on `localhost` or `127.0.0.1` — on the owner's laptop `.env.local` names production. There
 is no override. Each cleanup deletes only rows the run made, by id or by a run-unique name, note or message stamp
 (sms-taps clears only its own keys' `capture:<id>` rate limits).

@@ -20,6 +20,7 @@ import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import postgres from 'postgres';
+import { LOCAL_HOSTS } from './local-only.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 /* The same database the app runs against, as its OWNER: the app connects as
@@ -30,6 +31,15 @@ const url = process.env.DATABASE_URL
   ?? /^OWNER_DATABASE_URL="?([^"\n]+)/m.exec(envFile)?.[1]
   ?? /^APP_DATABASE_URL="?([^"\n]+)/m.exec(envFile)?.[1]
   ?? /^DATABASE_URL="?([^"\n]+)/m.exec(envFile)[1];
+/* Seeding writes sample books: it is for a local copy only, never the production store .env.local may name. */
+{
+  let host = null;
+  try { host = new URL(url).hostname; } catch { /* unreadable URL: refused below */ }
+  if (!LOCAL_HOSTS.includes(host)) {
+    console.error(`refusing to seed: the database is on ${host ?? 'an unreadable URL'}. Point .env.local or DATABASE_URL at a local copy (localhost or 127.0.0.1).`);
+    process.exit(2);
+  }
+}
 const sql = postgres(url, { ssl: 'require', max: 1, onnotice: () => {} });
 
 const argv = process.argv.slice(2);
