@@ -118,7 +118,7 @@ function Bare({ queue }: { queue: Queued[] }) {
         <span className="grid size-16 place-items-center rounded-full bg-muted text-muted-foreground">
           <Icon name="wifi_off" size={30} />
         </span>
-        <h1 className="font-display text-[30px] leading-tight">No connection</h1>
+        <h1 className="text-[30px] font-bold tracking-tight leading-tight">No connection</h1>
         <p className="max-w-[34ch] text-base leading-normal text-muted-foreground">
           Your books live on the server, so they need a signal to open. Nothing has been lost.
           Open Add Entry once while online, and from then on entries can be written here

@@ -1,7 +1,7 @@
 import BackLink from './BackLink';
 import Back from './Back';
 
-/* The Quiet Ledger header every screen shares: paper, the serif title, a line under it, and either the tab's
+/* The Quiet Ledger header every screen shares: paper, the title (Inter bold, as on the tabs), a line under it, and either the tab's
    segmented switch (children) or — on a screen pushed on top of a tab — a back arrow to where it came from
    (BackLink: history when there is any, `back` when the screen was opened directly).
    `back` also arms the edge swipe and the floating Back pill (Back.tsx), so a screen is never left with no way out. */
@@ -17,7 +17,7 @@ export default function PageHead({ title, sub, right, back, eyebrow, children }:
         <div className="flex items-end justify-between gap-3">
           <div className="min-w-0">
             {eyebrow && <p className="text-xs text-muted-foreground">{eyebrow}</p>}
-            <h1 className="font-display text-[30px] leading-tight [overflow-wrap:anywhere]">{title}</h1>
+            <h1 className="text-[30px] font-bold tracking-tight leading-tight [overflow-wrap:anywhere]">{title}</h1>
             {sub && <p className="text-sm text-muted-foreground">{sub}</p>}
           </div>
           {right}

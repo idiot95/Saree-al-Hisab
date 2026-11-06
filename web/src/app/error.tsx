@@ -12,7 +12,7 @@ export default function ScreenError({ retry }: { error: Error & { digest?: strin
     <main className="flex min-h-dvh flex-col bg-background px-[var(--gutter)] pb-10 pt-16 text-foreground">
       <section role="alert" className="flex flex-col items-center gap-3 rounded-[22px] bg-card px-6 py-8 text-center">
         <Icon name="sync_problem" size={36} className="text-primary" />
-        <h1 className="font-display text-[30px] leading-tight">That screen didn’t load</h1>
+        <h1 className="text-[30px] font-bold tracking-tight leading-tight">That screen didn’t load</h1>
         <p className="max-w-[32ch] text-sm leading-relaxed text-muted-foreground">
           Something went wrong on the way, or the signal dropped. Nothing you saved is lost.
         </p>

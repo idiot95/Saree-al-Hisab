@@ -78,6 +78,8 @@ capture_token, sms_draft). Where an older section disagrees, this wins.
   server (`lib/platform.ts`), so the first paint is right. Variants are `in-data-[platform=android]:…` — the
   attribute is on `<html>` and the group class on `<body>`, so `group-data-[…]` never matches. Tap targets are 44px,
   Android icon buttons 48px (`in-data-[platform=android]:min-h-12 min-w-12`); fields are at least 16px.
+- **Type: Inter only.** Instrument Serif is gone (spec §3.2): every title, pushed or tab, is Inter bold with
+  `tracking-tight` (`PageHead` and auth-ui at 30/34px, the tabs at 32px). There is no `font-display` utility.
 
 **Navigation.**
 - **Five slots, Add among them**: Home · Activity · **+** · Loans · Wealth (`TABS` in tabs.ts). Add is the middle
@@ -485,7 +487,7 @@ hidden input; there is no `<select>` of payment modes anywhere, because one
 listing every rail under every account showed "ICICI Amazon Pay" twice and
 read as nonsense. Wrap it in a `<div role="group">`, never a `<label>` — a
 label around buttons activates the first chip. The entries list shows the
-rail when there is one and the account when there is not. `sw.js` is v37 (Task 28: the offline Add's When drawer is shadcn Calendar now; v36 was the icon font gaining the Accounts, Categories and Scan glyphs).
+rail when there is one and the account when there is not. `sw.js` is v41 (v41: Instrument Serif dropped, the offline title is Inter bold; v37, Task 28: the offline Add's When drawer is shadcn Calendar now; v36 was the icon font gaining the Accounts, Categories and Scan glyphs).
 Before Save, a debounced
 `checkDuplicate` shows what a household member already recorded within ±1% and
 ±2 days, which is the prevention half of the duplicate rule; the Inbox card is
@@ -1572,7 +1574,7 @@ storage after it opens. The design, in the order the pieces matter:
   person decides. Stuck entries are never retried on their own.
 - **`/offline` is `force-dynamic`** though it reads nothing, because every
   script tag carries the request's CSP nonce and a prerendered page ships
-  with none. The worker (`public/sw.js`, `VERSION = 'v40'`) fetches it once at
+  with none. The worker (`public/sw.js`, `VERSION = 'v41'`) fetches it once at
   install, `credentials: 'omit'`, together with every `/_next/static/` script
   and stylesheet the markup names, so the cached copy is a self-consistent
   snapshot: the nonce in its cached headers is the nonce in its cached

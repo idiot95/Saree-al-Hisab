@@ -9,7 +9,7 @@ import NavTrail from './NavTrail';
 import RegisterSW from './RegisterSW';
 import SyncQueue from './SyncQueue';
 import PendingSkeleton from './PendingSkeleton';
-import { Inter, Instrument_Serif } from 'next/font/google';
+import { Inter } from 'next/font/google';
 import localFont from 'next/font/local';
 import './globals.css';
 
@@ -37,9 +37,7 @@ const inter = Inter({
      twice. */
 });
 
-/* Quiet Ledger's display face: page titles and the one big figure a screen exists to give. Inter stays for
-   everything else, for the tabular figures and slashed zero above. One weight, latin only. */
-const display = Instrument_Serif({ subsets: ['latin'], weight: '400', variable: '--font-display-loaded', display: 'swap' });
+/* One face: v3 dropped Instrument Serif (spec §3.2). Titles are Inter bold, like everything else. */
 
 /* The icon font: Material Symbols Rounded, subset to the glyphs the app names
    (scripts/icons-font.mjs), committed and served from this origin. `block`,
@@ -106,7 +104,7 @@ export default async function RootLayout({ children, modal }: { children: React.
   const h = await headers();
   const platform = platformOf(h.get('user-agent') ?? '', h.get('sec-ch-ua-platform'));
   return (
-    <html lang="en" className={`${inter.variable} ${display.variable} ${icons.variable}`} data-theme={forced ?? undefined} data-platform={platform}
+    <html lang="en" className={`${inter.variable} ${icons.variable}`} data-theme={forced ?? undefined} data-platform={platform}
       style={forced ? { colorScheme: forced } : undefined}>
       <body className="group/app">
         <CurrencyProvider currency={actor?.currency ?? 'INR'}>

@@ -69,8 +69,8 @@ function Head({ back = false, eyebrow, title, sub, subLines = 1, subSample, righ
           {eyebrow === true ? <Ghost as="p" className="text-xs" w="w-16">Eyebrow</Ghost>
             : eyebrow ? <p className="text-xs text-muted-foreground">{eyebrow}</p> : null}
           {title
-            ? <h1 className="font-display text-[30px] leading-tight [overflow-wrap:anywhere]">{title}</h1>
-            : <Ghost as="div" title className="font-display text-[30px] leading-tight" w="w-3/5">Title</Ghost>}
+            ? <h1 className="text-[30px] font-bold tracking-tight leading-tight [overflow-wrap:anywhere]">{title}</h1>
+            : <Ghost as="div" title className="text-[30px] font-bold tracking-tight leading-tight" w="w-3/5">Title</Ghost>}
           {sub === undefined ? null
             : sub ? <p className="text-sm text-muted-foreground">{sub}</p>
             : <Ghost as="p" className="text-sm" w={subLines > 1 ? 'w-full' : 'w-1/2'}>{subSample ?? SAMPLE[subLines - 1]}</Ghost>}

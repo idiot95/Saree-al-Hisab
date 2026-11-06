@@ -19,7 +19,7 @@ export const quietBtn = cn(buttonVariants({ variant: 'outline' }),
 /** A link-weight action under the buttons (Sign out, "Sign in with your password"): still a 44px target. */
 export const quietLink = 'flex min-h-11 items-center justify-center px-2 text-sm font-semibold text-foreground underline underline-offset-[3px]';
 
-/** The app's mark, the serif title and a line of what this is, on a centred card on the ground: the same first
+/** The app's mark, the title and a line of what this is, on a centred card on the ground: the same first
  *  impression the screens behind it make. No tab bar — none of these screens is inside the app yet. */
 export function AuthShell({ kicker, title, blurb, children }: {
   kicker?: React.ReactNode; title: React.ReactNode; blurb?: React.ReactNode; children: React.ReactNode;
@@ -33,7 +33,7 @@ export function AuthShell({ kicker, title, blurb, children }: {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/icons/icon-192.png" alt="" width={48} height={48} className="size-12 rounded-[14px]" />
           {kicker && <p className="text-sm text-muted-foreground">{kicker}</p>}
-          <h1 className="font-display text-[34px] leading-[1.08] text-balance [overflow-wrap:anywhere]">{title}</h1>
+          <h1 className="text-[34px] font-bold tracking-tight leading-[1.08] text-balance [overflow-wrap:anywhere]">{title}</h1>
           {blurb && <p className="text-base leading-normal text-muted-foreground">{blurb}</p>}
         </header>
         <div className="flex flex-col gap-4">{children}</div>
@@ -110,7 +110,7 @@ export function DeadEnd({ title, body, cta }: {
         <span className="grid size-16 place-items-center rounded-full bg-muted text-muted-foreground">
           <Icon name="info" size={30} />
         </span>
-        <h1 className="font-display text-[30px] leading-tight text-balance">{title}</h1>
+        <h1 className="text-[30px] font-bold tracking-tight leading-tight text-balance">{title}</h1>
         <p className="max-w-[32ch] text-base leading-normal text-muted-foreground">{body}</p>
         {cta && <a href={cta.href} className={cn(quietBtn, 'mt-2')}>{cta.label}</a>}
       </div>
