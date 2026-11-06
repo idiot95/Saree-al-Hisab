@@ -14,7 +14,7 @@ export const dynamic = 'force-dynamic';
    signing up, which is why the proxy lets it through without a session. */
 
 const REPO = 'https://github.com/idiot95/Saree-al-Hisab';
-const DATED = 'September 2026';
+const DATED = 'November 2026';
 const link: React.CSSProperties = {
   color: 'var(--primary)', fontWeight: 600, textDecoration: 'underline', textUnderlineOffset: 3,
 };
@@ -31,7 +31,7 @@ const SECTIONS: { title: string; lines: React.ReactNode[] }[] = [
     title: 'Who can see your books',
     lines: [
       'The members of your household, at the role its owner gave them, and no one else. No other household, no advertiser, no analytics service — none is connected.',
-      'Someone who is invited sees the books only after they have made their own account and opened the invitation sent to their address.',
+      'Someone who is invited sees the books only after they have opened the invitation and signed in with a Google account whose address is the one the invitation was sent to.',
       'Whoever runs this copy of the app can, in principle, reach the database it stores. That is true of every service that keeps anything for you, and it is worth saying plainly here rather than leaving you to assume.',
     ],
   },
@@ -39,7 +39,7 @@ const SECTIONS: { title: string; lines: React.ReactNode[] }[] = [
     title: 'How it is kept',
     lines: [
       'The books live in a Postgres database. The storage underneath it is encrypted at rest, and every connection to it is over TLS — the app refuses a plain one.',
-      'Your password is never stored. What is stored is a salted scrypt hash of it, which is enough to check the password and useless for recovering it.',
+      'You sign in with Google. If you have an older password, it is never stored as typed: what is kept is a salted scrypt hash, which is enough to check it and useless for recovering it. Password sign-in ends on a date the person running this copy sets, and the hashes are kept after it.',
       'A Google AI key you add for receipt scanning is encrypted with AES-256-GCM under a secret that exists only on the server. It is decrypted only to scan, and sent nowhere but Google.',
       'Every request checks, on the server, that you belong to the household you are asking about and that your role allows what you are doing. The database checks it again: the app connects to Postgres as a role that can only see the household a request is for, so a query cannot reach another household’s rows even by mistake. Sessions can be cut off: changing your password or tapping Sign out everywhere ends every other phone’s session on its next tap.',
       'Invitation and password-reset links carry a one-time token, expire, and are sent without a referrer so the address bar does not leak them to the next site.',
@@ -49,7 +49,8 @@ const SECTIONS: { title: string; lines: React.ReactNode[] }[] = [
     title: 'What leaves your phone',
     lines: [
       'Entries go to the app’s own server and nowhere else. An entry saved without signal waits on the phone and goes when there is one.',
-      'If you turn on receipt scanning, the photo you scan goes to Google’s Gemini API under your own key and your own quota. That is the only third party, and only when you choose it.',
+      'Signing in sends you to Google and back. Google learns that you signed in to this app, and when; it is not sent your entries or anything in your books. What the app keeps from Google is the account’s id and your email address as it was when you linked it, plus your name and picture if Google made your account here. It asks for no access to your Google data beyond that.',
+      'If you turn on receipt scanning, the photo you scan goes to Google’s Gemini API under your own key and your own quota. Google is the only third party, for sign-in, and for scanning only when you choose it.',
     ],
   },
   {
@@ -62,7 +63,7 @@ const SECTIONS: { title: string; lines: React.ReactNode[] }[] = [
   {
     title: 'Your account',
     lines: [
-      'Change your password, or sign every phone out, under Household. An owner can remove anyone from a household; the entries that person recorded stay, because they are the household’s record, not theirs.',
+      'Link Google, change a password, or sign every phone out, under Household. An owner can remove anyone from a household; the entries that person recorded stay, because they are the household’s record, not theirs.',
       'There is no delete-my-account button yet. Until there is, ask whoever runs your copy and they can remove the account and any household only you belong to.',
     ],
   },

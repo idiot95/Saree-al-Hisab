@@ -8,6 +8,10 @@ the single source of truth for the palette.
 
 ## Decisions already made (do not relitigate without asking)
 
+- **Google sign-in replaces passwords, after a migration window.** The first
+  version had no Google and no third party; the owner reversed that on 6 Nov
+  2026. Password sign-in survives only until `AUTH_PASSWORD_UNTIL`. See "Who can
+  see the books".
 - **PWA only.** No Play Store, no App Store for now. A Trusted Web Activity can
   wrap the deployed site later in about a day; nothing in the build depends on it.
 - **No SMS import, ever.** No web API can read SMS. `WebOTP` reads only our own
@@ -117,6 +121,9 @@ A repayment is `kind = 'claim_receipt'` — money in, but explicitly not income.
   subdomain, so sign-in can only be tested on the stable URL. Moving to a
   custom domain later resets every passkey, push subscription, install and
   stored Gemini key.
+- **Google, not passwords (reversed by the owner on 6 Nov 2026).** Google
+  sign-in replaces passwords after a migration window; the earlier "no Google,
+  no third party" stance is gone. Password hashes are kept, not erased.
 - **No share-to-app parser.** Dropped: Android-only, and a parser per bank.
 - **One currency per household, chosen at setup.** `household.base_currency`
   is picked on `/setup` and can be changed on `/household` only until the first
@@ -289,15 +296,40 @@ foreign key, but it would not stop one household writing into another's.
 
 ## Who can see the books
 
-Sign-in is an **address and a password we hold ourselves** — no Google, no
-third party, no OAuth console to keep alive. Auth.js v5 with JWT sessions and a
-credentials provider; the only environment variable it needs is `AUTH_SECRET`.
+Sign-in is **Google**, through Auth.js v5 with JWT sessions (the owner
+reversed the earlier "no Google" stance on 6 Nov 2026). What it needs:
+`AUTH_SECRET`, `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`, and optionally
+`AUTH_PASSWORD_UNTIL`. The Google OAuth client's redirect URI is
+`https://<host>/api/auth/callback/google`, and only the stable host works —
+preview URLs are not registered, so Google sign-in cannot be tried on them.
 
-Passwords are hashed with **scrypt out of `node:crypto`** at OWASP's parameters
-(N=2^17, r=8, p=1) — about a third of a second and 128 MB each, which is the
-point. Stored as `scrypt$logN$r$p$salt$hash`, so the cost can be raised later
-and old hashes still verify; a sign-in against a weaker hash quietly upgrades
-it. No native module, so nothing to break on a serverless build.
+**A person is their Google `sub`, not their address.** `auth_identity`
+(migration 0034) holds `(provider, subject, user_id, email_at_link)`; an
+address can be given up and re-issued, a `sub` cannot. There is **no silent
+linking by email** (`allowDangerousEmailAccountLinking` stays false): Google
+presenting an address that already has books is refused with "sign in with your
+password once, then link Google from Household". `decideGoogleSignIn`
+(`src/lib/google-signin.ts`) makes that call from facts gathered in
+`google-facts.ts`; the session carries our id, address and name, never
+Google's.
+
+**Linking.** Household → Link Google sets a sealed intent cookie, `ql.link`,
+good for ten minutes. The link happens only if the intent names the same
+person as the live session, and that session is not revoked.
+
+**The password window.** Before `AUTH_PASSWORD_UNTIL` (an ISO date) password
+sign-in is a secondary link under Google. After it, credentials are refused
+(`/signin?e=cutoff`). Unset or unparsable means open; an unparsable value is
+logged once, because locking everyone out over a typo is the worse failure.
+`/signup` is Google-only now. Password hashes are kept, not erased — a later
+decision.
+
+Passwords, while they last, are hashed with **scrypt out of `node:crypto`** at
+OWASP's parameters (N=2^17, r=8, p=1) — about a third of a second and 128 MB
+each, which is the point. Stored as `scrypt$logN$r$p$salt$hash`, so the cost
+can be raised later and old hashes still verify; a sign-in against a weaker
+hash quietly upgrades it. No native module, so nothing to break on a
+serverless build.
 
 Guessing gets slower in the database, not in memory: five wrong tries buys a
 minute, doubling to a ceiling of thirty. An unknown address is checked against
@@ -318,30 +350,49 @@ direct POST.
 
 ### Links are credentials, and the copy says so
 
-With no outside identity to prove, **whoever opens an invitation link can take
-that place**. That is the honest cost of dropping Google, so it is mitigated
-rather than hidden: 256-bit tokens, only the SHA-256 stored (a stolen database
+An invitation link used to mean **whoever opened it took that place**. Google
+closes that: "Accept with Google" on `/join` sets `ql.invite`, and the Google
+email must equal the invited address, case-insensitively, or the sign-in is
+refused. Invites are consumed atomically (`FOR UPDATE`), and a person created
+from an invite, their Google identity, their place and the spent invitation
+land in one transaction or not at all. An invitation that is no longer open
+sends the person back to its own page, which says why, rather than quietly
+making a bare account.
+
+Links are still 256-bit tokens with only the SHA-256 stored (a stolen database
 yields no working links), single use, seven days for an invite and one day for
-a reset. The screen that hands the owner a link says all of it. A link is shown
-exactly once — losing it means revoking and reissuing.
+a reset. The screen that hands the owner a link says all of it. A link is
+shown exactly once — losing it means revoking and reissuing.
+
+**Reset links.** Before the cutoff they set a password as before. After it,
+pressing the button spends the link and starts Google with a purpose-bound
+`ql.reset` intent, which links that person's Google and signs them in. It never
+creates an account; the purpose is inside the MAC, so a Household link intent
+cannot be passed off as a reset.
+
+**Flow cookies never steer a different sign-in.** `ql.link`, `ql.invite` and
+`ql.reset` are httpOnly, SameSite=Lax (Google's return is a cross-site
+top-level GET). Every Google entry point clears the other two first, and so do
+the callback's `finally` and `/signin?error=`, because a trip to Google
+abandoned with the back button reaches neither.
 
 **What the owner sends is a message, not a link.** A bare link in a chat is
 a puzzle — where does it go, what happens there, is it safe — so
 `InviteForm` composes the whole thing: who is inviting, into which household,
-the two steps that follow (open it; put in your name and a password, and you
-are in), what to do if you already have an account, and what the link is and
+the two steps that follow (open it; continue with Google, using the address
+it was sent to), what to do if you already have an account, and what the link is and
 when it dies — the expiry quoted from the row the database wrote, not
 re-derived on the phone. Share hands it to whichever app the phone offers
 (`navigator.share`, detected through `useSyncExternalStore` so the server
 render matches); Copy message is for everywhere else; the link alone is one
 tap further down.
 
-Nobody here can send email, so a forgotten password is recovered the way
-anything else in a household is: **you ask, and an owner hands you a link.**
-Which does mean an owner can take over any account — already true of someone
-who can change your role and remove you, and pretending otherwise would only
-have added a mail provider to the bill. Changing your own password needs the
-old one.
+Nobody here can send email, so a lost way in is recovered the way anything
+else in a household is: **you ask, and an owner hands you a link.** Which does
+mean an owner can take over any account — already true of someone who can
+change your role and remove you, and pretending otherwise would only have added
+a mail provider to the bill. The members list shows "Google linked" or "Not
+linked yet". Changing your own password needs the old one.
 
 ### Anyone can open books; nobody can open somebody else's
 
@@ -364,8 +415,12 @@ Removed from your only household? `/no-household` offers the way out that
 matters — start your own — rather than leaving you stranded waiting to be
 re-invited.
 
-`/signin`, `/signup`, `/join` and `/reset` are excluded from the proxy matcher —
-all four have to open for someone not signed in yet.
+`/api/auth`, `/signin`, `/signup`, `/join`, `/reset` and `/terms` are let
+through by the proxy without a session (`NO_REDIRECT`) — they have to open for
+someone not signed in yet, and a redirect on `/api/auth` would break the
+round trip to Google. The CSP's `form-action` includes
+`https://accounts.google.com`, because the sign-in form posts to us and the
+redirect to Google follows it.
 
 **Timestamps are written with `now()`, never a JS `Date`.** Expiry is compared
 against `now()` in Postgres so it should be set by the same clock — and a Date
@@ -478,14 +533,19 @@ bolded.
 ## Security posture
 
 **Sessions are revocable, despite being JWTs.** `app_user.sessions_valid_from`
-is a per-account epoch; the token's `iat` is passed through the session and
-compared against it on every request. Changing a password, using a reset link,
-or "Sign out everywhere" moves the epoch, and every cookie older than it stops
-working on the next tap. Without this, a stolen cookie stayed good for 30 days
-and changing your password was cosmetic.
+is a per-account epoch; the token's `authAt` — stamped once at sign-in; a
+token from before that existed falls back to its original `iat` — is passed
+through the session and compared against it on every request. Changing a
+password, using a reset link or "Sign out everywhere" moves the
+epoch, and every cookie older than it stops working on the next tap. Without
+this, a stolen cookie stayed good for 30 days and changing your password was
+cosmetic. One rule, `staleAgainst`, judges it in whole seconds, and the `jwt`
+callback applies it too: a revoked session ends there, so refreshing it through
+`/api/auth/session` no longer revives it. (Judging by `iat` let exactly that
+work, and it predated the Google change.)
 
 **One round trip decides everything about the caller.** `contextFor(userId,
-iat)` returns household, role, household name and staleness in a single query —
+authAt)` returns household, role, household name and staleness in a single query —
 because the database is not always next door, and every extra round trip is
 paid by whoever is furthest from it.
 
@@ -1582,8 +1642,9 @@ Empty screens open the relevant form themselves rather than making someone tap
 ## Open
 
 - The Vercel project is `saree-al-hisab`, linked to `idiot95/Saree-al-Hisab`
-  with root directory `web`. `AUTH_SECRET` is set in all three environments and
-  is the only secret sign-in needs.
+  with root directory `web`. `AUTH_SECRET`, `AUTH_GOOGLE_ID` and
+  `AUTH_GOOGLE_SECRET` are what sign-in needs; `AUTH_PASSWORD_UNTIL` ends
+  password sign-in on its date.
 - Auth.js trusts the host automatically on Vercel. Running `next start` by hand
   needs `AUTH_TRUST_HOST=true`, which is why it is not in the committed config.
 - Deployment protection is still on. Claim the household through `/setup`
