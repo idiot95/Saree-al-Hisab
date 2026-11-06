@@ -115,6 +115,36 @@ try {
   assert.ok(acc, 'a bank account to work on');
   const balanceOf = async () => Number((await sql`select balance::text as b from account_balance where id = ${acc.id}`)[0].b);
 
+  /* ── 0. one net worth, one "owed to you", on every screen that shows them ── */
+  /* Wealth first: it is the one screen that refreshes rates, so Home and Accounts then value holdings at the same
+     stored rates. */
+  await page.goto(`${BASE}/worth`);
+  const wealthHead = page.getByRole('region', { name: 'Household net worth' });
+  const wealthWorth = await figureIn(wealthHead).getAttribute('aria-label');
+  const wealthOwedRow = page.getByRole('region', { name: 'Accounts and what is owed to you' })
+    .getByRole('link').filter({ hasText: 'Owed to you' });
+  const wealthOwed = (await wealthOwedRow.locator('span.tabular-nums').textContent()).trim();
+  await page.goto(`${BASE}/`);
+  const homeRow = page.getByRole('link').filter({ hasText: 'Household net worth' });
+  const homeWorth = await figureIn(homeRow).getAttribute('aria-label');
+  const homeOwedRow = page.getByRole('link').filter({ hasText: 'Owed to you' });
+  const homeOwed = (await homeOwedRow.count()) ? await figureIn(homeOwedRow.first()).getAttribute('aria-label') : null;
+  await page.goto(`${BASE}/people`);
+  const loansOwed = await figureIn(page.getByRole('region', { name: 'Owed to you' })).getAttribute('aria-label');
+  await page.goto(`${BASE}/accounts`);
+  const card = page.getByRole('link', { name: 'Net worth, open Wealth' });
+  const accountsWorth = await figureIn(card).getAttribute('aria-label');
+  const mini = (term) => card.locator('dl > div').filter({ has: page.locator('dt', { hasText: exactly(term) }) }).getByRole('img');
+  const accountsOwed = await mini('Owed to you').getAttribute('aria-label');
+  const [{ holdings }] = await sql`select coalesce(sum(value_minor), 0)::text as holdings
+    from holding_value where household_id = ${hh} and archived_at is null`;
+  assert.equal(accountsWorth, wealthWorth, `Accounts' net worth (${accountsWorth}) is Wealth's (${wealthWorth})`);
+  assert.equal(homeWorth, wealthWorth, `Home's net worth (${homeWorth}) is Wealth's (${wealthWorth})`);
+  assert.equal(accountsOwed, wealthOwed, `Accounts' "Owed to you" (${accountsOwed}) is Wealth's (${wealthOwed})`);
+  assert.equal(loansOwed, wealthOwed, `Loans' "Owed to you" (${loansOwed}) is Wealth's (${wealthOwed})`);
+  if (homeOwed !== null) assert.equal(homeOwed, wealthOwed, `Home's "Owed to you" (${homeOwed}) is Wealth's (${wealthOwed})`);
+  ok(`net worth ${wealthWorth} on Wealth, Home and Accounts (holdings of ₹${Math.round(Number(holdings) / 100)} counted); owed to you ${wealthOwed} on Wealth, Accounts, Loans${homeOwed !== null ? ' and Home' : ''}`);
+
   /* ── 1. edit the starting balance on /accounts ────────────────────── */
   await page.goto(`${BASE}/accounts`);
   await page.getByRole('heading', { name: 'Accounts' }).waitFor();
@@ -234,6 +264,7 @@ try {
   await page.goto(`${BASE}/accounts`);
   const deck = page.getByRole('region', { name: 'Credit cards' }).and(page.locator('[data-slot=carousel]'));
   const dots = page.getByRole('group', { name: 'Which card' }).getByRole('button');
+  await dots.first().waitFor();
   const count = await dots.count();
   assert.ok(count >= 3, `a dot per card (${count})`);
   for (let i = 0; i < count; i++) assert.equal(await dots.nth(i).getAttribute('aria-label'), `Card ${i + 1} of ${count}`);

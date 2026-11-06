@@ -3,8 +3,9 @@ import { EmptyLine } from '../entries/parts';
 import { redirect } from 'next/navigation';
 import { Chip, RAIL_ICON, RAIL_TINT, ACCOUNT_ICON, ACCOUNT_TINT } from '../Icon';
 import {
-  actorOrNull, accountsWithBalances, allBalances, membersOf, methodsWithFunding, openCyclesFor, owedByPerson, tabHeldOwed,
+  actorOrNull, accountsWithBalances, methodsWithFunding, openCyclesFor,
 } from '@/db/queries';
+import { worthInput } from '@/db/worth';
 import { netWorth } from '@/lib/worth';
 import PageHead from '../PageHead';
 import { withHousehold } from '@/db/client';
@@ -33,17 +34,17 @@ export default async function Accounts() {
 
   const name = actor.household_name;
   const hh = actor.household_id;
-  const [accounts, methods, cycles, balances, owedTo, held, members] = await withHousehold(hh, () => Promise.all([
+  const [accounts, methods, cycles, wi] = await withHousehold(hh, () => Promise.all([
     accountsWithBalances(hh),
     methodsWithFunding(hh),
     openCyclesFor(hh),
-    allBalances(hh),
-    owedByPerson(hh),
-    tabHeldOwed(hh),
-    membersOf(hh),
+    /* Read the way Wealth and Home read it — worthInput, holdings included — without waiting on a rate provider:
+       holdings are valued at the last stored rates, as on Home. */
+    worthInput(hh, actor.currency, { refreshRates: false }),
   ]));
-  /* The same figure the Net worth screen shows, from the same helper. */
-  const { worth, receivable, assetTotal, debtTotal } = netWorth({ accounts: balances, claimed: owedTo.reduce((n, o) => n + Number(o.claimed), 0), held: Number(held), members: members.map((m) => m.id) });
+  const members = wi.members;
+  /* The same figure Wealth and Home show, from the same inputs and the same helper. */
+  const { worth, receivable, assetTotal, debtTotal } = netWorth(wi.input);
 
   const canWrite = actor.role !== 'viewer';
   const holdings = accounts.filter((a) => a.kind !== 'credit');
