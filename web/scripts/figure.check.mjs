@@ -20,7 +20,7 @@ const BASE = (process.env.SWEEP_BASE || 'http://localhost:3000').replace(/\/$/, 
 const STATE = process.env.SWEEP_STATE || path.join(HERE, '..', '.sweep-state.json');
 const engine = process.argv.includes('--engine') ? process.argv[process.argv.indexOf('--engine') + 1] : 'chromium';
 
-const CASES = [['2', '₹2'], ['2340', '₹2,340'], ['2340567', '₹23,40,567']];
+const CASES = [['2', '₹2.00'], ['2340', '₹2,340.00'], ['2340.50', '₹2,340.50']];
 
 let browser;
 try { browser = await (engine === 'webkit' ? webkit : chromium).launch(); }

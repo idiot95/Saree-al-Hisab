@@ -358,7 +358,7 @@ export default function AddEntry({
                   roll as you type. Decoration only — the field is the control. */}
               {minor > 0 && (
                 <span aria-hidden="true" data-figure-echo style={{ fontSize: 'var(--step--1)', color: 'var(--muted-foreground)', flex: 'none' }}>
-                  <Figure minor={minor} className="n" />
+                  <Figure minor={minor} paise className="n" />
                 </span>
               )}
               {/* The code, for a symbol that does not spell it: ₹ says INR to

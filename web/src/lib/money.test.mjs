@@ -138,6 +138,11 @@ console.log(`money: ${CURRENCIES.length} currencies, 52 more assertions passed`)
   assert.equal(drawn(12000000, 'INR', { sign: true }), format(12000000, 'INR', { sign: true }));
   assert.equal(drawn(-50, 'USD', { sign: true }), format(-50, 'USD', { sign: true }));
   assert.equal(drawn(12345678, 'INR', { paise: true }), format(12345678, 'INR', { paise: true }));
+  assert.equal(drawn(234050, 'INR', { paise: true }), '₹2,340.50');
+  assert.equal(drawn(234050, 'INR', { paise: true }), format(234050, 'INR', { paise: true }));
+  assert.equal(drawn(1500, 'KWD', { paise: true }), format(1500, 'KWD', { paise: true }));
+  assert.equal(drawn(1234567, 'KWD', { paise: true }), 'KD\u00a01,234.567');
+  assert.equal(drawn(500, 'JPY', { paise: true }), '¥500');
   // NumberFlow draws the sign itself, so the value stays positive and the minus is in the prefix.
   assert.ok(figureParts(-234000, 'INR').value >= 0);
   console.log('money: Figure parts match format()');

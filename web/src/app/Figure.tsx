@@ -13,12 +13,12 @@ import { useMoney } from './currency';
    rolls only when `minor` changes afterwards. Reduced motion is respected by
    NumberFlow itself. Screen readers get the whole figure once, from the label,
    not digit by digit as they turn (role="img" hides the moving columns). */
-export function Figure({ minor, currency, sign = false, className }: {
-  minor: number; currency?: string; sign?: boolean; className?: string;
+export function Figure({ minor, currency, sign = false, paise = false, className }: {
+  minor: number; currency?: string; sign?: boolean; paise?: boolean; className?: string;
 }) {
   const household = useMoney().currency;
   const ccy = currency ?? household;
-  const p = figureParts(minor, ccy, { sign });
+  const p = figureParts(minor, ccy, { sign, paise });
 
   /* Rolls only once the value has changed from the one first drawn. */
   const [seen, setSeen] = useState(minor);
@@ -34,7 +34,7 @@ export function Figure({ minor, currency, sign = false, className }: {
       animated={live}
       respectMotionPreference
       role="img"
-      aria-label={format(minor, ccy, { sign })}
+      aria-label={format(minor, ccy, { sign, paise })}
       className={className}
     />
   );
