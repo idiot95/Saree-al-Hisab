@@ -208,6 +208,24 @@ holding_snapshot(
 - A future "link a pot to an account" is out of scope.
 - RLS: both tables `household_id = app_household()`, FORCE, in `0109`.
 
+### 4.2a Photos on a holding (added 6 Nov 2026, owner request)
+
+A holding, and each balance update of it, can carry photos or a PDF: the jewellery on the scale, a jeweller's valuation slip, a bank statement for a foreign pot.
+
+```
+holding_attachment(id uuid pk, household_id fk, holding_id fk, snapshot_id fk null,
+                   name text, mime text, bytes int, data bytea, created_by fk null, created_at)
+  CHECK bytes between 1 and 2097152; mime in (image/jpeg, image/png, image/webp, application/pdf)
+  composite FKs keep holding and snapshot in the same household, and the snapshot on the same holding
+```
+
+- A new table rather than widening `attachment`, whose `txn_id` is NOT NULL: that keeps the rule that existing columns don't change.
+- Same caps and the same client-side shrink as entry bills (`Bills.tsx` `shrink()`): at most 5 per save, 2 MB each after downscaling.
+- `snapshot_id` NULL means the photo belongs to the holding itself. Set means it is evidence for that day's figure.
+- Deleting is by archive only; photos stay with the holding's history.
+- Served by `/attachment/h/[id]`, household-checked exactly like `/attachment/[id]`. RLS FORCE like every household table.
+- UI (Task 17): the Add-holding drawer and *Update balance* both take photos. The holding detail shows them as thumbnails beside each snapshot.
+
 ### 4.3 Prices and valuation
 
 ```
