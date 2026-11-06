@@ -308,13 +308,16 @@ try {
       await tidy('the loan', () => sql`delete from txn where household_id = ${hh} and created_at >= ${started}
         and (account_id = ${personAcc} or counter_account_id = ${personAcc})`);
     }
-    /* Normally already deleted by step 5; a run that stopped part way leaves its tab here. What hangs off it goes
-       first (members cascade; entries and regular payments do not), so the tab's delete cannot fail on a key. */
-    await tidy('the throwaway tab', () => sql.begin(async (tx) => {
-      const tabs = await tx`select id from ledger_book where household_id = ${hh} and name like ${`${TAB}%`}`;
+    /* Normally already deleted by step 5; a run that stopped part way leaves its tab here, and so may an earlier
+       run's (every throwaway tab is named "Loans taps <run>"). Deleting a tab does not fail on its entries or
+       regular payments — txn.book_id and schedule.book_id are ON DELETE SET NULL — it would leave them in the
+       main books. So what hangs off each throwaway tab goes first, whatever its age: the money back on its
+       costs, the costs (their claims cascade), the regular payments and their dues; members cascade with it. */
+    await tidy('the throwaway tabs', () => sql.begin(async (tx) => {
+      const tabs = await tx`select id from ledger_book where household_id = ${hh} and name like ${'Loans taps %'}`;
       for (const { id } of tabs) {
-        await tx`delete from claim where txn_id in (select id from txn where book_id = ${id} and created_at >= ${started})`;
-        await tx`delete from txn where book_id = ${id} and created_at >= ${started}`;
+        await tx`delete from txn where claim_id in (select c.id from claim c join txn t on t.id = c.txn_id where t.book_id = ${id})`;
+        await tx`delete from txn where book_id = ${id}`;
         await tx`delete from occurrence where schedule_id in (select id from schedule where book_id = ${id})`;
         await tx`delete from schedule where book_id = ${id}`;
         await tx`delete from ledger_book where id = ${id}`;
