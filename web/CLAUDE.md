@@ -143,6 +143,19 @@ paragraph below says otherwise. Where an older section disagrees, this wins:
   (Embla): dots are buttons "Card N of M" with `aria-current`, 44/48px targets, arrow keys page it (not inside a field).
   `scripts/sweep.mjs` takes `route|tap=<regex>` steps, so a drawer can be swept open; with a dialog open the overlap
   check measures that dialog only, and a bar outside it only where it really paints on top.
+- **Loading frames are the screens' own shapes** (Task 29). Each frame in `Skeleton.tsx` is the finished screen's
+  structure in Tailwind: PageHead's header (or a tab's bold 32px one), the hero card, the section headings and the row
+  heights. Text not known yet is a `Ghost` — a sample of the line in the same type, hidden under a shimmer — so it is
+  exactly as tall, and wraps where the real line will; a Figure's ghost is half an em taller (NumberFlow's mask).
+  `frameFor(href)` reads Activity's `?f=` too: loading.tsx cannot see a query, so Activity and Home render their own
+  `<Suspense>` with the frame as fallback after the sign-in redirects (Home has no loading.tsx: one at the root would
+  stand in front of sign-in), and `startPending` keeps the query for PendingSkeleton. Home and Plan draw Left to
+  spend, the budgeted month. `node scripts/frames.check.mjs` holds the server (it locks every table but the three the
+  layout reads) so the streamed frame is on screen, measures it, lets go and measures the page: the title, the hero's
+  top and height (to the fold) and the first heading agree within 4px at 393×852, and the still bar lights the same
+  slot. Lists show an empty state with an icon and a line (`entries/parts` `Empty`, or `EmptyLine` inside a busier
+  screen), and the primary action where there is one. `app/error.tsx` says the screen did not load, that nothing saved
+  is lost, and offers Try again (`retry`) and Home — never the error's text; `app/not-found.tsx` is "Nothing here".
 - `npm run test:contrast` measures the Quiet Ledger pairs too (192 pairs; the old header ramps are gone).
 
 ## The four invariants — enforced in Postgres, not in components
@@ -1433,7 +1446,7 @@ storage after it opens. The design, in the order the pieces matter:
   person decides. Stuck entries are never retried on their own.
 - **`/offline` is `force-dynamic`** though it reads nothing, because every
   script tag carries the request's CSP nonce and a prerendered page ships
-  with none. The worker (`public/sw.js`, `VERSION = 'v26'`) fetches it once at
+  with none. The worker (`public/sw.js`, `VERSION = 'v38'`) fetches it once at
   install, `credentials: 'omit'`, together with every `/_next/static/` script
   and stylesheet the markup names, so the cached copy is a self-consistent
   snapshot: the nonce in its cached headers is the nonce in its cached
@@ -1452,7 +1465,10 @@ localStorage. And, since 2 Oct 2026, the whole path in a production build in
 Chromium with the network cut: the worker installs and activates, a page
 asked for offline falls back to /offline, an entry typed there is queued,
 and on reconnecting it drains into the ledger as exactly one row carrying its
-client_ref; Chromium reports no installability errors. That run found the
+client_ref; Chromium reports no installability errors. `scripts/offline-taps.mjs` re-runs that proof against a
+production build (Task 29): note that the drain happens on the screen the worker answered — the cached /offline sits
+at the address asked for (say /entries), which SyncQueue does not stand aside for, so `online` sends at once and the
+refresh after it turns the shell into the real screen. That run found the
 worker had **never installed** — `Cache.addAll` refuses a list naming the same
 request twice, and the offline page names `/icons/icon-192.png` itself — so
 the list is a Set now. Still not tried: a real phone with the radio off, and
@@ -1664,8 +1680,8 @@ screen sat unchanged until the server streamed the loading shell. `NavLink`
 and every `router.push` that navigates (swipe actions, Add Entry after Save,
 the saved snack) call `startPending(href)`; the overlay waits 120ms (a cached
 screen is faster and a one-frame flash reads as flicker), draws
-`SkeletonFor(path)` under the real tab bar, and comes down when the pathname
-changes or after 10s. `frameFor` in `Skeleton.tsx` is the one map from a path
+`SkeletonFor(path)` under the real tab bar (the path keeps its query, so an
+Activity chip draws its own frame), and comes down when the pathname changes or after 10s. `frameFor` in `Skeleton.tsx` is the one map from a path
 to its frame — a list, a form, a tab with its figure, people and two buttons,
 Home's deck and tiles — and every loading.tsx draws from it, so the frame on
 tap and the frame the server streams are the same picture.
