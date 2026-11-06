@@ -40,14 +40,14 @@ read by the category tints; nothing else should reach for a `--c-*` token.
 Business logic, queries and invariants were left alone except where a
 paragraph below says otherwise. Where an older section disagrees, this wins:
 
-- **Five tabs, each one place**: Home · Activity (Entries · To review ·
-  Upcoming) · Plan (Budget · Trends) · Loans · Money (Accounts · Net worth).
-  Loans has its own tab because the owner uses it daily; Add is not a tab but
-  a marigold button floating over the bar's right end (`ADD_FAB` in tabs.ts),
-  and Home carries one "Owed to you" line into Loans (`owedToYou()` in
-  lib/worth.ts, the same sum the Loans screen shows). The views inside a tab are a `Segments` switch under one
-  `PageHead`; a screen pushed on top (an entry, a tab, Categories) gets a back
-  arrow instead. `OWNED_BY` in `tabs.ts` lights the owning tab.
+- **Five slots, Add among them**: Home · Activity · **+** · Loans · Wealth (`TABS` in tabs.ts). Add is the middle
+  slot, a 52px brass tile (`bg-attention`) into `/add` — still the drawer over the current screen — so nothing
+  floats over the bar and `ADD_FAB` is gone. Loans has its own tab because the owner uses it daily; Home carries
+  one "Owed to you" line into it (`owedToYou()` in lib/worth.ts). Plan (`/budget`, `/trends`), Categories and the
+  household belong to Home (`OWNED_BY` lights it) and open as pushed screens with a back arrow; `/accounts` is
+  pushed from Wealth (`/worth`). The active tab is a filled icon with a `text-primary` label on iOS, and a 56x30
+  `bg-accent` pill on Android (`in-data-[platform=android]:` (data-platform is on <html>, the group class on <body>, so group-data would never match)). Activity still has its `Segments` switch
+  until the filter chips replace it.
 - **One name per thing**, the same on the tab, the switch, the page and the
   browser title: To review (was Inbox / Needs you), Upcoming (was Scheduled),
   Loans (was Loan centre, then a Money view), Money (was Accounts), categories (never headings).
@@ -1566,7 +1566,7 @@ categories, so a stale screen cannot write a partial order.
 boundary makes Next write its chunk as a plain `<script>` with no nonce
 (`create-component-styles-and-scripts.js` never receives one), which the CSP
 then refuses and logs on every page. Tab data lives in `tabs.ts` and the
-glyph in `TabGlyph.tsx` — both plain modules — so the still and the live bar
+drawing in `TabItem.tsx` (icons are `Icon`, a plain span) — both plain modules — so the still and the live bar
 are one drawing. Re-check with the crawl: every `<script>` on every dynamic
 route carries the response's nonce.
 

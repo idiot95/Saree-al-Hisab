@@ -5,7 +5,7 @@ import {
   actorOrNull, accountsWithBalances, allBalances, methodsWithFunding, openCyclesFor, owedByPerson, tabHeldOwed,
 } from '@/db/queries';
 import { netWorth } from '@/lib/worth';
-import MoneyNav from './MoneyNav';
+import PageHead from '../PageHead';
 import { withHousehold } from '@/db/client';
 import { format } from '@/lib/money';
 import TabBar from '../TabBar';
@@ -74,13 +74,7 @@ export default async function Accounts() {
   return (
     <Screen>
       <main className="min-h-dvh bg-background text-foreground" style={{ paddingBottom: TAB_BAR_SPACE }}>
-        <header className="flex flex-col gap-3 px-[var(--gutter)] pb-4 pt-4">
-          <div className="min-w-0">
-            <h1 className="font-display text-[30px] leading-tight">Money</h1>
-            <p className="truncate text-sm text-muted-foreground">{name}</p>
-          </div>
-          <MoneyNav current="accounts" />
-        </header>
+        <PageHead back="/worth" title="Accounts" sub={<span className="truncate">{name}</span>} />
 
         <div className="flex flex-col gap-5 px-[var(--gutter)]">
           <Link href="/worth" transitionTypes={['nav-lateral']}

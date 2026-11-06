@@ -529,7 +529,7 @@
   /* A tab's icon gives a small bounce when its screen arrives — the same
      acknowledgement an iPhone tab bar gives — and only on the live bar, never
      the still copy a loading skeleton draws. */
-  .tab-here svg { animation: tab-pop .5s var(--ease-spring) both; transform-origin: 50% 60%; }
+  .tab-here { animation: tab-pop .5s var(--ease-spring) both; transform-origin: 50% 60%; }
   @keyframes tab-pop { 0% { scale: .72 } 100% { scale: 1 } }
 
   /* The check on a success line draws itself in. */

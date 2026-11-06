@@ -9,7 +9,7 @@ import TabBar from '../TabBar';
 import { TAB_BAR_SPACE } from '../tabs';
 import { MonthBars, CategoryDonut } from './charts';
 import Screen from '../Screen';
-import PlanNav from '../budget/PlanNav';
+import PageHead from '../PageHead';
 import MonthPill from '../MonthPill';
 
 export const metadata = { title: 'Trends · Saree al-Hisab' };
@@ -80,21 +80,12 @@ export default async function Trends({ searchParams }: { searchParams: Promise<{
   return (
     <Screen>
       <main className="min-h-dvh bg-background text-foreground" style={{ paddingBottom: TAB_BAR_SPACE }}>
-        <header className="flex flex-col gap-3 px-[var(--gutter)] pb-4 pt-4">
-          <div className="flex items-end justify-between gap-3">
-            <div className="min-w-0">
-              <h1 className="font-display text-[30px] leading-tight">Plan</h1>
-              {average > 0 && (
-                <p className="text-sm text-muted-foreground">
-                  <span className="whitespace-nowrap">{format(average)} a month</span>{' '}
-                  <span className="whitespace-nowrap">on average</span>
-                </p>
-              )}
-            </div>
-            <MonthPill month={month} path="/trends" />
-          </div>
-          <PlanNav current="trends" />
-        </header>
+        <PageHead back="/" title="Trends" right={<MonthPill month={month} path="/trends" />} sub={average > 0 ? (
+          <>
+            <span className="whitespace-nowrap">{format(average)} a month</span>{' '}
+            <span className="whitespace-nowrap">on average</span>
+          </>
+        ) : undefined} />
 
         {nothing ? (
           <p style={{

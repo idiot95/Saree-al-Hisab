@@ -3,26 +3,22 @@
 import { useState } from 'react';
 import Link from '@/app/NavLink';
 import { haptic } from './haptics';
-import { TABS, BAR_STYLE, ADD_FAB, PLUS, tabLook, tabStyle } from './tabs';
-import { TabGlyph } from './TabGlyph';
+import { TABS, tabLook } from './tabs';
+import { BAR_CLASS, ADD_TILE_CLASS, slotClass, TabFace } from './TabItem';
+import { Icon } from './Icon';
 
 /* Persistent navigation, in the thumb zone.
 
    Jakob's Law: every finance app people already use puts its navigation in a
-   bar at the bottom, so this one does too. Before it existed you had to walk
-   back to the home screen to get anywhere, which is nobody's mental model.
+   bar at the bottom, so this one does too.
 
-   Fitts's Law: the bar sits at the bottom edge, targets are 60px tall and a
-   fifth of the screen wide, and Add — the thing done most often — is centre
-   and raised, the easiest target on the screen to hit with a thumb.
+   Fitts's Law: the bar sits at the bottom edge, targets are 76px tall and a
+   fifth of the screen wide, and Add — the thing done most often — is centre,
+   the only filled tile in the bar.
 
-   Hick's Law and Miller: five destinations, no more. A sixth would start
-   costing more in deliberation than it saves in walking. */
+   Hick's Law and Miller: five slots, no more. */
 
 export default function TabBar({ current }: { current: string }) {
-  /* The plus goes straight to a new entry — the drawer over this screen
-     (app/@modal/(.)add). It floats above the bar rather than sitting in it, so
-     Loans could have the fifth tab. */
   /* The tab tapped lights at once, before its screen has arrived: the loading
      frame says where you are going, and the bar should agree with it rather
      than keep pointing at the screen being left. Remembered against the
@@ -34,18 +30,20 @@ export default function TabBar({ current }: { current: string }) {
      one lit now. From a screen no tab owns, it is a plain lateral fade. */
   const litAt = TABS.findIndex((t) => tabLook(t, current).on);
   return (
-    <>
-    <Link href="/add" transitionTypes={['nav-lateral']} aria-label="Add an entry" className="press"
-      onClick={() => haptic('tap')} style={ADD_FAB}>
-      <svg width={26} height={26} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4}
-        strokeLinecap="round" aria-hidden><path d={PLUS} /></svg>
-    </Link>
-    <nav aria-label="Main" style={BAR_STYLE}>
-      {TABS.map((t) => {
-        /* A screen inside a tab lights that tab, but not as brightly as the
-           tab's own screen — you are in Home's territory, not on Home. */
-        const { on, here, add } = tabLook(t, showing);
-        const i = TABS.indexOf(t);
+    <nav aria-label="Main" className={BAR_CLASS}>
+      {TABS.map((t, i) => {
+        if (t.add) {
+          /* Straight to a new entry — the drawer over this screen (app/@modal/(.)add). */
+          return (
+            <span key={t.href} className="flex h-full flex-1 items-center justify-center">
+              <Link href="/add" transitionTypes={['nav-lateral']} aria-label="Add an entry"
+                onClick={() => haptic('tap')} className={`press ${ADD_TILE_CLASS}`}>
+                <Icon name={t.icon} size={28} />
+              </Link>
+            </span>
+          );
+        }
+        const { on, here } = tabLook(t, showing);
         const motion = litAt < 0 || i === litAt ? 'nav-lateral' : i > litAt ? 'nav-tab-right' : 'nav-tab-left';
         return (
           <Link
@@ -56,14 +54,12 @@ export default function TabBar({ current }: { current: string }) {
             /* A tick under the thumb as the tab is taken — the moment of the
                tap, not the moment the screen arrives. */
             onClick={() => { if (!here) { haptic('tap'); setTapped({ from: current, href: t.href }); } }}
-            className="press"
-            style={tabStyle(on, add)}
+            className={`press ${slotClass(on)}`}
           >
-            <TabGlyph t={t} on={on} here={here} add={add} live />
+            <TabFace t={t} on={on} here={here} live />
           </Link>
         );
       })}
     </nav>
-    </>
   );
 }

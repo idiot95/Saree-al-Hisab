@@ -1,4 +1,4 @@
-import { Chip, ACCOUNT_ICON, ACCOUNT_TINT } from '../Icon';
+import { Chip, Icon, ACCOUNT_ICON, ACCOUNT_TINT } from '../Icon';
 import { redirect } from 'next/navigation';
 import { actorOrNull, allBalances, monthlySeries, owedByPerson, tabHeldOwed, worthSeries } from '@/db/queries';
 import { withHousehold } from '@/db/client';
@@ -7,8 +7,8 @@ import { format } from '@/lib/money';
 import TabBar from '../TabBar';
 import { TAB_BAR_SPACE } from '../tabs';
 import Screen from '../Screen';
+import Link from '@/app/NavLink';
 import PageHead, { Label } from '../PageHead';
-import MoneyNav from '../accounts/MoneyNav';
 
 export const metadata = { title: 'Net worth · Saree al-Hisab' };
 export const dynamic = 'force-dynamic';
@@ -55,9 +55,7 @@ export default async function Worth() {
   return (
     <Screen>
       <main className="min-h-dvh bg-background text-foreground" style={{ paddingBottom: TAB_BAR_SPACE }}>
-        <PageHead title="Money" sub={actor.household_name}>
-          <MoneyNav current="worth" />
-        </PageHead>
+        <PageHead title="Wealth" sub={actor.household_name} />
 
         <section aria-label="Net worth" className="mx-[var(--gutter)] flex flex-col gap-3 rounded-[22px] border border-border bg-card p-4">
           <span className="text-xs text-muted-foreground">Net worth</span>
@@ -71,6 +69,12 @@ export default async function Worth() {
             <Figure label="You owe" value={debtTotal} negative />
           </dl>
         </section>
+
+        <Link href="/accounts" transitionTypes={['nav-forward']}
+          className="mx-[var(--gutter)] mt-5 flex min-h-12 items-center justify-between rounded-2xl border border-border bg-card px-4 text-sm font-medium">
+          Accounts
+          <Icon name="chevron_right" size={17} className="text-muted-foreground" />
+        </Link>
 
         <div style={{ paddingTop: 20, display: 'flex', flexDirection: 'column', gap: 20 }}>
           {savings !== 0 && (

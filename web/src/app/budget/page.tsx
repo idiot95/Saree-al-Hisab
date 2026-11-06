@@ -12,7 +12,7 @@ import MonthPill from '../MonthPill';
 import BudgetForm from './BudgetForm';
 import CopyPrevious from './CopyPrevious';
 import Budgets from './Budgets';
-import PlanNav from './PlanNav';
+import PageHead from '../PageHead';
 import Screen from '../Screen';
 import { Icon } from '../Icon';
 
@@ -60,25 +60,21 @@ export default async function Budget({ searchParams }: {
   return (
     <Screen>
       <main className="min-h-dvh bg-background text-foreground" style={{ paddingBottom: TAB_BAR_SPACE }}>
-        <header className="flex flex-col gap-3 px-[var(--gutter)] pb-4 pt-4">
-          <div className="flex items-end justify-between gap-3">
-            <div className="min-w-0">
-              <h1 className="font-display text-[30px] leading-tight">Plan</h1>
-              <p className="text-sm text-muted-foreground">
-                {empty ? 'Nothing budgeted yet' : (
+        <PageHead back="/" title="Plan" right={<MonthPill month={month} path="/budget" />} sub={
+                empty ? 'Nothing budgeted yet' : (
                   <>
                     <span className="whitespace-nowrap">{headings} {headings === 1 ? 'category' : 'categories'}</span>
                     {daysLeft !== null && <>{' · '}<span className="whitespace-nowrap">{daysLeft} {daysLeft === 1 ? 'day' : 'days'} left</span></>}
                   </>
-                )}
-              </p>
-            </div>
-            <MonthPill month={month} path="/budget" />
-          </div>
-          <PlanNav current="budget" />
-        </header>
+                )
+        } />
 
         <div className="flex flex-col gap-5 px-[var(--gutter)]">
+          <Link href="/trends" transitionTypes={['nav-forward']}
+            className="flex min-h-12 items-center justify-between rounded-2xl border border-border bg-card px-4 text-sm font-medium">
+            <span className="flex items-center gap-2"><Icon name="trending_up" size={18} /> Trends</span>
+            <Icon name="chevron_right" size={17} className="text-muted-foreground" />
+          </Link>
           {!empty && (
             <section aria-label={`${label(month)} against the budget`} className="rounded-[22px] border border-border bg-card p-4">
               <dl className="grid grid-cols-3 gap-2">

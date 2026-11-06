@@ -1,5 +1,6 @@
-import { TABS, BAR_STYLE, ADD_FAB, PLUS, TAB_BAR_SPACE, tabLook, tabStyle } from './tabs';
-import { TabGlyph } from './TabGlyph';
+import { TABS, TAB_BAR_SPACE, tabLook } from './tabs';
+import { BAR_CLASS, ADD_TILE_CLASS, slotClass, TabFace } from './TabItem';
+import { Icon } from './Icon';
 
 /* What a screen looks like in the moment between the tap and the data.
 
@@ -210,9 +211,10 @@ export function frameFor(path: string): Frame | 'home' | null {
   if (path === '/') return 'home';
   if (is(path, '/entries') || is(path, '/inbox') || is(path, '/schedules')) return { title: 'Activity', current: '/entries', segments: 3, rows: 6 };
   if (is(path, `/entries/${ID}`)) return { title: 'Entry', current: null, back: true, rows: 0, form: true };
-  if (is(path, '/budget') || is(path, '/trends')) return { title: 'Plan', current: '/budget', segments: 2, rows: 5, figure: true };
+  if (is(path, '/budget') || is(path, '/trends')) return { title: 'Plan', current: '/budget', back: true, rows: 5, figure: true };
   if (is(path, '/categories')) return { title: 'Categories', current: '/budget', back: true, rows: 6 };
-  if (is(path, '/accounts') || is(path, '/worth')) return { title: 'Money', current: '/accounts', segments: 2, rows: 4, figure: true };
+  if (is(path, '/accounts')) return { title: 'Accounts', current: '/accounts', back: true, rows: 4, figure: true };
+  if (is(path, '/worth')) return { title: 'Wealth', current: '/worth', rows: 4, figure: true };
   if (is(path, '/people')) return { title: 'Loans', current: '/people', rows: 4, figure: true };
   if (is(path, '/accounts/reconcile')) return { title: 'Reconcile', current: '/accounts', back: true, rows: 4 };
   if (is(path, `/accounts/${ID}/reconcile`)) return { title: null, eyebrow: 'Reconcile', current: null, back: true, rows: 3, form: true };
@@ -243,21 +245,22 @@ export function SkeletonFor({ path, stillBar = true }: { path: string; stillBar?
    chunk to write. */
 function StillTabBar({ current }: { current: string }) {
   return (
-    <>
-    <span aria-hidden style={ADD_FAB}>
-      <svg width={26} height={26} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4}
-        strokeLinecap="round"><path d={PLUS} /></svg>
-    </span>
-    <nav aria-hidden style={BAR_STYLE}>
+    <nav aria-hidden className={BAR_CLASS}>
       {TABS.map((t) => {
-        const { on, here, add } = tabLook(t, current);
+        if (t.add) {
+          return (
+            <span key={t.href} className="flex h-full flex-1 items-center justify-center">
+              <span className={ADD_TILE_CLASS}><Icon name={t.icon} size={28} /></span>
+            </span>
+          );
+        }
+        const { on, here } = tabLook(t, current);
         return (
-          <span key={t.href} style={tabStyle(on, add)}>
-            <TabGlyph t={t} on={on} here={here} add={add} />
+          <span key={t.href} className={slotClass(on)}>
+            <TabFace t={t} on={on} here={here} />
           </span>
         );
       })}
     </nav>
-    </>
   );
 }
