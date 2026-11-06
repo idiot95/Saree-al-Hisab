@@ -208,21 +208,28 @@ a strip that scrolled sideways past the edge. Now `/add` is **one screen** (Task
 Nov 2026; the two-step wizard is gone): kind switch (Expense · Income · Move), the
 amount (focused on open), a 4×2 grid of the kind's most-used categories
 (`TopCategories.tsx`: seven tiles from `topCategories(hh, kind)` — last 90 days by
-entry count, padded with top-level categories in `sort_order`, active only,
+count of entries of that kind, padded with top-level categories in `sort_order`, active only,
 `fits()` the kind — and *All*, which opens `CategoryFinder`; a category picked
 there takes the seventh seat), then a stack of rows that each open a vaul drawer
 (`PickRows.tsx`: *Paid with* → `PayPicker`, *When* → quick days and `MonthGrid`;
 on a Move, *From* and *To* replace the tiles), a collapsed *More* row
 (`MoreFields.tsx`: Clears what is owed, the tab and its two answers, where,
 remarks, bills, shared, scan), the duplicate line, and a sticky **Save · ₹amount
-Category** (its figure a `<Figure paise>`; lifted above the iPhone keyboard by
+Category** (its figure a `<Figure paise="auto">` — minor units only when there
+are some, `paise: 'auto'` in `format`/`figureParts`; the echo under the field shows
+only while it is typed; what was kept, a refusal and the duplicate line sit in the
+footer above Save so none scrolls out of view; lifted above the iPhone keyboard by
 `keyboard.ts` through `visualViewport`, while vaul resizes the drawer). The
 common entry is amount, tile, Save (`scripts/add-taps.mjs` counts the three).
 More opens itself when a tab is chosen on an expense, or when money coming in
 equals a claim to the paisa. *Paid with* opens on `app_user.last_paid_with`
 (0037), a nullable text preference — not a foreign key — written after a saved
 **expense** only, read through `findRef` against the household's ways, and
-falling back to the first way when it names nothing. The `Draft` sent to
+falling back to the first way when it names nothing. It opens an **expense**
+only: income and a Move start on the first way, and a Move arriving with its `to`
+(a card's Pay, an account's Move) never starts From that same account, or a card
+last paid BY would make its own Pay unsaveable. Pick drawers are vaul's
+`NestedRoot` inside the Add drawer (`InDrawer`). The `Draft` sent to
 `saveEntry` did not change, so entries queued by older builds still save
 (`scripts/queue.test.mjs`, run by `test:lib`). **There is no drawn
 keypad**: the amount is a plain `<input inputMode="decimal">` that takes the
