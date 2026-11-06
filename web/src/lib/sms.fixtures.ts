@@ -121,10 +121,68 @@ export const OTP_FIXTURES: string[] = [
   'Aapka OTP 558213 hai. Kisi ke saath share na karein. Transaction Rs 1,200 ke liye.',
   'आपका OTP 558213 है। इसे किसी से साझा न करें।',
   'Your login code is 4829. Do not share.',
+  'Your authentication code is 482913 for Rs 500 to be debited at SHOP',
+  'Your security code is 482913. Rs 2,000 will be debited from card XX1234',
+  '482913 is your secure PIN for Rs 500 to be debited at SHOP',
+  '482913 is the code to authorise Rs 500 spent at SHOP',
+  'Your code is 4829. Rs 100 debited',
+  'Use 482913 to authorise Rs 500 spent on card XX1234 at SHOP',
+  'OTP482913 for Rs 500',
+  'Your OTPs: 482913',
+  'O.T.P. 482913',
+  'आपका ओटीपी 558213 है',
+  'Your One-Time-Password for Rs 500 is 482913',
+  'Do not share 482913 with anyone. It is required to approve Rs 500 debited at SHOP',
+  'Your 3DS PIN is 482913 for txn of Rs 500',
+  'Your MPIN is 4829',
+  '482913 - use this to complete payment of Rs 500 at SHOP',
+  'Rs 500 debited from A/c XX1234. OTP is 482913',
 ];
 
 export const PROMO_FIXTURES: string[] = [
   'Get Rs 500 cashback on your first UPI transaction! Use code WELCOME. T&C apply.',
   'Congratulations! Loan of Rs 5,00,000 pre-approved for you. Apply now at bank.example/loan',
   'Festive offer: win up to Rs 1,00,000 on credit card spends. Offer ends 10-11-26.',
+];
+
+/* Failed, reversed, refunded and balance-bearing shapes. `none` means a message
+   that reports no completed transaction: no direction and no amount. */
+const E = (text: string, amountMinor: number | null, currency: string | null, direction: 'debit' | 'credit' | null,
+  last4: string | null, merchant: string | null, date: string | null): SmsFixture =>
+  ({ source: 'edge', kind: direction ?? 'none', sender: 'BANK', text, expect: { amountMinor, currency, direction, last4, merchant, date } });
+
+export const EDGE_FIXTURES: SmsFixture[] = [
+  // The balance or limit is never the spend.
+  E('Avl Lmt INR 95,000.00. INR 500.00 spent on card XX1234 at SHOP', 50000, 'INR', 'debit', '1234', 'SHOP', null),
+  E('Avl Lmt: INR 95,000.00 on card XX1234. Spent INR 500.00 at SHOP', 50000, 'INR', 'debit', '1234', 'SHOP', null),
+  E('Balance in A/c XX1234 after debit is Rs 9,500. Debit of Rs 500 to SHOP', 50000, 'INR', 'debit', '1234', 'SHOP', null),
+  E('A/c XX1234 debited; available bal after txn Rs 9,500.00; amt Rs 500', 50000, 'INR', 'debit', '1234', null, null),
+  E('Bal after txn: Rs 9,500. Rs 500 debited from A/c XX1234', 50000, 'INR', 'debit', '1234', null, null),
+  E('Rs 500 debited from A/c XX1234 to SHOP. Rs 20 fee applies', 50000, 'INR', 'debit', '1234', 'SHOP', null),
+  E('Rs.500 debited A/c X1234 on 1-11-26 Avl Bal Rs.10,000 Info: UPI/P2M/123456/SHOP', 50000, 'INR', 'debit', '1234', 'SHOP', '2026-11-01'),
+  E('Dear Customer, Rs 500 debited. Total Due Rs 5,000. Min Due Rs 250', 50000, 'INR', 'debit', null, null, null),
+  E('INR 500.00 spent on ICICI Bank Credit Card XX1234 at AMAZON on 01-Nov-26', 50000, 'INR', 'debit', '1234', 'AMAZON', '2026-11-01'),
+  // Money coming back.
+  E('Refund of Rs 300 credited to A/c XX1234', 30000, 'INR', 'credit', '1234', null, null),
+  E('Refund of Rs 300 to your Debit Card XX1234 has been processed', 30000, 'INR', 'credit', '1234', null, null),
+  E('Rs 300 refund from AMAZON initiated to card XX1234', 30000, 'INR', 'credit', '1234', 'AMAZON', null),
+  E('Your txn of Rs 500 at SHOP has been reversed to A/c XX1234', 50000, 'INR', 'credit', '1234', 'SHOP', null),
+  E('Rs 500 debited from A/c XX1234 has been reversed', 50000, 'INR', 'credit', '1234', null, null),
+  E('Payment of Rs 5,000 received towards your credit card XX1234. Total outstanding Rs 20,000', 500000, 'INR', 'credit', '1234', null, null),
+  E('Cashback of Rs 50 credited to your Paytm wallet', 5000, 'INR', 'credit', null, null, null),
+  // Nothing has happened (yet).
+  E('Txn of Rs 500 failed', null, null, null, null, null, null),
+  E('Txn of Rs 500 failed. Amount debited will be refunded in 5 days', null, null, null, null, null, null),
+  E('UPI txn of Rs 500 to x@ybl declined. A/c not debited', null, null, null, null, 'x@ybl', null),
+  E('Rs 500 will be debited on 05-11-26 for mandate to NETFLIX', null, null, null, null, 'NETFLIX', '2026-11-05'),
+  E('Rs 500 credited to A/c XX1234. Your loan EMI of Rs 9,000 will be debited on 05-11-26', null, null, null, '1234', null, '2026-11-05'),
+  // Currency forms.
+  E('Your Credit Card ...1234 was used for AED 50.00 at CARREFOUR', 5000, 'AED', 'debit', '1234', 'CARREFOUR', null),
+  E('Purchase of AED 50.00 with Debit Card ending 1234 at CARREFOUR', 5000, 'AED', 'debit', '1234', 'CARREFOUR', null),
+  E('500.00 AED debited from your account XX1234', 50000, 'AED', 'debit', '1234', null, null),
+  E('Amount: 500.00 AED. Card XX1234 spent at SHOP', 50000, 'AED', 'debit', '1234', 'SHOP', null),
+  E('AED50.00 was spent on your Credit Card XXX1234 at SHOP. Avl Cr. Limit is AED 9,000', 5000, 'AED', 'debit', '1234', 'SHOP', null),
+  E('A/c ...1234 debited Rs 500', 50000, 'INR', 'debit', '1234', null, null),
+  E('Rs 500 debited ref 123456 to x@ybl', 50000, 'INR', 'debit', null, 'x@ybl', null),
+  E('Rs.500 debited A/cXX1234 on 01Nov26', 50000, 'INR', 'debit', '1234', null, '2026-11-01'),
 ];

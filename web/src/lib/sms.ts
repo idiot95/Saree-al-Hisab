@@ -2,7 +2,7 @@
    model. What it cannot read it leaves null and the caller decides. One-time
    passwords are recognised first, so they are never parsed and never stored. */
 import { createHash } from 'node:crypto';
-import { fromKeys, isCurrency } from './money.ts';
+import { digitsOf, fromKeys, isCurrency } from './money.ts';
 
 export type ParsedSms = {
   amountMinor: number | null;
@@ -19,52 +19,97 @@ const MAX_MERCHANT = 40;
 
 /* ── OTP ─────────────────────────────────────────────────────────────── */
 
-const OTP_WORDS = /\b(?:otp|one[- ]time password|verification code|passcode)\b/i;
-const CODE_WORD = /\bcode\s*:?\s*\d{4,8}\b(?![.,]\d)/i;
-const IS_CODE = /\bis\s*:?\s*\d{4,8}\b(?![.,]\d)|(?<![\d,.])\d{4,8}\s+is\s+(?:your|the)\b/i;
-const TXN_VERB = /\b(?:debited|credited|spent|withdrawn|received|deposited)\b/i;
+/* Every pattern below runs on text whose whitespace was collapsed to single
+   spaces, and no two quantifiers next to each other can match the same
+   characters, so a hostile 2 KB body cannot make the matcher back-track. */
+
+const squeeze = (t: string) => t.replace(/\s+/g, ' ').trim();
+
+const OTP_WORDS = new RegExp([
+  '(?<![a-z])o\\.?t\\.?p\\.?s?(?![a-z])',            // OTP, OTPs, O.T.P., OTP482913
+  'ओटीपी',                                              // Hindi
+  '\\bone[- ]?time[- ]?(?:password|pin|passcode|code)',
+  '\\b(?:verification|security|authentication|auth|login|secure|access|transaction) (?:code|pin)\\b',
+  '\\b(?:passcode|mpin|password)\\b',
+].join('|'), 'i');
+// Words that sit beside a one-time number.
+const CODE_NEAR = /\b(?:code|pin|mpin|password|passcode|otp|authori[sz]e[ds]?|authori[sz]ation|approve[ds]?|verification|do not share|never share|valid for|valid till|expires?)\b/i;
+const STANDALONE_NUM = /(?<![\w.,₹-])\d{4,8}(?!\d|[.,]\d)/g;
+const CURRENCY_BEFORE = /(?:\brs\.?|\binr|₹|([A-Z]{3})) ?:? ?$/i;
 
 /** True for a one-time password however it is phrased. Checked before any
- *  parsing: "OTP for txn of Rs 500" is an OTP, whatever amount it carries. */
+ *  parsing: "OTP for txn of Rs 500" is an OTP, whatever amount it carries.
+ *  A missed OTP costs more than a lost draft, so this leans to true. */
 export function isOtp(text: string): boolean {
-  if (OTP_WORDS.test(text) || CODE_WORD.test(text)) return true;
-  // "is 123456" alone is weak (a limit, a balance); a message that reports a
-  // transaction is not an OTP for saying "is".
-  return IS_CODE.test(text) && !TXN_VERB.test(text);
+  const t = squeeze(text);
+  if (OTP_WORDS.test(t)) return true;
+  if (/^\d{4,8} ?[-:–]/.test(t)) return true;
+  for (const m of t.matchAll(STANDALONE_NUM)) {
+    const at = m.index!;
+    const pre = /(?:\brs\.?|\binr|₹) ?:? ?$/i.test(t.slice(Math.max(0, at - 6), at));
+    const cc = /([A-Z]{3}) ?:? ?$/.exec(t.slice(Math.max(0, at - 6), at));
+    if (pre || (cc && isCurrency(cc[1]))) continue;      // an amount, not a code
+    const before = t.slice(Math.max(0, at - 40), at).split(' ').slice(-5).join(' ');
+    const after = t.slice(at + m[0].length, at + m[0].length + 50).split(' ').slice(0, 6).join(' ');
+    if (CODE_NEAR.test(before) || CODE_NEAR.test(after)) return true;
+  }
+  return false;
 }
 
 /* ── amount ──────────────────────────────────────────────────────────── */
 
-type Amount = { start: number; end: number; minor: number; currency: string };
+type Amount = { start: number; end: number; minor: number; currency: string; preferred: boolean };
 
-// "Rs", "Rs.", "Rs:", "INR", "₹", or a three-letter currency code.
-const AMOUNT = /(?:\b[Rr][Ss]\.?|\b[Ii][Nn][Rr]|(₹)|\b([A-Z]{3}))\s*:?\s*(\d[\d,]*(?:\.\d{1,3})?)/g;
+// "Rs", "Rs.", "Rs:", "INR", "₹", or a three-letter currency code, before the figure.
+const AMOUNT = /(?:\b[Rr][Ss]\.?|\b[Ii][Nn][Rr]|(₹)|\b([A-Z]{3})) ?:? ?(\d[\d,]*(?:\.\d{1,3})?)/g;
+// "500.00 AED": the code after the figure.
+const AMOUNT_AFTER = /(?<![\w.,])(\d[\d,]*(?:\.\d{1,3})?) ?([A-Z]{3})\b/g;
+const PREFERRED = /\b(?:amt|amount|of|for)[:.]? ?(?:[a-z]{2,3}\.?|₹)? ?:? ?$/i;
 
-// "Avl Bal Rs 5,000", "Available balance: AED 9,000", "Avl Cr Limit Rs 95,000".
-const BALANCE = /\b(?:(?:avl|avail(?:able)?|ledger|closing|total|clear)\.?\s*)?(?:bal(?:ance)?|(?:cr\.?\s*)?limit)\b[\s:.\-]*(?:is\s+)?(?:[Rr][Ss]\.?|[Ii][Nn][Rr]|₹|[A-Z]{3})?\s*:?\s*\d[\d,]*(?:\.\d{1,3})?/gi;
+// "Avl Bal Rs 5,000", "balance after txn Rs 9,500", "Avl Cr Limit Rs 95,000",
+// "Total Due Rs 5,000": the keyword, up to four words, then a currency and a figure.
+const BALANCE = /\b(?:bal(?:ance)?|lmt|limit|due|outstanding)\b(?: \S{1,15}){0,4}? ?:?-? ?(?:rs\.?|inr|₹|[a-z]{3}) ?:? ?\d[\d,]*(?:\.\d{1,3})?/gi;
+
+function toAmount(whole: string, code: string, start: number, end: number, text: string): Amount | null {
+  const [w, f = ''] = whole.replace(/,/g, '').split('.');
+  if (w.length > 12) return null;
+  if (f.length > digitsOf(code)) return null;      // 3 decimals only where the currency has 3
+  return { start, end, minor: fromKeys(f ? `${w}.${f}` : w, code), currency: code, preferred: PREFERRED.test(text.slice(Math.max(0, start - 14), start)) };
+}
 
 function amounts(text: string): Amount[] {
   const out: Amount[] = [];
   for (const m of text.matchAll(AMOUNT)) {
     const code = m[2] ? m[2] : 'INR';
     if (!isCurrency(code)) continue;
-    const keys = m[3].replace(/,/g, '');
-    if (keys.split('.')[0].length > 12) continue;
-    out.push({ start: m.index!, end: m.index! + m[0].length, minor: fromKeys(keys, code), currency: code });
+    const a = toAmount(m[3], code, m.index!, m.index! + m[0].length, text);
+    if (a) out.push(a);
+  }
+  for (const m of text.matchAll(AMOUNT_AFTER)) {
+    if (!isCurrency(m[2])) continue;
+    const start = m.index!, end = start + m[0].length;
+    if (out.some((o) => o.start < end && start < o.end)) continue;
+    const a = toAmount(m[1], m[2], start, end, text);
+    if (a) out.push(a);
   }
   return out;
 }
 
 /* ── direction ───────────────────────────────────────────────────────── */
 
-const DEBIT = /\b(?:debited|debit|spent|sent(?!\s+you\b)|paid(?!\s+you\b)|withdrawn|withdrawal|purchased?|(?:transferred|trf)\s+to)\b/gi;
-const CREDIT = /\b(?:credited|credit\s+alert|received|deposited|refunded|(?:sent|paid)\s+you)\b/gi;
+// A transaction that did not happen, or has not yet: no direction, no amount.
+const NOT_DONE = /\b(?:failed|declined|unsuccessful|not (?:been )?debited|will be debited|is due|mandate)\b/i;
+const REVERSAL = /\brevers(?:ed|al)\b/i;
+const DEBIT = /\b(?:debited|debit(?! card)|spent|sent(?! you\b)|paid(?! you\b)|withdrawn|withdrawal|purchased?|used for|(?:transferred|trf) to)\b/gi;
+const CREDIT = /\b(?:credited|credit alert|received|deposited|refunded|refund\b(?!@)|revers(?:ed|al)|(?:sent|paid) you)\b/gi;
 
 type Verb = { start: number; end: number; direction: 'debit' | 'credit' };
 
 function verbs(text: string): Verb[] {
+  if (NOT_DONE.test(text)) return [];
   const out: Verb[] = [];
-  for (const m of text.matchAll(DEBIT)) out.push({ start: m.index!, end: m.index! + m[0].length, direction: 'debit' });
+  if (!REVERSAL.test(text))                      // a reversal puts the money back, whatever else it says
+    for (const m of text.matchAll(DEBIT)) out.push({ start: m.index!, end: m.index! + m[0].length, direction: 'debit' });
   for (const m of text.matchAll(CREDIT)) out.push({ start: m.index!, end: m.index! + m[0].length, direction: 'credit' });
   return out;
 }
@@ -74,7 +119,7 @@ const gap = (a: { start: number; end: number }, b: { start: number; end: number 
 
 /* ── last4, date, merchant ───────────────────────────────────────────── */
 
-const LAST4 = /\b(?:a\/?c|acct|account|card)\b\.?\s*(?:no\.?|number)?\s*(?:ending(?:\s+(?:in|with))?)?\s*[:\-]?\s*[Xx*]*\d*?(\d{4})(?!\d)/i;
+const LAST4 = /\b(?:a\/c|ac\b|acct\b|account\b|card\b)\.?(?: ?(?:no\.?|number))?(?: ?ending(?: (?:in|with))?)? ?[:-]? ?[Xx*.]*(\d{4,})(?!\d)/i;
 
 const MONTHS: Record<string, number> = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12 };
 
@@ -100,14 +145,15 @@ function findDate(text: string): string | null {
   return found[0]?.iso ?? null;
 }
 
-const VPA = /^[\w.\-]{2,}@[A-Za-z][\w]*$/;
-const NAME_STOP = new Set(['on', 'via', 'using', 'ref', 'refno', 'upi', 'txn', 'from', 'to', 'at', 'with', 'for', 'by', 'in', 'is', 'utr', 'imps', 'neft']);
+const VPA = /^[\w.\-]+@[A-Za-z][\w]*$/;
+const NAME_STOP = new Set(['on', 'via', 'using', 'ref', 'refno', 'upi', 'txn', 'from', 'to', 'at', 'with', 'for', 'by', 'in', 'is', 'utr', 'imps', 'neft',
+  'initiated', 'declined', 'failed', 'reversed', 'has', 'been', 'was', 'successful', 'successfully', 'processed', 'not']);
 const ACCOUNT_WORD = new Set(['a/c', 'ac', 'acct', 'account', 'card', 'bank']);
 const NOT_A_NAME = new Set(['your', 'my', 'the', 'a', 'an', 'atm']);
 
 /** The name after one to/at/from, or null when what follows is an account, a number or nothing. */
 function nameAfter(rest: string): string | null {
-  const tokens = rest.slice(0, 120).trim().split(/\s+/);
+  const tokens = rest.slice(0, 120).trim().split(' ');
   if (tokens[0]?.toLowerCase() === 'vpa') tokens.shift();
   const first = (tokens[0] ?? '').replace(/[).,;:!]+$/, '');
   if (VPA.test(first)) return first;
@@ -127,12 +173,12 @@ function nameAfter(rest: string): string | null {
 
 function findMerchant(text: string): string | null {
   let tries = 0;
-  for (const m of text.matchAll(/\b(?:to|at|from)\s+/gi)) {
+  for (const m of text.matchAll(/\b(?:to|at|from) /gi)) {
     if (++tries > 20) break;
     const n = nameAfter(text.slice(m.index! + m[0].length));
     if (n) return n.slice(0, MAX_MERCHANT).trim();
   }
-  const who = /^([A-Za-z][\w .@\-]{1,40}?)\s+(?:sent|paid)\s+you\b/.exec(text);
+  const who = /^([A-Za-z][\w .@\-]{1,40}?) (?:sent|paid) you\b/.exec(text);
   if (who) return who[1].trim().slice(0, MAX_MERCHANT).trim();
   const slash = /\bUPI\/(?:P2[AMP]\/)?\d+\/([^/]+?)(?=\.(?:\s|$)|[,;]|$)/.exec(text);
   if (slash) return slash[1].trim().slice(0, MAX_MERCHANT).trim() || null;
@@ -147,22 +193,24 @@ function findMerchant(text: string): string | null {
  *  body alone decides. */
 export function parseSms(text: string, _sender?: string): ParsedSms {
   void _sender;
-  const clean = text.replace(BALANCE, ' ');
+  const clean = squeeze(text).replace(BALANCE, ' ');
   const amts = amounts(clean);
   const vs = verbs(clean);
 
+  // The amount beside "amt/of/for" is the transaction's; failing that, nearest the verb.
   let best: { a: Amount; v: Verb } | null = null;
-  let bestGap = Infinity;
+  let bestKey: [number, number] = [2, Infinity];
   for (const v of vs) for (const a of amts) {
-    const g = gap(a, v);
-    if (g < bestGap) { bestGap = g; best = { a, v }; }
+    const key: [number, number] = [a.preferred ? 0 : 1, gap(a, v)];
+    if (key[0] < bestKey[0] || (key[0] === bestKey[0] && key[1] < bestKey[1])) { bestKey = key; best = { a, v }; }
   }
 
+  const l4 = LAST4.exec(clean)?.[1];
   return {
     amountMinor: best?.a.minor ?? null,
     currency: best?.a.currency ?? null,
     direction: best?.v.direction ?? null,
-    last4: LAST4.exec(clean)?.[1] ?? null,
+    last4: l4 ? l4.slice(-4) : null,
     merchant: findMerchant(clean),
     date: findDate(clean),
   };

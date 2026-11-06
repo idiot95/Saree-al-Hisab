@@ -1,11 +1,15 @@
 // Run through: node scripts/lib.test.mjs
 import assert from 'node:assert/strict';
 const { isOtp, parseSms, bodyHash, validateCapture } = await import(`${process.env.LIB}/sms.js`);
-const { BANK_FIXTURES, OTP_FIXTURES, PROMO_FIXTURES } = await import(`${process.env.LIB}/sms.fixtures.js`);
+const { EDGE_FIXTURES, BANK_FIXTURES, OTP_FIXTURES, PROMO_FIXTURES } = await import(`${process.env.LIB}/sms.fixtures.js`);
 
 // Every bank and UPI fixture parses to exactly what the table says, and is no OTP.
 for (const x of BANK_FIXTURES) {
   assert.deepEqual(parseSms(x.text, x.sender), x.expect, `${x.source} ${x.kind}: ${x.text}`);
+  assert.equal(isOtp(x.text), false, `not an OTP: ${x.text}`);
+}
+for (const x of EDGE_FIXTURES) {
+  assert.deepEqual(parseSms(x.text, x.sender), x.expect, `edge: ${x.text}`);
   assert.equal(isOtp(x.text), false, `not an OTP: ${x.text}`);
 }
 // OTPs are recognised in every style, and an amount inside one does not rescue it.
@@ -23,6 +27,8 @@ for (const t of PROMO_FIXTURES) {
 // Amount forms.
 const amt = (s) => parseSms(s).amountMinor;
 assert.equal(amt('Rs:500 debited'), 50000);
+assert.equal(amt('Rs 1,00,000.123 debited'), null);      // 3 decimals only for 3-digit currencies
+assert.equal(amt('KWD 1.250 spent'), 1250);
 assert.equal(amt('INR 1,234.5 debited'), 123450);
 assert.equal(amt('₹ 12,34,567.89 credited'), 123456789);
 assert.equal(amt('Rs 1,234,567 credited'), 123456700);
@@ -95,4 +101,21 @@ assert.deepEqual(validateCapture(JSON.parse('{"__proto__":{"text":"evil"}}')), {
 assert.deepEqual(validateCapture(JSON.parse('{"text":"x","__proto__":{"sender":"evil"},"constructor":1}')), { text: 'x', sender: null, receivedAt: null });
 assert.deepEqual(validateCapture(Object.create({ text: 'inherited' })), { error: 'shape' });
 assert.deepEqual(validateCapture(new Date()), { error: 'shape' });
+
+
+// Hostile bodies finish quickly: nothing here may back-track.
+const S = (n) => ' '.repeat(n);
+const hostile = [
+  'card' + S(1990) + 'x', 'bal' + S(1990) + 'x', 'a/c' + S(1990) + 'x', 'Rs' + S(1990) + 'x', 'to' + S(1990) + 'x', 'at' + S(1990) + 'x',
+  'card ' + '1'.repeat(1990) + 'x', 'card 12345 '.repeat(180), 'bal ' .repeat(500), 'card '.repeat(400),
+  'balance' + S(800) + 'is' + S(800) + 'Rs' + S(300), 'Rs ' + '9,'.repeat(995), 'Rs 1 '.repeat(400) + ' debited '.repeat(20),
+  'to '.repeat(660), 'is '.repeat(660), 'a/c '.repeat(500), '1-1-'.repeat(500), 'UPI/1/' + 'a'.repeat(1990), 'UPI/1/a '.repeat(240),
+  'a'.repeat(1990) + ' sent', 'code ' + '1'.repeat(1990), '1234 '.repeat(390), 'OTP' + S(1990) + '1', 'bal Rs ' + S(1000) + '9'.repeat(900),
+];
+for (const h of hostile) {
+  const t0 = performance.now();
+  parseSms(h); isOtp(h);
+  const ms = performance.now() - t0;
+  assert.ok(ms < 50, `${ms.toFixed(1)}ms for ${h.slice(0, 30)}`);
+}
 console.log('sms: ok');
