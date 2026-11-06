@@ -87,7 +87,7 @@ export default function MoreFields({ kind, state, set, tabs, claims, minor, toda
                     <span className="text-xs text-muted-foreground">{friendlyDay(c.on, today)}{c.tab ? ` · ${c.tab}` : ''}</span>
                   </span>
                   <span className="flex flex-col items-end gap-0.5">
-                    <span className={cn('t text-sm', isOn ? 'text-money-in' : 'text-muted-foreground')}>{format(c.outstanding)}</span>
+                    <span className={cn('text-sm font-[620] tracking-[-0.018em]', isOn ? 'text-money-in' : 'text-muted-foreground')}>{format(c.outstanding)}</span>
                     {exactIds.has(c.id) && (
                       <span className="text-[10px] font-bold tracking-wider whitespace-nowrap text-primary uppercase">Exact match</span>
                     )}

@@ -51,7 +51,7 @@ export default function Snack({ snack, onClose, ttl = 6000 }: {
         {snack.text}
       </span>
       {(snack.undo || snack.action) && (
-        <button className="cta" type="button" style={{
+        <button className="flex items-center justify-center text-center" type="button" style={{
           minHeight: 44, padding: '0 14px', borderRadius: 10, fontSize: 'var(--step--1)',
           fontWeight: 700, color: 'inherit', textDecoration: 'underline', textUnderlineOffset: 3,
           letterSpacing: '.01em', flex: 'none',

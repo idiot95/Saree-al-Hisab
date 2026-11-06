@@ -190,7 +190,7 @@ function CardFace({ card }: { card: CardInfo }) {
           <span className="text-[9px] font-bold tracking-[.11em] text-muted-foreground uppercase">
             {owed > 0 ? 'Outstanding' : 'Nothing owed'}
           </span>
-          <span className="t n text-[clamp(23px,7.2vw,31px)] leading-[1.02] font-bold tracking-[-.025em]">{format(owed)}</span>
+          <span className="text-[clamp(23px,7.2vw,31px)] leading-[1.02] font-bold tracking-[-.025em]">{format(owed)}</span>
         </span>
         {due && owed > 0 && (
           <span className="flex flex-none flex-col gap-0.5 text-right">
