@@ -309,6 +309,18 @@ try {
     assert.ok((await payRow.innerText()).includes(pick), `Paid with now says ${pick}`);
     assert.ok(await drawer.locator('[data-save]').isVisible());
     ok(`Paid with opens nested over the Add drawer; choosing "${pick}" closes it and answers the row`);
+    /* A long answer wraps rather than losing its end (Task 30): the answer is given a 90-character name in the page,
+       and the whole of it is still drawn inside the row, on more than one line. */
+    const wrap = await payRow.evaluate((row) => {
+      const value = [...row.querySelectorAll('span')].find((s) => s.textContent.trim() && !s.children.length && s.className.includes('font-medium'));
+      const lineH = value.getBoundingClientRect().height;
+      value.textContent = 'HDFC Bank Regalia Gold credit card ending 4321 · UPI through the family phone, shared account';
+      const r = value.getBoundingClientRect(), box = row.getBoundingClientRect(), cs = getComputedStyle(value);
+      return { overflow: cs.textOverflow, cut: value.scrollWidth > value.clientWidth + 1, lines: r.height / lineH, inside: r.right <= box.right + 0.5 };
+    });
+    assert.notEqual(wrap.overflow, 'ellipsis', 'the answer is never ellipsised');
+    assert.ok(!wrap.cut && wrap.inside && wrap.lines >= 1.9, `a long answer wraps inside the row (${JSON.stringify(wrap)})`);
+    ok(`a 90-character answer on Paid with wraps onto ${Math.round(wrap.lines)} lines inside the row, no ellipsis`);
     // When, nested the same way: the month (shadcn Calendar) offers no day after today and no month after this one;
     // the 10th of last month, picked from the grid, answers the row and is the day the entry is saved on.
     const whenRow = drawer.getByRole('button', { name: /^When/ });

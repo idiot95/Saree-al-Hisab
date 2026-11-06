@@ -31,7 +31,8 @@ export function PickDrawer({ open, onClose, title, children }: {
   );
 }
 
-/** One row of the stack: icon, what it is, the answer, and a chevron. */
+/** One row of the stack: icon, what it is, the answer, and a chevron. A long answer ("HDFC Regalia · UPI · …") wraps
+ *  onto a second line rather than losing its end to an ellipsis. */
 export function Row({ icon, caption, value, tag, onClick, muted = false, expanded, controls, id }: {
   icon: React.ReactNode; caption?: string; value: React.ReactNode; tag?: string; onClick: () => void;
   muted?: boolean; expanded?: boolean; controls?: string; id?: string;
@@ -44,7 +45,7 @@ export function Row({ icon, caption, value, tag, onClick, muted = false, expande
       <span className="flex size-6 shrink-0 items-center justify-center text-muted-foreground">{icon}</span>
       <span className="flex min-w-0 flex-1 flex-col">
         {caption && <span className="text-xs font-medium text-muted-foreground">{caption}</span>}
-        <span className="truncate text-[15px] font-medium">{value}</span>
+        <span className="text-[15px] leading-snug font-medium [overflow-wrap:anywhere]">{value}</span>
       </span>
       {tag && <span className="shrink-0 text-xs text-muted-foreground">{tag}</span>}
       <Icon name={expanded ? 'expand_less' : 'expand_more'} size={20} className="text-muted-foreground" />
