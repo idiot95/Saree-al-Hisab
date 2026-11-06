@@ -15,7 +15,7 @@ export function slotClass(on: boolean) {
   return `relative flex h-full flex-1 flex-col items-center justify-center gap-1 no-underline ${on ? 'text-primary' : 'text-muted-foreground'}`;
 }
 
-/* Add: the one brass, filled tile, 52px — the biggest target in the bar and the only coloured one. */
+/* Add: the one rose-gold, filled tile, 52px — the biggest target in the bar and the only coloured one. */
 export const ADD_TILE_CLASS =
   'grid size-[52px] place-items-center rounded-2xl bg-attention text-attention-foreground shadow-sm';
 

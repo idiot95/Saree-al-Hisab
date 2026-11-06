@@ -6,7 +6,7 @@
    behind it at all, which is what keeps them free of script tags the CSP
    nonce cannot reach. */
 
-/* Quiet Ledger: every area has a place in the bar, and Add is one of the five slots — a brass tile in the
+/* Quiet Ledger: every area has a place in the bar, and Add is one of the five slots — a rose-gold tile in the
    middle, one tap from every screen, instead of a button floating over the bar. Activity is every entry (with
    what to review and what's coming up), Loans is what you put down for others and what comes back, and Wealth is
    what you hold: accounts, cards, net worth. The icon is a raw Material Symbols name (see icon-names.ts). */

@@ -133,6 +133,29 @@ for (const theme of ['light', 'dark']) {
   const darkText = block(':root[data-theme="dark"]');
   const L = { ...vars(lightText) }, Lr = refs(lightText);
   const D = { ...L, ...vars(darkText) }, Dr = { ...Lr, ...refs(darkText) };
+  /* Plum & Rose Gold, as the owner chose it. The stylesheet must carry exactly these; the pairs below then
+     prove them. Dark is spelled out in full, so a token that silently falls back to light is caught here. */
+  const PALETTE = {
+    light: { background: '#F8F5F4', card: '#FFFFFF', foreground: '#1E161D', 'muted-foreground': '#63575F',
+      muted: '#EDE5E6', secondary: '#EDE5E6', primary: '#4A2545', 'primary-foreground': '#FFFFFF',
+      accent: '#F0E4EE', 'accent-foreground': '#3B1C37', hero: '#3A1D36',
+      attention: '#D9A38C', 'attention-foreground': '#1E161D', 'attention-ink': '#9A5B45',
+      'attention-soft': '#FBEDE6', 'attention-soft-foreground': '#8A4A2E',
+      'money-in': '#157F3C', destructive: '#B91C1C', 'chart-1': '#4A2545', 'chart-2': '#9A5B45' },
+    dark: { background: '#130E12', card: '#1D161C', foreground: '#F0E7EE', 'muted-foreground': '#B3A3AF',
+      muted: '#2C2229', secondary: '#2C2229', primary: '#D9A9D0', 'primary-foreground': '#1E161D',
+      accent: '#2E1F2B', 'accent-foreground': '#F0DCEB', hero: '#2D1729',
+      attention: '#E3B5A0', 'attention-foreground': '#1E161D', 'attention-ink': '#E3B5A0',
+      'attention-soft': '#3A241A', 'attention-soft-foreground': '#F2C9B6',
+      'money-in': '#A3E6BB', destructive: '#F2867A', 'chart-1': '#D9A9D0', 'chart-2': '#E3B5A0' },
+  };
+  for (const [theme, T] of [['light', L], ['dark', D]]) {
+    for (const [k, want] of Object.entries(PALETTE[theme])) {
+      const got = T[k];
+      if (got && got.toUpperCase() === want) pass++;
+      else { fail++; console.log(`  FAIL palette ${theme} --${k} is ${got} (the chosen palette says ${want})`); }
+    }
+  }
   const get = (T, R, k) => T[k] ?? (R[k] ? T[R[k]] : undefined);
   const TEXT = [
     ['foreground', ['background', 'card', 'muted', 'accent', 'raised']],
@@ -146,14 +169,15 @@ for (const theme of ['light', 'dark']) {
     ['destructive-foreground', ['destructive']],
     ['money-in', ['card', 'background']],
     ['money-out', ['background', 'card']],
-    // Forest & Brass additions
+    // Plum & Rose Gold additions
     ['foreground', ['secondary', 'attention-soft']],
+    ['primary', ['accent']],
     ['muted-foreground', ['secondary']],
     ['primary-foreground', ['primary']],
     ['secondary-foreground', ['secondary']],
     // the net-worth card
     ['hero-foreground', ['hero']],
-    // Wealth: a stale rate's note sits on paper and on a card, not only on its own wheat ground
+    // Wealth: a stale rate's note sits on paper and on a card, not only on its own attention ground
     ['attention-soft-foreground', ['background', 'card']],
     ['hero-muted', ['hero']],
   ];
