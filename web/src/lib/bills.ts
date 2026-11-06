@@ -30,3 +30,46 @@ export function billFromBase64(f: unknown): Bill | null {
   if (typeof data !== 'string' || typeof mime !== 'string') return null;
   return billFrom(name, mime, Buffer.from(data, 'base64'));
 }
+
+/* Serving a stored file back (both /attachment routes). */
+
+/** Strictly a UUID: the loose "36 hex-or-dash characters" let a string of dashes through to the database. */
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+export const isUuid = (s: unknown): s is string => typeof s === 'string' && UUID.test(s);
+
+const EXT: Record<string, string> = {
+  'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'application/pdf': 'pdf',
+};
+
+/** What a stored name is called when it is served. The extension always comes
+ *  from the stored mime, never from the name, so "a.html" kept as a PNG is
+ *  served as a.png. `ascii` is printable ASCII only; `full` keeps the other
+ *  scripts for the RFC 5987 form. Quotes, slashes, semicolons and control
+ *  characters (a CR/LF would split the header) never survive. */
+export function safeName(name: unknown, mime: unknown): { ascii: string; full: string } {
+  const ext = EXT[String(mime)] ?? 'bin';
+  const clean = (re: RegExp) => String(name ?? '')
+    .replace(/[\u0000-\u001f\u007f\u2028\u2029"\\/;]/g, ' ')
+    .replace(/\.[A-Za-z0-9]{1,5}$/, '')
+    .replace(re, '_').replace(/\s+/g, ' ').trim().slice(0, 100);
+  const stem = (s: string) => (s.replace(/[_\s]/g, '') ? s : mime === 'application/pdf' ? 'document' : 'photo');
+  return { ascii: `${stem(clean(/[^\x20-\x7e]/g))}.${ext}`, full: `${stem(clean(/(?!)/g))}.${ext}` };
+}
+
+/** Content-Disposition: inline, ASCII fallback plus filename* for the real name. */
+export function dispositionFor(name: unknown, mime: unknown): string {
+  const { ascii, full } = safeName(name, mime);
+  let star: string;
+  try {
+    star = encodeURIComponent(full).replace(/['()*]/g, (c) => '%' + c.charCodeAt(0).toString(16).toUpperCase());
+  } catch { star = encodeURIComponent(ascii); } // a lone surrogate cannot be encoded
+  return `inline; filename="${ascii}"; filename*=UTF-8''${star}`;
+}
+
+/** Everything but the bytes' own headers: stored files are shown on their
+ *  own, never as a page that could run anything. */
+export const SERVE_HEADERS = {
+  'Cache-Control': 'private, no-store',
+  'X-Content-Type-Options': 'nosniff',
+  'Content-Security-Policy': "default-src 'none'; sandbox",
+} as const;

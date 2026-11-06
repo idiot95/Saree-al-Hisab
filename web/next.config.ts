@@ -31,6 +31,10 @@ const nextConfig: NextConfig = {
        that calls revalidatePath, which empties this cache, so a figure you
        just changed is never served stale. */
     staleTimes: { dynamic: 30 },
+    /* Five photos of 2 MB each on a holding, plus the other fields. The default
+       is 1 MB, which refused a single large bill. Only signed-in members reach
+       an action, and each one validates what it reads. */
+    serverActions: { bodySizeLimit: '11mb' },
   },
   async headers() {
     return [{ source: '/:path*', headers: SECURITY_HEADERS }];

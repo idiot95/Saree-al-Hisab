@@ -71,7 +71,9 @@ export default async function proxy(req: NextRequest) {
   }
 
   const res = NextResponse.next({ request: { headers } });
-  res.headers.set('Content-Security-Policy', policy(nonce, dev));
+  /* A stored file sets its own, stricter policy (default-src 'none'; sandbox):
+     it is shown on its own, never as a page, so it needs no nonce. */
+  if (!pathname.startsWith('/attachment/')) res.headers.set('Content-Security-Policy', policy(nonce, dev));
   /* A sign-in that Auth.js gave up on — cancelled at Google, or refused
      before our callback ran — never reaches the code that spends the link and
      invite cookies, so they would outlive the attempt they were set for. It
