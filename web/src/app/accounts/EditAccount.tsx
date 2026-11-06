@@ -11,7 +11,7 @@ import CardIdentityFields from './CardIdentityFields';
 import { bankFromName } from '@/lib/card-brand';
 import { startPending } from '../pending';
 import { OwnerSelect, keepFields } from '../worth/fields';
-import { Info, Refusal, ghost, solid } from '../form-bits';
+import { Info, ghost, solid } from '../form-bits';
 
 /* Tap the row and it becomes its own form; save and it becomes a row again.
    The same move as a category, because a person who has learnt one should
@@ -144,7 +144,7 @@ export function AccountForm({ account: a, last = true, onDone }: {
           <Icon name="archive" size={18} />
           {retiring ? 'Archiving…' : sure ? `Yes, archive ${a.name}` : 'Archive this account'}
         </button>
-        {retireState && !retireState.ok && <Refusal>{retireState.error}</Refusal>}
+        {retireState && !retireState.ok && <ErrorNote>{retireState.error}</ErrorNote>}
         <span className="text-xs leading-snug text-muted-foreground">
           {a.methods > 0
             ? `${a.methods === 1 ? 'One way to pay is' : `${a.methods} ways to pay are`} linked to this — archive ${a.methods === 1 ? 'it' : 'them'} first.`

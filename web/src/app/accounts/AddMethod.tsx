@@ -4,6 +4,7 @@ import { useActionState, useState } from 'react';
 import { Icon, RAIL_ICON } from '../Icon';
 import { Field, ErrorNote } from '../auth-ui';
 import { addMethod } from './actions';
+import { useKeepOnRefusal } from '../worth/fields';
 import { AddRow, fieldLabel, formCard, ghost, selectCls, solid } from '../form-bits';
 
 type Acc = { id: string; name: string; kind: string };
@@ -23,6 +24,9 @@ const RAILS = [
 
 export default function AddMethod({ accounts, startOpen = false }: { accounts: Acc[]; startOpen?: boolean }) {
   const [state, act, pending] = useActionState(addMethod, null);
+  // Page-level and no-JS capable (it opens itself when a way to pay is wanted), so it posts directly; a refusal's
+  // reset is undone so "Takes money from" and the type stay as chosen.
+  const keep = useKeepOnRefusal(state);
   const [open, setOpen] = useState(startOpen);
   const [accountId, setAccountId] = useState(accounts[0]?.id ?? '');
 
@@ -34,7 +38,7 @@ export default function AddMethod({ accounts, startOpen = false }: { accounts: A
   }
 
   return (
-    <form action={act} aria-label="Add a way to pay" className={formCard}>
+    <form action={act} {...keep} aria-label="Add a way to pay" className={formCard}>
       <label className="flex flex-col gap-1.5">
         <span className={fieldLabel}>Takes money from</span>
         <select name="funding_account_id" value={accountId}

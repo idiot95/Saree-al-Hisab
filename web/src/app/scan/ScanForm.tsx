@@ -4,10 +4,10 @@ import Link from '@/app/NavLink';
 import { useActionState, useState } from 'react';
 import { ErrorNote, primaryBtn } from '../auth-ui';
 import { Icon } from '../Icon';
+import { formCard } from '../form-bits';
 import { scan } from './actions';
 import { useMoney } from '@/app/currency';
 
-const card = 'flex flex-col gap-3.5 rounded-[18px] bg-card p-[var(--pad)]';
 
 export default function ScanForm({ canScan }: { canScan: boolean }) {
   const [state, act, pending] = useActionState(scan, null);
@@ -15,7 +15,7 @@ export default function ScanForm({ canScan }: { canScan: boolean }) {
 
   if (!canScan) {
     return (
-      <div className={card}>
+      <div className={formCard}>
         <p className="flex items-start gap-2 text-sm leading-normal text-muted-foreground">
           <Icon name="key" size={18} className="mt-px flex-none" />
           <span>
@@ -30,7 +30,7 @@ export default function ScanForm({ canScan }: { canScan: boolean }) {
 
   return (
     <>
-      <form action={act} aria-label="Scan a receipt" className={card}>
+      <form action={act} aria-label="Scan a receipt" className={formCard}>
         <label className="flex min-h-[130px] cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-[1.5px] border-dashed border-input bg-background p-4 text-center">
           <input
             type="file" name="receipt" accept="image/png,image/jpeg,image/webp,application/pdf"
@@ -86,7 +86,7 @@ function Draft({ result }: {
   const conf = CONFIDENCE[s.confidence as keyof typeof CONFIDENCE] ?? CONFIDENCE.low;
 
   return (
-    <section aria-label="What it read" className={card}>
+    <section aria-label="What it read" className={formCard}>
       <div className="flex flex-wrap items-center gap-2">
         <span className={`flex items-center gap-1 rounded-md px-2 py-1 text-xs font-bold ${conf.cls}`}>
           <Icon name={conf.icon} size={14} />{s.confidence.charAt(0).toUpperCase() + s.confidence.slice(1)} confidence

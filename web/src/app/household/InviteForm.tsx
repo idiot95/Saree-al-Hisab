@@ -6,6 +6,7 @@ import { haptic } from '../haptics';
 import { Icon } from '../Icon';
 import { ErrorNote, Field } from '../auth-ui';
 import { solid } from './rows';
+import { useKeepOnRefusal } from '../worth/fields';
 
 /* Say plainly what this link is. Accepted with Google it is bound to the
    address it was sent to; but until the password window closes it can also be
@@ -17,6 +18,8 @@ export default function InviteForm({ origin, household, inviter, passwordOpen }:
   origin: string; household: string; inviter: string; passwordOpen: boolean;
 }) {
   const [state, act, pending] = useActionState(createInvite, null);
+  // Posts directly (works without script); a refusal's form reset is undone so the role stays as chosen.
+  const keep = useKeepOnRefusal(state);
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<'adult' | 'viewer'>('adult');
   const token = state?.ok ? state.message : undefined;
@@ -24,7 +27,7 @@ export default function InviteForm({ origin, household, inviter, passwordOpen }:
 
   return (
     <div className="flex flex-col gap-4 rounded-[18px] bg-card p-[var(--pad)]">
-      <form action={act} className="flex flex-col gap-3">
+      <form action={act} {...keep} className="flex flex-col gap-3">
         <Field label="Email address" name="email" type="email" inputMode="email" autoComplete="off"
           placeholder="name@example.com" required
           value={email} onChange={(e) => setEmail(e.target.value)} />

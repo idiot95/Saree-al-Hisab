@@ -2,10 +2,12 @@
 
 import { useActionState, useEffect, useRef, useState } from 'react';
 import { moveDue } from './actions';
+import { keepFields } from '../worth/fields';
 import { describeRule, friendlyDate, friendlyDay, inWords, rewriteRuleTo, shiftDay, type Calendar } from '@/lib/recur';
 import { DateChips } from '../DatePick';
 import { formatHijri, toHijri } from '@/lib/hijri';
-import { Refusal, fieldLabel, ghost, solid } from '../form-bits';
+import { fieldLabel, ghost, solid } from '../form-bits';
+import { ErrorNote } from '../auth-ui';
 
 /* "Not the 5th this month — the 10th." One date, one question underneath it:
    is that the day from now on? The answer to the question is shown before it
@@ -37,7 +39,8 @@ export default function MoveDue({ scheduleId, name, dueOn, on, rule, cal, today,
   const yearly = /FREQ=YEARLY/.test(rule);
 
   return (
-    <form action={act} aria-label={`Move ${name}`} className="flex flex-col gap-2.5 pb-1">
+    /* JS-only: the move opens from a swipe, so it submits through keepFields and React never resets the box. */
+    <form onSubmit={keepFields(act)} aria-label={`Move ${name}`} className="flex flex-col gap-2.5 pb-1">
       <input type="hidden" name="scheduleId" value={scheduleId} />
       <input type="hidden" name="dueOn" value={dueOn} />
       <div className="flex flex-col gap-2">
@@ -71,7 +74,7 @@ export default function MoveDue({ scheduleId, name, dueOn, on, rule, cal, today,
         </span>
       </label>
 
-      {state && !state.ok && <Refusal>{state.error}</Refusal>}
+      {state && !state.ok && <ErrorNote>{state.error}</ErrorNote>}
       <div className="flex gap-2">
         <button type="button" onClick={onCancel} className={ghost}>Cancel</button>
         <button type="submit" disabled={pending || !valid} className={solid}>

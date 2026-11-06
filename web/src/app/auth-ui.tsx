@@ -7,6 +7,7 @@ import { buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { Icon } from './Icon';
+import { fieldLabel } from './form-bits';
 
 /* The two buttons every one of these screens is built from: the filled one (plum, the one way forward) and the
    quiet one (a card-coloured outline, for the way round). Class strings, so a <Link>, an <a> and a <button> can
@@ -62,7 +63,7 @@ export function Field({ label, name, type = 'text', hint, className, ...rest }: 
 } & React.InputHTMLAttributes<HTMLInputElement>) {
   return (
     <label className="flex flex-col gap-1.5">
-      <span className="text-sm font-medium text-muted-foreground">{label}</span>
+      <span className={fieldLabel}>{label}</span>
       <Input name={name} type={type} {...rest}
         className={cn('h-12 rounded-xl bg-card px-3.5 text-[length:var(--field)] shadow-none md:text-[length:var(--field)] dark:bg-card', className)} />
       {hint && <span className="text-xs leading-snug text-muted-foreground">{hint}</span>}
@@ -78,7 +79,7 @@ export function CurrencyField({ defaultValue = 'INR', hint, ...rest }: {
 } & React.SelectHTMLAttributes<HTMLSelectElement>) {
   return (
     <label className="flex flex-col gap-1.5">
-      <span className="text-sm font-medium text-muted-foreground">Currency</span>
+      <span className={fieldLabel}>Currency</span>
       <select name="currency" defaultValue={defaultValue} {...rest}
         className="h-12 w-full appearance-auto rounded-xl border border-input bg-card px-3 text-[length:var(--field)] text-foreground">
         {CURRENCIES.map((c) => (

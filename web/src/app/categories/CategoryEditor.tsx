@@ -3,7 +3,7 @@
 import { useActionState, useCallback, useRef, useState, useTransition } from 'react';
 import { Icon, Chip, tintOf } from '../Icon';
 import { ErrorNote, Field } from '../auth-ui';
-import { Refusal, fieldLabel, formCard, ghost, selectCls, solid, AddRow as AddButton } from '../form-bits';
+import { fieldLabel, formCard, ghost, selectCls, solid, AddRow as AddButton } from '../form-bits';
 import SwipeRow from '../SwipeRow';
 import Snack, { type SnackState } from '../Snack';
 import { haptic } from '../haptics';
@@ -14,6 +14,7 @@ import { ICONS, TINTS } from './options';
 import { Segmented } from '../DatePick';
 import { SCOPE_LABEL, type Scope } from '@/lib/scope';
 import Suggested from './Suggested';
+import { keepFields } from '../worth/fields';
 
 type Cat = {
   id: string; name: string; icon: string; tint: string; scope: Scope; parent_id: string | null;
@@ -432,7 +433,8 @@ function EditRow({ cat, first, last, parents, onDone }: {
 
   return (
     <div className="flex flex-col gap-3.5 border-b border-border py-4 last:border-b-0">
-      <form action={act} aria-label={`Edit ${cat.name}`} className="flex flex-col gap-3.5">
+      {/* JS-only (opened by a tap): keepFields, so a refusal never resets Under or the scope back. */}
+      <form onSubmit={keepFields(act)} aria-label={`Edit ${cat.name}`} className="flex flex-col gap-3.5">
         <input type="hidden" name="id" value={cat.id} />
         <NameField defaultValue={cat.name} />
         <UnderField parents={parents} value={parentId} onChange={setParentId} locked={cat.children > 0} />
@@ -467,7 +469,7 @@ function EditRow({ cat, first, last, parents, onDone }: {
           className="press flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold text-destructive disabled:opacity-60">
           <Icon name="archive" size={18} />{retiring ? 'Retiring…' : 'Retire this category'}
         </button>
-        {retireState && !retireState.ok && <Refusal>{retireState.error}</Refusal>}
+        {retireState && !retireState.ok && <ErrorNote>{retireState.error}</ErrorNote>}
         <span className="text-xs leading-snug text-muted-foreground">
           It stops being offered for new entries{cat.children > 0 && ', and so do the ones under it'}.
           Nothing already filed under it moves, and no month changes value.
@@ -488,7 +490,8 @@ function AddRow({ parents, takes, onDone }: {
   const parent = parents.find((p) => p.id === parentId) ?? null;
 
   return (
-    <form action={act} aria-label="Add a category" className={formCard}>
+    /* JS-only (opened by a tap): keepFields, so a refusal never resets Under or the scope back. */
+    <form onSubmit={keepFields(act)} aria-label="Add a category" className={formCard}>
       <NameField />
       <UnderField parents={parents.filter((p) => takes(p, scope))} value={parentId} onChange={setParentId} />
       {/* Changing the kind can strand a parent that no longer takes it, so the

@@ -3,12 +3,12 @@
 import Link from '@/app/NavLink';
 import { useActionState, useState } from 'react';
 import { ErrorNote, primaryBtn, quietBtn } from '../../../auth-ui';
-import { Refusal } from '../../../form-bits';
 import { Icon } from '../../../Icon';
 import { haptic } from '../../../haptics';
 import { DateChips } from '../../../DatePick';
 import { useMoney } from '@/app/currency';
 import { finishReconcile, undoReconcile } from '../../reconcile/actions';
+import { useKeepOnRefusal } from '../../../worth/fields';
 
 type Entry = { id: string; on: string; what: string; via: string | null; signed: number };
 
@@ -31,6 +31,8 @@ export default function Reconcile({ accountId, credit, today, lastOn, cleared, e
   const [keys, setKeys] = useState('');
   const [unticked, setUnticked] = useState<Set<string>>(() => new Set());
   const [state, act, pending] = useActionState(finishReconcile, null);
+  // A page-level form: it posts directly, and a refusal's reset (which would re-tick unticked rows on screen) is undone.
+  const keep = useKeepOnRefusal(state);
 
   const upTo = entries.filter((e) => e.on <= on);
   const later = entries.length - upTo.length;
@@ -51,7 +53,7 @@ export default function Reconcile({ accountId, credit, today, lastOn, cleared, e
   });
 
   return (
-    <form action={act} aria-label="Match to a statement" className="flex flex-col gap-5">
+    <form action={act} {...keep} aria-label="Match to a statement" className="flex flex-col gap-5">
       <input type="hidden" name="accountId" value={accountId} />
       <input type="hidden" name="on" value={on} />
       <input type="hidden" name="balance" value={String(statement)} />
@@ -180,7 +182,7 @@ export function UndoLatest({ id }: { id: string }) {
         className={`press flex min-h-11 items-center gap-1 rounded-xl px-3 text-sm font-semibold disabled:opacity-60 ${sure ? 'bg-destructive/10 text-destructive' : 'text-muted-foreground'}`}>
         <Icon name="restore" size={18} />{pending ? 'Undoing…' : sure ? 'Yes, undo' : 'Undo'}
       </button>
-      {state && !state.ok && <Refusal>{state.error}</Refusal>}
+      {state && !state.ok && <ErrorNote>{state.error}</ErrorNote>}
     </form>
   );
 }

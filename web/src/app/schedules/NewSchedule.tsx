@@ -6,6 +6,7 @@ import { buildRule, describeRule, friendlyDay, maxDay, nextDates, type Calendar 
 import { HIJRI_MONTHS_SHORT, formatHijri, toHijri } from '@/lib/hijri';
 import { DateChips, DayOfMonth, MonthOfYear, Segmented } from '../DatePick';
 import { createSchedule } from './actions';
+import { useKeepOnRefusal } from '../worth/fields';
 import PayPicker, { CHIP, CHIP_TEXT } from '../PayPicker';
 import CategoryPick from '../CategoryPick';
 import type { Category } from '../CategoryFinder';
@@ -34,6 +35,9 @@ export default function NewSchedule({ ways, categories, tabs, startOpen = false 
   ways: Way[]; categories: Category[]; tabs: { id: string; name: string }[]; startOpen?: boolean;
 }) {
   const [state, act, pending] = useActionState(createSchedule, null);
+  /* It can open itself (?new=1, a plain link), so it posts directly and works without script; with script, a
+     refusal's form reset is undone so Income, Once a year, Hijri and the rest stay as chosen for the resubmit. */
+  const keep = useKeepOnRefusal(state);
   const [open, setOpen] = useState(startOpen);
   const [freq, setFreq] = useState<'MONTHLY' | 'YEARLY'>('MONTHLY');
   const [kind, setKind] = useState<'expense' | 'income'>('expense');
@@ -80,7 +84,7 @@ export default function NewSchedule({ ways, categories, tabs, startOpen = false 
   }
 
   return (
-    <form action={act} aria-label="Add a regular payment" className={`mx-[var(--gutter)] ${formCard}`}>
+    <form action={act} {...keep} aria-label="Add a regular payment" className={`mx-[var(--gutter)] ${formCard}`}>
       <div role="radiogroup" aria-label="Expense or income" className="flex gap-0.5 rounded-full bg-muted p-[3px]">
         {([['expense', 'Expense'], ['income', 'Income']] as const).map(([id, label]) => {
           const on = kind === id;
@@ -250,7 +254,7 @@ export default function NewSchedule({ ways, categories, tabs, startOpen = false 
 }
 
 const row = 'flex min-h-11 items-center gap-2.5';
-const rowLabel = `w-[74px] flex-none ${'text-sm font-medium text-muted-foreground'}`;
+const rowLabel = `w-[74px] flex-none ${fieldLabel}`;
 const stepBtn = 'press grid size-11 flex-none place-items-center rounded-full bg-muted text-foreground';
 
 const civil = (iso: string) => { const [y, m, d] = iso.split('-').map(Number); return { y, m, d }; };

@@ -5,6 +5,7 @@ import { Chip, Icon, ACCOUNT_ICON, ACCOUNT_TINT } from '../Icon';
 import { AddRow, Info, fieldLabel, formCard, ghost, solid } from '../form-bits';
 import { Field, ErrorNote } from '../auth-ui';
 import { addAccount } from './actions';
+import { useKeepOnRefusal } from '../worth/fields';
 import CardIdentityFields from './CardIdentityFields';
 
 const KINDS = [
@@ -16,6 +17,8 @@ const KINDS = [
 
 export default function AddAccount({ startOpen = false }: { startOpen?: boolean }) {
   const [state, act, pending] = useActionState(addAccount, null);
+  // Page-level and no-JS capable (it opens itself on an empty screen), so it posts directly; a refusal's reset is undone.
+  const keep = useKeepOnRefusal(state);
   const [open, setOpen] = useState(startOpen);
   const [kind, setKind] = useState<string>('spending');
 
@@ -31,7 +34,7 @@ export default function AddAccount({ startOpen = false }: { startOpen?: boolean 
   }
 
   return (
-    <form action={act} aria-label="Add an account" className={formCard}>
+    <form action={act} {...keep} aria-label="Add an account" className={formCard}>
       <fieldset className="flex flex-col gap-2">
         <legend className={`mb-2 ${fieldLabel}`}>Type</legend>
         {KINDS.map((k) => (

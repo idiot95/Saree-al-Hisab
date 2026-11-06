@@ -7,12 +7,15 @@
    Reads OWNER_DATABASE_URL from .env.local. --state is a signed-in Playwright storage state for an owner or
    contributing member (default .sweep-state.json).
 
-   1. /accounts: open a bank account's row (the bank account with the most entries), raise its starting balance
-      by ₹1, and its balance Figure on the row rolls to ₹1 more; put it back and the Figure returns.
+   1. /accounts: open a bank account's row (the bank account in credit with the most entries), raise its starting
+      balance by ₹1, and its balance Figure on the row rolls to ₹1 more; put it back and the Figure returns.
    2. Reconcile that account: type a statement ₹1 above the books, record the ₹1 as an adjustment and finish;
       the "in the books today" Figure says ₹1 more. Undo (two taps) and it is back where it was.
-   3. /schedules (a redirect to Upcoming): add a throwaway regular payment and see it listed, then Stop it from
-      its swipe grip and see it gone.
+   2b. Add a credit card, refused once (statement day 31): Credit card, the name, the bank and the network are
+      still chosen; corrected and sent again, the row in the database is a credit card on that bank and network.
+   3. /schedules (a redirect to Upcoming): a throwaway regular payment, Once a year on the Hijri calendar, refused
+      once for want of an amount (both choices still ticked after); with one it is saved as a yearly Hijri
+      rule and listed, then Stopped from its swipe grip and gone.
    4. /categories: rename the top-level spending category with the most entries and see the row follow; rename it
       back.
    Everything the run made is removed, and every name and balance it touched is put back, even on a failure. */
@@ -60,25 +63,28 @@ async function changed(scope, was) {
 /** The rupees as the form shows them: whole when there are no paise. */
 const keys = (minor) => (minor % 100 === 0 ? String(minor / 100) : (minor / 100).toFixed(2));
 
+/** A name as a regex that matches it whole, whatever characters it holds. */
+const exactly = (name) => new RegExp(`^${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`);
 const TAG = Date.now().toString(36);
 const SCHEDULE = `Accounts taps ${TAG}`;
+const CARD = `Taps card ${TAG}`;
 let hh = null;
 let acc = null;          // { id, name, opening }
-let reconBefore = [];    // reconciliation ids on the account before the run
-let adjustBefore = [];   // adjustment entries on the account before the run
+let madeRecon = null;    // the reconciliation this run made, and its adjustment entry, for the cleanup
+let madeAdjust = null;
 let cat = null;          // { id, name }
 
 try {
   [{ hh }] = await sql`select active_household_id as hh from app_user where lower(email) = lower(${EMAIL})`;
-  /* A bank account picked by what it holds, not by its name: the live spending account with the most entries. */
+  /* A bank account picked by what it holds, not by its name: the live spending account in credit (so "₹1 above the
+     books" is ₹1 more on the statement) with the most entries. */
   [acc] = await sql`select a.id, a.name, a.opening_balance::text as opening
-    from account a left join txn t on (t.account_id = a.id or t.counter_account_id = a.id) and t.deleted_at is null
-    where a.household_id = ${hh} and a.kind = 'spending' and a.archived_at is null
+    from account a join account_balance b on b.id = a.id
+    left join txn t on (t.account_id = a.id or t.counter_account_id = a.id) and t.deleted_at is null
+    where a.household_id = ${hh} and a.kind = 'spending' and a.archived_at is null and b.balance >= 0
     group by a.id order by count(t.id) desc, a.id limit 1`;
   assert.ok(acc, 'a bank account to work on');
   const balanceOf = async () => Number((await sql`select balance::text as b from account_balance where id = ${acc.id}`)[0].b);
-  reconBefore = (await sql`select id from reconciliation where account_id = ${acc.id}`).map((r) => r.id);
-  adjustBefore = (await sql`select id from txn where account_id = ${acc.id} and kind in ('adjust_in', 'adjust_out')`).map((r) => r.id);
 
   /* ── 1. edit the starting balance on /accounts ────────────────────── */
   await page.goto(`${BASE}/accounts`);
@@ -106,7 +112,10 @@ try {
 
   /* ── 2. reconcile with a ₹1 adjustment, then undo ─────────────────── */
   await page.goto(`${BASE}/accounts/reconcile`);
-  await page.getByRole('link', { name: new RegExp(`^${acc.name}`) }).click();
+  /* The row's name is the account's, then its last four, its status and its balance: anchored at the start, and
+     followed only by " · " or a space, so "HDFC Savings" never also matches "HDFC Savings 2". */
+  const esc = exactly(acc.name).source.slice(1, -1);
+  await page.getByRole('link', { name: new RegExp(`^${esc}( · \\d{4})? (Matched|Never matched)`) }).click();
   await page.waitForURL(new RegExp(`/accounts/${acc.id}/reconcile`));
   const books = page.getByRole('region', { name: 'In the books today' });
   const before = await figureIn(books).getAttribute('aria-label');
@@ -114,6 +123,8 @@ try {
   await page.getByText('Difference', { exact: true }).waitFor();
   await page.getByRole('button', { name: /^Record \+₹1(\.00)? as an adjustment$/ }).click();
   await page.waitForURL(/[?&]done=/, { timeout: 20000 });
+  madeRecon = new URL(page.url()).searchParams.get('done');
+  [{ adjustment_txn_id: madeAdjust }] = await sql`select adjustment_txn_id from reconciliation where id = ${madeRecon}`;
   await page.getByRole('status').filter({ hasText: 'adjustment recorded' }).waitFor();
   const after = await changed(books, before);
   assert.equal(rupeesOf(after), rupeesOf(before) + 1);
@@ -126,13 +137,42 @@ try {
   assert.equal(await balanceOf(), start);
   ok(`Undo takes the match and its adjustment away: ${before} again`);
 
+  /* ── 2b. a card added after a refusal is still a card ─────────────── */
+  /* React resets a <form action> once it settles, refusals included, which used to put the kind back to Bank
+     account (and the bank and network back to nothing) while the screen still showed Credit card. */
+  await page.goto(`${BASE}/accounts`);
+  await page.getByRole('button', { name: 'Add an account' }).click();
+  const add = page.getByRole('form', { name: 'Add an account' });
+  await add.getByText('Credit card', { exact: true }).click();
+  await add.getByLabel('Name').fill(CARD);
+  await add.getByLabel('Last four digits').fill('4321');
+  await add.getByText('HDFC Bank', { exact: true }).click();
+  await add.getByText('Visa', { exact: true }).click();
+  await add.getByLabel('Statement day').fill('31');
+  await add.getByLabel('Bill due day').fill('12');
+  await add.getByRole('button', { name: 'Add account' }).click();
+  await add.getByRole('alert').waitFor({ timeout: 20000 });
+  await page.waitForTimeout(300);
+  assert.equal(await add.getByRole('radio', { name: /Credit card/ }).isChecked(), true, 'after a refusal Credit card is still ticked');
+  assert.equal(await add.getByLabel('Name').inputValue(), CARD, 'after a refusal the name is kept');
+  ok(`a card refused for its statement day keeps Credit card, the name, the bank and the network: "${(await add.getByRole('alert').locator('span.min-w-0').innerText()).trim()}"`);
+  await add.getByLabel('Statement day').fill('5');
+  await add.getByRole('button', { name: 'Add account' }).click();
+  let card = [];
+  for (let i = 0; i < 100 && !card.length; i++) {
+    card = await sql`select kind, bank_key, card_network, statement_day from account where household_id = ${hh} and name = ${CARD}`;
+    if (!card.length) await page.waitForTimeout(200);
+  }
+  assert.deepEqual({ ...card[0] }, { kind: 'credit', bank_key: 'hdfc', card_network: 'visa', statement_day: 5 });
+  ok('corrected and sent again, it is saved as a credit card on HDFC and Visa, statement day 5');
+
   /* ── 3. a throwaway regular payment ───────────────────────────────── */
   await page.goto(`${BASE}/schedules`);
   await page.waitForURL((u) => u.pathname === '/entries' && u.searchParams.get('f') === 'upcoming');
   await page.getByRole('button', { name: 'Add a payment or income that comes round' }).click();
   const form = page.getByRole('form', { name: 'Add a regular payment' });
   await form.getByLabel('What is it').fill(SCHEDULE);
-  await form.getByLabel('Amount').fill('123');
+  await form.getByLabel('Amount').fill('0');
   /* A spending category picked by what it is: top-level, live, for spending, the one with the most entries. */
   const [spend] = await sql`select c.name from category c left join txn t on t.category_id = c.id and t.deleted_at is null
     where c.household_id = ${hh} and c.parent_id is null and c.archived_at is null and c.scope in ('expense', 'both')
@@ -140,11 +180,28 @@ try {
   await form.getByRole('button', { name: /Choose a category/ }).click();
   const finder = page.getByRole('dialog');
   await finder.getByLabel('Find a category').fill(spend.name);
-  await finder.getByRole('button', { name: new RegExp(`^${spend.name}`) }).first().click();
+  await finder.getByRole('button', { name: new RegExp(`^${exactly(spend.name).source.slice(1, -1)}( |$)`) }).first().click();
+  /* Once a year on the Hijri calendar, sent with no amount: refused. The reset that follows used to put both
+     back to Every month and English while the switches still showed the choice, so the corrected Add made a
+     monthly Gregorian rule. (Refused on the amount, not the category: an empty category is a server error today,
+     not a refusal; see the Task 27b report.) */
+  await form.getByText('Once a year', { exact: true }).click();
+  await form.getByText('Hijri', { exact: true }).click();
+  await form.getByRole('button', { name: 'Add it' }).click();
+  await form.getByRole('alert').filter({ hasText: 'Enter an amount.' }).waitFor({ timeout: 20000 });
+  await page.waitForTimeout(300);
+  assert.equal(await form.getByRole('radio', { name: 'Once a year' }).isChecked(), true, 'Once a year is still ticked');
+  assert.equal(await form.getByRole('radio', { name: 'Hijri' }).isChecked(), true, 'Hijri is still ticked');
+  assert.equal(await form.getByLabel('What is it').inputValue(), SCHEDULE, 'the name is kept');
+  ok('refused for want of an amount, the form keeps the name, Once a year and Hijri');
+  await form.getByLabel('Amount').fill('123');
   await form.getByRole('button', { name: 'Add it' }).click();
   const list = page.getByRole('region', { name: 'Every regular payment' });
   await list.getByText(SCHEDULE, { exact: true }).waitFor({ timeout: 20000 });
-  ok(`"${SCHEDULE}" added under ${spend.name} and listed under Every regular payment`);
+  const [rule] = await sql`select rrule, hijri_rule from schedule where household_id = ${hh} and name = ${SCHEDULE}`;
+  assert.equal(rule.rrule, null, 'no Gregorian rule');
+  assert.match(rule.hijri_rule ?? '', /^FREQ=YEARLY;/, 'a yearly Hijri rule');
+  ok(`"${SCHEDULE}" added under ${spend.name} as ${rule.hijri_rule} on the Hijri calendar, and listed`);
   // The row's own swipe: the parent of the layer that holds its grip (the actions sit beside that layer).
   const swipe = list.getByText(SCHEDULE, { exact: true }).locator('xpath=ancestor::*[button[@aria-expanded]][1]/..');
   /* Let the page settle after the form closes (a scroll shuts an open row), then open it from the grip. */
@@ -192,16 +249,19 @@ try {
       await tx`delete from schedule where household_id = ${hh} and name = ${SCHEDULE}`;
       if (acc) {
         await tx`update account set opening_balance = ${acc.opening} where id = ${acc.id} and opening_balance <> ${acc.opening}`;
-        /* A match this run made and did not undo: clear its ticks, then the row. Then the adjustment entries the
-           run made (Undo only soft-deletes them), so nothing of the run is left in the ledger. */
-        const extra = (await tx`select id from reconciliation where account_id = ${acc.id}`).map((r) => r.id).filter((id) => !reconBefore.includes(id));
-        for (const id of extra) {
-          await tx`update txn set reconciled_id = null where reconciled_id = ${id}`;
-          await tx`update txn set counter_reconciled_id = null where counter_reconciled_id = ${id}`;
-          await tx`delete from reconciliation where id = ${id}`;
+        /* The match this run made, if a failure left it standing, and its adjustment entry: only those two rows
+           (Undo soft-deletes the entry; nothing else on the account is touched). */
+        if (madeRecon) {
+          await tx`update txn set reconciled_id = null where reconciled_id = ${madeRecon}`;
+          await tx`update txn set counter_reconciled_id = null where counter_reconciled_id = ${madeRecon}`;
+          await tx`delete from reconciliation where id = ${madeRecon}`;
         }
-        const made = (await tx`select id from txn where account_id = ${acc.id} and kind in ('adjust_in', 'adjust_out')`).map((r) => r.id).filter((id) => !adjustBefore.includes(id));
-        if (made.length) await tx`delete from txn where id = any(${made}::uuid[])`;
+        if (madeAdjust) await tx`delete from txn where id = ${madeAdjust} and kind in ('adjust_in', 'adjust_out')`;
+      }
+      const cards = await tx`select id from account where household_id = ${hh} and name = ${CARD}`;
+      for (const c of cards) {
+        await tx`delete from payment_method where funding_account_id = ${c.id}`;
+        await tx`delete from account where id = ${c.id}`;
       }
       if (cat) await tx`update category set name = ${cat.name} where id = ${cat.id} and name <> ${cat.name}`;
     });

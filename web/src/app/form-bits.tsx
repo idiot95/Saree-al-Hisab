@@ -1,12 +1,17 @@
 import { Icon } from './Icon';
-export { solid, ghost, danger } from './household/rows';
 
 /* The furniture the in-place forms share (an account, a way to pay, a category, a regular payment, a statement):
    the same label, select, note and add-row as auth-ui's Field, so every form in the app reads as one family.
    No hooks, so a server page and a client form can both use them. */
 
-/** A field's or a fieldset's label: the one auth-ui's Field draws. */
+/** A field's or a fieldset's label: the one auth-ui's Field and the holdings Field draw too. */
 export const fieldLabel = 'text-sm font-medium text-muted-foreground';
+
+/** Buttons inside a form or an opened row: the filled one, the quiet one and the destructive one, 48px like the
+ *  rest of the app's forms. Household's rows use them too. */
+export const solid = 'press flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-4 text-base font-semibold text-primary-foreground disabled:opacity-60';
+export const ghost = 'press flex min-h-12 items-center justify-center gap-2 rounded-xl bg-muted px-4 text-base font-semibold text-muted-foreground disabled:opacity-60';
+export const danger = 'press flex min-h-12 items-center justify-center gap-2 rounded-xl bg-destructive/10 px-4 text-base font-semibold text-destructive disabled:opacity-60';
 
 /** A native select dressed as the shadcn Input: 48px, the field size, the card ground. */
 export const selectCls = 'h-12 w-full appearance-auto rounded-xl border border-input bg-card px-3 text-[length:var(--field)] text-foreground';
@@ -33,14 +38,5 @@ export function AddRow({ onClick, children, done }: { onClick: () => void; child
       <span className="min-w-0 flex-1">{children}</span>
       {done}
     </button>
-  );
-}
-
-/** A small refusal under a one-button form (Archive, Undo): the icon and the words. */
-export function Refusal({ children }: { children: React.ReactNode }) {
-  return (
-    <span role="alert" className="flex items-start gap-1.5 text-sm font-medium text-destructive">
-      <Icon name="error" size={18} className="mt-px" /><span className="min-w-0">{children}</span>
-    </span>
   );
 }

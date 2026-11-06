@@ -5,6 +5,7 @@ import { changeRole, issueReset, removeMember } from './actions';
 import { Icon } from '../Icon';
 import { ErrorNote } from '../auth-ui';
 import { Avatar } from './rows';
+import { keepFields } from '../worth/fields';
 
 type Role = 'owner' | 'adult' | 'viewer';
 const LABEL: Record<Role, string> = {
@@ -71,7 +72,8 @@ export default function MemberRow({ member, canManage, isSelf, origin }: {
 
       {canManage && !isSelf && confirming && (
         <div className="flex flex-col gap-3 rounded-2xl bg-background p-3">
-          <form action={saveRole} className="flex flex-col gap-2">
+          {/* JS-only (opened from the options button): keepFields, so a refusal never resets the role select. */}
+          <form onSubmit={keepFields(saveRole)} className="flex flex-col gap-2">
             <input type="hidden" name="userId" value={member.id} />
             <span className="text-sm font-medium text-muted-foreground">What {first} can do</span>
             <div className="flex gap-2">

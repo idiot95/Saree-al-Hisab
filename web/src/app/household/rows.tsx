@@ -50,10 +50,8 @@ export function Words({ title, sub }: { title: React.ReactNode; sub?: React.Reac
 
 export const Chevron = () => <Icon name="chevron_right" size={20} className="flex-none text-muted-foreground" />;
 
-/** Buttons inside an opened row: the filled one and the quiet one, 48px like the rest of the app's forms. */
-export const solid = 'press flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-4 text-base font-semibold text-primary-foreground disabled:opacity-60';
-export const ghost = 'press flex min-h-12 items-center justify-center gap-2 rounded-xl bg-muted px-4 text-base font-semibold text-muted-foreground disabled:opacity-60';
-export const danger = 'press flex min-h-12 items-center justify-center gap-2 rounded-xl bg-destructive/10 px-4 text-base font-semibold text-destructive disabled:opacity-60';
+/** Buttons inside an opened row: the app's form buttons (form-bits), 48px like the rest of its forms. */
+export { solid, ghost, danger } from '../form-bits';
 
 /** A confirmation line after a save: an icon and the words. */
 export function Done({ children }: { children: React.ReactNode }) {

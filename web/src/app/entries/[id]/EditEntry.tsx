@@ -12,6 +12,7 @@ import type { Category } from '@/app/CategoryFinder';
 import { accountRef, railRef, type Way } from '@/lib/pay';
 import { fits } from '@/lib/scope';
 import { DateChips } from '@/app/DatePick';
+import { useKeepOnRefusal } from '@/app/worth/fields';
 
 export default function EditEntry({ entry, categories, ways, canEdit, back = '/entries' }: {
   entry: {
@@ -28,6 +29,8 @@ export default function EditEntry({ entry, categories, ways, canEdit, back = '/e
 }) {
   const { symbol, toKeys, keysDisplay } = useMoney();
   const [state, act, pending] = useActionState(updateEntry, null);
+  // A page-level form: it posts directly, and a refusal's reset (which would undo the two ticks) is undone.
+  const keep = useKeepOnRefusal(state);
   const [del, remove, removing] = useActionState(deleteEntry, null);
   const [amount, setAmount] = useState(toKeys(Number(entry.amount)));
   const [categoryId, setCategoryId] = useState(entry.category_id ?? '');
@@ -45,7 +48,7 @@ export default function EditEntry({ entry, categories, ways, canEdit, back = '/e
 
   return (
     <>
-      <form action={act} className={`mx-[var(--gutter)] mb-4 ${formCard}`}>
+      <form action={act} {...keep} className={`mx-[var(--gutter)] mb-4 ${formCard}`}>
         <input type="hidden" name="id" value={entry.id} />
         <input type="hidden" name="back" value={back} />
 

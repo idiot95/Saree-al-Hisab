@@ -171,7 +171,7 @@ export default async function Accounts() {
                 {methods.map((m, i) => (
                   <div key={m.id} className={`flex min-h-[68px] items-start gap-3 py-3 ${i === methods.length - 1 ? '' : 'border-b border-border'}`}>
                     <Chip icon={RAIL_ICON[m.kind] ?? 'tag'} tint={RAIL_TINT[m.kind] ?? 'neutral'} size={38} radius={999} />
-                    <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                    <div className="flex min-w-0 flex-1 flex-col gap-0.5">
                       <span className="text-[15px] font-semibold leading-snug [overflow-wrap:anywhere]">{m.name}</span>
                       {/* Which balance it spends, in as few words as the row has space for. */}
                       <span className="text-[13px] leading-snug text-muted-foreground [overflow-wrap:anywhere]">
@@ -180,8 +180,8 @@ export default async function Accounts() {
                           : `From ${m.funds}`}
                         {m.handle && ` · ${m.handle}`}
                       </span>
-                      {canWrite && <span className="mt-0.5"><MethodControls id={m.id} isDefault={m.is_default} /></span>}
-                    </span>
+                      {canWrite && <div className="mt-0.5"><MethodControls id={m.id} isDefault={m.is_default} /></div>}
+                    </div>
                   </div>
                 ))}
                 {methods.length === 0 && <Empty>No apps or cards linked yet.</Empty>}

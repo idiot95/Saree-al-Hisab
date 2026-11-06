@@ -4,6 +4,7 @@ import { useActionState, useState } from 'react';
 import { Field, ErrorNote } from '../../auth-ui';
 import { addClaim, abandonClaim } from '../../people/actions';
 import { useMoney } from '@/app/currency';
+import { useKeepOnRefusal } from '../../worth/fields';
 
 type Person = { id: string; name: string };
 type Claim = {
@@ -26,6 +27,8 @@ export default function OwedFor({ txnId, entryAmount, people, claims, canEdit }:
 }) {
   const { format, toKeys } = useMoney();
   const [state, act, pending] = useActionState(addClaim, null);
+  // Posts directly; a refusal's form reset is undone so the person chosen and the amount typed stay.
+  const keep = useKeepOnRefusal(state);
   const [, drop] = useActionState(abandonClaim, null);
   const [open, setOpen] = useState(false);
 
@@ -73,7 +76,7 @@ export default function OwedFor({ txnId, entryAmount, people, claims, canEdit }:
       )}
 
       {canEdit && (open ? (
-        <form action={act} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <form action={act} {...keep} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <input type="hidden" name="txnId" value={txnId} />
           <p style={{ margin: 0, fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--muted-foreground)' }}>
             This does not change the entry. You paid for it, so it stays in the month&rsquo;s

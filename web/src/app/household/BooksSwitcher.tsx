@@ -6,6 +6,7 @@ import { CURRENCIES } from '@/lib/money';
 import { setCurrency, startAnotherHousehold, switchTo, renameHousehold } from './actions';
 import { Icon } from '../Icon';
 import { Card, Chevron, ghost, Glyph, row, solid, Words } from './rows';
+import { useKeepOnRefusal } from '../worth/fields';
 
 type Book = { id: string; name: string; role: 'owner' | 'adult' | 'viewer'; active: boolean; people: number };
 
@@ -23,6 +24,10 @@ export default function BooksSwitcher({ books, canRename, currency, currencyFixe
   const [newState, startAct, starting] = useActionState(startAnotherHousehold, null);
   const [renameState, renameAct, renaming] = useActionState(renameHousehold, null);
   const [ccyState, ccyAct, changingCcy] = useActionState(setCurrency, null);
+  // These post directly; a refusal's form reset is undone so the currency picked (and the name typed) stay.
+  const keepNew = useKeepOnRefusal(newState);
+  const keepName = useKeepOnRefusal(renameState);
+  const keepCcy = useKeepOnRefusal(ccyState);
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState(false);
   const [choosing, setChoosing] = useState(false);
@@ -55,7 +60,7 @@ export default function BooksSwitcher({ books, canRename, currency, currencyFixe
       ))}
 
       {canRename && (editing ? (
-        <form action={renameAct} className="flex flex-col gap-3 px-[var(--pad)] py-4">
+        <form action={renameAct} {...keepName} className="flex flex-col gap-3 px-[var(--pad)] py-4">
           <Field label="Household name" name="name"
             defaultValue={books.find((b) => b.active)?.name} required maxLength={60} autoFocus />
           {renameState && !renameState.ok && <ErrorNote>{renameState.error}</ErrorNote>}
@@ -79,7 +84,7 @@ export default function BooksSwitcher({ books, canRename, currency, currencyFixe
           are empty. Once fixed it is a row that says so rather than a
           control that fails. */}
       {canRename && !currencyFixed && choosing ? (
-        <form action={ccyAct} className="flex flex-col gap-3 px-[var(--pad)] py-4">
+        <form action={ccyAct} {...keepCcy} className="flex flex-col gap-3 px-[var(--pad)] py-4">
           <CurrencyField defaultValue={currency} autoFocus
             hint="Every entry is recorded in this. It is fixed the moment the books hold one." />
           {ccyState && !ccyState.ok && <ErrorNote>{ccyState.error}</ErrorNote>}
@@ -106,7 +111,7 @@ export default function BooksSwitcher({ books, canRename, currency, currencyFixe
       )}
 
       {adding ? (
-        <form action={startAct} className="flex flex-col gap-3 px-[var(--pad)] py-4">
+        <form action={startAct} {...keepNew} className="flex flex-col gap-3 px-[var(--pad)] py-4">
           <Field label="Household name" name="name" placeholder="The shop"
             required maxLength={60} autoFocus
             hint="A separate set of books. Nothing is shared between them." />

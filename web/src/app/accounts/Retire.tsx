@@ -2,7 +2,7 @@
 
 import { useActionState, useState } from 'react';
 import { Icon } from '../Icon';
-import { Refusal } from '../form-bits';
+import { ErrorNote } from '../auth-ui';
 import { archiveMethod, makeDefaultMethod } from './actions';
 
 /* Under a way to pay: Default (a word with a check, the one this household reaches for first) or Make default,
@@ -15,8 +15,8 @@ export function MethodControls({ id, isDefault }: { id: string; isDefault: boole
   const [sure, setSure] = useState(false);
 
   return (
-    <span className="-ml-2 flex flex-col items-start gap-1.5">
-      <span className="flex flex-wrap items-center gap-1">
+    <div className="-ml-2 flex flex-col items-start gap-1.5">
+      <div className="flex flex-wrap items-center gap-1">
         {isDefault ? (
           <span className="ml-2 flex items-center gap-1 rounded-md bg-accent px-2 py-1 text-xs font-bold text-accent-foreground">
             <Icon name="check" size={14} />Default
@@ -37,8 +37,8 @@ export function MethodControls({ id, isDefault }: { id: string; isDefault: boole
         ) : (
           <button type="button" onClick={() => setSure(true)} className={`${link} text-muted-foreground`}>Archive</button>
         )}
-      </span>
-      {retireState && !retireState.ok && <span className="pl-2"><Refusal>{retireState.error}</Refusal></span>}
-    </span>
+      </div>
+      {retireState && !retireState.ok && <div className="pl-2"><ErrorNote>{retireState.error}</ErrorNote></div>}
+    </div>
   );
 }
