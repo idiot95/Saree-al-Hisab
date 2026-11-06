@@ -6,6 +6,7 @@ import { Icon } from '../Icon';
 import { haptic } from '../haptics';
 import type { Theme } from '@/lib/theme';
 import { applyTheme } from './apply-theme';
+import { ErrorNote } from '../auth-ui';
 
 const OPTIONS: { id: Theme; icon: string; label: string }[] = [
   { id: 'system', icon: 'phone', label: 'Phone' },
@@ -29,38 +30,28 @@ export default function ThemePicker({ current }: { current: Theme }) {
   }
 
   return (
-    <form action={act} className="border border-border" style={{
-      margin: '0 var(--gutter) 22px', background: 'var(--card)', borderRadius: 18, padding: 16,
-      display: 'flex', flexDirection: 'column', gap: 12,
-    }}>
-      <div role="group" aria-label="Appearance" style={{
-        display: 'flex', gap: 5, padding: 5, borderRadius: 14, background: 'var(--muted)',
-      }}>
+    <form action={act} className="flex flex-col gap-3 rounded-[18px] bg-card p-[var(--pad)]">
+      <div role="group" aria-label="Appearance" className="flex gap-1 rounded-[14px] bg-muted p-1">
         {OPTIONS.map((o) => {
           const on = chosen === o.id;
           return (
             <button key={o.id} type="submit" name="theme" value={o.id} aria-pressed={on}
-              onClick={() => pick(o.id)} disabled={pending && on} className="cta" style={{
-                flex: 1, minHeight: 46, borderRadius: 10, fontSize: 'var(--step--1)', fontWeight: 600,
-                background: on ? 'var(--card)' : 'transparent',
-                color: on ? 'var(--foreground)' : 'var(--muted-foreground)',
-                boxShadow: on ? '0 1px 2px rgba(0,0,0,.10), 0 0 0 1px var(--border)' : 'none',
-                transition: 'background .18s, color .18s, box-shadow .18s',
-              }}>
-              <Icon name={o.icon} size={17} />
+              onClick={() => pick(o.id)} disabled={pending && on}
+              className={`flex min-h-12 flex-1 items-center justify-center gap-1.5 rounded-[10px] text-sm font-semibold transition-colors ${on
+                ? 'bg-primary text-primary-foreground'
+                : 'text-muted-foreground'}`}>
+              <Icon name={o.icon} size={18} filled={on} />
               {o.label}
             </button>
           );
         })}
       </div>
-      <p style={{ margin: 0, fontSize: 'var(--step--2)', lineHeight: 1.45, color: 'var(--muted-foreground)' }}>
+      <p className="text-[13px] leading-snug text-muted-foreground">
         {chosen === 'system'
           ? 'Follows the phone: light by day, dark when it is.'
           : 'Set for this device only. Other phones keep their own choice.'}
       </p>
-      {state && !state.ok && (
-        <p role="alert" style={{ margin: 0, fontSize: 'var(--step--1)', color: 'var(--destructive)' }}>{state.error}</p>
-      )}
+      {state && !state.ok && <ErrorNote>{state.error}</ErrorNote>}
     </form>
   );
 }

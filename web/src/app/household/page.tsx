@@ -20,6 +20,8 @@ import BooksSwitcher from './BooksSwitcher';
 import PageHead from '../PageHead';
 import Screen from '../Screen';
 import { Icon } from '../Icon';
+import SignOutEverywhere from './SignOutEverywhere';
+import { Avatar, Card, Chevron, Glyph, row, Section, Words } from './rows';
 
 export const metadata = { title: 'Household · Saree al-Hisab' };
 export const dynamic = 'force-dynamic';
@@ -51,187 +53,118 @@ export default async function Household() {
   const live = invites.filter((i) => !i.expired);
   const theme = forcedTheme((await cookies()).get(THEME_COOKIE)?.value) ?? 'system';
 
+  const me = members.find((m) => m.id === actor.user_id);
+
   return (
     <Screen>
-      <main style={{ minHeight: '100dvh', background: 'var(--background)', paddingBottom: TAB_BAR_SPACE }}>
+      <main className="min-h-dvh bg-background text-foreground" style={{ paddingBottom: TAB_BAR_SPACE }}>
         <PageHead back="/" title={name}
           sub={<>Household and settings · {members.length} {members.length === 1 ? 'member' : 'members'}
             {live.length > 0 && ` · ${live.length} invited`}</>} />
 
-        <p style={{
-          display: 'flex', alignItems: 'flex-start', gap: 10, margin: '18px 18px 22px',
-          padding: '13px var(--gutter)', borderRadius: 14, background: 'var(--cat-cyan)',
-          color: 'var(--cat-cyan-ink)', fontSize: 'var(--step--1)', lineHeight: 1.5,
-        }}>
-          <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-            strokeWidth={1.9} strokeLinecap="round" style={{ flex: 'none', marginTop: 2 }} aria-hidden>
-            <rect x="4.5" y="10" width="15" height="10.5" rx="2.5" />
-            <path d="M8 10V7.5a4 4 0 0 1 8 0V10" />
-          </svg>
-          <span>
-            Everyone in a household sees every entry and every budget.
-          </span>
-        </p>
-
-        <Head>Members</Head>
-        <Card pad="0 16px">
-          {members.map((m, i) => (
-            <MemberRow
-              key={m.id}
-              member={m}
-              canManage={canManage}
-              origin={origin}
-              isSelf={m.id === actor.user_id}
-              last={i === members.length - 1}
-            />
-          ))}
-        </Card>
-
-        {canManage && <InviteForm origin={origin} household={name} inviter={actor.user_name} passwordOpen={passwordSignInOpenNow()} />}
-
-        <Head>Your households</Head>
-        <BooksSwitcher books={books} canRename={canManage}
-          currency={actor.currency} currencyFixed={entries > 0} />
-
-        {invites.length > 0 && (
-          <>
-            <Head>Invited</Head>
-            <Card pad="0 16px">
-              {invites.map((iv, i) => (
-                <div key={iv.id} style={{
-                  display: 'flex', alignItems: 'center', gap: 12, minHeight: 74,
-                  borderBottom: i === invites.length - 1 ? undefined : '1px solid var(--border)',
-                }}>
-                  <span style={{
-                    width: 42, height: 42, flex: 'none', borderRadius: 999, display: 'flex',
-                    alignItems: 'center', justifyContent: 'center',
-                    background: iv.expired ? 'color-mix(in srgb, var(--destructive) 12%, transparent)' : 'var(--attention-soft)',
-                    color: iv.expired ? 'var(--destructive)' : 'var(--attention-soft-foreground)',
-                  }}>
-                    <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                      strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                      <circle cx="12" cy="12" r="8.5" /><path d="M12 7.5V12l3 1.8" />
-                    </svg>
-                  </span>
-                  <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
-                    <span style={{
-                      fontSize: 'var(--step-0)', fontWeight: 600, overflow: 'hidden',
-                      textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                    }}>{iv.email}</span>
-                    <span style={{
-                      fontSize: 'var(--step--1)', color: iv.expired ? 'var(--destructive)' : 'var(--muted-foreground)',
-                    }}>
-                      {LABEL[iv.role]} · {iv.expired ? 'expired' : `expires ${when(iv.expires_at)}`}
-                    </span>
-                  </span>
-                  {canManage && <RevokeButton id={iv.id} />}
-                </div>
-              ))}
+        <div className="flex flex-col gap-6 px-[var(--gutter)] pb-8">
+          {/* The order the brief sets: you, the people, inviting more, the books, then the device and the
+              household's tools. */}
+          <Section label="Your account">
+            <Card>
+              <div className="flex min-h-16 items-center gap-3 px-[var(--pad)] py-3">
+                <Avatar name={actor.user_name} image={me?.image ?? null} />
+                <Words title={actor.user_name || 'You'}
+                  sub={[actor.email, actor.role ? LABEL[actor.role] : null].filter(Boolean).join(' · ')} />
+              </div>
+              <LinkGoogle linked={!!me?.has_google} />
+              <PasswordCard />
+              <SignOutEverywhere />
+              {/* Signing out lives here, with the rest of the account — not on the Home header, where it was the
+                  only button and the wrong one to press by accident with a thumb. */}
+              <form action={async () => { 'use server'; await signOut({ redirectTo: '/signin' }); }}>
+                <button type="submit" className={row}>
+                  <Glyph name="logout" />
+                  <Words title="Sign out" sub="On this phone only" />
+                  <Chevron />
+                </button>
+              </form>
+              {/* The same page that sign-up points at, from inside: the terms are also the record of how the books
+                  are kept, and that is a question people ask months later, when the household has grown. */}
+              <Link href="/terms" transitionTypes={['nav-forward']} className={row}>
+                <Glyph name="verified_user" />
+                <Words title="Terms, and how your data is kept" sub="Encrypted, checked on every request, source public" />
+                <Chevron />
+              </Link>
             </Card>
-          </>
-        )}
+          </Section>
 
-        {canManage && (
-          <>
-            <Head>Scanning receipts</Head>
-            <ScanKey hasKey={scanning.has_key} setOn={scanning.set_on} />
-          </>
-        )}
+          <Section label="Members"
+            note={<span className="flex items-start gap-1.5"><Icon name="lock" size={16} className="mt-px" />
+              Everyone in a household sees every entry and every budget.{!canManage && ' Only an owner can invite or remove people.'}</span>}>
+            <Card>
+              {members.map((m) => (
+                <MemberRow key={m.id} member={m} canManage={canManage} origin={origin} isSelf={m.id === actor.user_id} />
+              ))}
+              {/* What the three words mean, shut until asked: the same question comes up once, at invite time. */}
+              <details className="group">
+                <summary className={`${row} cursor-pointer list-none [&::-webkit-details-marker]:hidden`}>
+                  <Glyph name="help" />
+                  <Words title="What each role can do" />
+                  <Icon name="expand_more" size={20} className="flex-none text-muted-foreground transition-transform group-open:rotate-180" />
+                </summary>
+                <dl className="flex flex-col gap-3 px-[var(--pad)] pb-4 pl-[calc(var(--pad)+50px)]">
+                  {(['owner', 'adult', 'viewer'] as const).map((r) => (
+                    <div key={r} className="flex flex-col gap-0.5">
+                      <dt className="text-sm font-semibold">{LABEL[r]}</dt>
+                      <dd className="text-sm leading-normal text-muted-foreground">{WHAT[r]}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </details>
+            </Card>
+          </Section>
 
-        <Head>Appearance</Head>
-        <ThemePicker current={theme} />
+          {(canManage || invites.length > 0) && (
+            <Section label={canManage ? 'Invite' : 'Invited'}>
+              {canManage && <InviteForm origin={origin} household={name} inviter={actor.user_name} passwordOpen={passwordSignInOpenNow()} />}
+              {invites.length > 0 && (
+                <Card className={canManage ? 'mt-2' : ''}>
+                  {invites.map((iv) => (
+                    <div key={iv.id} className="flex min-h-16 items-center gap-3 px-[var(--pad)] py-2.5">
+                      <Glyph name={iv.expired ? 'error' : 'schedule'} tone={iv.expired ? 'danger' : 'attention'} />
+                      <Words title={iv.email}
+                        sub={<span className={iv.expired ? 'font-semibold text-destructive' : ''}>
+                          {LABEL[iv.role]} · {iv.expired ? 'Expired' : `Invited, expires ${when(iv.expires_at)}`}
+                        </span>} />
+                      {canManage && <RevokeButton id={iv.id} />}
+                    </div>
+                  ))}
+                </Card>
+              )}
+            </Section>
+          )}
 
-        <Head>Your account</Head>
-        <LinkGoogle linked={members.some((m) => m.id === actor.user_id && m.has_google)} />
-        <PasswordCard />
-        <Link href="/household/capture" transitionTypes={['nav-forward']}
-          className="press -mt-2 mb-[22px] mx-[var(--gutter)] flex min-h-14 items-center gap-[11px] rounded-[18px] border border-border bg-card px-[var(--pad)] text-foreground no-underline">
-          <span className="grid size-[38px] flex-none place-items-center rounded-full bg-muted text-muted-foreground">
-            <Icon name="sms" size={18} />
-          </span>
-          <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-            <span className="text-base font-semibold">SMS capture</span>
-            <span className="text-xs text-muted-foreground">Bank messages from your phone, as drafts to review</span>
-          </span>
-          <Icon name="chevron_right" size={18} className="text-muted-foreground" />
-        </Link>
-        {/* Signing out lives here, with the rest of the account — not on the
-            Home header, where it was the only button and the wrong one to
-            press by accident with a thumb. */}
-        <form action={async () => { 'use server'; await signOut({ redirectTo: '/signin' }); }}
-          className="border border-border" style={{ margin: '-8px var(--gutter) 22px', borderRadius: 18 }}>
-          <button type="submit" className="press" style={{
-            width: '100%', minHeight: 56, padding: '0 var(--pad)', borderRadius: 18,
-            display: 'flex', alignItems: 'center', gap: 11, background: 'var(--card)',
-          }}>
-            <span style={{
-              width: 38, height: 38, flex: 'none', borderRadius: 999, display: 'flex',
-              alignItems: 'center', justifyContent: 'center',
-              background: 'var(--muted)', color: 'var(--muted-foreground)',
-            }}>
-              <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                <path d="M15 16.5 19.5 12 15 7.5" /><path d="M19 12H9" />
-                <path d="M12 4.5H6.5A1.5 1.5 0 0 0 5 6v12a1.5 1.5 0 0 0 1.5 1.5H12" />
-              </svg>
-            </span>
-            <span style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>Sign out</span>
-              <span style={{ fontSize: 'var(--step--2)', color: 'var(--muted-foreground)' }}>On this phone only</span>
-            </span>
-            <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="var(--muted-foreground)"
-              strokeWidth={2} strokeLinecap="round" aria-hidden><path d="M9 5l7 7-7 7" /></svg>
-          </button>
-        </form>
+          <Section label="Books">
+            <BooksSwitcher books={books} canRename={canManage}
+              currency={actor.currency} currencyFixed={entries > 0} />
+          </Section>
 
-        {/* The same page that sign-up points at, from inside: the terms are
-            also the record of how the books are kept, and that is a question
-            people ask months later, when the household has grown. */}
-        <Link href="/terms" transitionTypes={['nav-forward']} className="press border border-border" style={{
-          margin: '-8px var(--gutter) 22px', minHeight: 56, padding: '0 var(--pad)', borderRadius: 18,
-          display: 'flex', alignItems: 'center', gap: 11, background: 'var(--card)',
-          textDecoration: 'none', color: 'var(--foreground)',
-        }}>
-          <span style={{
-            width: 38, height: 38, flex: 'none', borderRadius: 999, display: 'flex',
-            alignItems: 'center', justifyContent: 'center',
-            background: 'var(--muted)', color: 'var(--muted-foreground)',
-          }}>
-            <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-              strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-              <path d="M12 3.5 5 6.5v5.2c0 4 3 7.3 7 8.8 4-1.5 7-4.8 7-8.8V6.5z" />
-              <path d="m9.5 12 1.8 1.8L14.8 10" />
-            </svg>
-          </span>
-          <span style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>Terms, and how your data is kept</span>
-            <span style={{ fontSize: 'var(--step--2)', color: 'var(--muted-foreground)' }}>Encrypted, checked on every request, source public</span>
-          </span>
-          <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="var(--muted-foreground)"
-            strokeWidth={2} strokeLinecap="round" aria-hidden><path d="M9 5l7 7-7 7" /></svg>
-        </Link>
+          <Section label="Theme">
+            <ThemePicker current={theme} />
+          </Section>
 
-        <Head>What each role can do</Head>
-        <Card pad="4px 16px">
-          {(['owner', 'adult', 'viewer'] as const).map((r, i) => (
-            <div key={r} style={{
-              display: 'flex', flexDirection: 'column', gap: 4, padding: '14px 0',
-              borderBottom: i === 2 ? undefined : '1px solid var(--border)',
-            }}>
-              <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>{LABEL[r]}</span>
-              <span style={{ fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--muted-foreground)' }}>{WHAT[r]}</span>
-            </div>
-          ))}
-        </Card>
+          {canManage && (
+            <Section label="Scanning key">
+              <ScanKey hasKey={scanning.has_key} setOn={scanning.set_on} />
+            </Section>
+          )}
 
-        {!canManage && (
-          <p style={{
-            margin: '0 var(--gutter)', fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--muted-foreground)',
-            textAlign: 'center',
-          }}>
-            Only an owner can invite or remove people.
-          </p>
-        )}
+          <Section label="SMS capture">
+            <Card>
+              <Link href="/household/capture" transitionTypes={['nav-forward']} className={row}>
+                <Glyph name="sms" />
+                <Words title="SMS capture" sub="Bank messages from your phone, as drafts to review" />
+                <Chevron />
+              </Link>
+            </Card>
+          </Section>
+        </div>
         <TabBar current="/household" />
       </main>
     </Screen>
@@ -240,20 +173,4 @@ export default async function Household() {
 
 function when(d: Date) {
   return new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
-}
-
-function Head({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="mx-[var(--gutter)] mb-2 px-1">
-      <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{children}</h2>
-    </div>
-  );
-}
-
-function Card({ children, pad }: { children: React.ReactNode; pad: string }) {
-  return (
-    <section className="border border-border" style={{
-      margin: '0 var(--gutter) 22px', background: 'var(--card)', borderRadius: 18, padding: pad,
-    }}>{children}</section>
-  );
 }

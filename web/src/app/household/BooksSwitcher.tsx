@@ -4,6 +4,8 @@ import { useActionState, useState } from 'react';
 import { CurrencyField, Field, ErrorNote } from '../auth-ui';
 import { CURRENCIES } from '@/lib/money';
 import { setCurrency, startAnotherHousehold, switchTo, renameHousehold } from './actions';
+import { Icon } from '../Icon';
+import { Card, Chevron, ghost, Glyph, row, solid, Words } from './rows';
 
 type Book = { id: string; name: string; role: 'owner' | 'adult' | 'viewer'; active: boolean; people: number };
 
@@ -28,70 +30,48 @@ export default function BooksSwitcher({ books, canRename, currency, currencyFixe
   const ccyLabel = ccy ? `${ccy.name} · ${ccy.symbol.trim()}` : currency;
 
   return (
-    <section className="border border-border" style={{
-      margin: '0 var(--gutter) 22px', background: 'var(--card)', borderRadius: 18, padding: '0 var(--pad)',
-    }}>
-      {books.map((b, i) => (
-        <div key={b.id} style={{
-          display: 'flex', alignItems: 'center', gap: 12, minHeight: 68,
-          borderBottom: '1px solid var(--border)',
-        }}>
-          <span style={{
-            width: 36, height: 36, flex: 'none', borderRadius: 10, display: 'flex',
-            alignItems: 'center', justifyContent: 'center', fontSize: 'var(--step--1)', fontWeight: 700,
-            background: b.active ? 'var(--chart-1)' : 'var(--muted)',
-            color: b.active ? 'var(--attention-soft-foreground)' : 'var(--muted-foreground)',
-          }}>{b.name.slice(0, 2).toUpperCase()}</span>
-          <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <span style={{
-              fontSize: 'var(--step-0)', fontWeight: 600, overflow: 'hidden',
-              textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-            }}>{b.name}</span>
-            <span style={{ fontSize: 'var(--step--2)', color: 'var(--muted-foreground)' }}>
-              {ROLE[b.role]} · {b.people} {b.people === 1 ? 'person' : 'people'}
-            </span>
+    <Card>
+      {books.map((b) => (
+        <div key={b.id} className="flex min-h-16 items-center gap-3 px-[var(--pad)] py-2.5">
+          <span className={`grid size-[38px] flex-none place-items-center rounded-[10px] text-sm font-bold ${b.active
+            ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
+            {b.name.slice(0, 2).toUpperCase()}
           </span>
+          <Words title={b.name} sub={`${ROLE[b.role]} · ${b.people} ${b.people === 1 ? 'person' : 'people'}`} />
           {b.active ? (
-            <span style={{
-              flex: 'none', fontSize: 'var(--step--2)', fontWeight: 700, padding: '6px 10px', borderRadius: 8,
-              background: 'var(--accent)', color: 'var(--primary)', letterSpacing: '.03em',
-            }}>CURRENT</span>
+            <span className="inline-flex flex-none items-center gap-1 rounded-lg bg-accent px-2.5 py-1.5 text-xs font-bold text-accent-foreground">
+              <Icon name="check" size={15} />Current
+            </span>
           ) : (
-            <form action={switchAct}>
+            <form action={switchAct} className="flex-none">
               <input type="hidden" name="householdId" value={b.id} />
-              <button className="cta" type="submit" style={{
-                minHeight: 44, padding: '0 13px', borderRadius: 10, fontSize: 'var(--step--1)',
-                fontWeight: 600, background: 'var(--muted)', color: 'var(--foreground)',
-              }}>Open</button>
+              <button type="submit"
+                className="press flex min-h-11 items-center rounded-xl bg-muted px-3.5 text-sm font-semibold text-foreground in-data-[platform=android]:min-h-12">
+                Open
+              </button>
             </form>
           )}
         </div>
       ))}
 
       {canRename && (editing ? (
-        <form action={renameAct} style={{
-          display: 'flex', flexDirection: 'column', gap: 10, padding: '14px 0',
-          borderBottom: '1px solid var(--border)',
-        }}>
+        <form action={renameAct} className="flex flex-col gap-3 px-[var(--pad)] py-4">
           <Field label="Household name" name="name"
             defaultValue={books.find((b) => b.active)?.name} required maxLength={60} autoFocus />
           {renameState && !renameState.ok && <ErrorNote>{renameState.error}</ErrorNote>}
-          <div style={{ display: 'flex', gap: 9 }}>
-            <button type="button" onClick={() => setEditing(false)} style={ghost}>Cancel</button>
-            <button type="submit" disabled={renaming} style={{ ...solid, flex: 1 }}>
+          <div className="flex gap-2">
+            <button type="button" onClick={() => setEditing(false)} className={ghost}>Cancel</button>
+            <button type="submit" disabled={renaming} className={solid}>
               {renaming ? 'Saving…' : 'Save'}
             </button>
           </div>
         </form>
       ) : (
-        <button type="button" onClick={() => setEditing(true)} style={{
-          ...row, borderBottom: '1px solid var(--border)',
-        }}>
-          <Pencil />
-          <span style={{ flex: 1 }}>Rename this household</span>
-          {renameState?.ok && (
-            <span style={{ fontSize: 'var(--step--2)', color: 'var(--primary)', fontWeight: 600 }}>done</span>
-          )}
+        <button type="button" onClick={() => setEditing(true)} className={row}>
+          <Glyph name="edit" />
+          <Words title="Rename this household" />
+          {renameState?.ok && <DoneWord />}
+          <Chevron />
         </button>
       ))}
 
@@ -99,105 +79,60 @@ export default function BooksSwitcher({ books, canRename, currency, currencyFixe
           are empty. Once fixed it is a row that says so rather than a
           control that fails. */}
       {canRename && !currencyFixed && choosing ? (
-        <form action={ccyAct} style={{
-          display: 'flex', flexDirection: 'column', gap: 10, padding: '14px 0',
-          borderBottom: '1px solid var(--border)',
-        }}>
+        <form action={ccyAct} className="flex flex-col gap-3 px-[var(--pad)] py-4">
           <CurrencyField defaultValue={currency} autoFocus
             hint="Every entry is recorded in this. It is fixed the moment the books hold one." />
           {ccyState && !ccyState.ok && <ErrorNote>{ccyState.error}</ErrorNote>}
-          <div style={{ display: 'flex', gap: 9 }}>
-            <button type="button" onClick={() => setChoosing(false)} style={ghost}>Cancel</button>
-            <button type="submit" disabled={changingCcy} style={{ ...solid, flex: 1 }}>
+          <div className="flex gap-2">
+            <button type="button" onClick={() => setChoosing(false)} className={ghost}>Cancel</button>
+            <button type="submit" disabled={changingCcy} className={solid}>
               {changingCcy ? 'Saving…' : 'Save'}
             </button>
           </div>
         </form>
       ) : canRename && !currencyFixed ? (
-        <button type="button" onClick={() => setChoosing(true)} style={{
-          ...row, borderBottom: '1px solid var(--border)',
-        }}>
-          <Coin />
-          <span style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <span>Currency</span>
-            <span style={{ fontSize: 'var(--step--2)', fontWeight: 500, color: 'var(--muted-foreground)' }}>{ccyLabel}</span>
-          </span>
-          {ccyState?.ok && (
-            <span style={{ fontSize: 'var(--step--2)', color: 'var(--primary)', fontWeight: 600 }}>done</span>
-          )}
+        <button type="button" onClick={() => setChoosing(true)} className={row}>
+          <Glyph name="coin" />
+          <Words title="Currency" sub={ccyLabel} />
+          {ccyState?.ok && <DoneWord />}
+          <Chevron />
         </button>
       ) : (
-        <div style={{ ...row, borderBottom: '1px solid var(--border)', cursor: 'default' }}>
-          <Coin />
-          <span style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <span>Currency</span>
-            <span style={{ fontSize: 'var(--step--2)', fontWeight: 500, color: 'var(--muted-foreground)' }}>
-              {ccyLabel}{currencyFixed ? ' · fixed, the books hold entries' : ''}
-            </span>
-          </span>
+        <div className="flex min-h-14 items-center gap-3 px-[var(--pad)] py-2.5">
+          <Glyph name="coin" />
+          <Words title="Currency" sub={<>{ccyLabel}{currencyFixed ? ' · fixed, the books hold entries' : ''}</>} />
+          {currencyFixed && <Icon name="lock" size={18} className="flex-none text-muted-foreground" />}
         </div>
       )}
 
       {adding ? (
-        <form action={startAct} style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: '14px 0' }}>
+        <form action={startAct} className="flex flex-col gap-3 px-[var(--pad)] py-4">
           <Field label="Household name" name="name" placeholder="The shop"
             required maxLength={60} autoFocus
             hint="A separate set of books. Nothing is shared between them." />
           <CurrencyField defaultValue={currency} />
           {newState && !newState.ok && <ErrorNote>{newState.error}</ErrorNote>}
-          <div style={{ display: 'flex', gap: 9 }}>
-            <button type="button" onClick={() => setAdding(false)} style={ghost}>Cancel</button>
-            <button type="submit" disabled={starting} style={{ ...solid, flex: 1 }}>
+          <div className="flex gap-2">
+            <button type="button" onClick={() => setAdding(false)} className={ghost}>Cancel</button>
+            <button type="submit" disabled={starting} className={solid}>
               {starting ? 'Creating…' : 'Create household'}
             </button>
           </div>
         </form>
       ) : (
-        <button type="button" onClick={() => setAdding(true)} style={row}>
-          <Plus />
-          <span style={{ flex: 1 }}>New household</span>
+        <button type="button" onClick={() => setAdding(true)} className={row}>
+          <Glyph name="add" />
+          <Words title="New household" />
+          <Chevron />
         </button>
       )}
-    </section>
+    </Card>
   );
 }
 
-const row: React.CSSProperties = {
-  width: '100%', minHeight: 60, display: 'flex', alignItems: 'center', gap: 11,
-  textAlign: 'left', fontSize: 'var(--step-0)', fontWeight: 600, color: 'var(--foreground)',
-};
-const ghost: React.CSSProperties = {
-  minHeight: 46, padding: '0 var(--pad)', borderRadius: 11, fontSize: 'var(--step--1)',
-  fontWeight: 600, background: 'var(--muted)', color: 'var(--muted-foreground)',
-};
-const solid: React.CSSProperties = {
-  minHeight: 46, borderRadius: 11, fontSize: 'var(--step-0)', fontWeight: 600,
-  background: 'var(--primary)', color: 'var(--primary-foreground)',
-};
-
-const icon = { width: 34, height: 34, flex: 'none', borderRadius: 999, display: 'flex',
-  alignItems: 'center', justifyContent: 'center',
-  background: 'var(--muted)', color: 'var(--muted-foreground)' } as React.CSSProperties;
-
-const Plus = () => (
-  <span style={icon}>
-    <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-      strokeWidth={2.2} strokeLinecap="round" aria-hidden><path d="M12 5v14M5 12h14" /></svg>
-  </span>
-);
-const Coin = () => (
-  <span style={icon}>
-    <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-      strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <circle cx="12" cy="12" r="8.5" /><path d="M9.5 9.5h4a1.75 1.75 0 0 1 0 3.5H9.5m0 0h5a1.75 1.75 0 0 1 0 3.5h-5M12 7.5v9" />
-    </svg>
-  </span>
-);
-const Pencil = () => (
-  <span style={icon}>
-    <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-      strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <path d="M4 20h4L19 9a2.1 2.1 0 0 0-3-3L5 17z" />
-    </svg>
+/** "done" after a save, with its check. */
+const DoneWord = () => (
+  <span className="inline-flex flex-none items-center gap-1 text-[13px] font-semibold text-primary">
+    <Icon name="check" size={15} />Done
   </span>
 );

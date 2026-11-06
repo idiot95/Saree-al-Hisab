@@ -3,18 +3,20 @@
 import { useActionState, useState } from 'react';
 import { changeRole, issueReset, removeMember } from './actions';
 import { Icon } from '../Icon';
+import { ErrorNote } from '../auth-ui';
+import { Avatar } from './rows';
 
 type Role = 'owner' | 'adult' | 'viewer';
 const LABEL: Record<Role, string> = {
   owner: 'Owner', adult: 'Contributing member', viewer: 'Viewer',
 };
 
-export default function MemberRow({ member, canManage, isSelf, last, origin }: {
+export default function MemberRow({ member, canManage, isSelf, origin }: {
   member: {
     id: string; name: string; email: string | null; image: string | null; role: Role;
     has_google: boolean;
   };
-  canManage: boolean; isSelf: boolean; last: boolean; origin: string;
+  canManage: boolean; isSelf: boolean; origin: string;
 }) {
   const [roleState, saveRole, savingRole] = useActionState(changeRole, null);
   const [removeState, remove, removing] = useActionState(removeMember, null);
@@ -23,102 +25,67 @@ export default function MemberRow({ member, canManage, isSelf, last, origin }: {
   const [copied, setCopied] = useState(false);
   const [role, setRole] = useState<Role>(member.role);
   const resetToken = resetState?.ok ? resetState.message : undefined;
+  const first = member.name.split(' ')[0];
 
   const error = (roleState && !roleState.ok && roleState.error)
     || (removeState && !removeState.ok && removeState.error)
     || (resetState && !resetState.ok && resetState.error) || null;
 
   return (
-    <div style={{
-      padding: '14px 0', borderBottom: last ? undefined : '1px solid var(--border)',
-      display: 'flex', flexDirection: 'column', gap: 10,
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        <span style={{
-          width: 42, height: 42, borderRadius: 999, flex: 'none', display: 'flex',
-          alignItems: 'center', justifyContent: 'center', fontSize: 'var(--step--1)', fontWeight: 700,
-          background: 'var(--cat-blue)', color: 'var(--cat-blue-ink)', overflow: 'hidden',
-        }}>
-          {member.image
-            /* eslint-disable-next-line @next/next/no-img-element */
-            ? <img src={member.image} alt="" width={42} height={42} style={{ borderRadius: 999 }} />
-            : (member.name || '?').slice(0, 2).toUpperCase()}
-        </span>
+    <div className="flex flex-col gap-3 px-[var(--pad)] py-3">
+      <div className="flex items-center gap-3">
+        <Avatar name={member.name} image={member.image} />
 
-        <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
-          <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>
+        <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+          <span className="text-[15px] font-semibold leading-snug [overflow-wrap:anywhere]">
             {member.name}
-            {isSelf && <span style={{ color: 'var(--muted-foreground)', fontWeight: 500 }}> · you</span>}
+            {isSelf && <span className="font-medium text-muted-foreground"> · you</span>}
           </span>
-          <span style={{
-            fontSize: 'var(--step--1)', color: 'var(--muted-foreground)',
-            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-          }}>{member.email}</span>
+          <span className="text-[13px] leading-snug text-muted-foreground [overflow-wrap:anywhere]">{member.email}</span>
           {/* For the owner, who is the one who will have to chase anyone not
               linked before passwords end. An icon and a word, never colour. */}
           {canManage && (
-            <span style={{
-              display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 'var(--step--2)',
-              fontWeight: 600, color: 'var(--muted-foreground)',
-            }}>
-              <Icon name={member.has_google ? 'linked' : 'unlinked'} size={14} />
-              {member.has_google ? 'Google linked' : 'Not linked yet'}
+            <span className="inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground">
+              <Icon name={member.has_google ? 'linked' : 'unlinked'} size={15} />
+              {member.has_google ? 'Signed in with Google' : 'Not linked yet'}
             </span>
           )}
         </span>
 
         {!canManage || isSelf ? (
-          <span style={{
-            flex: 'none', fontSize: 'var(--step--1)', fontWeight: 600, padding: '7px 11px', borderRadius: 9,
-            background: 'var(--muted)', color: 'var(--muted-foreground)',
-          }}>{LABEL[member.role]}</span>
+          <span className="flex-none rounded-lg bg-muted px-2.5 py-1.5 text-[13px] font-semibold text-muted-foreground">
+            {LABEL[member.role]}
+          </span>
         ) : (
           <button
             type="button"
             onClick={() => setConfirming((v) => !v)}
             aria-label={confirming ? 'Close options' : `Options for ${member.name}`}
-            style={{
-              width: 44, height: 44, flex: 'none', borderRadius: 999, display: 'flex',
-              alignItems: 'center', justifyContent: 'center', color: 'var(--muted-foreground)',
-              background: confirming ? 'var(--muted)' : 'transparent',
-            }}
+            aria-expanded={confirming}
+            className={`press grid size-11 flex-none place-items-center rounded-full text-muted-foreground in-data-[platform=android]:size-12 ${confirming ? 'bg-muted' : ''}`}
           >
-            <svg width={19} height={19} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-              <circle cx="12" cy="5.5" r="1.7" /><circle cx="12" cy="12" r="1.7" />
-              <circle cx="12" cy="18.5" r="1.7" />
-            </svg>
+            <Icon name={confirming ? 'close' : 'more_horiz'} size={22} />
           </button>
         )}
       </div>
 
       {canManage && !isSelf && confirming && (
-        <div style={{
-          display: 'flex', flexDirection: 'column', gap: 10, padding: 12,
-          borderRadius: 13, background: 'var(--background)',
-        }}>
-          <form action={saveRole} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div className="flex flex-col gap-3 rounded-2xl bg-background p-3">
+          <form action={saveRole} className="flex flex-col gap-2">
             <input type="hidden" name="userId" value={member.id} />
-            <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--muted-foreground)' }}>
-              What {member.name.split(' ')[0]} can do
-            </span>
-            <div style={{ display: 'flex', gap: 8 }}>
+            <span className="text-sm font-medium text-muted-foreground">What {first} can do</span>
+            <div className="flex gap-2">
               <select
                 name="role" value={role} onChange={(e) => setRole(e.target.value as Role)}
-                style={{
-                  flex: 1, minHeight: 46, borderRadius: 11, border: '1px solid var(--border)',
-                  background: 'var(--card)', color: 'var(--foreground)', fontSize: 'var(--field)',
-                  fontWeight: 600, padding: '0 10px',
-                }}
+                aria-label={`What ${first} can do`}
+                className="min-h-12 min-w-0 flex-1 rounded-xl border border-input bg-card px-2.5 text-[length:var(--field)] font-semibold text-foreground"
               >
                 <option value="adult">Contributing member</option>
                 <option value="viewer">Viewer</option>
                 <option value="owner">Owner</option>
               </select>
-              <button className="cta" type="submit" disabled={savingRole || role === member.role} style={{
-                minHeight: 46, padding: '0 16px', borderRadius: 11, fontSize: 'var(--step-0)', fontWeight: 600,
-                background: role === member.role ? 'var(--muted)' : 'var(--chart-1)',
-                color: role === member.role ? 'var(--muted-foreground)' : 'var(--attention-soft-foreground)',
-              }}>
+              <button type="submit" disabled={savingRole || role === member.role}
+                className="press flex min-h-12 flex-none items-center justify-center rounded-xl bg-primary px-4 text-base font-semibold text-primary-foreground disabled:bg-muted disabled:text-muted-foreground">
                 {savingRole ? 'Saving…' : 'Save'}
               </button>
             </div>
@@ -127,47 +94,30 @@ export default function MemberRow({ member, canManage, isSelf, last, origin }: {
           {/* Nobody here can send email, so a forgotten password is recovered
               the way anything else in a household is: you ask, and the owner
               hands over a link. */}
-          <form action={sendReset} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <form action={sendReset}>
             <input type="hidden" name="userId" value={member.id} />
-            <button className="cta" type="submit" disabled={sendingReset} style={{
-              minHeight: 46, borderRadius: 11, fontSize: 'var(--step-0)', fontWeight: 600,
-              background: 'var(--card)', border: '1px solid var(--border)',
-              color: 'var(--foreground)',
-            }}>
-              {sendingReset ? 'Creating…' : 'Send a password reset link'}
+            <button type="submit" disabled={sendingReset}
+              className="press flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-border bg-card px-4 text-base font-semibold text-foreground disabled:opacity-60">
+              <Icon name="key" size={20} />{sendingReset ? 'Creating…' : 'Send a password reset link'}
             </button>
           </form>
 
           {resetToken && <ResetLink url={`${origin}/reset/${resetToken}`} copied={copied} setCopied={setCopied} />}
 
-          <form action={remove} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <form action={remove} className="flex flex-col gap-1.5">
             <input type="hidden" name="userId" value={member.id} />
-            <button className="cta" type="submit" disabled={removing} style={{
-              minHeight: 46, borderRadius: 11, fontSize: 'var(--step-0)', fontWeight: 600,
-              background: 'color-mix(in srgb, var(--destructive) 12%, transparent)', color: 'var(--destructive)',
-            }}>
-              {removing ? 'Removing…' : `Remove ${member.name.split(' ')[0]}`}
+            <button type="submit" disabled={removing}
+              className="press flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-destructive/10 px-4 text-base font-semibold text-destructive disabled:opacity-60">
+              <Icon name="delete" size={20} />{removing ? 'Removing…' : `Remove ${first}`}
             </button>
-            <span style={{ fontSize: 'var(--step--2)', lineHeight: 1.45, color: 'var(--muted-foreground)' }}>
+            <span className="text-xs leading-snug text-muted-foreground">
               Their entries stay. Removing someone never changes what a month cost.
             </span>
           </form>
         </div>
       )}
 
-      {error && (
-        <p role="alert" style={{
-          margin: 0, display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px',
-          borderRadius: 11, background: 'color-mix(in srgb, var(--destructive) 12%, transparent)', color: 'var(--destructive)',
-          fontSize: 'var(--step--1)', fontWeight: 600,
-        }}>
-          <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-            strokeWidth={2} strokeLinecap="round" style={{ flex: 'none' }} aria-hidden>
-            <circle cx="12" cy="12" r="9" /><path d="M12 7.5v5.5" /><path d="M12 16.4v.1" />
-          </svg>
-          {error}
-        </p>
-      )}
+      {error && <ErrorNote>{error}</ErrorNote>}
     </div>
   );
 }
@@ -177,26 +127,17 @@ function ResetLink({ url, copied, setCopied }: {
   url: string; copied: boolean; setCopied: (v: boolean) => void;
 }) {
   return (
-    <div style={{
-      padding: 12, borderRadius: 12, background: 'var(--attention-soft)',
-      display: 'flex', flexDirection: 'column', gap: 8,
-    }}>
-      <span style={{ fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--foreground)' }}>
-        Send this privately. <b>Anyone who opens it can set that password and sign in as
-        them.</b> It works once and expires in a day.
+    <div className="flex flex-col gap-2 rounded-xl bg-attention-soft p-3 text-attention-soft-foreground">
+      <span className="flex items-start gap-2 text-sm leading-normal">
+        <Icon name="warning" size={18} className="mt-px" />
+        <span>Send this privately. <b>Anyone who opens it can set that password and sign in as
+        them.</b> It works once and expires in a day.</span>
       </span>
-      <code style={{
-        display: 'block', padding: '9px 11px', borderRadius: 9, background: 'var(--card)',
-        border: '1px solid var(--border)', fontSize: 'var(--step--2)', lineHeight: 1.5,
-        wordBreak: 'break-all', color: 'var(--muted-foreground)',
-      }}>{url}</code>
-      <button className="cta" type="button" onClick={async () => {
+      <code className="block rounded-lg border border-border bg-card px-3 py-2 text-xs leading-normal break-all text-muted-foreground">{url}</code>
+      <button type="button" onClick={async () => {
         try { await navigator.clipboard.writeText(url); setCopied(true); } catch { setCopied(false); }
-      }} style={{
-        minHeight: 44, borderRadius: 10, background: 'var(--card)',
-        border: '1px solid var(--border)', color: 'var(--foreground)', fontSize: 'var(--step--1)', fontWeight: 600,
-      }}>
-        {copied ? 'Copied' : 'Copy link'}
+      }} className="press flex min-h-11 items-center justify-center gap-2 rounded-lg border border-border bg-card text-sm font-semibold text-foreground">
+        <Icon name={copied ? 'check' : 'content_copy'} size={18} />{copied ? 'Copied' : 'Copy link'}
       </button>
     </div>
   );

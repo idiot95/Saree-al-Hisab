@@ -15,9 +15,7 @@ export const dynamic = 'force-dynamic';
 
 const REPO = 'https://github.com/idiot95/Saree-al-Hisab';
 const DATED = '6 November 2026';
-const link: React.CSSProperties = {
-  color: 'var(--primary)', fontWeight: 600, textDecoration: 'underline', textUnderlineOffset: 3,
-};
+const link = 'font-semibold text-primary underline underline-offset-[3px] [overflow-wrap:anywhere]';
 
 const SECTIONS: { title: string; lines: React.ReactNode[] }[] = [
   {
@@ -65,7 +63,7 @@ const SECTIONS: { title: string; lines: React.ReactNode[] }[] = [
   {
     title: 'The source is public',
     lines: [
-      <>The whole app is at <a href={REPO} style={link}>github.com/idiot95/Saree-al-Hisab</a>. You can read exactly what it does with your data rather than take this page’s word for it.</>,
+      <>The whole app is at <a href={REPO} className={link}>github.com/idiot95/Saree-al-Hisab</a>. You can read exactly what it does with your data rather than take this page’s word for it.</>,
       'You can also run your own copy against your own database. It needs a Postgres connection string, one secret and a Google OAuth client for sign-in; the README in the repository says how. Then nobody but you holds the books.',
     ],
   },
@@ -91,42 +89,32 @@ export default async function Terms() {
 
   return (
     <Screen>
-      <main style={{ minHeight: '100dvh', background: 'var(--background)', paddingBottom: BACK_SPACE }}>
+      <main className="min-h-dvh bg-background text-foreground" style={{ paddingBottom: BACK_SPACE }}>
         <PageHead back={back} title="Terms, and how your data is kept"
-          sub={`Seven things, each one you can check. Dated ${DATED}; if they change, the date does.`} />
+          sub={`${SECTIONS.length} things, each one you can check. Dated ${DATED}; if they change, the date does.`} />
 
-        <ol style={{ margin: 0, padding: '20px var(--gutter) 0', listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 14 }}>
-          {SECTIONS.map((s) => (
-            <li key={s.title} className="border border-border" style={{
-              background: 'var(--card)', borderRadius: 18, padding: 16,
-              display: 'flex', flexDirection: 'column', gap: 10,
-            }}>
-              <h2 style={{ margin: 0, fontSize: 'var(--step-0)', fontWeight: 600, letterSpacing: '-.01em' }}>
-                {s.title}
-              </h2>
-              <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {s.lines.map((line, i) => (
-                  <li key={i} style={{
-                    display: 'flex', gap: 10, fontSize: 'var(--step--1)', lineHeight: 1.55, color: 'var(--foreground)',
-                  }}>
-                    <span aria-hidden style={{
-                      width: 5, height: 5, flex: 'none', borderRadius: 999, marginTop: 8, background: 'var(--muted-foreground)',
-                    }} />
-                    <span style={{ minWidth: 0 }}>{line}</span>
-                  </li>
-                ))}
-              </ul>
-            </li>
-          ))}
-        </ol>
+        <div className="flex flex-col gap-4 px-[var(--gutter)] pb-8">
+          <ol className="flex flex-col gap-3">
+            {SECTIONS.map((s) => (
+              <li key={s.title} className="flex flex-col gap-2.5 rounded-[18px] bg-card p-[var(--pad)]">
+                <h2 className="text-base font-semibold">{s.title}</h2>
+                <ul className="flex flex-col gap-2">
+                  {s.lines.map((line, i) => (
+                    <li key={i} className="flex gap-2.5 text-[15px] leading-relaxed">
+                      <span aria-hidden className="mt-[0.7em] size-[5px] flex-none rounded-full bg-muted-foreground" />
+                      <span className="min-w-0">{line}</span>
+                    </li>
+                  ))}
+                </ul>
+              </li>
+            ))}
+          </ol>
 
-        <p style={{
-          margin: '18px var(--gutter) 0', fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--muted-foreground)',
-        }}>
-          Using the app means agreeing to these. Questions go to whoever sent you the link.
-        </p>
+          <p className="px-0.5 text-sm leading-normal text-muted-foreground">
+            Using the app means agreeing to these. Questions go to whoever sent you the link.
+          </p>
+        </div>
       </main>
     </Screen>
   );
 }
-

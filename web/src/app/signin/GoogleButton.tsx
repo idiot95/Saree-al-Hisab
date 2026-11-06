@@ -24,8 +24,7 @@ export default function GoogleButton({ action = signInWithGoogle, label = 'Conti
 function Submit({ label }: { label: string }) {
   const { pending } = useFormStatus();
   return (
-    <button type="submit" disabled={pending}
-      style={{ ...primaryBtn, opacity: pending ? 0.65 : 1 }}>
+    <button type="submit" disabled={pending} className={primaryBtn}>
       <GoogleMark />
       {pending ? 'Opening Google…' : label}
     </button>
@@ -33,13 +32,10 @@ function Submit({ label }: { label: string }) {
 }
 
 /* Google's "G", drawn in its own four colours on a white disc so it reads on
-   the navy button in both themes. */
+   the plum button in both themes. */
 function GoogleMark() {
   return (
-    <span aria-hidden style={{
-      width: 26, height: 26, borderRadius: 999, background: '#fff',
-      display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flex: 'none',
-    }}>
+    <span aria-hidden className="inline-flex size-[26px] flex-none items-center justify-center rounded-full bg-white">
       <svg width={16} height={16} viewBox="0 0 48 48">
         <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
         <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />

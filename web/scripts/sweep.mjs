@@ -31,6 +31,8 @@ const DEFAULT_ROUTES = ['/', '/entries', '/budget', '/people', '/worth', '/accou
   '/add', '/household', '/categories', '/entries?f=review', '/entries?f=upcoming', '/entries?f=sms', '/signin', '/signup', '/terms', '/offline'];
 /* Public routes are measured with NO session: with one, /signin bounces to /. */
 const PUBLIC_ROUTES = new Set(['/signin', '/signup', '/terms', '/offline']);
+/* A link's own page is opened by someone not signed in yet: /join/<token> and /reset/<token> too. */
+const isPublic = (route) => PUBLIC_ROUTES.has(route) || /^\/(join|reset)\//.test(route);
 
 const VIEWPORTS = [
   { w: 360, h: 780, os: 'android' },
@@ -393,7 +395,7 @@ async function sweepEngine(args, engine, hasState) {
       };
       const ctxs = { anon: await open(false), authed: hasState ? await open(true) : null };
       for (const route of args.routes) {
-        const ctx = PUBLIC_ROUTES.has(route) ? ctxs.anon : ctxs.authed;
+        const ctx = isPublic(route) ? ctxs.anon : ctxs.authed;
         const page = await ctx.newPage();
         const consoleErrors = wireCollectors(page);
         let found = [];
@@ -507,7 +509,7 @@ const args = parseArgs(process.argv.slice(2));
 if (args.selftest) await selftest();
 if (args.login) await login(args.login);
 const hasState = fs.existsSync(STATE);
-const needsSession = args.routes.filter((r) => !PUBLIC_ROUTES.has(r));
+const needsSession = args.routes.filter((r) => !isPublic(r));
 if (!hasState && needsSession.length) {
   console.error(`error: no SWEEP_STATE file at ${STATE}, but these routes need a session: ${needsSession.join(', ')}.`);
   console.error('Sign in first with --login email:password (or point SWEEP_STATE at a storage-state file).');

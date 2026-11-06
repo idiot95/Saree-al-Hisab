@@ -1,5 +1,5 @@
 import { resetByToken } from '@/db/queries';
-import { AuthShell, DeadEnd, ErrorNote } from '../../auth-ui';
+import { AuthShell, DeadEnd, ErrorNote, Small } from '../../auth-ui';
 import { passwordSignInOpenNow } from '@/lib/password-window';
 import GoogleButton from '../../signin/GoogleButton';
 import { linkGoogleWithReset } from '../actions';
@@ -46,31 +46,25 @@ export default async function Reset({ params, searchParams }: {
   if (!passwordSignInOpenNow()) {
     return (
       <AuthShell kicker={`For ${reset.name}`} title="Link your Google account">
-        <div style={{ padding: '24px var(--gutter) 30px', display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <p style={{ margin: 0, fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--muted-foreground)' }}>
-            Passwords have ended here. Choose your own Google account and it becomes how you
-            sign in from now on.
-          </p>
-          {e === 'wait' && <ErrorNote>Too many attempts. Try again in a few minutes.</ErrorNote>}
-          {e === '1' && <ErrorNote>That did not work. Try again in a moment.</ErrorNote>}
-          <GoogleButton action={linkGoogleWithReset} fields={{ token }} />
-          <p style={{ margin: '2px 4px 0', fontSize: 'var(--step--2)', lineHeight: 1.5, color: 'var(--muted-foreground)' }}>
-            This uses up the link and signs you out everywhere else. If you stop
-            partway, ask the owner of your household for a new one.
-          </p>
-        </div>
+        <Small>
+          Passwords have ended here. Choose your own Google account and it becomes how you
+          sign in from now on.
+        </Small>
+        {e === 'wait' && <ErrorNote>Too many attempts. Try again in a few minutes.</ErrorNote>}
+        {e === '1' && <ErrorNote>That did not work. Try again in a moment.</ErrorNote>}
+        <GoogleButton action={linkGoogleWithReset} fields={{ token }} />
+        <Small className="text-xs">
+          This uses up the link and signs you out everywhere else. If you stop
+          partway, ask the owner of your household for a new one.
+        </Small>
       </AuthShell>
     );
   }
 
   return (
     <AuthShell kicker={`For ${reset.name}`} title="Set a new password">
-      <div style={{ padding: '24px var(--gutter) 30px', display: 'flex', flexDirection: 'column', gap: 14 }}>
-        <ResetForm token={token} />
-        <p style={{ margin: '2px 4px 0', fontSize: 'var(--step--2)', lineHeight: 1.5, color: 'var(--muted-foreground)' }}>
-          This signs you in and cancels the link.
-        </p>
-      </div>
+      <ResetForm token={token} />
+      <Small className="text-xs">This signs you in and cancels the link.</Small>
     </AuthShell>
   );
 }
