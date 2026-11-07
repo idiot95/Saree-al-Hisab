@@ -14,7 +14,7 @@ export default function HoldingRow({ h, value }: { h: HoldingItem; value: string
       <Link href={`/worth/${h.id}`}
         className="press flex min-h-16 items-center gap-3 px-3.5 py-2.5">
         {h.kind === 'fx_cash' ? (
-          <span className="grid size-10 flex-none place-items-center rounded-xl bg-accent text-xs font-bold text-accent-foreground">
+          <span className="grid size-10 flex-none place-items-center rounded-xl bg-accent text-footnote font-bold text-accent-foreground">
             {h.badge}
           </span>
         ) : (
@@ -23,19 +23,19 @@ export default function HoldingRow({ h, value }: { h: HoldingItem; value: string
           </span>
         )}
         <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-          <span className="text-[15px] font-medium [overflow-wrap:anywhere]">{h.name}</span>
-          <span className="text-xs text-muted-foreground [overflow-wrap:anywhere]">{sub}</span>
+          <span className="text-body font-medium [overflow-wrap:anywhere]">{h.name}</span>
+          <span className="text-footnote text-muted-foreground [overflow-wrap:anywhere]">{sub}</span>
         </span>
         {value !== null ? (
-          <span className="flex flex-none items-center gap-1 text-[15px] font-semibold tabular-nums">
+          <span className="flex flex-none items-center gap-1 text-body font-semibold tabular-nums">
             {/* The section above says which rate and from when; the row carries its own mark of it. */}
             {h.stale && <Icon name="sync_problem" size={15} aria-label="Older rate, couldn’t update" className="text-attention-soft-foreground" />}
             {value}
           </span>
         ) : (
           <span className="flex flex-none flex-col items-end gap-0.5">
-            <span className="text-[15px] font-semibold tabular-nums">{h.native}</span>
-            <span className="flex items-center gap-1 text-xs text-muted-foreground">
+            <span className="text-body font-semibold tabular-nums">{h.native}</span>
+            <span className="flex items-center gap-1 text-footnote text-muted-foreground">
               <Icon name="info" size={14} />Not valued yet
             </span>
           </span>

@@ -10,9 +10,9 @@ export function Section({ label, children, note }: { label: string; children: Re
   const id = `section-${label.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
   return (
     <section aria-labelledby={id} className="flex flex-col gap-1.5">
-      <h2 id={id} className="px-0.5 text-[13px] font-semibold text-muted-foreground">{label}</h2>
+      <h2 id={id} className="px-0.5 text-subhead font-semibold text-muted-foreground">{label}</h2>
       {children}
-      {note && <p className="px-0.5 text-[13px] leading-snug text-muted-foreground">{note}</p>}
+      {note && <p className="px-0.5 text-subhead leading-snug text-muted-foreground">{note}</p>}
     </section>
   );
 }
@@ -42,8 +42,8 @@ export function Glyph({ name, tone = 'muted' }: { name: string; tone?: 'muted' |
 export function Words({ title, sub }: { title: React.ReactNode; sub?: React.ReactNode }) {
   return (
     <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-      <span className="text-[15px] font-semibold leading-snug [overflow-wrap:anywhere]">{title}</span>
-      {sub && <span className="text-[13px] leading-snug text-muted-foreground [overflow-wrap:anywhere]">{sub}</span>}
+      <span className="text-body font-semibold leading-snug [overflow-wrap:anywhere]">{title}</span>
+      {sub && <span className="text-subhead leading-snug text-muted-foreground [overflow-wrap:anywhere]">{sub}</span>}
     </span>
   );
 }
@@ -56,7 +56,7 @@ export { solid, ghost, danger } from '../form-bits';
 /** A confirmation line after a save: an icon and the words. */
 export function Done({ children }: { children: React.ReactNode }) {
   return (
-    <p role="status" className="flex items-start gap-2 rounded-xl bg-accent px-3.5 py-3 text-sm font-semibold text-accent-foreground">
+    <p role="status" className="flex items-start gap-2 rounded-xl bg-accent px-3.5 py-3 text-body font-semibold text-accent-foreground">
       <Icon name="check_circle" size={18} className="mt-px" />{children}
     </p>
   );
@@ -65,7 +65,7 @@ export function Done({ children }: { children: React.ReactNode }) {
 /** A person: their Google picture when there is one, else their initials on plum-soft. */
 export function Avatar({ name, image }: { name: string; image: string | null }) {
   return (
-    <span className="grid size-[42px] flex-none place-items-center overflow-hidden rounded-full bg-accent text-sm font-bold text-accent-foreground">
+    <span className="grid size-[42px] flex-none place-items-center overflow-hidden rounded-full bg-accent text-body font-bold text-accent-foreground">
       {image
         /* eslint-disable-next-line @next/next/no-img-element */
         ? <img src={image} alt="" width={42} height={42} className="size-[42px] rounded-full" />

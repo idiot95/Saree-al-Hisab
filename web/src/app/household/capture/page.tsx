@@ -48,7 +48,7 @@ export default async function Capture() {
       <main className="min-h-dvh bg-background text-foreground" style={{ paddingBottom: TAB_BAR_SPACE }}>
         <PageHead back="/household" title="SMS capture" sub="Bank messages become drafts to review" />
         <div className="flex flex-col gap-6 px-[var(--gutter)]">
-          <ul className="flex list-none flex-col gap-2.5 rounded-2xl border border-border bg-card p-4 text-sm leading-relaxed">
+          <ul className="flex list-none flex-col gap-2.5 rounded-2xl border border-border bg-card p-4 text-body leading-relaxed">
             <li className="flex items-start gap-2.5">
               <Icon name="rule" size={18} className="mt-0.5 text-muted-foreground" />
               <span>Each message is a draft under To review. Nothing is recorded until you save it.</span>
@@ -81,7 +81,7 @@ export default async function Capture() {
 
           {where.preview && (
             /* A preview's address goes when the preview does: say so before a phone is set up against it. */
-            <p data-preview-warning className="flex items-start gap-2.5 rounded-2xl bg-attention-soft p-4 text-sm leading-relaxed text-attention-soft-foreground">
+            <p data-preview-warning className="flex items-start gap-2.5 rounded-2xl bg-attention-soft p-4 text-body leading-relaxed text-attention-soft-foreground">
               <Icon name="warning" size={18} className="mt-0.5" />
               <span><strong className="font-semibold">Preview address.</strong> This is a preview deploy, so the address below stops working when the preview goes away, and a phone set up with a key made here stops with it. Set phones up on the app’s main address.</span>
             </p>
@@ -93,7 +93,7 @@ export default async function Capture() {
               <AddPhone endpoint={endpoint} />
             </section>
           ) : (
-            <p className="flex items-start gap-2 rounded-2xl border border-border bg-card p-4 text-sm leading-relaxed text-muted-foreground">
+            <p className="flex items-start gap-2 rounded-2xl border border-border bg-card p-4 text-subhead leading-relaxed text-muted-foreground">
               <Icon name="info" size={18} className="mt-0.5" /> Viewers cannot add phones. An owner or contributing member can.
             </p>
           )}

@@ -111,13 +111,13 @@ function CardBlock({ card, canWrite }: { card: CardInfo; canWrite: boolean }) {
     );
   }
 
-  const quiet = 'flex min-h-[46px] flex-none items-center justify-center gap-[7px] rounded-[13px] bg-muted text-sm font-semibold text-foreground no-underline';
+  const quiet = 'flex min-h-[46px] flex-none items-center justify-center gap-[7px] rounded-[13px] bg-muted text-body font-semibold text-foreground no-underline';
   return (
     <div className="flex min-w-0 flex-1 flex-col gap-2.5">
       <CardFace card={card} />
 
       {available !== null && (
-        <p className="mx-0.5 text-xs text-muted-foreground">
+        <p className="mx-0.5 text-footnote text-muted-foreground">
           {available >= 0
             ? <><b className="tabular-nums font-bold text-foreground">{format(available)}</b> of {format(limit!)} still available</>
             : <><b className="tabular-nums font-bold text-destructive">{format(Math.abs(available))}</b> over the limit</>}
@@ -127,7 +127,7 @@ function CardBlock({ card, canWrite }: { card: CardInfo; canWrite: boolean }) {
       {canWrite && (
         <div className="flex min-w-0 gap-2">
           {payable > 0 && (
-            <Link className="flex min-h-[46px] text-center min-w-0 flex-1 items-center justify-center gap-[7px] rounded-[13px] bg-primary text-sm font-bold text-primary-foreground no-underline"
+            <Link className="flex min-h-[46px] text-center min-w-0 flex-1 items-center justify-center gap-[7px] rounded-[13px] bg-primary text-body font-bold text-primary-foreground no-underline"
               href={`/add?kind=transfer&to=${account.id}&amount=${payable}`}
               onClick={() => haptic('select')}
               aria-label={`Pay ${format(payable)} to ${account.name}`}>
@@ -172,7 +172,7 @@ function CardFace({ card }: { card: CardInfo }) {
             {bank?.logo
               ? <Image src={bank.logo} alt={bank.label} width={104} height={26} unoptimized
                   className="block h-full w-auto object-contain" />
-              : <span className="truncate text-sm font-bold text-muted-foreground">{account.name}</span>}
+              : <span className="truncate text-subhead font-bold text-muted-foreground">{account.name}</span>}
           </span>
           {network?.logo && (
             <Image src={network.logo} alt={network.label} width={44} height={18} unoptimized
@@ -180,22 +180,22 @@ function CardFace({ card }: { card: CardInfo }) {
           )}
         </span>
         {account.last4 && (
-          <span className="tabular-nums flex-none pt-1 text-[10px] font-semibold tracking-[.08em] text-muted-foreground"
+          <span className="tabular-nums flex-none pt-1 text-caption font-semibold tracking-[.08em] text-muted-foreground"
             aria-label={`ending ${account.last4}`}>••{account.last4}</span>
         )}
       </div>
 
       <div className="flex items-end gap-3">
         <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-          <span className="text-[9px] font-bold tracking-[.11em] text-muted-foreground uppercase">
+          <span className="text-caption font-bold tracking-[.11em] text-muted-foreground uppercase">
             {owed > 0 ? 'Outstanding' : 'Nothing owed'}
           </span>
           <span className="text-[clamp(23px,7.2vw,31px)] leading-[1.02] font-bold tracking-[-.025em]">{format(owed)}</span>
         </span>
         {due && owed > 0 && (
           <span className="flex flex-none flex-col gap-0.5 text-right">
-            <span className="text-[9px] font-bold tracking-[.11em] text-muted-foreground uppercase">Due</span>
-            <span className="tabular-nums text-base leading-[1.1] font-bold whitespace-nowrap">{due}</span>
+            <span className="text-caption font-bold tracking-[.11em] text-muted-foreground uppercase">Due</span>
+            <span className="tabular-nums text-headline leading-[1.1] font-bold whitespace-nowrap">{due}</span>
           </span>
         )}
       </div>

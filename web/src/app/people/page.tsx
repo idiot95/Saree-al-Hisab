@@ -64,15 +64,15 @@ export default async function LoanCentre() {
           {/* "Owed to you" is Home's figure exactly (owedToYou().owed, gross): money arriving, so money-in with a +.
               What you owe others is never netted against it; it is its own line, in plain ink, with the words. */}
           <section aria-label="Owed to you" className="flex flex-col gap-2 rounded-[22px] bg-card p-[18px]">
-            <span className="text-[13px] text-muted-foreground">Owed to you</span>
+            <span className="text-subhead text-muted-foreground">Owed to you</span>
             <Figure minor={owed} sign={owed > 0}
-              className={`text-[38px] font-bold leading-none tracking-tight tabular-nums ${owed > 0 ? 'text-money-in' : ''}`} />
+              className={`text-display font-bold leading-none tracking-tight tabular-nums ${owed > 0 ? 'text-money-in' : ''}`} />
             {youOwe > 0 && (
-              <span className="text-[15px] font-medium">
+              <span className="text-body font-medium">
                 You owe <Figure minor={youOwe} className="font-semibold tabular-nums" />
               </span>
             )}
-            <span className="text-[13px] leading-snug text-muted-foreground">
+            <span className="text-subhead leading-snug text-muted-foreground">
               {tabs.length === 0 && lent.length === 0
                 ? 'A tab keeps what you put down for others (a trip, the office, a cousin) and what comes back.'
                 : [
@@ -89,7 +89,7 @@ export default async function LoanCentre() {
 
           {open.length > 0 && (
             <section aria-label="Open tabs" className="flex flex-col gap-1.5">
-              <h2 className="px-0.5 text-[13px] font-semibold text-muted-foreground">Open tabs</h2>
+              <h2 className="px-0.5 text-subhead font-semibold text-muted-foreground">Open tabs</h2>
               {/* px-[var(--pad)] and overflow-hidden: the swipe row's negative margin is --pad, so its actions stop
                   at the card's rounded edge and the card never scrolls sideways. */}
               <div className="overflow-hidden rounded-[18px] bg-card px-[var(--pad)]">
@@ -100,7 +100,7 @@ export default async function LoanCentre() {
 
           {done.length > 0 && (
             <details className="group overflow-hidden rounded-[18px] bg-card px-[var(--pad)]">
-              <summary className="flex min-h-14 cursor-pointer list-none items-center gap-3 text-[15px] font-medium text-muted-foreground [&::-webkit-details-marker]:hidden">
+              <summary className="flex min-h-14 cursor-pointer list-none items-center gap-3 text-body font-medium text-muted-foreground [&::-webkit-details-marker]:hidden">
                 <Icon name="check_circle" size={22} />
                 <span className="flex-1">{done.length} settled or closed {done.length === 1 ? 'tab' : 'tabs'}</span>
                 <Icon name="expand_more" size={20} className="transition-transform group-open:rotate-180" />
@@ -115,7 +115,7 @@ export default async function LoanCentre() {
               asks to be managed. */}
           {lent.length > 0 && (
             <section aria-label="Lent outside a tab" className="flex flex-col gap-1.5">
-              <h2 className="px-0.5 text-[13px] font-semibold text-muted-foreground">Lent outside a tab</h2>
+              <h2 className="px-0.5 text-subhead font-semibold text-muted-foreground">Lent outside a tab</h2>
               <ul className="overflow-hidden rounded-[18px] bg-card">
                 {lent.map((p) => {
                   const bal = Number(p.balance);
@@ -124,11 +124,11 @@ export default async function LoanCentre() {
                       <Link href={`/people/${p.id}`}
                         className="press flex min-h-16 items-center gap-3 px-3.5">
                         <Face name={p.name} tint={p.tint} size={36} />
-                        <span className="min-w-0 flex-1 text-[15px] font-medium leading-snug [overflow-wrap:anywhere]">{p.name}</span>
+                        <span className="min-w-0 flex-1 text-body font-medium leading-snug [overflow-wrap:anywhere]">{p.name}</span>
                         <span className="flex flex-col items-end gap-0.5">
                           <Figure minor={Math.abs(bal)} sign={bal > 0}
-                            className={`text-[15px] font-semibold tabular-nums ${bal > 0 ? 'text-money-in' : ''}`} />
-                          <span className="text-xs text-muted-foreground">{bal > 0 ? 'owes you' : 'you owe'}</span>
+                            className={`text-body font-semibold tabular-nums ${bal > 0 ? 'text-money-in' : ''}`} />
+                          <span className="text-footnote text-muted-foreground">{bal > 0 ? 'owes you' : 'you owe'}</span>
                         </span>
                         <Icon name="chevron_right" size={18} className="text-muted-foreground" />
                       </Link>
@@ -168,13 +168,13 @@ function TabItem({ t, last, canWrite, quiet = false }: { t: TabRow; last: boolea
         className={`relative flex min-h-16 items-center gap-3 py-3 ${last ? '' : 'after:absolute after:right-0 after:bottom-0 after:left-12 after:h-px after:bg-border'} ${quiet ? 'opacity-75' : ''}`}>
         <Chip icon="folder" tint={tabTint(t.id)} size={36} radius={999} />
         <span className="flex min-w-0 flex-1 flex-col gap-1">
-          <span className="text-[15px] font-medium leading-snug [overflow-wrap:anywhere]">{t.name}</span>
-          <span className="text-xs leading-snug text-muted-foreground">{sub}</span>
+          <span className="text-body font-medium leading-snug [overflow-wrap:anywhere]">{t.name}</span>
+          <span className="text-footnote leading-snug text-muted-foreground">{sub}</span>
         </span>
         {outstanding > 0 ? (
-          <Figure minor={outstanding} className="flex-none text-[15px] font-semibold tabular-nums" />
+          <Figure minor={outstanding} className="flex-none text-body font-semibold tabular-nums" />
         ) : (
-          <span className="flex flex-none items-center gap-1 text-[13px] font-medium text-muted-foreground">
+          <span className="flex flex-none items-center gap-1 text-subhead font-medium text-muted-foreground">
             {t.costs > 0 ? <><Icon name="check" size={16} />Settled</> : 'Empty'}
           </span>
         )}

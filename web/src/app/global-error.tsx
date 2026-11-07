@@ -18,17 +18,17 @@ export default function GlobalError({ retry }: { error: Error & { digest?: strin
               strokeLinecap="round" strokeLinejoin="round" aria-hidden className="text-primary">
               <path d="M21 12a9 9 0 1 1-3-6.7" /><path d="M21 4v5h-5" /><path d="M12 8v4" /><path d="M12 16h.01" />
             </svg>
-            <h1 className="text-[28px] font-bold leading-tight">The app didn’t load</h1>
-            <p className="max-w-[32ch] text-sm leading-relaxed text-muted-foreground">
+            <h1 className="text-title-2 font-bold leading-tight">The app didn’t load</h1>
+            <p className="max-w-[32ch] text-subhead leading-relaxed text-muted-foreground">
               Something went wrong on the way, or the signal dropped. Nothing you saved is lost.
             </p>
             <button type="button" onClick={() => retry()}
-              className="mt-1 flex min-h-11 items-center gap-1.5 rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground">
+              className="mt-1 flex min-h-11 items-center gap-1.5 rounded-full bg-primary px-5 text-body font-semibold text-primary-foreground">
               Try again
             </button>
             {/* A plain link: a full load of Home, which is what a broken layout needs. */}
             {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
-            <a href="/" className="flex min-h-11 items-center px-2 text-sm font-medium text-primary">Back to Home</a>
+            <a href="/" className="flex min-h-11 items-center px-2 text-body font-medium text-primary">Back to Home</a>
           </section>
         </main>
       </body>

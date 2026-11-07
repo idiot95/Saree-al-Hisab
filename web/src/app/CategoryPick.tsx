@@ -27,7 +27,7 @@ export default function CategoryPick({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-      <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--muted-foreground)' }}>{label}</span>
+      <span style={{ fontSize: 'var(--text-subhead)', fontWeight: 600, color: 'var(--muted-foreground)' }}>{label}</span>
       {name && <input type="hidden" name={name} value={chosen?.id ?? ''} />}
       <button type="button" disabled={disabled} aria-haspopup="dialog" aria-expanded={open}
         onClick={() => { haptic('tap'); setOpen(true); }}
@@ -52,18 +52,18 @@ export default function CategoryPick({
         )}
         <span style={{ flex: 1, minWidth: 0 }}>
           <span style={{
-            display: 'block', fontWeight: 600, fontSize: 'var(--step-0)', overflowWrap: 'anywhere',
+            display: 'block', fontWeight: 600, fontSize: 'var(--text-body)', overflowWrap: 'anywhere',
             color: chosen ? 'var(--foreground)' : 'var(--muted-foreground)',
           }}>
             {chosen ? chosen.name : placeholder}
           </span>
           {chosen?.parent && (
-            <span style={{ display: 'block', fontSize: 'var(--step--2)', color: 'var(--muted-foreground)' }}>
+            <span style={{ display: 'block', fontSize: 'var(--text-footnote)', color: 'var(--muted-foreground)' }}>
               under {chosen.parent}
             </span>
           )}
         </span>
-        <span style={{ fontSize: 'var(--step--2)', fontWeight: 600, color: 'var(--primary)', flex: 'none' }}>
+        <span style={{ fontSize: 'var(--text-footnote)', fontWeight: 600, color: 'var(--primary)', flex: 'none' }}>
           {chosen ? 'Change' : 'Find'}
         </span>
       </button>

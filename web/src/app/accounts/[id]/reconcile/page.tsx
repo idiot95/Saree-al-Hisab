@@ -53,14 +53,14 @@ export default async function ReconcileAccount({ params, searchParams }: {
           {/* What the books say today: a Figure, so it rolls when a match records an adjustment or an Undo takes
               one away. */}
           <section aria-label="In the books today" className="mx-[var(--gutter)] flex flex-col gap-1.5 rounded-[22px] bg-card p-[18px]">
-            <span className="text-[13px] text-muted-foreground">
+            <span className="text-subhead text-muted-foreground">
               {credit ? (bal < 0 ? 'Owed on the card today' : 'In credit today') : bal < 0 ? 'Overdrawn today' : 'In the books today'}
             </span>
-            <Figure minor={Math.abs(bal)} className="text-[34px] font-bold leading-none tracking-tight tabular-nums" />
+            <Figure minor={Math.abs(bal)} className="text-large-title font-bold leading-none tracking-tight tabular-nums" />
           </section>
 
           {justDone && (
-            <p role="status" className="mx-[var(--gutter)] flex items-start gap-2 rounded-xl bg-accent px-3.5 py-3 text-sm font-semibold leading-normal text-accent-foreground">
+            <p role="status" className="mx-[var(--gutter)] flex items-start gap-2 rounded-xl bg-accent px-3.5 py-3 text-body font-semibold leading-normal text-accent-foreground">
               <Icon name="check_circle" size={18} className="mt-px" />
               <span className="min-w-0 flex-1">
                 Matched to the {day(justDone.on, true)} statement — {justDone.entries} {justDone.entries === 1 ? 'entry' : 'entries'} ticked off
@@ -78,7 +78,7 @@ export default async function ReconcileAccount({ params, searchParams }: {
               entries={entries.map((e) => ({ id: e.id, on: e.on, what: e.what, via: e.via, signed: Number(e.signed) }))}
             />
           ) : (
-            <p className="mx-[var(--gutter)] flex items-start gap-1.5 text-sm text-muted-foreground">
+            <p className="mx-[var(--gutter)] flex items-start gap-1.5 text-subhead text-muted-foreground">
               <Icon name="lock" size={16} className="mt-px" />
               Only owners and contributing members can reconcile accounts.
             </p>
@@ -86,21 +86,21 @@ export default async function ReconcileAccount({ params, searchParams }: {
 
           {history.length > 0 && (
             <section aria-labelledby="sec-matched" className="flex flex-col gap-1.5 px-[var(--gutter)]">
-              <h2 id="sec-matched" className="px-0.5 text-[13px] font-semibold text-muted-foreground">Statements matched</h2>
+              <h2 id="sec-matched" className="px-0.5 text-subhead font-semibold text-muted-foreground">Statements matched</h2>
               <ul className="overflow-hidden rounded-[18px] bg-card">
                 {history.map((r, i) => (
                   <li key={r.id} className="flex min-h-16 items-center gap-3 border-b border-border px-[var(--pad)] py-2.5 last:border-b-0">
                     <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-                      <span className="text-[15px] font-semibold">{day(r.on, true)}</span>
-                      <span className="text-[13px] leading-snug text-muted-foreground [overflow-wrap:anywhere]">
+                      <span className="text-body font-semibold">{day(r.on, true)}</span>
+                      <span className="text-subhead leading-snug text-muted-foreground [overflow-wrap:anywhere]">
                         {r.entries} {r.entries === 1 ? 'entry' : 'entries'}
                         {r.adjustment ? ` · adjusted ${Number(r.adjustment) > 0 ? '+' : '−'}${format(Math.abs(Number(r.adjustment)))}` : ''}
                         {r.who ? ` · ${r.who}` : ''}
                       </span>
                     </span>
                     <span className="flex flex-none flex-col items-end gap-0.5">
-                      <span className="text-[15px] font-semibold tabular-nums">{format(Math.abs(Number(r.balance)))}</span>
-                      {credit && <span className="text-xs text-muted-foreground">{Number(r.balance) < 0 ? 'owed' : 'in credit'}</span>}
+                      <span className="text-body font-semibold tabular-nums">{format(Math.abs(Number(r.balance)))}</span>
+                      {credit && <span className="text-footnote text-muted-foreground">{Number(r.balance) < 0 ? 'owed' : 'in credit'}</span>}
                     </span>
                     {canWrite && i === 0 && <UndoLatest id={r.id} />}
                   </li>

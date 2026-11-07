@@ -30,7 +30,7 @@ export default async function Setup() {
       </Small>
 
       <form action={async () => { 'use server'; await signOut({ redirectTo: '/signin' }); }}>
-        <button type="submit" className="flex min-h-11 items-center gap-2 px-1 text-sm font-semibold text-muted-foreground">
+        <button type="submit" className="flex min-h-11 items-center gap-2 px-1 text-subhead font-semibold text-muted-foreground">
           <Icon name="logout" size={18} />Sign out
         </button>
       </form>

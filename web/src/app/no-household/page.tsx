@@ -29,9 +29,9 @@ export default async function NoHousehold() {
               <Icon name="post" size={20} />
             </span>
             <span className="flex min-w-0 flex-col gap-1">
-              <span className="text-xs font-semibold text-muted-foreground">Ask them to invite this email</span>
-              <span className="text-base font-semibold [overflow-wrap:anywhere]">{actor.email}</span>
-              <span className="text-xs leading-snug text-muted-foreground">
+              <span className="text-footnote font-semibold text-muted-foreground">Ask them to invite this email</span>
+              <span className="text-headline font-semibold [overflow-wrap:anywhere]">{actor.email}</span>
+              <span className="text-footnote leading-snug text-muted-foreground">
                 An invitation is tied to the email it is sent to.
               </span>
             </span>
@@ -41,7 +41,7 @@ export default async function NoHousehold() {
         <StartOwn />
 
         <form action={async () => { 'use server'; await signOut({ redirectTo: '/signin' }); }}>
-          <button type="submit" className="flex min-h-11 items-center gap-2 px-1 text-sm font-semibold text-muted-foreground">
+          <button type="submit" className="flex min-h-11 items-center gap-2 px-1 text-subhead font-semibold text-muted-foreground">
             <Icon name="logout" size={18} />Sign out
           </button>
         </form>

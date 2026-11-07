@@ -76,7 +76,7 @@ export function DateSheet({ open, onClose, label, value, today, min, max, onPick
   return (
     <BottomDrawer open={open} onClose={onClose} label={label} showTitle repositionInputs={false}>
       <MonthGrid value={value} today={today} min={min} max={max} onPick={(iso) => { haptic('select'); onPick(iso); }} />
-      <p className="mt-2.5 mb-1 text-xs leading-snug text-muted-foreground">
+      <p className="mt-2.5 mb-1 text-footnote leading-snug text-muted-foreground">
         Chosen: {friendlyDay(value, today)} · {formatHijri(toHijri(civil(value)), true)}
       </p>
     </BottomDrawer>
@@ -104,7 +104,7 @@ export function DayOfMonth({ value, top, onPick, label = 'Day of the month' }: {
         return (
           <button key={d} type="button" role="radio" aria-checked={on} onClick={() => { haptic('select'); onPick(d); }}
             className="font-[620] tracking-[-0.018em]" style={{
-              minHeight: 44, borderRadius: 10, textAlign: 'center', fontSize: 'var(--step-0)', fontWeight: on ? 700 : 500,
+              minHeight: 44, borderRadius: 10, textAlign: 'center', fontSize: 'var(--text-body)', fontWeight: on ? 700 : 500,
               background: on ? 'var(--primary)' : 'var(--background)',
               color: on ? 'var(--primary-foreground)' : 'var(--foreground)',
             }}>
@@ -126,7 +126,7 @@ export function MonthOfYear({ value, names, onPick, label = 'Month' }: {
         const on = i + 1 === value;
         return (
           <button key={name} type="button" role="radio" aria-checked={on} onClick={() => { haptic('select'); onPick(i + 1); }} style={{
-            minHeight: 44, borderRadius: 10, padding: '0 4px', textAlign: 'center', fontSize: 'var(--step--1)', fontWeight: on ? 700 : 600,
+            minHeight: 44, borderRadius: 10, padding: '0 4px', textAlign: 'center', fontSize: 'var(--text-subhead)', fontWeight: on ? 700 : 600,
             lineHeight: 1.15, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
             background: on ? 'var(--primary)' : 'var(--background)',
             color: on ? 'var(--primary-foreground)' : 'var(--foreground)',
@@ -154,7 +154,7 @@ export function Segmented<T extends string>({ name, value, options, onChange, la
           <label key={id} style={{
             position: 'relative', flex: 1, minHeight: 40, display: 'flex', alignItems: 'center',
             justifyContent: 'center', borderRadius: 999, cursor: 'pointer', padding: '0 6px',
-            fontSize: 'var(--step--1)', fontWeight: 600, textAlign: 'center', lineHeight: 1.15,
+            fontSize: 'var(--text-subhead)', fontWeight: 600, textAlign: 'center', lineHeight: 1.15,
             background: on ? 'var(--card)' : 'transparent',
             color: on ? 'var(--foreground)' : 'var(--muted-foreground)',
             boxShadow: on ? '0 1px 2px rgba(0,0,0,.08)' : undefined,
@@ -171,6 +171,6 @@ export function Segmented<T extends string>({ name, value, options, onChange, la
 
 const chip: React.CSSProperties = {
   minHeight: 44, padding: '0 14px', display: 'flex', alignItems: 'center', flex: 'none',
-  borderRadius: 999, fontSize: 'var(--step--1)', fontWeight: 600, whiteSpace: 'nowrap',
+  borderRadius: 999, fontSize: 'var(--text-subhead)', fontWeight: 600, whiteSpace: 'nowrap',
   transition: 'background var(--dur-1) var(--ease-out), color var(--dur-1) var(--ease-out)',
 };

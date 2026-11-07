@@ -76,9 +76,9 @@ export default function HijriCalendar({ month, onMonthChange, today, selected, o
       months: 'relative flex flex-col',
       month: 'flex w-full flex-col gap-2',
       month_caption: 'flex min-h-(--cell-size) w-full flex-col items-center justify-center px-(--cell-size)',
-      caption_label: 'text-base font-semibold text-foreground',
+      caption_label: 'text-headline font-semibold text-foreground',
       weekdays: 'flex',
-      weekday: 'flex-1 pb-0.5 text-center text-xs font-semibold text-muted-foreground select-none',
+      weekday: 'flex-1 pb-0.5 text-center text-footnote font-semibold text-muted-foreground select-none',
       week: 'mt-0.5 flex w-full',
       day: 'relative flex-1 p-0 text-center select-none',
       today: '', outside: '', disabled: '', hidden: 'invisible',
@@ -99,7 +99,7 @@ function Caption({ calendarMonth, displayIndex, className, children, ...props }:
   return (
     <div className={className} {...props}>
       {children}
-      <span className="text-xs text-muted-foreground">{hijriSpan(d.getFullYear(), d.getMonth() + 1)}</span>
+      <span className="text-footnote text-muted-foreground">{hijriSpan(d.getFullYear(), d.getMonth() + 1)}</span>
     </div>
   );
 }
@@ -125,13 +125,13 @@ function HijriDay({ day, modifiers, className, children, ...props }: React.Compo
         on && 'bg-primary text-primary-foreground',
         modifiers.today && !on && 'ring-2 ring-chart-1 ring-inset',
       )}>
-      <span className={cn('tabular-nums text-base leading-none', modifiers.today || on ? 'font-bold' : 'font-medium')}>
+      <span className={cn('tabular-nums text-headline leading-none', modifiers.today || on ? 'font-bold' : 'font-medium')}>
         {day.date.getDate()}
       </span>
       {/* The 1st names its Hijri month whole ("Jumada II", "Zilqadah"): on one line, a size smaller, rather than
           wrapping to a second line or being cut short. */}
       <span className={cn('leading-none',
-        first ? 'whitespace-nowrap text-[0.56rem] font-bold tracking-[-0.02em]' : 'text-[0.62rem] font-medium',
+        first ? 'whitespace-nowrap text-caption font-bold tracking-[-0.04em]' : 'text-caption font-medium',
         on ? 'text-primary-foreground/85' : first ? 'text-primary' : 'text-muted-foreground')}>
         {first ? HIJRI_MONTHS_SHORT[h.m - 1] : h.d}
       </span>

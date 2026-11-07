@@ -28,7 +28,7 @@ export function TabFace({ t, on, here, live = false }: { t: Tab; on: boolean; he
         on ? 'in-data-[platform=android]:bg-accent in-data-[platform=android]:text-accent-foreground' : ''}`}>
         <Icon name={t.icon} size={24} filled={on} />
       </span>
-      <span className={`text-[length:var(--step--2)] tracking-[.01em] ${on ? 'font-bold' : 'font-medium'}`}>{t.label}</span>
+      <span className={`text-footnote tracking-[.01em] ${on ? 'font-bold' : 'font-medium'}`}>{t.label}</span>
     </>
   );
 }

@@ -43,7 +43,7 @@ export default function TabContacts({ tabId, people, canEdit }: {
       <div className="flex flex-wrap gap-2">
         {people.map((p) => (
           <button key={p.id} type="button" onClick={() => { haptic('tap'); setOpen(true); }}
-            className="press flex min-h-11 items-center gap-2 rounded-full border border-border bg-card py-1 pl-1.5 pr-3 text-sm font-semibold text-foreground">
+            className="press flex min-h-11 items-center gap-2 rounded-full border border-border bg-card py-1 pl-1.5 pr-3 text-body font-semibold text-foreground">
             <Face name={p.name} tint={p.tint} size={30} />
             {first(p.name)}
             <span className="flex items-center gap-0.5 font-medium text-muted-foreground">
@@ -53,7 +53,7 @@ export default function TabContacts({ tabId, people, canEdit }: {
         ))}
         {canEdit && (
           <button type="button" onClick={() => { haptic('select'); setOpen(true); }}
-            className="press flex min-h-11 items-center gap-1.5 rounded-full border border-dashed border-input pl-3 pr-3.5 text-sm font-semibold text-muted-foreground">
+            className="press flex min-h-11 items-center gap-1.5 rounded-full border border-dashed border-input pl-3 pr-3.5 text-subhead font-semibold text-muted-foreground">
             <Icon name="plus" size={16} />
             {people.length === 0 ? 'Add a contact' : 'Contact'}
           </button>
@@ -70,10 +70,10 @@ export default function TabContacts({ tabId, people, canEdit }: {
                   <Face name={p.name} tint={p.tint} />
                   <Link href={`/people/${p.id}`}
                     className="flex min-h-11 min-w-0 flex-1 flex-col justify-center gap-0.5 text-foreground">
-                    <span className="text-[15px] font-semibold">
+                    <span className="text-body font-semibold">
                       {p.name}{!p.onTab && <span className="font-medium text-muted-foreground"> · left the tab</span>}
                     </span>
-                    <span className="text-xs text-muted-foreground">
+                    <span className="text-footnote text-muted-foreground">
                       {p.inAll === 0 ? 'nothing on the tab yet'
                         : p.owed === 0 ? `settled · ${format(p.inAll)} in all`
                         : `owes ${format(p.owed)} of ${format(p.inAll)}`}
@@ -97,13 +97,13 @@ export default function TabContacts({ tabId, people, canEdit }: {
                chips comes from the key once they are on the tab. */
             <form key={round} noValidate onSubmit={keepFields(add)} className="flex flex-col gap-2.5">
               <input type="hidden" name="tabId" value={tabId} />
-              <span className="text-sm font-medium text-muted-foreground">Add someone</span>
+              <span className="text-subhead font-medium text-muted-foreground">Add someone</span>
               <NewPeople />
               {added && !added.ok && <Problem>{added.error}</Problem>}
-              <Button type="submit" disabled={adding} className="h-12 rounded-xl text-base font-semibold">
+              <Button type="submit" disabled={adding} className="h-12 rounded-xl text-headline font-semibold">
                 {adding ? 'Adding…' : 'Add to this tab'}
               </Button>
-              <p className="text-xs leading-snug text-muted-foreground">
+              <p className="text-footnote leading-snug text-muted-foreground">
                 Costs from now on split between everyone on the tab. What is already on it stays as it was.
               </p>
             </form>

@@ -110,8 +110,8 @@ export default async function Worth({ searchParams }: { searchParams: Promise<{ 
       <main className="min-h-dvh bg-background text-foreground" style={{ paddingBottom: TAB_BAR_SPACE }}>
         <header className="flex items-end justify-between gap-3 px-[var(--gutter)] pb-3 pt-4">
           <div className="min-w-0">
-            <p className="text-sm text-muted-foreground">{actor.household_name}</p>
-            <h1 className="text-[32px] font-bold leading-tight tracking-tight">Wealth</h1>
+            <p className="text-subhead text-muted-foreground">{actor.household_name}</p>
+            <h1 className="text-large-title font-bold leading-tight tracking-tight">Wealth</h1>
           </div>
           {canWrite && (
             <AddHolding base={actor.currency}

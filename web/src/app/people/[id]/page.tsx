@@ -62,7 +62,7 @@ export default async function Person({ params }: { params: Promise<{ id: string 
   const youOweOnly = balance < 0 && owedOnClaims === 0;
   const bothWays = balance < 0 && owedOnClaims > 0;
   const label = settled || bothWays ? 'Between you' : theyOwe ? 'Owes you' : 'You owe';
-  const big = 'text-[38px] font-bold leading-none tracking-tight tabular-nums';
+  const big = 'text-large-title font-bold leading-none tracking-tight tabular-nums';
 
   return (
     <Screen>
@@ -71,20 +71,20 @@ export default async function Person({ params }: { params: Promise<{ id: string 
 
         <div className="flex flex-col gap-5 pb-6">
           <section aria-label={label} className="mx-[var(--gutter)] flex flex-col gap-2 rounded-[22px] bg-card p-[18px]">
-            <span className="text-[13px] text-muted-foreground">{label}</span>
+            <span className="text-subhead text-muted-foreground">{label}</span>
             {settled ? (
-              <span className="flex items-center gap-2 text-[30px] font-bold leading-none tracking-tight">
+              <span className="flex items-center gap-2 text-large-title font-bold leading-none tracking-tight">
                 <Icon name="check_circle" size={28} className="text-money-in" />Settled up
               </span>
             ) : bothWays ? (
               <dl className="grid grid-cols-2 gap-3">
                 <div className="flex min-w-0 flex-col gap-1">
-                  <dt className="text-xs text-muted-foreground">Owes you, for shared costs</dt>
-                  <dd><Figure minor={owedOnClaims} sign className="text-[28px] font-bold leading-none tracking-tight text-money-in tabular-nums" /></dd>
+                  <dt className="text-footnote text-muted-foreground">Owes you, for shared costs</dt>
+                  <dd><Figure minor={owedOnClaims} sign className="text-title-2 font-bold leading-none tracking-tight text-money-in tabular-nums" /></dd>
                 </div>
                 <div className="flex min-w-0 flex-col gap-1">
-                  <dt className="text-xs text-muted-foreground">You owe, on loans</dt>
-                  <dd><Figure minor={-balance} className="text-[28px] font-bold leading-none tracking-tight tabular-nums" /></dd>
+                  <dt className="text-footnote text-muted-foreground">You owe, on loans</dt>
+                  <dd><Figure minor={-balance} className="text-title-2 font-bold leading-none tracking-tight tabular-nums" /></dd>
                 </div>
               </dl>
             ) : youOweOnly ? (
@@ -95,7 +95,7 @@ export default async function Person({ params }: { params: Promise<{ id: string 
             {/* Lending and shared costs are different debts and are said apart — conflating them is what makes a
                 khata stop being trusted. */}
             {!bothWays && (
-              <p className="text-[13px] leading-snug text-muted-foreground">
+              <p className="text-subhead leading-snug text-muted-foreground">
                 {settled
                   ? `Nothing outstanding between you${person.phone ? ` · ${person.phone}` : ''}`
                   : [
@@ -129,7 +129,7 @@ export default async function Person({ params }: { params: Promise<{ id: string 
           />
 
           <section aria-label="Money lent and returned" className="mx-[var(--gutter)] flex flex-col gap-1.5">
-            <h2 className="px-0.5 text-[13px] font-semibold text-muted-foreground">Money lent and returned</h2>
+            <h2 className="px-0.5 text-subhead font-semibold text-muted-foreground">Money lent and returned</h2>
             {ledger.length === 0 ? (
               <EmptyLine icon="handshake">Nothing lent or returned between you yet.</EmptyLine>
             ) : (
@@ -139,10 +139,10 @@ export default async function Person({ params }: { params: Promise<{ id: string 
                   return (
                     <li key={e.id} className="flex min-h-16 items-center gap-3 border-b border-border px-3.5 py-2.5 last:border-b-0">
                       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-                        <span className={`flex items-center gap-1.5 text-[15px] font-medium ${w.tone}`}>
+                        <span className={`flex items-center gap-1.5 text-body font-medium ${w.tone}`}>
                           <Icon name={w.icon} size={16} />{w.word}
                         </span>
-                        <span className="text-xs leading-snug text-muted-foreground">
+                        <span className="text-footnote leading-snug text-muted-foreground">
                           {new Date(e.occurred_on).toLocaleDateString('en-IN',
                             { day: 'numeric', month: 'short', year: 'numeric' })}
                           {e.direction === 'written_off' && e.category ? ` · ${e.category}` : ''}
@@ -150,7 +150,7 @@ export default async function Person({ params }: { params: Promise<{ id: string 
                           {e.note ? ` · ${e.note}` : ''}
                         </span>
                       </span>
-                      <span className={`flex-none text-[15px] font-semibold tabular-nums ${w.tone}`}>
+                      <span className={`flex-none text-body font-semibold tabular-nums ${w.tone}`}>
                         {e.direction === 'back' ? '−' : '+'}{format(Number(e.amount))}
                       </span>
                     </li>
@@ -160,7 +160,7 @@ export default async function Person({ params }: { params: Promise<{ id: string 
             )}
           </section>
 
-          <p className="px-[var(--gutter)] text-[13px] leading-relaxed text-muted-foreground">
+          <p className="px-[var(--gutter)] text-subhead leading-relaxed text-muted-foreground">
             None of this touches the monthly budget while it is outstanding — money lent has not
             been spent. Writing it off is the moment that changes.
           </p>

@@ -61,14 +61,14 @@ export default function DueRow({
           <Icon name={icon ?? 'autodebit'} size={20} />
         </span>
         <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-          <span className="text-[15px] font-medium [overflow-wrap:anywhere]">{name}</span>
-          <span className={`text-xs [overflow-wrap:anywhere] ${overdue ? 'text-destructive' : 'text-muted-foreground'}`}>
+          <span className="text-body font-medium [overflow-wrap:anywhere]">{name}</span>
+          <span className={`text-footnote [overflow-wrap:anywhere] ${overdue ? 'text-destructive' : 'text-muted-foreground'}`}>
             {whenLine(income, on, daysAway, today)}
             {movedFrom && ` · moved from ${friendlyDay(movedFrom, today)}`}
             {category && ` · ${category}`}
           </span>
         </span>
-        <span className={`flex-none text-[15px] font-semibold tabular-nums ${income ? 'text-money-in' : ''}`}>
+        <span className={`flex-none text-body font-semibold tabular-nums ${income ? 'text-money-in' : ''}`}>
           {income ? '+' : ''}{format(amount)}
         </span>
       </div>

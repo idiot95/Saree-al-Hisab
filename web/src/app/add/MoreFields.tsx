@@ -59,7 +59,7 @@ export default function MoreFields({ kind, state, set, tabs, claims, minor, toda
             <button type="button" data-exact-offer onClick={() => { haptic('success'); set('settleIds', new Set(exactIds)); }}
               className="flex min-h-13 items-center gap-2.5 rounded-xl border border-primary bg-accent px-3 py-2 text-left text-foreground">
               <Icon name="receivable" size={18} />
-              <span className="min-w-0 flex-1 text-sm leading-snug">
+              <span className="min-w-0 flex-1 text-body leading-snug">
                 {exactIds.size === 1
                   ? <>This is exactly what one open loan is owed. <b>Tick it?</b></>
                   : <>{exactIds.size} open loans are owed exactly this. <b>Tick them?</b></>}
@@ -79,18 +79,18 @@ export default function MoreFields({ kind, state, set, tabs, claims, minor, toda
                     isOn ? 'border-primary bg-primary' : 'border-border bg-muted')}>
                     {isOn && <Icon name="check" size={15} />}
                   </span>
-                  <span className="flex size-7.5 shrink-0 items-center justify-center rounded-full text-xs font-bold"
+                  <span className="flex size-7.5 shrink-0 items-center justify-center rounded-full text-footnote font-bold"
                     style={isOn ? { background: bg, color: ink } : undefined}>
                     {c.person.slice(0, 2).toUpperCase()}
                   </span>
                   <span className="flex min-w-0 flex-1 flex-col gap-px">
-                    <span className="truncate text-sm font-semibold">{c.person} · {c.what}</span>
-                    <span className="text-xs text-muted-foreground">{friendlyDay(c.on, today)}{c.tab ? ` · ${c.tab}` : ''}</span>
+                    <span className="truncate text-body font-semibold">{c.person} · {c.what}</span>
+                    <span className="text-footnote text-muted-foreground">{friendlyDay(c.on, today)}{c.tab ? ` · ${c.tab}` : ''}</span>
                   </span>
                   <span className="flex flex-col items-end gap-0.5">
-                    <span className={cn('text-sm font-[620] tracking-[-0.018em]', isOn ? 'text-money-in' : 'text-muted-foreground')}>{format(c.outstanding)}</span>
+                    <span className={cn('text-body font-[620] tracking-[-0.018em]', isOn ? 'text-money-in' : 'text-muted-foreground')}>{format(c.outstanding)}</span>
                     {exactIds.has(c.id) && (
-                      <span className="text-[10px] font-bold tracking-wider whitespace-nowrap text-primary uppercase">Exact match</span>
+                      <span className="text-caption font-bold tracking-wider whitespace-nowrap text-primary uppercase">Exact match</span>
                     )}
                   </span>
                 </button>
@@ -99,14 +99,14 @@ export default function MoreFields({ kind, state, set, tabs, claims, minor, toda
           </div>
           {settling.length > 0 && (
             <div className="flex items-center gap-2.5">
-              <p className="m-0 flex-1 text-xs leading-normal text-muted-foreground">
+              <p className="m-0 flex-1 text-footnote leading-normal text-muted-foreground">
                 {minor <= owedBack
                   ? `All ${format(minor)} is money back${minor < owedBack ? `, oldest first — ${format(owedBack - minor)} stays owed` : ''}. No category needed.`
                   : `${format(owedBack)} is money back · ${format(minor - owedBack)} is income and needs a category.`}
               </p>
               {minor !== owedBack && (
                 <button type="button" onClick={() => { haptic('select'); onUseOwed(owedBack); }}
-                  className="min-h-11 shrink-0 rounded-full bg-primary px-3 text-xs font-semibold text-primary-foreground">
+                  className="min-h-11 shrink-0 rounded-full bg-primary px-3 text-footnote font-semibold text-primary-foreground">
                   Use {format(owedBack)}
                 </button>
               )}
@@ -120,7 +120,7 @@ export default function MoreFields({ kind, state, set, tabs, claims, minor, toda
       <section aria-labelledby="add-tab" className="flex flex-col gap-2">
         <Eyebrow id="add-tab">{kind === 'income' ? 'On a tab' : 'Is someone paying this back?'}</Eyebrow>
         {tabs.length === 0 && (
-          <p className="m-0 text-sm leading-normal text-muted-foreground">
+          <p className="m-0 text-subhead leading-normal text-muted-foreground">
             {kind === 'income' ? 'Money that comes in against a trip, a person or the office rides on a tab. '
               : 'Money someone owes you back rides on a tab — a cousin, the office, a trip. '}
             <Link href="/people" className="font-semibold text-primary">
@@ -135,7 +135,7 @@ export default function MoreFields({ kind, state, set, tabs, claims, minor, toda
                 <button key={t.id} type="button" aria-pressed={isOn}
                   onClick={() => { haptic('select'); set('tabId', isOn ? null : t.id); }}
                   style={choice(isOn)}
-                  className="flex min-h-11 max-w-full items-center gap-1.5 rounded-full pr-3.5 pl-2.5 text-sm font-semibold">
+                  className="flex min-h-11 max-w-full items-center gap-1.5 rounded-full pr-3.5 pl-2.5 text-body font-semibold">
                   <Icon name="tab" size={16} />
                   <span className="truncate">{t.name}</span>
                 </button>
@@ -147,7 +147,7 @@ export default function MoreFields({ kind, state, set, tabs, claims, minor, toda
           <>
             {tab.people > 0 && (
               <label className="flex items-center gap-2.5">
-                <span className="text-xs font-semibold text-muted-foreground">Comes back</span>
+                <span className="text-footnote font-semibold text-muted-foreground">Comes back</span>
                 <input
                   value={state.coveredKeys === '' ? '' : keysDisplay(state.coveredKeys)}
                   onChange={(e) => set('coveredKeys', typed(e.target.value))}
@@ -172,14 +172,14 @@ export default function MoreFields({ kind, state, set, tabs, claims, minor, toda
                     className="flex min-h-14 flex-1 items-center gap-2 rounded-xl px-3 py-2 text-left">
                     <Icon name={icon} size={17} />
                     <span className="flex min-w-0 flex-col gap-px">
-                      <span className="text-sm font-semibold">{label}</span>
-                      <span className="text-xs leading-tight opacity-80">{what}</span>
+                      <span className="text-body font-semibold">{label}</span>
+                      <span className="text-footnote leading-tight opacity-80">{what}</span>
                     </span>
                   </button>
                 );
               })}
             </div>
-            <p className="m-0 text-xs leading-normal text-muted-foreground">
+            <p className="m-0 text-footnote leading-normal text-muted-foreground">
               {tabNote(tab, minor, state.coveredKeys ? fromKeys(state.coveredKeys) : minor, mine, format)}
             </p>
           </>
@@ -205,14 +205,14 @@ export default function MoreFields({ kind, state, set, tabs, claims, minor, toda
       </div>
 
       <label className="flex min-h-11 items-center gap-3 border-t border-border pt-2 in-data-[platform=android]:min-h-12">
-        <span className="flex-1 text-sm font-semibold">Shared with the household</span>
+        <span className="flex-1 text-body font-semibold">Shared with the household</span>
         <Switch checked={state.shared} onCheckedChange={(v) => { haptic('select'); set('shared', v); }}
           className="data-[size=default]:h-7 data-[size=default]:w-11 [&_[data-slot=switch-thumb]]:size-6" />
       </label>
 
       {canScan && !offline && (
         <Link href="/scan"
-          className="flex min-h-11 items-center gap-2 text-sm font-semibold text-primary">
+          className="flex min-h-11 items-center gap-2 text-body font-semibold text-primary">
           <Icon name="photo_camera" size={18} /> Scan or upload a receipt instead
         </Link>
       )}
@@ -221,7 +221,7 @@ export default function MoreFields({ kind, state, set, tabs, claims, minor, toda
 }
 
 function Eyebrow({ id, children }: { id?: string; children: React.ReactNode }) {
-  return <span id={id} className="text-xs font-bold tracking-wider text-muted-foreground uppercase">{children}</span>;
+  return <span id={id} className="text-footnote font-bold tracking-wider text-muted-foreground uppercase">{children}</span>;
 }
 
 /** What putting this amount on the tab will do, in one line, before Save. */

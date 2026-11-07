@@ -16,9 +16,9 @@ export default function PageHead({ title, sub, right, back, eyebrow, children }:
         {back && <BackLink to={back} />}
         <div className="flex items-end justify-between gap-3">
           <div className="min-w-0">
-            {eyebrow && <p className="text-xs text-muted-foreground">{eyebrow}</p>}
-            <h1 className="text-[30px] font-bold tracking-tight leading-tight [overflow-wrap:anywhere]">{title}</h1>
-            {sub && <p className="text-sm text-muted-foreground">{sub}</p>}
+            {eyebrow && <p className="text-footnote text-muted-foreground">{eyebrow}</p>}
+            <h1 className="text-large-title font-bold tracking-tight leading-tight [overflow-wrap:anywhere]">{title}</h1>
+            {sub && <p className="text-subhead text-muted-foreground">{sub}</p>}
           </div>
           {right}
         </div>
@@ -32,7 +32,7 @@ export default function PageHead({ title, sub, right, back, eyebrow, children }:
 export function Label({ children, action }: { children: React.ReactNode; action?: React.ReactNode }) {
   return (
     <div className="flex min-h-6 items-baseline justify-between px-1">
-      <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{children}</h2>
+      <h2 className="text-footnote font-semibold uppercase tracking-wider text-muted-foreground">{children}</h2>
       {action}
     </div>
   );

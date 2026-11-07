@@ -15,19 +15,19 @@ function Steps({ children }: { children: React.ReactNode }) {
 
 function Step({ children }: { children: React.ReactNode }) {
   return (
-    <li className="flex gap-3 text-sm leading-relaxed [counter-increment:step] before:grid before:size-7 before:flex-none before:place-items-center before:rounded-full before:bg-muted before:text-xs before:font-bold before:content-[counter(step)]">
+    <li className="flex gap-3 text-body leading-relaxed [counter-increment:step] before:grid before:size-7 before:flex-none before:place-items-center before:rounded-full before:bg-muted before:text-footnote before:font-bold before:content-[counter(step)]">
       <div className="min-w-0 flex-1 pt-0.5">{children}</div>
     </li>
   );
 }
 
 const Code = ({ children }: { children: React.ReactNode }) => (
-  <code className="rounded-md bg-muted px-1.5 py-0.5 font-mono text-[13px] [overflow-wrap:anywhere]">{children}</code>
+  <code className="rounded-md bg-muted px-1.5 py-0.5 font-mono text-subhead [overflow-wrap:anywhere]">{children}</code>
 );
 
 function Permission({ children }: { children: React.ReactNode }) {
   return (
-    <p className="flex items-start gap-2 rounded-xl bg-muted px-3 py-2.5 text-sm leading-relaxed">
+    <p className="flex items-start gap-2 rounded-xl bg-muted px-3 py-2.5 text-body leading-relaxed">
       <Icon name="info" size={18} className="mt-0.5 text-muted-foreground" />
       <span>{children}</span>
     </p>
@@ -38,16 +38,16 @@ export default function Guides({ endpoint }: { endpoint: string }) {
   return (
     <Tabs defaultValue="iphone" className="gap-4">
       <TabsList aria-label="Kind of phone" className="grid h-auto w-full grid-cols-2 gap-1 rounded-[14px] p-1">
-        <TabsTrigger value="iphone" className="min-h-11 gap-1.5 rounded-[11px] text-sm font-semibold data-[state=active]:bg-raised in-data-[platform=android]:min-h-12">
+        <TabsTrigger value="iphone" className="min-h-11 gap-1.5 rounded-[11px] text-body font-semibold data-[state=active]:bg-raised in-data-[platform=android]:min-h-12">
           <Icon name="phone_iphone" size={18} /> iPhone
         </TabsTrigger>
-        <TabsTrigger value="android" className="min-h-11 gap-1.5 rounded-[11px] text-sm font-semibold data-[state=active]:bg-raised in-data-[platform=android]:min-h-12">
+        <TabsTrigger value="android" className="min-h-11 gap-1.5 rounded-[11px] text-body font-semibold data-[state=active]:bg-raised in-data-[platform=android]:min-h-12">
           <Icon name="android" size={18} /> Android
         </TabsTrigger>
       </TabsList>
 
       <TabsContent value="iphone" className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-4">
-        <p className="text-sm leading-relaxed text-muted-foreground">
+        <p className="text-subhead leading-relaxed text-muted-foreground">
           With the Shortcuts app, which comes with every iPhone. About five minutes.
         </p>
         <Steps>
@@ -83,7 +83,7 @@ export default function Guides({ endpoint }: { endpoint: string }) {
       </TabsContent>
 
       <TabsContent value="android" className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-4">
-        <p className="text-sm leading-relaxed text-muted-foreground">
+        <p className="text-subhead leading-relaxed text-muted-foreground">
           With an app that forwards text messages to an address. Any free one that can send JSON with a header works; these
           steps use the open-source <b>SMS to URL Forwarder</b>, from F-Droid or Google Play.
         </p>

@@ -100,10 +100,10 @@ export default async function Terms() {
           <ol className="flex flex-col gap-3">
             {SECTIONS.map((s) => (
               <li key={s.title} className="flex flex-col gap-2.5 rounded-[18px] bg-card p-[var(--pad)]">
-                <h2 className="text-base font-semibold">{s.title}</h2>
+                <h2 className="text-headline font-semibold">{s.title}</h2>
                 <ul className="flex flex-col gap-2">
                   {s.lines.map((line, i) => (
-                    <li key={i} className="flex gap-2.5 text-[15px] leading-relaxed">
+                    <li key={i} className="flex gap-2.5 text-body leading-relaxed">
                       <span aria-hidden className="mt-[0.7em] size-[5px] flex-none rounded-full bg-muted-foreground" />
                       <span className="min-w-0">{line}</span>
                     </li>
@@ -113,7 +113,7 @@ export default async function Terms() {
             ))}
           </ol>
 
-          <p className="px-0.5 text-sm leading-normal text-muted-foreground">
+          <p className="px-0.5 text-subhead leading-normal text-muted-foreground">
             Using the app means agreeing to these. Questions go to whoever sent you the link.
           </p>
         </div>

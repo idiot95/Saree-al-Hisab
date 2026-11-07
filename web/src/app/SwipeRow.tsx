@@ -250,7 +250,7 @@ export default function SwipeRow({ actions, commit = true, grip = true, flush = 
                 alignItems: 'center', justifyContent: 'center', gap: 4,
                 paddingLeft: fires ? 26 : 0, alignSelf: 'stretch',
                 background: bg, color: ink, opacity: armed && !fires ? 0 : 1,
-                fontSize: 'var(--step--2)', fontWeight: 600, letterSpacing: '.01em',
+                fontSize: 'var(--text-footnote)', fontWeight: 600, letterSpacing: '.01em',
                 transition: 'flex var(--dur-2) var(--ease-out), opacity var(--dur-1) var(--ease-out), padding var(--dur-2) var(--ease-out)',
                 ...(fires ? { alignItems: 'flex-start' } : {}),
               }}>

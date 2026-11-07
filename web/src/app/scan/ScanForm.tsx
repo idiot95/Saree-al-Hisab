@@ -16,7 +16,7 @@ export default function ScanForm({ canScan }: { canScan: boolean }) {
   if (!canScan) {
     return (
       <div className={formCard}>
-        <p className="flex items-start gap-2 text-sm leading-normal text-muted-foreground">
+        <p className="flex items-start gap-2 text-subhead leading-normal text-muted-foreground">
           <Icon name="key" size={18} className="mt-px flex-none" />
           <span>
             Scanning needs a Google AI key, which is free and takes a minute to get. An owner
@@ -40,10 +40,10 @@ export default function ScanForm({ canScan }: { canScan: boolean }) {
           <span className="grid size-12 place-items-center rounded-full bg-accent text-accent-foreground">
             <Icon name={picked ? 'check' : 'photo_camera'} size={24} />
           </span>
-          <span className="text-[15px] font-semibold [overflow-wrap:anywhere]">
+          <span className="text-body font-semibold [overflow-wrap:anywhere]">
             {picked ?? 'Photograph the receipt'}
           </span>
-          <span className="text-sm text-muted-foreground">
+          <span className="text-subhead text-muted-foreground">
             Or pick a screenshot or PDF. Up to 6 MB.
           </span>
         </label>
@@ -88,10 +88,10 @@ function Draft({ result }: {
   return (
     <section aria-label="What it read" className={formCard}>
       <div className="flex flex-wrap items-center gap-2">
-        <span className={`flex items-center gap-1 rounded-md px-2 py-1 text-xs font-bold ${conf.cls}`}>
+        <span className={`flex items-center gap-1 rounded-md px-2 py-1 text-footnote font-bold ${conf.cls}`}>
           <Icon name={conf.icon} size={14} />{s.confidence.charAt(0).toUpperCase() + s.confidence.slice(1)} confidence
         </span>
-        <span className="text-sm text-muted-foreground">Nothing saved yet</span>
+        <span className="text-subhead text-muted-foreground">Nothing saved yet</span>
       </div>
 
       <dl className="flex flex-col">
@@ -104,7 +104,7 @@ function Draft({ result }: {
       </dl>
 
       {blocked ? (
-        <p className="flex items-start gap-2 rounded-xl bg-attention-soft px-3.5 py-3 text-sm font-semibold leading-normal text-attention-soft-foreground">
+        <p className="flex items-start gap-2 rounded-xl bg-attention-soft px-3.5 py-3 text-body font-semibold leading-normal text-attention-soft-foreground">
           <Icon name="warning" size={18} className="mt-px flex-none" />
           <span>
             Could not read {result.missing.join(', ')}. Open a blank entry and fill it in — a
@@ -123,8 +123,8 @@ function Draft({ result }: {
 function Line({ label, value }: { label: string; value: string | null }) {
   return (
     <div className="flex min-h-[46px] items-center gap-3 border-b border-border py-2 last:border-b-0">
-      <dt className="flex-1 text-sm text-muted-foreground">{label}</dt>
-      <dd className={`flex items-center gap-1 text-right text-[15px] font-semibold [overflow-wrap:anywhere] ${value ? 'text-foreground' : 'text-destructive'}`}>
+      <dt className="flex-1 text-subhead text-muted-foreground">{label}</dt>
+      <dd className={`flex items-center gap-1 text-right text-body font-semibold [overflow-wrap:anywhere] ${value ? 'text-foreground' : 'text-destructive'}`}>
         {!value && <Icon name="error" size={16} />}{value ?? 'not readable'}
       </dd>
     </div>

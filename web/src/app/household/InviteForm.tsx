@@ -51,7 +51,7 @@ export default function InviteForm({ origin, household, inviter, passwordOpen }:
           value={email} onChange={(e) => setEmail(e.target.value)} />
 
         <fieldset className="flex flex-col gap-2">
-          <legend className="mb-2 text-sm font-medium text-muted-foreground">What they can do</legend>
+          <legend className="mb-2 text-subhead font-medium text-muted-foreground">What they can do</legend>
           <Choice
             name="role" value="adult" checked={role === 'adult'} onPick={() => setRole('adult')}
             title="Contributing member"
@@ -87,8 +87,8 @@ function Choice({ name, value, title, what, checked, onPick }: {
       <input type="radio" name={name} value={value} checked={checked} onChange={onPick}
         className="mt-0.5 size-[19px] flex-none accent-primary" />
       <span className="flex flex-col gap-0.5">
-        <span className="text-[15px] font-semibold">{title}</span>
-        <span className="text-sm leading-snug text-muted-foreground">{what}</span>
+        <span className="text-body font-semibold">{title}</span>
+        <span className="text-subhead leading-snug text-muted-foreground">{what}</span>
       </span>
     </label>
   );
@@ -139,32 +139,32 @@ function InviteMessage({ heading, url, email, role, household, inviter, until, p
 
   return (
     <div className="flex flex-col gap-2.5 rounded-2xl bg-accent p-3.5 text-accent-foreground">
-      <h3 ref={heading as React.Ref<HTMLHeadingElement>} tabIndex={-1} className="flex items-center gap-1.5 text-sm font-bold outline-none">
+      <h3 ref={heading as React.Ref<HTMLHeadingElement>} tabIndex={-1} className="flex items-center gap-1.5 text-body font-bold outline-none">
         <Icon name="check_circle" size={18} />
         Invitation ready
       </h3>
-      <p className="text-sm leading-normal">
+      <p className="text-body leading-normal">
         Send this to {email || 'them'} privately — it says what to do.
         {passwordOpen
           ? <> <b>Anyone who opens the link can take that place in the household.</b></>
           : ' Only their Google account can accept it.'}
       </p>
-      <pre className="m-0 select-all rounded-lg border border-border bg-card px-3 py-3 font-[inherit] text-sm leading-normal whitespace-pre-wrap break-words text-foreground">{message}</pre>
+      <pre className="m-0 select-all rounded-lg border border-border bg-card px-3 py-3 font-[inherit] text-body leading-normal whitespace-pre-wrap break-words text-foreground">{message}</pre>
       <div className="flex gap-2">
         {share && (
           <button type="button" onClick={shareIt} className={solid}>Share…</button>
         )}
         <button type="button" onClick={() => copy(message, 'message')}
-          className="press flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl border border-border bg-card px-3 text-base font-semibold text-foreground">
+          className="press flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl border border-border bg-card px-3 text-headline font-semibold text-foreground">
           <Icon name={copied === 'message' ? 'check' : 'content_copy'} size={18} />
           {copied === 'message' ? 'Copied' : copied === 'failed' ? 'Select the text to copy' : 'Copy message'}
         </button>
       </div>
       <button type="button" onClick={() => copy(url, 'link')}
-        className="flex min-h-11 items-center self-start text-sm font-semibold underline underline-offset-[3px]">
+        className="flex min-h-11 items-center self-start text-body font-semibold underline underline-offset-[3px]">
         {copied === 'link' ? 'Link copied' : 'Copy just the link'}
       </button>
-      <p className="text-xs leading-normal text-muted-foreground">
+      <p className="text-footnote leading-normal text-muted-foreground">
         Shown only once. If you lose it, withdraw the invitation and create a new one.
       </p>
     </div>

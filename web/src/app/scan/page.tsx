@@ -24,7 +24,7 @@ export default async function Scan() {
 
         <div className="flex flex-col gap-4 px-[var(--gutter)] pb-8">
           <ScanForm canScan={scanning.has_key && actor.role !== 'viewer'} />
-          <p className="flex items-start gap-1.5 px-0.5 text-[13px] leading-snug text-muted-foreground">
+          <p className="flex items-start gap-1.5 px-0.5 text-subhead leading-snug text-muted-foreground">
             <Icon name="lock" size={16} className="mt-px flex-none" />
             <span>
               The photo goes to Google&rsquo;s Gemini using your household&rsquo;s own key, and is

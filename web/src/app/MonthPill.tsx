@@ -17,7 +17,7 @@ export default function MonthPill({ month, path, keep = '' }: { month: string; p
       <Link href={`${path}?m=${shift(month, -1)}${keep}`} aria-label="Previous month" className="press grid size-11 place-items-center rounded-full active:bg-muted data-pressed:bg-muted">
         <Icon name="chevron_left" size={18} />
       </Link>
-      <span className="min-w-[76px] text-center text-sm font-semibold">{name}</span>
+      <span className="min-w-[76px] text-center text-body font-semibold">{name}</span>
       <Link href={`${path}?m=${shift(month, 1)}${keep}`} aria-label="Next month" className="press grid size-11 place-items-center rounded-full active:bg-muted data-pressed:bg-muted">
         <Icon name="chevron_right" size={18} />
       </Link>

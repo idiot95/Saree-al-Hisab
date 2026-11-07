@@ -13,11 +13,11 @@ import { fieldLabel } from './form-bits';
    quiet one (a card-coloured outline, for the way round). Class strings, so a <Link>, an <a> and a <button> can
    all wear them. */
 export const primaryBtn = cn(buttonVariants(),
-  'h-auto min-h-[52px] w-full gap-2.5 rounded-xl px-4 text-base font-semibold whitespace-normal');
+  'h-auto min-h-[52px] w-full gap-2.5 rounded-xl px-4 text-headline font-semibold whitespace-normal');
 export const quietBtn = cn(buttonVariants({ variant: 'outline' }),
-  'h-auto min-h-[52px] w-full rounded-xl border-border bg-card px-4 text-base font-semibold whitespace-normal text-foreground no-underline shadow-none dark:border-border dark:bg-card');
+  'h-auto min-h-[52px] w-full rounded-xl border-border bg-card px-4 text-headline font-semibold whitespace-normal text-foreground no-underline shadow-none dark:border-border dark:bg-card');
 /** A link-weight action under the buttons (Sign out, "Sign in with your password"): still a 44px target. */
-export const quietLink = 'flex min-h-11 items-center justify-center px-2 text-sm font-semibold text-foreground underline underline-offset-[3px]';
+export const quietLink = 'flex min-h-11 items-center justify-center px-2 text-body font-semibold text-foreground underline underline-offset-[3px]';
 
 /** The app's mark, the title and a line of what this is, on a centred card on the ground: the same first
  *  impression the screens behind it make. No tab bar — none of these screens is inside the app yet. */
@@ -32,9 +32,9 @@ export function AuthShell({ kicker, title, blurb, children }: {
               fallback's guess at it. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/icons/icon-192.png" alt="" width={48} height={48} className="size-12 rounded-[14px]" />
-          {kicker && <p className="text-sm text-muted-foreground">{kicker}</p>}
-          <h1 className="text-[34px] font-bold tracking-tight leading-[1.08] text-balance [overflow-wrap:anywhere]">{title}</h1>
-          {blurb && <p className="text-base leading-normal text-muted-foreground">{blurb}</p>}
+          {kicker && <p className="text-subhead text-muted-foreground">{kicker}</p>}
+          <h1 className="text-large-title font-bold tracking-tight leading-[1.08] text-balance [overflow-wrap:anywhere]">{title}</h1>
+          {blurb && <p className="text-body leading-normal text-muted-foreground">{blurb}</p>}
         </header>
         <div className="flex flex-col gap-4">{children}</div>
       </div>
@@ -44,7 +44,7 @@ export function AuthShell({ kicker, title, blurb, children }: {
 
 /** A line of small print inside an auth card. */
 export function Small({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <p className={cn('text-sm leading-normal text-muted-foreground', className)}>{children}</p>;
+  return <p className={cn('text-subhead leading-normal text-muted-foreground', className)}>{children}</p>;
 }
 
 /** A thin rule with a word in it ("New here"), between the way in and the way round. */
@@ -52,7 +52,7 @@ export function Rule({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex items-center gap-3 py-0.5">
       <span className="h-px flex-1 bg-border" />
-      <span className="text-xs font-semibold text-muted-foreground">{children}</span>
+      <span className="text-footnote font-semibold text-muted-foreground">{children}</span>
       <span className="h-px flex-1 bg-border" />
     </div>
   );
@@ -66,7 +66,7 @@ export function Field({ label, name, type = 'text', hint, className, ...rest }: 
       <span className={fieldLabel}>{label}</span>
       <Input name={name} type={type} {...rest}
         className={cn('h-12 rounded-xl bg-card px-3.5 text-[length:var(--field)] shadow-none md:text-[length:var(--field)] dark:bg-card', className)} />
-      {hint && <span className="text-xs leading-snug text-muted-foreground">{hint}</span>}
+      {hint && <span className="text-footnote leading-snug text-muted-foreground">{hint}</span>}
     </label>
   );
 }
@@ -86,14 +86,14 @@ export function CurrencyField({ defaultValue = 'INR', hint, ...rest }: {
           <option key={c.code} value={c.code}>{c.symbol.trim()}  {c.name} · {c.code}</option>
         ))}
       </select>
-      {hint && <span className="text-xs leading-snug text-muted-foreground">{hint}</span>}
+      {hint && <span className="text-footnote leading-snug text-muted-foreground">{hint}</span>}
     </label>
   );
 }
 
 export function ErrorNote({ children }: { children: React.ReactNode }) {
   return (
-    <p role="alert" className="flex items-start gap-2 rounded-xl bg-destructive/10 px-3.5 py-3 text-sm font-semibold leading-normal text-destructive">
+    <p role="alert" className="flex items-start gap-2 rounded-xl bg-destructive/10 px-3.5 py-3 text-body font-semibold leading-normal text-destructive">
       <Icon name="error" size={18} className="mt-px" />
       <span className="min-w-0">{children}</span>
     </p>
@@ -110,8 +110,8 @@ export function DeadEnd({ title, body, cta }: {
         <span className="grid size-16 place-items-center rounded-full bg-muted text-muted-foreground">
           <Icon name="info" size={30} />
         </span>
-        <h1 className="text-[30px] font-bold tracking-tight leading-tight text-balance">{title}</h1>
-        <p className="max-w-[32ch] text-base leading-normal text-muted-foreground">{body}</p>
+        <h1 className="text-large-title font-bold tracking-tight leading-tight text-balance">{title}</h1>
+        <p className="max-w-[32ch] text-body leading-normal text-muted-foreground">{body}</p>
         {cta && <a href={cta.href} className={cn(quietBtn, 'mt-2')}>{cta.label}</a>}
       </div>
     </main>

@@ -79,7 +79,7 @@ export default function NewPeople() {
         <div className="flex flex-wrap gap-2">
           {people.map((p) => (
             <span key={p.name.toLowerCase()}
-              className="flex min-h-11 items-center gap-1 rounded-full bg-primary pl-3.5 pr-0.5 text-sm font-semibold text-primary-foreground">
+              className="flex min-h-11 items-center gap-1 rounded-full bg-primary pl-3.5 pr-0.5 text-body font-semibold text-primary-foreground">
               <input type="hidden" name="newName" value={p.name} />
               <input type="hidden" name="newPhone" value={p.phone ?? ''} />
               {p.name}
@@ -113,7 +113,7 @@ export default function NewPeople() {
           </Button>
         )}
       </div>
-      {note && <p role="status" className="text-xs leading-snug text-muted-foreground">{note}</p>}
+      {note && <p role="status" className="text-footnote leading-snug text-muted-foreground">{note}</p>}
     </div>
   );
 }

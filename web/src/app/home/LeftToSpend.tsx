@@ -17,12 +17,12 @@ export default function LeftToSpend({ month, budget, spent }: { month: string; b
     <Link href="/budget" prefetch
       className="press flex flex-col gap-3 rounded-[22px] bg-card p-[18px] text-card-foreground">
       <div className="flex items-center justify-between gap-3">
-        <span className="text-[13px] text-muted-foreground">{over ? 'Over budget by' : 'Left to spend'}</span>
-        <span className={`flex items-center gap-1 text-xs font-semibold ${status.tone}`}>
+        <span className="text-subhead text-muted-foreground">{over ? 'Over budget by' : 'Left to spend'}</span>
+        <span className={`flex items-center gap-1 text-footnote font-semibold ${status.tone}`}>
           <Icon name={status.icon} size={16} />{status.word}
         </span>
       </div>
-      <Figure minor={Math.abs(budget - spent)} className="text-[40px] font-bold leading-none tracking-tight tabular-nums" />
+      <Figure minor={Math.abs(budget - spent)} className="text-display font-bold leading-none tracking-tight tabular-nums" />
       <div className="relative py-[3px]">
         <Progress value={Math.min(100, throughMoney * 100)}
           aria-label={`${Math.round(throughMoney * 100)}% of the budget used`}
@@ -31,7 +31,7 @@ export default function LeftToSpend({ month, budget, spent }: { month: string; b
         <span aria-hidden="true" className={`absolute top-0 h-4 w-0.5 -translate-x-1/2 rounded-full ${over ? 'bg-card' : 'bg-foreground'}`}
           style={{ left: `${throughMonth * 100}%` }} />
       </div>
-      <div className="flex justify-between gap-3 text-xs text-muted-foreground">
+      <div className="flex justify-between gap-3 text-footnote text-muted-foreground">
         <span className="min-w-0"><Figure minor={spent} /> spent of <Figure minor={budget} /></span>
         <span className="flex-none">Day {day} of {days}</span>
       </div>

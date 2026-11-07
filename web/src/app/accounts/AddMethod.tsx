@@ -51,7 +51,7 @@ export default function AddMethod({ accounts, startOpen = false }: { accounts: A
           onChange={(e) => setAccountId(e.target.value)} className={selectCls}>
           {accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
         </select>
-        <span className="text-xs leading-snug text-muted-foreground">
+        <span className="text-footnote leading-snug text-muted-foreground">
           Spending on this method is recorded against this account.
         </span>
       </label>
@@ -66,14 +66,14 @@ export default function AddMethod({ accounts, startOpen = false }: { accounts: A
                 className="size-[17px] flex-none accent-primary" />
               <Icon name={RAIL_ICON[r.id]} size={18} />
               <span className="flex flex-col">
-                <span className="text-sm font-semibold">{r.label}</span>
-                {r.hint && <span className="text-xs text-muted-foreground">{r.hint}</span>}
+                <span className="text-body font-semibold">{r.label}</span>
+                {r.hint && <span className="text-footnote text-muted-foreground">{r.hint}</span>}
               </span>
             </label>
           ))}
         </div>
         {allowed.length === 0 && (
-          <span className="text-sm text-muted-foreground">
+          <span className="text-subhead text-muted-foreground">
             That account is a way to pay by itself — nothing else needs linking to it.
           </span>
         )}

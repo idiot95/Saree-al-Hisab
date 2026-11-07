@@ -38,15 +38,15 @@ export default function MemberRow({ member, canManage, isSelf, origin }: {
         <Avatar name={member.name} image={member.image} />
 
         <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-          <span className="text-[15px] font-semibold leading-snug [overflow-wrap:anywhere]">
+          <span className="text-body font-semibold leading-snug [overflow-wrap:anywhere]">
             {member.name}
             {isSelf && <span className="font-medium text-muted-foreground"> · you</span>}
           </span>
-          <span className="text-[13px] leading-snug text-muted-foreground [overflow-wrap:anywhere]">{member.email}</span>
+          <span className="text-subhead leading-snug text-muted-foreground [overflow-wrap:anywhere]">{member.email}</span>
           {/* For the owner, who is the one who will have to chase anyone not
               linked before passwords end. An icon and a word, never colour. */}
           {canManage && (
-            <span className="inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground">
+            <span className="inline-flex items-center gap-1 text-footnote font-semibold text-muted-foreground">
               <Icon name={member.has_google ? 'linked' : 'unlinked'} size={15} />
               {member.has_google ? 'Signed in with Google' : 'Not linked yet'}
             </span>
@@ -54,7 +54,7 @@ export default function MemberRow({ member, canManage, isSelf, origin }: {
         </span>
 
         {!canManage || isSelf ? (
-          <span className="flex-none rounded-lg bg-muted px-2.5 py-1.5 text-[13px] font-semibold text-muted-foreground">
+          <span className="flex-none rounded-lg bg-muted px-2.5 py-1.5 text-subhead font-semibold text-muted-foreground">
             {LABEL[member.role]}
           </span>
         ) : (
@@ -75,7 +75,7 @@ export default function MemberRow({ member, canManage, isSelf, origin }: {
           {/* JS-only (opened from the options button): keepFields, so a refusal never resets the role select. */}
           <form onSubmit={keepFields(saveRole)} className="flex flex-col gap-2">
             <input type="hidden" name="userId" value={member.id} />
-            <span className="text-sm font-medium text-muted-foreground">What {first} can do</span>
+            <span className="text-subhead font-medium text-muted-foreground">What {first} can do</span>
             <div className="flex gap-2">
               <select
                 name="role" value={role} onChange={(e) => setRole(e.target.value as Role)}
@@ -87,7 +87,7 @@ export default function MemberRow({ member, canManage, isSelf, origin }: {
                 <option value="owner">Owner</option>
               </select>
               <button type="submit" disabled={savingRole || role === member.role}
-                className="press flex min-h-12 flex-none items-center justify-center rounded-xl bg-primary px-4 text-base font-semibold text-primary-foreground disabled:bg-muted disabled:text-muted-foreground">
+                className="press flex min-h-12 flex-none items-center justify-center rounded-xl bg-primary px-4 text-headline font-semibold text-primary-foreground disabled:bg-muted disabled:text-muted-foreground">
                 {savingRole ? 'Saving…' : 'Save'}
               </button>
             </div>
@@ -99,7 +99,7 @@ export default function MemberRow({ member, canManage, isSelf, origin }: {
           <form action={sendReset}>
             <input type="hidden" name="userId" value={member.id} />
             <button type="submit" disabled={sendingReset}
-              className="press flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-border bg-card px-4 text-base font-semibold text-foreground disabled:opacity-60">
+              className="press flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-border bg-card px-4 text-headline font-semibold text-foreground disabled:opacity-60">
               <Icon name="key" size={20} />{sendingReset ? 'Creating…' : 'Send a password reset link'}
             </button>
           </form>
@@ -109,10 +109,10 @@ export default function MemberRow({ member, canManage, isSelf, origin }: {
           <form action={remove} className="flex flex-col gap-1.5">
             <input type="hidden" name="userId" value={member.id} />
             <button type="submit" disabled={removing}
-              className="press flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-destructive/10 px-4 text-base font-semibold text-destructive disabled:opacity-60">
+              className="press flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-destructive/10 px-4 text-headline font-semibold text-destructive disabled:opacity-60">
               <Icon name="delete" size={20} />{removing ? 'Removing…' : `Remove ${first}`}
             </button>
-            <span className="text-xs leading-snug text-muted-foreground">
+            <span className="text-footnote leading-snug text-muted-foreground">
               Their entries stay. Removing someone never changes what a month cost.
             </span>
           </form>
@@ -130,15 +130,15 @@ function ResetLink({ url, copied, setCopied }: {
 }) {
   return (
     <div className="flex flex-col gap-2 rounded-xl bg-attention-soft p-3 text-attention-soft-foreground">
-      <span className="flex items-start gap-2 text-sm leading-normal">
+      <span className="flex items-start gap-2 text-body leading-normal">
         <Icon name="warning" size={18} className="mt-px" />
         <span>Send this privately. <b>Anyone who opens it can set that password and sign in as
         them.</b> It works once and expires in a day.</span>
       </span>
-      <code className="block rounded-lg border border-border bg-card px-3 py-2 text-xs leading-normal break-all text-muted-foreground">{url}</code>
+      <code className="block rounded-lg border border-border bg-card px-3 py-2 text-footnote leading-normal break-all text-muted-foreground">{url}</code>
       <button type="button" onClick={async () => {
         try { await navigator.clipboard.writeText(url); setCopied(true); } catch { setCopied(false); }
-      }} className="press flex min-h-11 items-center justify-center gap-2 rounded-lg border border-border bg-card text-sm font-semibold text-foreground">
+      }} className="press flex min-h-11 items-center justify-center gap-2 rounded-lg border border-border bg-card text-body font-semibold text-foreground">
         <Icon name={copied ? 'check' : 'content_copy'} size={18} />{copied ? 'Copied' : 'Copy link'}
       </button>
     </div>

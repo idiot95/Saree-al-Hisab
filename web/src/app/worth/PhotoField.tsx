@@ -34,17 +34,17 @@ export function PhotoField({ files, onChange }: { files: File[]; onChange: (next
     input.value = '';
   };
 
-  const pick = 'press flex min-h-11 flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-input bg-card px-3 text-sm font-medium has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-ring/50';
+  const pick = 'press flex min-h-11 flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-input bg-card px-3 text-body font-medium has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-ring/50';
   return (
     <div role="group" aria-label="Photos" className="flex flex-col gap-2">
-      <span className="text-sm font-medium text-muted-foreground">Photos (optional)</span>
+      <span className="text-subhead font-medium text-muted-foreground">Photos (optional)</span>
       {files.length > 0 && (
         <ul className="flex flex-col gap-1.5">
           {files.map((f, i) => (
             <li key={`${f.name}-${i}`} className="flex min-h-11 items-center gap-2.5 rounded-xl bg-muted pl-3">
               <Icon name={f.type === 'application/pdf' ? 'picture_as_pdf' : 'image'} size={18} />
-              <span className="min-w-0 flex-1 text-sm [overflow-wrap:anywhere]">{f.name}</span>
-              <span className="text-xs text-muted-foreground">{Math.max(1, Math.round(f.size / 1024))} KB</span>
+              <span className="min-w-0 flex-1 text-body [overflow-wrap:anywhere]">{f.name}</span>
+              <span className="text-footnote text-muted-foreground">{Math.max(1, Math.round(f.size / 1024))} KB</span>
               <button type="button" aria-label={`Remove ${f.name}`}
                 onClick={() => { haptic('select'); onChange(files.filter((_, n) => n !== i)); }}
                 className="grid size-11 flex-none place-items-center rounded-full text-muted-foreground">
@@ -70,7 +70,7 @@ export function PhotoField({ files, onChange }: { files: File[]; onChange: (next
           </label>
         </div>
       )}
-      {problem && <p role="alert" className="flex items-center gap-1.5 text-xs text-destructive"><Icon name="error" size={15} />{problem}</p>}
+      {problem && <p role="alert" className="flex items-center gap-1.5 text-footnote text-destructive"><Icon name="error" size={15} />{problem}</p>}
     </div>
   );
 }

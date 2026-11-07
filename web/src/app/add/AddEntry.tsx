@@ -328,7 +328,7 @@ export default function AddEntry({
      ("2,34,050"), 42 to eleven ("2,34,050.50"), 34 to fourteen, and 28 for the longest a field can hold. */
   const shown = keys === '' ? '' : keysDisplay(keys);
   const len = shown === '' ? 1 : shown.length;
-  const amountSize = len <= 8 ? 'text-[52px]' : len <= 11 ? 'text-[42px]' : len <= 14 ? 'text-[34px]' : 'text-[28px]';
+  const amountSize = len <= 8 ? 'text-amount' : len <= 11 ? 'text-amount-2' : len <= 14 ? 'text-large-title' : 'text-title-2';
 
   /* The kind switch is a radio group: one stop for Tab, the arrow keys move the choice (and focus) along it. */
   const kindKeys = (e: React.KeyboardEvent<HTMLButtonElement>) => {
@@ -379,7 +379,7 @@ export default function AddEntry({
                 return (
                   <button key={k.id} type="button" role="radio" aria-checked={isOn} tabIndex={isOn ? 0 : -1}
                     onClick={() => chooseKind(k.id)} onKeyDown={kindKeys}
-                    className={cn('min-h-11 rounded-[10px] px-3.5 text-sm transition-colors',
+                    className={cn('min-h-11 rounded-[10px] px-3.5 text-body transition-colors',
                       isOn ? 'bg-raised font-semibold text-foreground shadow-sm' : 'font-medium text-muted-foreground')}>
                     {k.label}
                   </button>
@@ -397,7 +397,7 @@ export default function AddEntry({
           </div>
 
           {fromSms && (
-            <p className="flex min-h-8 items-center justify-center gap-1.5 text-sm text-muted-foreground">
+            <p className="flex min-h-8 items-center justify-center gap-1.5 text-subhead text-muted-foreground">
               <Icon name="sms" size={16} /> From a bank message{fromSms.sender ? ` · ${fromSms.sender}` : ''}
             </p>
           )}
@@ -406,7 +406,7 @@ export default function AddEntry({
               shows is grouped in the household's currency; what it holds is
               only ever the digits typed. */}
           <label className="flex w-full min-w-0 items-baseline justify-center gap-1.5 py-2">
-            <span aria-hidden className="tabular-nums flex-none text-[28px] font-medium text-muted-foreground">{symbol.trim()}</span>
+            <span aria-hidden className="tabular-nums flex-none text-title-2 font-medium text-muted-foreground">{symbol.trim()}</span>
             <input
               ref={amountBox}
               size={Math.max(2, len + 1)} data-amount-size={amountSize}
@@ -424,7 +424,7 @@ export default function AddEntry({
             {/* The code, for a symbol that does not spell it: ₹ says INR to one
                 household and nothing to a guest. AED already says AED. */}
             {symbol.trim() !== currency && (
-              <span className="tabular-nums flex-none text-sm font-semibold text-muted-foreground">{currency}</span>
+              <span className="tabular-nums flex-none text-subhead font-semibold text-muted-foreground">{currency}</span>
             )}
           </label>
         </header>
@@ -432,7 +432,7 @@ export default function AddEntry({
         <div className="flex flex-1 flex-col gap-4 px-[var(--gutter)] pt-2 pb-4">
           {kind !== 'transfer' && (
             <section aria-labelledby="add-category" className="flex flex-col gap-2">
-              <span id="add-category" className="text-xs font-semibold text-muted-foreground">
+              <span id="add-category" className="text-footnote font-semibold text-muted-foreground">
                 {kind === 'income' ? 'What for · your most used' : 'Category · your most used'}
                 {allBack && ' · not needed, all of it is money back'}
               </span>
@@ -482,26 +482,26 @@ export default function AddEntry({
             phone, or that bills are still on their way. */}
         <div role="status" aria-live="polite">
           {kept && (
-            <p className="m-0 mb-2 flex items-center gap-2.5 rounded-xl bg-accent px-3.5 py-3 text-sm leading-snug font-semibold text-accent-foreground">
+            <p className="m-0 mb-2 flex items-center gap-2.5 rounded-xl bg-accent px-3.5 py-3 text-body leading-snug font-semibold text-accent-foreground">
               <Icon name="schedule" size={18} />{kept}
             </p>
           )}
           {slow && (
-            <p data-still-sending className="m-0 mb-2 flex items-center gap-2.5 rounded-xl bg-accent px-3.5 py-3 text-sm leading-snug font-semibold text-accent-foreground">
+            <p data-still-sending className="m-0 mb-2 flex items-center gap-2.5 rounded-xl bg-accent px-3.5 py-3 text-body leading-snug font-semibold text-accent-foreground">
               <Icon name="schedule" size={18} />Still sending your bills — keep this open.
             </p>
           )}
         </div>
 
         {error && (
-          <p role="alert" className="m-0 mb-2 flex items-center gap-2.5 rounded-xl bg-destructive/10 px-3.5 py-3 text-sm font-semibold text-destructive">
+          <p role="alert" className="m-0 mb-2 flex items-center gap-2.5 rounded-xl bg-destructive/10 px-3.5 py-3 text-body font-semibold text-destructive">
             <Icon name="error" size={18} />{error}
           </p>
         )}
         {/* What a household member already recorded that this might be: one quiet line at the moment of the
             decision, right above the button that makes it. */}
         {shownDupe && (
-          <p role="status" data-duplicate className="m-0 mb-2 flex items-start gap-2 rounded-xl bg-attention-soft px-3 py-2.5 text-sm leading-snug text-attention-soft-foreground">
+          <p role="status" data-duplicate className="m-0 mb-2 flex items-start gap-2 rounded-xl bg-attention-soft px-3 py-2.5 text-body leading-snug text-attention-soft-foreground">
             <Icon name="info" size={18} />
             <span className="flex-1">
               <b>{shownDupe.who}</b> already recorded {format(shownDupe.amountMinor)}
@@ -511,7 +511,7 @@ export default function AddEntry({
           </p>
         )}
         <button type="button" onClick={save} disabled={!canSave} data-save
-          className="flex h-14 w-full min-w-0 items-center justify-center gap-1.5 rounded-2xl bg-primary px-4 text-base font-semibold text-primary-foreground transition-opacity disabled:opacity-45">
+          className="flex h-14 w-full min-w-0 items-center justify-center gap-1.5 rounded-2xl bg-primary px-4 text-headline font-semibold text-primary-foreground transition-opacity disabled:opacity-45">
           {pending ? 'Saving…' : (
             <>
               <span className="flex-none">Save</span>

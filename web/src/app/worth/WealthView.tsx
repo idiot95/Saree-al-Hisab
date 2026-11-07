@@ -45,8 +45,8 @@ export default function WealthView({ views, initial, items, potRates, metalRates
       <OwnerChips chips={views} current={v.key} onPick={setKey} />
 
       <section aria-label={v.title} className="mx-[var(--gutter)] flex flex-col gap-3 rounded-[22px] bg-hero p-[18px] text-hero-foreground">
-        <span className="text-[13px] text-hero-muted">{v.title}</span>
-        <Figure minor={v.worth} className="text-[38px] font-bold leading-none tracking-tight tabular-nums" />
+        <span className="text-subhead text-hero-muted">{v.title}</span>
+        <Figure minor={v.worth} className="text-display font-bold leading-none tracking-tight tabular-nums" />
         {/* The bar is the shape; the legend under it is the record, word and figure for each class. */}
         <div aria-hidden="true" className="flex h-2.5 gap-0.5 overflow-hidden rounded-full bg-hero-foreground/15">
           {whole > 0 && inBar.map((p) => (
@@ -54,7 +54,7 @@ export default function WealthView({ views, initial, items, potRates, metalRates
               style={{ flexGrow: p.value }} />
           ))}
         </div>
-        <dl className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs">
+        <dl className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-footnote">
           {parts.map((p) => (
             <div key={p.key} className="flex min-w-0 items-center gap-1.5">
               <span aria-hidden="true" className={`size-2.5 flex-none rounded-[3px] ${p.swatch}`} />
@@ -64,13 +64,13 @@ export default function WealthView({ views, initial, items, potRates, metalRates
           ))}
         </dl>
         {v.debt !== 0 && (
-          <p className="flex items-center justify-between border-t border-hero-foreground/15 pt-2 text-xs">
+          <p className="flex items-center justify-between border-t border-hero-foreground/15 pt-2 text-footnote">
             <span className="text-hero-muted">{v.counted ? 'Less cards and money you owe' : 'Less cards and money owed'}</span>
             <span className="font-semibold tabular-nums"><Figure minor={v.debt} /></span>
           </p>
         )}
         {v.unvalued > 0 && (
-          <p className="flex items-center gap-1.5 text-xs text-hero-muted">
+          <p className="flex items-center gap-1.5 text-footnote text-hero-muted">
             <Icon name="info" size={15} />
             {v.unvalued === 1 ? 'One holding is' : `${v.unvalued} holdings are`} not valued yet and not counted.
           </p>
@@ -101,11 +101,11 @@ export default function WealthView({ views, initial, items, potRates, metalRates
 
       {v.key === 'household' && series.length > 1 && (
         <section aria-label="Month by month" className="mx-[var(--gutter)] flex flex-col gap-2">
-          <h2 className="px-0.5 text-[13px] font-semibold text-muted-foreground">Month by month</h2>
+          <h2 className="px-0.5 text-subhead font-semibold text-muted-foreground">Month by month</h2>
           <div className="rounded-[18px] bg-card p-4">
             <figure className="flex flex-col gap-2">
               <WhenNear className="h-36"><WorthChart series={series} /></WhenNear>
-              <figcaption className="text-xs leading-relaxed text-muted-foreground">
+              <figcaption className="text-footnote leading-relaxed text-muted-foreground">
                 {heldChange(series, format)} What people owe you is in the figure above but not in this line.
               </figcaption>
             </figure>
@@ -120,11 +120,11 @@ function Section({ title, rates, children }: { title: string; rates: RateNote; c
   return (
     <section aria-label={title} className="mx-[var(--gutter)] flex flex-col gap-1.5">
       <div className="flex items-baseline justify-between gap-3 px-0.5">
-        <h2 className="text-[13px] font-semibold text-muted-foreground">{title}</h2>
-        {rates.asOf && <span className="text-xs text-muted-foreground">Rates {rates.asOf}</span>}
+        <h2 className="text-subhead font-semibold text-muted-foreground">{title}</h2>
+        {rates.asOf && <span className="text-footnote text-muted-foreground">Rates {rates.asOf}</span>}
       </div>
       {rates.stale.map((s) => (
-        <p key={s} className="flex items-center gap-1.5 px-0.5 text-xs text-attention-soft-foreground">
+        <p key={s} className="flex items-center gap-1.5 px-0.5 text-footnote text-attention-soft-foreground">
           <Icon name="sync_problem" size={15} />{s}
         </p>
       ))}
@@ -138,8 +138,8 @@ function Row({ href, icon, word, value, lateral }: { href: string; icon: string;
     <Link href={href} motion={lateral ? 'fade' : 'push'}
       className="press flex min-h-14 items-center gap-3 border-b border-border px-3.5 last:border-b-0">
       <Icon name={icon} size={22} className="text-primary" />
-      <span className="flex-1 text-[15px]">{word}</span>
-      <span className="text-sm font-semibold tabular-nums">{value}</span>
+      <span className="flex-1 text-body">{word}</span>
+      <span className="text-body font-semibold tabular-nums">{value}</span>
       <Icon name="chevron_right" size={18} className="text-muted-foreground" />
     </Link>
   );

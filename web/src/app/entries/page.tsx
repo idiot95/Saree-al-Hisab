@@ -106,7 +106,7 @@ async function ActivityScreen({ sp }: { sp: Params }) {
       chips={filtered ? (
         /* One category, from a budget line: the chips would mean "all of Activity", so the way out is one chip. */
         <Link href={`/entries?m=${shown}`} replace data-replace
-          className="press flex min-h-11 items-center gap-1.5 self-start rounded-full bg-accent px-3.5 text-sm font-semibold text-accent-foreground">
+          className="press flex min-h-11 items-center gap-1.5 self-start rounded-full bg-accent px-3.5 text-body font-semibold text-accent-foreground">
           <Icon name="close" size={16} /> Showing one category
         </Link>
       ) : chips}>
@@ -141,7 +141,7 @@ function Search({ entries, words, canEdit, chips }: {
       chips={<>
         {chips}
         <Link href="/entries" replace data-replace
-          className="press flex min-h-11 items-center gap-1.5 self-start rounded-full bg-accent px-3.5 text-sm font-semibold text-accent-foreground">
+          className="press flex min-h-11 items-center gap-1.5 self-start rounded-full bg-accent px-3.5 text-body font-semibold text-accent-foreground">
           <Icon name="close" size={16} /> Back to this month
         </Link>
       </>}>
@@ -161,8 +161,8 @@ function Shell({ title = 'Activity', sub, right, chips, children }: {
         <header className="flex flex-col gap-3 px-[var(--gutter)] pb-3 pt-4">
           <div className="flex items-end justify-between gap-3">
             <div className="min-w-0">
-              <h1 className="text-[32px] font-bold leading-tight tracking-tight [overflow-wrap:anywhere]">{title}</h1>
-              <p className="text-sm text-muted-foreground">{sub}</p>
+              <h1 className="text-large-title font-bold leading-tight tracking-tight [overflow-wrap:anywhere]">{title}</h1>
+              <p className="text-subhead text-muted-foreground">{sub}</p>
             </div>
             {right}
           </div>

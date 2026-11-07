@@ -75,7 +75,7 @@ export async function loadUpcoming(hh: string, canWrite: boolean, startOpen: boo
 
       {schedules.length > 0 && (
         <section aria-label="The month" className="flex flex-col gap-1.5">
-          <h2 className="mx-[var(--gutter)] px-0.5 text-[13px] font-semibold text-muted-foreground">The month</h2>
+          <h2 className="mx-[var(--gutter)] px-0.5 text-subhead font-semibold text-muted-foreground">The month</h2>
           <Calendar schedules={forCalendar} canWrite={canWrite} today={todayIso} />
         </section>
       )}
@@ -98,7 +98,7 @@ export async function loadUpcoming(hh: string, canWrite: boolean, startOpen: boo
       )}
 
       {schedules.length > 0 && (
-        <p className="mx-[var(--gutter)] -mt-2 px-0.5 text-xs leading-relaxed text-muted-foreground">
+        <p className="mx-[var(--gutter)] -mt-2 px-0.5 text-footnote leading-relaxed text-muted-foreground">
           Nothing is recorded until you say so. A regular payment is a reminder with the details already filled in,
           not a standing instruction that writes entries behind your back.
         </p>
@@ -126,18 +126,18 @@ function Rows({ schedules, canWrite, today, todayIso, done = false }: {
             <div className={`flex min-h-[72px] items-center gap-3 py-2.5 ${i === schedules.length - 1 ? '' : 'border-b border-border'}`}>
               <Chip icon={s.icon ?? 'autodebit'} tint={s.tint} size={40} radius={12} />
               <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-                <span className="text-[15px] font-medium [overflow-wrap:anywhere]">{s.name}</span>
-                <span className="text-xs text-muted-foreground [overflow-wrap:anywhere]">
+                <span className="text-body font-medium [overflow-wrap:anywhere]">{s.name}</span>
+                <span className="text-footnote text-muted-foreground [overflow-wrap:anywhere]">
                   {r ? cap(describeRule(r.rule, r.cal)) : 'No schedule'}
                   {s.category ? ` · ${s.category}` : ''}
                 </span>
                 {r && !done && (
-                  <span className={`text-xs ${next ? 'font-semibold' : ''} ${late ? 'text-destructive' : next ? 'text-foreground' : 'text-muted-foreground'}`}>
+                  <span className={`text-footnote ${next ? 'font-semibold' : ''} ${late ? 'text-destructive' : next ? 'text-foreground' : 'text-muted-foreground'}`}>
                     {next ? nextIn(todayIso, next) : 'Nothing more to come'}
                   </span>
                 )}
               </span>
-              <span className={`flex-none text-[15px] font-semibold tabular-nums ${s.kind === 'income' ? 'text-money-in' : ''}`}>
+              <span className={`flex-none text-body font-semibold tabular-nums ${s.kind === 'income' ? 'text-money-in' : ''}`}>
                 {s.kind === 'income' ? '+' : ''}{format(Number(s.amount ?? 0))}
               </span>
             </div>

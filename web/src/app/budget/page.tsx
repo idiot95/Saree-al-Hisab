@@ -94,7 +94,7 @@ export default async function Plan({ searchParams }: {
 
             {lit.length > 0 && (
               <section aria-label="By category" className="flex flex-col gap-1.5">
-                <h2 className="px-0.5 text-[13px] font-semibold text-muted-foreground">By category</h2>
+                <h2 className="px-0.5 text-subhead font-semibold text-muted-foreground">By category</h2>
                 <ul className="overflow-hidden rounded-[18px] bg-card">
                   {lit.map((r) => <CategoryLine key={r.category_id} row={r} month={month} />)}
                 </ul>
@@ -118,14 +118,14 @@ export default async function Plan({ searchParams }: {
           <div className="mx-[var(--gutter)] overflow-clip rounded-[18px] bg-card">
             {canEdit && sets.length > 0 && (
               <details className="group border-b border-border">
-                <summary className="flex min-h-14 cursor-pointer list-none items-center gap-3 px-4 text-[15px] font-medium [&::-webkit-details-marker]:hidden">
+                <summary className="flex min-h-14 cursor-pointer list-none items-center gap-3 px-4 text-body font-medium [&::-webkit-details-marker]:hidden">
                   <Icon name="tune" size={22} className="text-primary" />
                   <span className="flex-1">Adjust {label(month)} only</span>
                   <Icon name="expand_more" size={20} className="text-muted-foreground transition-transform group-open:rotate-180" />
                 </summary>
                 <div className="pb-3">
                   <BudgetForm month={month} rows={rows} canEdit={canEdit} />
-                  <p className="mx-4 mt-1 text-xs leading-relaxed text-muted-foreground">
+                  <p className="mx-4 mt-1 text-footnote leading-relaxed text-muted-foreground">
                     Each month is its own set of figures. Changing {label(month)} leaves every
                     earlier month exactly as it was, and leaves your budget untouched.
                   </p>
@@ -133,7 +133,7 @@ export default async function Plan({ searchParams }: {
               </details>
             )}
             <Link href="/categories"
-              className="press flex min-h-14 items-center gap-3 px-4 text-[15px] font-medium">
+              className="press flex min-h-14 items-center gap-3 px-4 text-body font-medium">
               <Icon name="sell" size={22} className="text-primary" />
               <span className="flex-1">Edit categories</span>
               <Icon name="chevron_right" size={18} className="text-muted-foreground" />
@@ -157,9 +157,9 @@ function MonthFigures({ month, budget, spent, future }: { month: string; budget:
   if (budget === 0) {
     return (
       <section aria-label={`${label(month)} so far`} className="flex flex-col gap-2 rounded-[22px] bg-card p-[18px]">
-        <span className="text-[13px] text-muted-foreground">Spent in {name}</span>
-        <Figure minor={spent} className="text-[36px] font-bold leading-none tracking-tight tabular-nums" />
-        <span className="text-xs text-muted-foreground">Nothing budgeted for {name} yet.</span>
+        <span className="text-subhead text-muted-foreground">Spent in {name}</span>
+        <Figure minor={spent} className="text-large-title font-bold leading-none tracking-tight tabular-nums" />
+        <span className="text-footnote text-muted-foreground">Nothing budgeted for {name} yet.</span>
       </section>
     );
   }
@@ -170,12 +170,12 @@ function MonthFigures({ month, budget, spent, future }: { month: string; budget:
   return (
     <section aria-label={`${label(month)} against the budget`} className="flex flex-col gap-3 rounded-[22px] bg-card p-[18px]">
       <div className="flex items-center justify-between gap-3">
-        <span className="text-[13px] text-muted-foreground">{pace.over ? 'Over budget by' : 'Left to spend'}</span>
-        <span className={`flex items-center gap-1 text-xs font-semibold ${status.tone}`}>
+        <span className="text-subhead text-muted-foreground">{pace.over ? 'Over budget by' : 'Left to spend'}</span>
+        <span className={`flex items-center gap-1 text-footnote font-semibold ${status.tone}`}>
           <Icon name={status.icon} size={16} />{status.word}
         </span>
       </div>
-      <Figure minor={Math.abs(budget - spent)} className="text-[38px] font-bold leading-none tracking-tight tabular-nums" />
+      <Figure minor={Math.abs(budget - spent)} className="text-large-title font-bold leading-none tracking-tight tabular-nums" />
       <div className="relative py-[3px]">
         <Progress value={Math.min(100, pace.throughMoney * 100)}
           aria-label={`${Math.round(pace.throughMoney * 100)}% of the budget spent`}
@@ -185,7 +185,7 @@ function MonthFigures({ month, budget, spent, future }: { month: string; budget:
             style={{ left: `${pace.throughMonth * 100}%` }} />
         )}
       </div>
-      <div className="flex flex-wrap justify-between gap-x-3 gap-y-1 text-xs text-muted-foreground">
+      <div className="flex flex-wrap justify-between gap-x-3 gap-y-1 text-footnote text-muted-foreground">
         <span className="min-w-0"><Figure minor={spent} /> spent of <Figure minor={budget} /></span>
         {pace.sameMonth && <span className="flex-none">Day {pace.day} of {pace.days}</span>}
       </div>
@@ -210,13 +210,13 @@ function CategoryLine({ row, month }: { row: Row; month: string }) {
         <Chip icon={row.icon} tint={row.tint} size={36} radius={10} />
         <span className="flex min-w-0 flex-1 flex-col gap-1.5">
           <span className="flex items-baseline justify-between gap-2">
-            <span className="min-w-0 text-[15px] font-medium [overflow-wrap:anywhere]">
+            <span className="min-w-0 text-body font-medium [overflow-wrap:anywhere]">
               {row.name}
               {row.archived && (
-                <span className="ml-1.5 rounded-md bg-muted px-1.5 py-0.5 align-middle text-[10px] font-bold tracking-wide text-muted-foreground">RETIRED</span>
+                <span className="ml-1.5 rounded-md bg-muted px-1.5 py-0.5 align-middle text-caption font-bold tracking-wide text-muted-foreground">RETIRED</span>
               )}
             </span>
-            <span className={`flex flex-none items-center gap-1 text-sm font-semibold tabular-nums ${over ? 'text-destructive' : ''}`}>
+            <span className={`flex flex-none items-center gap-1 text-body font-semibold tabular-nums ${over ? 'text-destructive' : ''}`}>
               {over && <Icon name="warning" size={14} />}
               {cap === 0 ? format(used) : over ? `${format(used - cap)} over` : `${format(cap - used)} left`}
             </span>
@@ -228,13 +228,13 @@ function CategoryLine({ row, month }: { row: Row; month: string }) {
                 style={{ width: `${Math.min(100, (used / cap) * 100)}%` }} />
             </span>
           )}
-          <span className="text-xs text-muted-foreground tabular-nums">
+          <span className="text-footnote text-muted-foreground tabular-nums">
             {cap === 0 ? 'spent · not budgeted' : over ? `Over budget · ${format(used)} of ${format(cap)}` : `${format(used)} of ${format(cap)}`}
           </span>
         </span>
       </Link>
       {kids.length > 0 && (
-        <p className="-mt-1.5 flex flex-wrap gap-x-1 pb-3 pl-[62px] pr-4 text-xs leading-relaxed text-muted-foreground">
+        <p className="-mt-1.5 flex flex-wrap gap-x-1 pb-3 pl-[62px] pr-4 text-footnote leading-relaxed text-muted-foreground">
           <span>of which</span>
           {kids.map((k, j) => (
             <Link key={k.id} href={`/entries?m=${month}&c=${k.id}`} className="font-semibold">

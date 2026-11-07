@@ -44,8 +44,8 @@ export async function loadReview(hh: string, canWrite: boolean, sms: number) {
                       <Icon name="card" size={20} />
                     </span>
                     <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-                      <span className="text-[15px] font-medium [overflow-wrap:anywhere]">{b.account}{b.last4 && ` · ${b.last4}`}</span>
-                      <span className={`flex items-center gap-1 text-xs ${soon ? 'text-destructive' : 'text-muted-foreground'}`}>
+                      <span className="text-body font-medium [overflow-wrap:anywhere]">{b.account}{b.last4 && ` · ${b.last4}`}</span>
+                      <span className={`flex items-center gap-1 text-footnote ${soon ? 'text-destructive' : 'text-muted-foreground'}`}>
                         {soon && <Icon name="schedule" size={14} />}
                         <span className="[overflow-wrap:anywhere]">
                           {b.days_away < 0 ? `Overdue by ${-b.days_away} ${-b.days_away === 1 ? 'day' : 'days'}`
@@ -55,7 +55,7 @@ export async function loadReview(hh: string, canWrite: boolean, sms: number) {
                         </span>
                       </span>
                     </span>
-                    <span className="flex-none text-[15px] font-semibold tabular-nums">{format(Number(b.outstanding))}</span>
+                    <span className="flex-none text-body font-semibold tabular-nums">{format(Number(b.outstanding))}</span>
                   </div>
                 </Swipeable>
               );
@@ -113,7 +113,7 @@ function Pointer({ href, icon, strong, rest }: { href: string; icon: string; str
     <Link href={href} replace data-replace motion="fade"
       className="press flex min-h-14 items-center gap-3 border-b border-border px-3.5 last:border-b-0">
       <Icon name={icon} size={22} className="text-primary" />
-      <span className="flex-1 text-sm"><b className="font-semibold">{strong}</b>
+      <span className="flex-1 text-body"><b className="font-semibold">{strong}</b>
         <span className="text-muted-foreground"> · {rest}</span></span>
       <Icon name="chevron_right" size={18} className="text-muted-foreground" />
     </Link>

@@ -44,7 +44,7 @@ export default function OwedFor({ txnId, entryAmount, people, claims, canEdit }:
 
   return (
     <section aria-labelledby="owed-for" className="mx-[var(--gutter)] mb-4 flex flex-col gap-3 rounded-[18px] bg-card p-[var(--pad)]">
-      <h2 id="owed-for" className="text-[15px] font-semibold">Owed back to you</h2>
+      <h2 id="owed-for" className="text-body font-semibold">Owed back to you</h2>
       <Said>{state?.ok ? state.message : ''}</Said>
 
       {claims.length > 0 && (
@@ -54,21 +54,21 @@ export default function OwedFor({ txnId, entryAmount, people, claims, canEdit }:
             return (
               <li key={c.id} className={cn('flex min-h-14 items-center gap-2.5 py-1.5', i < claims.length - 1 && 'border-b border-border')}>
                 <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-                  <span className="text-[15px] font-semibold [overflow-wrap:anywhere]">{c.person}</span>
-                  <span className={cn('flex items-center gap-1 text-[13px]', w.ink)}>
+                  <span className="text-body font-semibold [overflow-wrap:anywhere]">{c.person}</span>
+                  <span className={cn('flex items-center gap-1 text-subhead', w.ink)}>
                     <Icon name={w.icon} size={15} />
                     {w.word}
                     {c.status === 'part_paid' && ` · ${format(Number(c.received))} in`}
                   </span>
                 </span>
-                <span className={cn('flex-none text-right text-[15px] font-semibold whitespace-nowrap', w.ink)}>
+                <span className={cn('flex-none text-right text-body font-semibold whitespace-nowrap', w.ink)}>
                   {format(Number(c.status === 'settled' ? c.expected_amount : c.outstanding))}
                 </span>
                 {canEdit && c.status !== 'settled' && c.status !== 'written_off' && (
                   <form action={drop}>
                     <input type="hidden" name="claimId" value={c.id} />
                     <button type="submit" aria-label={`Drop what ${c.person} owes`}
-                      className="press flex min-h-11 items-center justify-center px-2 text-[13px] font-semibold text-muted-foreground">
+                      className="press flex min-h-11 items-center justify-center px-2 text-subhead font-semibold text-muted-foreground">
                       Drop
                     </button>
                   </form>
@@ -82,7 +82,7 @@ export default function OwedFor({ txnId, entryAmount, people, claims, canEdit }:
       {canEdit && (open ? (
         <form action={act} {...keep} aria-label="Someone owes me for this" className="flex flex-col gap-3">
           <input type="hidden" name="txnId" value={txnId} />
-          <p className="text-sm leading-normal text-muted-foreground">
+          <p className="text-subhead leading-normal text-muted-foreground">
             This does not change the entry. You paid for it, so it stays in the month&rsquo;s
             spending — what you are recording is that some of it is coming back.
           </p>
@@ -106,14 +106,14 @@ export default function OwedFor({ txnId, entryAmount, people, claims, canEdit }:
         </form>
       ) : (
         <button ref={opener} type="button" onClick={() => setOpen(true)}
-          className="press flex min-h-12 items-center justify-center gap-2 rounded-xl bg-muted px-4 text-base font-semibold text-foreground">
+          className="press flex min-h-12 items-center justify-center gap-2 rounded-xl bg-muted px-4 text-headline font-semibold text-foreground">
           <Icon name="person_add" size={19} />
           {claims.length ? 'Add someone else' : 'Someone owes me for this'}
         </button>
       ))}
 
       {people.length === 0 && (
-        <p className="text-sm text-muted-foreground">Add someone to a tab in Loans first.</p>
+        <p className="text-subhead text-muted-foreground">Add someone to a tab in Loans first.</p>
       )}
     </section>
   );

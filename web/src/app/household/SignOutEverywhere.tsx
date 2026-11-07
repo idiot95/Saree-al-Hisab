@@ -24,7 +24,7 @@ export default function SignOutEverywhere() {
         <Glyph name="devices" />
         <Words title="Sign out everywhere" />
       </div>
-      <p className="text-sm leading-normal text-muted-foreground">
+      <p className="text-subhead leading-normal text-muted-foreground">
         Ends every signed-in session on every device, including this one. Use this if a
         phone has been lost or you think someone else has your password.
       </p>

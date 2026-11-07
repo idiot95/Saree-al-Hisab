@@ -141,12 +141,12 @@ export function AccountForm({ account: a, last = true, onDone }: {
         className="flex flex-col gap-1.5">
         <input type="hidden" name="id" value={a.id} />
         <button type="submit" disabled={retiring}
-          className={`press flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold text-destructive disabled:opacity-60 ${sure ? 'bg-destructive/10' : ''}`}>
+          className={`press flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 text-body font-semibold text-destructive disabled:opacity-60 ${sure ? 'bg-destructive/10' : ''}`}>
           <Icon name="archive" size={18} />
           {retiring ? 'Archiving…' : sure ? `Yes, archive ${a.name}` : 'Archive this account'}
         </button>
         {retireState && !retireState.ok && <ErrorNote>{retireState.error}</ErrorNote>}
-        <span className="text-xs leading-snug text-muted-foreground">
+        <span className="text-footnote leading-snug text-muted-foreground">
           {a.methods > 0
             ? `${a.methods === 1 ? 'One way to pay is' : `${a.methods} ways to pay are`} linked to this — archive ${a.methods === 1 ? 'it' : 'them'} first.`
             : 'It leaves the pickers. Every entry already on it stays, and no month changes value.'}

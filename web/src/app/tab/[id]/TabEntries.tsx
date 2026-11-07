@@ -135,7 +135,7 @@ export default function TabEntries({
 
       {months.map((m) => (
         <section key={m.key} aria-label={monthName(m.key)} className="mx-[var(--gutter)] flex flex-col gap-1.5">
-          <h2 className="px-0.5 text-[13px] font-semibold text-muted-foreground">{monthName(m.key)}</h2>
+          <h2 className="px-0.5 text-subhead font-semibold text-muted-foreground">{monthName(m.key)}</h2>
           {/* px-[var(--pad)] and overflow-hidden: the swipe row's negative margin is --pad, so its actions stop at
               the rounded edge and the card never scrolls sideways. */}
           <div className="overflow-hidden rounded-[18px] bg-card px-[var(--pad)]">
@@ -145,8 +145,8 @@ export default function TabEntries({
                   className={`flex min-h-16 items-center gap-3 py-2.5 text-foreground ${i === m.rows.length - 1 ? '' : 'border-b border-border'}`}>
                   {e.incoming ? <Chip icon="receivable" tint="green" size={36} /> : <Chip icon={e.icon} tint={e.tint} size={36} />}
                   <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-                    <span className="text-[15px] font-medium leading-snug [overflow-wrap:anywhere]">{e.title}</span>
-                    <span className="flex flex-wrap items-center gap-x-1 text-xs text-muted-foreground">
+                    <span className="text-body font-medium leading-snug [overflow-wrap:anywhere]">{e.title}</span>
+                    <span className="flex flex-wrap items-center gap-x-1 text-footnote text-muted-foreground">
                       <span>{new Date(`${e.on}T00:00:00`).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</span>
                       {!e.incoming && <span>· {e.outstanding > 0 ? `${format(e.outstanding)} owed` : 'settled'}</span>}
                       {e.bills > 0 ? (
@@ -156,7 +156,7 @@ export default function TabEntries({
                       ) : !e.incoming ? <span>· no bill</span> : null}
                     </span>
                   </span>
-                  <span className={`flex-none text-[15px] font-semibold tabular-nums ${e.incoming ? 'text-money-in' : ''}`}>
+                  <span className={`flex-none text-body font-semibold tabular-nums ${e.incoming ? 'text-money-in' : ''}`}>
                     {e.incoming ? '+' : ''}{format(e.amount)}
                   </span>
                 </Link>
@@ -226,7 +226,7 @@ function BillBody({ entry, bills, fresh, tabName, editHref, onDone, onSkip }: {
      or the picker is the browser's own and needs no script to reach it. */
   const tile = (icon: string, label: string, input: React.ReactNode) => (
     <label onClick={() => haptic('select')}
-      className={`flex min-h-28 cursor-pointer flex-col items-center justify-center gap-2.5 rounded-2xl border border-border bg-background text-center text-[15px] font-semibold text-foreground ${busy ? 'pointer-events-none opacity-60' : ''}`}>
+      className={`flex min-h-28 cursor-pointer flex-col items-center justify-center gap-2.5 rounded-2xl border border-border bg-background text-center text-body font-semibold text-foreground ${busy ? 'pointer-events-none opacity-60' : ''}`}>
       {input}
       <span className="grid size-[46px] place-items-center rounded-full bg-card text-primary"><Icon name={icon} size={22} /></span>
       {label}
@@ -240,28 +240,28 @@ function BillBody({ entry, bills, fresh, tabName, editHref, onDone, onSkip }: {
           <div className="flex items-center gap-3">
             <span className="grid size-10 flex-none place-items-center rounded-full bg-accent text-primary"><Icon name="check" size={20} /></span>
             <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-              <span className="text-base font-semibold">Saved on {tabName}</span>
-              <span className="text-[13px] text-muted-foreground">
+              <span className="text-headline font-semibold">Saved on {tabName}</span>
+              <span className="text-subhead text-muted-foreground">
                 {entry.title} · {format(entry.amount)}
                 {entry.outstanding > 0 ? ` · ${format(entry.outstanding)} to come back` : ''}
               </span>
             </span>
             <Link href={editHref}
-              className="press flex min-h-11 flex-none items-center gap-1.5 rounded-xl bg-muted px-3.5 text-[13px] font-semibold text-foreground">
+              className="press flex min-h-11 flex-none items-center gap-1.5 rounded-xl bg-muted px-3.5 text-subhead font-semibold text-foreground">
               <Icon name="pencil" size={15} />
               Edit
             </Link>
           </div>
           <span className="h-px bg-border" />
           <div className="flex flex-col gap-1">
-            <h2 className="text-xl font-bold">Attach the bill?</h2>
-            <p className="text-[13px] text-muted-foreground">It goes out with every reminder for this cost. A photo or a PDF.</p>
+            <h2 className="text-title font-bold">Attach the bill?</h2>
+            <p className="text-subhead text-muted-foreground">It goes out with every reminder for this cost. A photo or a PDF.</p>
           </div>
         </>
       ) : (
         <div className="flex flex-col gap-1">
-          <h2 className="text-xl font-bold">Bills for {entry.title}</h2>
-          <p className="text-[13px] text-muted-foreground">
+          <h2 className="text-title font-bold">Bills for {entry.title}</h2>
+          <p className="text-subhead text-muted-foreground">
             {bills.length === 0 ? 'None yet. They go out with every reminder for this cost.' : 'They go out with every reminder for this cost.'}
           </p>
         </div>
@@ -274,8 +274,8 @@ function BillBody({ entry, bills, fresh, tabName, editHref, onDone, onSkip }: {
               <a href={`/attachment/${b.id}`} target="_blank" rel="noopener noreferrer"
                 className="press flex min-h-12 items-center gap-2.5 rounded-xl bg-background px-3 text-foreground">
                 <Icon name="clip" size={17} />
-                <span className="min-w-0 flex-1 text-[13px] font-semibold [overflow-wrap:anywhere]">{b.name}</span>
-                <span className="text-xs font-semibold text-primary">Open</span>
+                <span className="min-w-0 flex-1 text-subhead font-semibold [overflow-wrap:anywhere]">{b.name}</span>
+                <span className="text-footnote font-semibold text-primary">Open</span>
               </a>
             </li>
           ))}
@@ -292,15 +292,15 @@ function BillBody({ entry, bills, fresh, tabName, editHref, onDone, onSkip }: {
               onChange={(e) => take(e.currentTarget)} className="hidden" />)}
         </div>
       ) : (
-        <p className="text-[13px] text-muted-foreground">Five bills is the most an entry keeps.</p>
+        <p className="text-subhead text-muted-foreground">Five bills is the most an entry keeps.</p>
       )}
       {problem && <Problem>{problem}</Problem>}
 
       {fresh && (
         <div className="flex flex-col items-center gap-0.5">
           <Button type="button" variant="ghost" onClick={onSkip}
-            className="h-12 px-5 text-base font-semibold text-muted-foreground">Not now</Button>
-          <span className="text-xs text-muted-foreground">Swipe the entry left to add it later.</span>
+            className="h-12 px-5 text-headline font-semibold text-muted-foreground">Not now</Button>
+          <span className="text-footnote text-muted-foreground">Swipe the entry left to add it later.</span>
         </div>
       )}
     </div>
@@ -361,8 +361,8 @@ function RemindBody({ entry, tabId, tabName, claims, bills }: {
   return (
     <div className="flex flex-col gap-4 pt-0.5">
       <div className="flex flex-col gap-1">
-        <h2 className="text-xl font-bold">{entry ? `Remind about ${entry.title}` : `Remind about ${tabName}`}</h2>
-        <p className="text-[13px] text-muted-foreground">
+        <h2 className="text-title font-bold">{entry ? `Remind about ${entry.title}` : `Remind about ${tabName}`}</h2>
+        <p className="text-subhead text-muted-foreground">
           {entry
             ? `${new Date(`${entry.on}T00:00:00`).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} · ${format(entry.outstanding)} still owed`
             : `${format(rows.reduce((n, r) => n + r.amount, 0))} still owed on this tab`}
@@ -370,7 +370,7 @@ function RemindBody({ entry, tabId, tabName, claims, bills }: {
       </div>
 
       {rows.length === 0 ? (
-        <p className="text-[15px] text-muted-foreground">Nothing is owed on this.</p>
+        <p className="text-body text-muted-foreground">Nothing is owed on this.</p>
       ) : (
         <ul className="flex flex-col">
           {rows.map((r) => {
@@ -379,8 +379,8 @@ function RemindBody({ entry, tabId, tabName, claims, bills }: {
               <li key={r.key} className="flex min-h-[62px] items-center gap-3 border-b border-border last:border-b-0">
                 {r.name ? <Face name={r.name} tint={r.tint} /> : <Chip icon="folder" tint={tabTint(tabId)} />}
                 <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-                  <span className="text-[15px] font-semibold">{r.name ?? 'Nobody named'}</span>
-                  <span className="text-xs text-muted-foreground">
+                  <span className="text-body font-semibold">{r.name ?? 'Nobody named'}</span>
+                  <span className="text-footnote text-muted-foreground">
                     {format(r.amount)}{r.name ? '' : ' · you choose who gets it'}
                   </span>
                 </span>
@@ -397,11 +397,11 @@ function RemindBody({ entry, tabId, tabName, claims, bills }: {
 
       {rows.length > 0 && (
         <div className="flex flex-col gap-2">
-          <span className="text-sm font-medium text-muted-foreground">What they get</span>
+          <span className="text-subhead font-medium text-muted-foreground">What they get</span>
           <div className="flex flex-col gap-2.5 rounded-2xl bg-muted px-3.5 py-3">
-            <p className="text-[15px] leading-snug">{rows[0].text}</p>
+            <p className="text-body leading-snug">{rows[0].text}</p>
             {anyBills && (
-              <label className="flex min-h-11 cursor-pointer items-center gap-2.5 border-t border-border pt-2 text-[13px]">
+              <label className="flex min-h-11 cursor-pointer items-center gap-2.5 border-t border-border pt-2 text-subhead">
                 <Icon name="clip" size={16} />
                 <span className="flex-1">Send the bills with it</span>
                 <input type="checkbox" checked={withBills} onChange={(e) => setWithBills(e.target.checked)}
@@ -409,12 +409,12 @@ function RemindBody({ entry, tabId, tabName, claims, bills }: {
               </label>
             )}
           </div>
-          <p className="text-xs leading-snug text-muted-foreground">
+          <p className="text-footnote leading-snug text-muted-foreground">
             One message each, through your phone’s share sheet — WhatsApp, Messages, wherever you already talk.
           </p>
         </div>
       )}
-      {said && <p role="status" className="text-[13px] text-muted-foreground">{said}</p>}
+      {said && <p role="status" className="text-subhead text-muted-foreground">{said}</p>}
     </div>
   );
 }

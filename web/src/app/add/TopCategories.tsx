@@ -43,14 +43,14 @@ export default function TopCategories({ categories, top, value, onChange, label 
 
   if (categories.length === 0) {
     return (
-      <p className="m-0 text-sm leading-normal text-muted-foreground">
+      <p className="m-0 text-subhead leading-normal text-muted-foreground">
         No categories take this kind of entry yet. Set them up under Categories.
       </p>
     );
   }
 
   const tile = 'flex min-h-[72px] min-w-0 flex-col items-center justify-center gap-1 rounded-2xl border px-0.5 py-2 '
-    + 'text-xs leading-tight transition-colors';
+    + 'text-footnote leading-tight transition-colors';
 
   return (
     <>

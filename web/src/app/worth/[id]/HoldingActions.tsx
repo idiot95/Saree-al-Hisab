@@ -43,7 +43,7 @@ function Sheet({ open, setOpen, trigger, title, children }: {
   );
 }
 
-const action = 'press flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl px-3 text-[15px] font-semibold';
+const action = 'press flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl px-3 text-body font-semibold';
 
 export function UpdateBalance({ id, fx, currency }: { id: string; fx: boolean; currency: string | null }) {
   const [files, setFiles] = useState<File[]>([]);
@@ -58,7 +58,7 @@ export function UpdateBalance({ id, fx, currency }: { id: string; fx: boolean; c
           autoFocus hint={fx ? 'The whole balance, not the change.' : 'The whole weight, not the change. Up to three decimals.'} />
         <PhotoField files={files} onChange={setFiles} />
         {s.state && !s.state.ok && <Problem>{s.state.error}</Problem>}
-        <Button type="submit" disabled={s.pending} className="h-12 rounded-xl text-base font-semibold">
+        <Button type="submit" disabled={s.pending} className="h-12 rounded-xl text-headline font-semibold">
           {s.pending ? 'Saving…' : 'Save'}
         </Button>
       </form>
@@ -75,10 +75,10 @@ export function AddPhotos({ holdingId }: { holdingId: string }) {
       {/* JS-only on purpose: the drawer cannot open without script, so wrapping the action in a client closure loses no no-JS path. */}
       <form noValidate onSubmit={keepFields(s.act)} className="flex flex-col gap-4 pt-4">
         <input type="hidden" name="holdingId" value={holdingId} />
-        <p className="text-sm text-muted-foreground">Kept with the holding itself. A photo for one day’s figure goes in with Update balance.</p>
+        <p className="text-subhead text-muted-foreground">Kept with the holding itself. A photo for one day’s figure goes in with Update balance.</p>
         <PhotoField files={files} onChange={setFiles} />
         {s.state && !s.state.ok && <Problem>{s.state.error}</Problem>}
-        <Button type="submit" disabled={s.pending || files.length === 0} className="h-12 rounded-xl text-base font-semibold">
+        <Button type="submit" disabled={s.pending || files.length === 0} className="h-12 rounded-xl text-headline font-semibold">
           {s.pending ? 'Attaching…' : 'Attach'}
         </Button>
       </form>
@@ -95,9 +95,9 @@ export function RateLine({ base, subject, rate, stale, canWrite, fx }: {
   const s = useSheet(setRateOverride);
   const body = (
     <span className="flex min-w-0 flex-1 flex-col items-start gap-0.5 text-left">
-      <span className="text-[15px] tabular-nums [overflow-wrap:anywhere]">{rate ?? 'No rate yet'}</span>
-      {stale && <span className="flex items-center gap-1 text-xs text-attention-soft-foreground"><Icon name="sync_problem" size={15} />{stale}</span>}
-      {canWrite && <span className="text-xs text-muted-foreground">{rate ? 'Tap to override' : 'Tap to set one'}</span>}
+      <span className="text-body tabular-nums [overflow-wrap:anywhere]">{rate ?? 'No rate yet'}</span>
+      {stale && <span className="flex items-center gap-1 text-footnote text-attention-soft-foreground"><Icon name="sync_problem" size={15} />{stale}</span>}
+      {canWrite && <span className="text-footnote text-muted-foreground">{rate ? 'Tap to override' : 'Tap to set one'}</span>}
     </span>
   );
   if (!canWrite) {
@@ -117,7 +117,7 @@ export function RateLine({ base, subject, rate, stale, canWrite, fx }: {
           name="rate" inputMode="decimal" required autoFocus
           hint={fx ? 'Used from today until a newer rate is fetched.' : 'Per gram of pure metal; purity is applied for you. Used from today until a newer rate is fetched.'} />
         {s.state && !s.state.ok && <Problem>{s.state.error}</Problem>}
-        <Button type="submit" disabled={s.pending} className="h-12 rounded-xl text-base font-semibold">
+        <Button type="submit" disabled={s.pending} className="h-12 rounded-xl text-headline font-semibold">
           {s.pending ? 'Saving…' : 'Save rate'}
         </Button>
       </form>
@@ -140,14 +140,14 @@ export function ArchiveHolding({ id, name }: { id: string; name: string }) {
       className="flex flex-col gap-1.5 pt-2">
       <input type="hidden" name="id" value={id} />
       <button type="submit" disabled={pending}
-        className={`press flex min-h-12 items-center justify-center gap-2 rounded-xl text-[15px] font-semibold text-destructive ${sure ? 'bg-destructive/10' : ''}`}>
+        className={`press flex min-h-12 items-center justify-center gap-2 rounded-xl text-body font-semibold text-destructive ${sure ? 'bg-destructive/10' : ''}`}>
         <Icon name="archive" size={19} />{pending ? 'Archiving…' : sure ? `Yes, archive ${name}` : 'Archive'}
       </button>
       {sure && !pending && (
-        <button type="button" onClick={() => setSure(false)} className="min-h-11 text-sm text-muted-foreground">Keep it</button>
+        <button type="button" onClick={() => setSure(false)} className="min-h-11 text-subhead text-muted-foreground">Keep it</button>
       )}
       {state && !state.ok && <Problem>{state.error}</Problem>}
-      <p className="text-center text-xs text-muted-foreground">It stops counting. Its figures and photos are kept.</p>
+      <p className="text-center text-footnote text-muted-foreground">It stops counting. Its figures and photos are kept.</p>
     </form>
   );
 }

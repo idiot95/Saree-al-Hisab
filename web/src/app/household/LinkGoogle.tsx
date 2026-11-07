@@ -17,7 +17,7 @@ export default function LinkGoogle({ linked }: { linked: boolean }) {
       <div className="flex min-h-14 items-center gap-3 px-[var(--pad)] py-2.5">
         <Glyph name="google" tone="accent" />
         <Words title="Signed in with Google" />
-        <span className="inline-flex flex-none items-center gap-1 text-[13px] font-semibold text-muted-foreground">
+        <span className="inline-flex flex-none items-center gap-1 text-subhead font-semibold text-muted-foreground">
           <Icon name="check" size={16} /> Linked
         </span>
       </div>

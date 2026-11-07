@@ -111,8 +111,8 @@ export default async function Household() {
                 <dl className="flex flex-col gap-3 px-[var(--pad)] pb-4 pl-[calc(var(--pad)+50px)]">
                   {(['owner', 'adult', 'viewer'] as const).map((r) => (
                     <div key={r} className="flex flex-col gap-0.5">
-                      <dt className="text-sm font-semibold">{LABEL[r]}</dt>
-                      <dd className="text-sm leading-normal text-muted-foreground">{WHAT[r]}</dd>
+                      <dt className="text-body font-semibold">{LABEL[r]}</dt>
+                      <dd className="text-subhead leading-normal text-muted-foreground">{WHAT[r]}</dd>
                     </div>
                   ))}
                 </dl>

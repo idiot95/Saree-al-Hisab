@@ -69,15 +69,15 @@ export default function GettingStarted({ progress, budgetAskedAbove = false }: {
             strokeLinecap="round" transform="rotate(-90 18 18)"
             strokeDasharray={`${(done / steps.length) * 94.2} 94.2`} />
         </svg>
-        <span className="absolute inset-0 grid place-items-center text-[10px] font-bold tabular-nums text-muted-foreground">
+        <span className="absolute inset-0 grid place-items-center text-caption font-bold tabular-nums text-muted-foreground">
           {done}/{steps.length}
         </span>
       </span>
 
       {/* The line wraps to a second rather than cutting off ("Setting u…" was the audit's §6.3). */}
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <span className="text-[15px] font-semibold">{next.title}</span>
-        <span className="line-clamp-2 text-xs text-muted-foreground">
+        <span className="text-body font-semibold">{next.title}</span>
+        <span className="line-clamp-2 text-footnote text-muted-foreground">
           {next.blurb} Setting up · {done} of {steps.length} done
         </span>
       </span>

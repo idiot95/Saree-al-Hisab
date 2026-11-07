@@ -47,12 +47,12 @@ export default function ActivityChips({ current, review, sms, month }: {
               if (c.key !== lit) haptic('select');
               setPicked(c.key);
             }}
-            className={`press flex min-h-11 min-w-11 flex-none items-center justify-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 text-sm in-data-[platform=android]:min-h-12 transition-colors ${on
+            className={`press flex min-h-11 min-w-11 flex-none items-center justify-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 text-body in-data-[platform=android]:min-h-12 transition-colors ${on
               ? 'border-primary bg-primary font-semibold text-primary-foreground'
               : 'border-border bg-card font-medium text-foreground'}`}>
             {c.label}
             {!!c.count && (
-              <span className={`grid min-w-5 place-items-center rounded-full px-1.5 text-[11px] font-bold leading-5 tabular-nums ${on
+              <span className={`grid min-w-5 place-items-center rounded-full px-1.5 text-caption font-bold leading-5 tabular-nums ${on
                 ? 'bg-primary-foreground text-primary' : 'bg-attention-soft text-attention-soft-foreground'}`}>
                 {c.count}
               </span>

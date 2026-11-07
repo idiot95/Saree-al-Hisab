@@ -99,11 +99,11 @@ async function HomeScreen({ saved }: { saved?: string }) {
         {/* The household, the month large, and your initials at the far end — the door to household and settings. */}
         <header className="flex items-end gap-3 px-[var(--gutter)] pb-2 pt-4">
           <div className="min-w-0 flex-1">
-            <p className="truncate text-[13px] text-muted-foreground">{name}</p>
-            <h1 className="text-[32px] font-bold leading-tight tracking-tight">{monthName}</h1>
+            <p className="truncate text-subhead text-muted-foreground">{name}</p>
+            <h1 className="text-large-title font-bold leading-tight tracking-tight">{monthName}</h1>
           </div>
           <Link href="/household" prefetch aria-label="Household and settings"
-            className="press grid size-11 flex-none place-items-center rounded-full bg-accent text-[15px] font-semibold text-accent-foreground in-data-[platform=android]:size-12">
+            className="press grid size-11 flex-none place-items-center rounded-full bg-accent text-body font-semibold text-accent-foreground in-data-[platform=android]:size-12">
             {(actor.user_name || '?').slice(0, 2).toUpperCase()}
           </Link>
         </header>
@@ -121,8 +121,8 @@ async function HomeScreen({ saved }: { saved?: string }) {
               className={`press flex min-h-[96px] flex-col gap-1.5 rounded-[18px] p-3.5 ${review > 0
                 ? 'bg-attention-soft text-attention-soft-foreground' : 'bg-card'}`}>
               <Icon name="rule" size={22} className={review > 0 ? '' : 'text-primary'} />
-              <span className={`text-xs ${review > 0 ? '' : 'text-muted-foreground'}`}>To review</span>
-              <span className="text-lg font-semibold leading-tight">
+              <span className={`text-footnote ${review > 0 ? '' : 'text-muted-foreground'}`}>To review</span>
+              <span className="text-headline font-semibold leading-tight">
                 {review > 0 ? `${review} ${review === 1 ? 'decision' : 'decisions'}` : 'All clear'}
               </span>
             </Link>
@@ -130,8 +130,8 @@ async function HomeScreen({ saved }: { saved?: string }) {
               <Link href="/entries?f=sms" motion="fade"
                 className="press flex min-h-[96px] flex-col gap-1.5 rounded-[18px] bg-card p-3.5">
                 <Icon name="sms" size={22} className="text-primary" />
-                <span className="text-xs text-muted-foreground">From SMS</span>
-                <span className="text-lg font-semibold leading-tight">
+                <span className="text-footnote text-muted-foreground">From SMS</span>
+                <span className="text-headline font-semibold leading-tight">
                   {inbox.sms} {inbox.sms === 1 ? 'message' : 'messages'}
                 </span>
               </Link>
@@ -139,8 +139,8 @@ async function HomeScreen({ saved }: { saved?: string }) {
               <Link href="/entries?f=upcoming" motion="fade"
                 className="press flex min-h-[96px] flex-col gap-1.5 rounded-[18px] bg-card p-3.5">
                 <Icon name="event_upcoming" size={22} className="text-primary" />
-                <span className="text-xs text-muted-foreground">Due this week</span>
-                <span className="text-lg font-semibold leading-tight tabular-nums">
+                <span className="text-footnote text-muted-foreground">Due this week</span>
+                <span className="text-headline font-semibold leading-tight tabular-nums">
                   {dueSoon.length ? <Figure minor={dueSoonTotal} /> : 'Nothing'}
                 </span>
               </Link>
@@ -152,8 +152,8 @@ async function HomeScreen({ saved }: { saved?: string }) {
             className="press flex min-h-[68px] items-center gap-3 rounded-[18px] bg-hero px-4 py-3.5 text-hero-foreground">
             <Icon name="trending_up" size={22} className="text-hero-4" />
             <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-              <span className="text-xs text-hero-muted">Household net worth</span>
-              <Figure minor={householdWorth} className="text-lg font-semibold leading-tight tabular-nums" />
+              <span className="text-footnote text-hero-muted">Household net worth</span>
+              <Figure minor={householdWorth} className="text-headline font-semibold leading-tight tabular-nums" />
             </span>
             <Icon name="chevron_right" size={22} className="text-hero-muted" />
           </Link>
@@ -162,8 +162,8 @@ async function HomeScreen({ saved }: { saved?: string }) {
             <Link href="/people" motion="fade" prefetch
               className="press flex min-h-14 items-center gap-3 rounded-[18px] bg-card px-4">
               <Icon name="group" size={20} className="text-primary" />
-              <span className="flex-1 text-sm text-muted-foreground">Owed to you</span>
-              <Figure minor={owed} className="text-base font-semibold tabular-nums" />
+              <span className="flex-1 text-subhead text-muted-foreground">Owed to you</span>
+              <Figure minor={owed} className="text-headline font-semibold tabular-nums" />
               <Icon name="chevron_right" size={20} className="text-muted-foreground" />
             </Link>
           )}
@@ -171,10 +171,10 @@ async function HomeScreen({ saved }: { saved?: string }) {
           {dueNow.length > 0 && (
             <section aria-label="Due today" className="flex flex-col gap-1">
               <div className="flex items-baseline justify-between gap-3 px-0.5">
-                <h2 className="py-1 text-[13px] font-semibold text-muted-foreground">
+                <h2 className="py-1 text-subhead font-semibold text-muted-foreground">
                   {dueNow.some((d) => d.daysAway < 0) ? 'Due now' : 'Due today'} · paid, or moved?
                 </h2>
-                <Link href="/entries?f=upcoming" motion="fade" className="-my-3 flex min-h-11 flex-none items-center px-1 text-sm font-medium text-primary">See all</Link>
+                <Link href="/entries?f=upcoming" motion="fade" className="-my-3 flex min-h-11 flex-none items-center px-1 text-body font-medium text-primary">See all</Link>
               </div>
               <div className="overflow-hidden rounded-[18px] bg-card px-[var(--pad)]">
                 {dueNow.map((d) => {
@@ -196,14 +196,14 @@ async function HomeScreen({ saved }: { saved?: string }) {
           {latest.length > 0 && (
             <section aria-label={todays.length ? 'Today' : 'Latest'} className="flex flex-col gap-1">
               <div className="flex items-baseline justify-between px-0.5">
-                <h2 className="py-1 text-[13px] font-semibold text-muted-foreground">{todays.length ? 'Today' : 'Latest'}</h2>
-                <Link href="/entries" motion="fade" className="-my-3 flex min-h-11 items-center px-1 text-sm font-medium text-primary">See all</Link>
+                <h2 className="py-1 text-subhead font-semibold text-muted-foreground">{todays.length ? 'Today' : 'Latest'}</h2>
+                <Link href="/entries" motion="fade" className="-my-3 flex min-h-11 items-center px-1 text-body font-medium text-primary">See all</Link>
               </div>
               <EntryList days={[{ on: todayIso, label: '', rows: latest.map(toRow) }]} canEdit={canAct} flat />
             </section>
           )}
 
-          <Link href="/guide" className="flex min-h-11 items-center self-center px-2 text-sm text-muted-foreground underline-offset-4 hover:underline">
+          <Link href="/guide" className="flex min-h-11 items-center self-center px-2 text-subhead text-muted-foreground underline-offset-4 hover:underline">
             How the app works
           </Link>
         </div>
@@ -224,8 +224,8 @@ function NoBudgetYet({ spent, entries }: { spent: number; entries: number }) {
         <Icon name="calendar_month" size={22} />
       </span>
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <span className="text-base font-semibold">Set this month’s budget</span>
-        <span className="text-xs text-muted-foreground">
+        <span className="text-headline font-semibold">Set this month’s budget</span>
+        <span className="text-footnote text-muted-foreground">
           {entries === 0
             ? 'Nothing recorded yet.'
             : <><Figure minor={spent} /> spent so far, across {entries} {entries === 1 ? 'entry' : 'entries'}.</>}

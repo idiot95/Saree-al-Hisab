@@ -70,25 +70,25 @@ export default async function Holding({ params }: { params: Promise<{ id: string
         <Back to="/worth" />
         <header className="flex flex-col gap-2 px-[var(--gutter)] pb-3 pt-4">
           <BackLink to="/worth" />
-          <p className="text-sm text-muted-foreground">{fx ? 'Pots in other currencies' : 'Gold & silver'}</p>
-          <h1 className="text-[28px] font-bold leading-tight tracking-tight [overflow-wrap:anywhere]">{h.name}</h1>
+          <p className="text-subhead text-muted-foreground">{fx ? 'Pots in other currencies' : 'Gold & silver'}</p>
+          <h1 className="text-title-2 font-bold leading-tight tracking-tight [overflow-wrap:anywhere]">{h.name}</h1>
           {h.archived_at && (
-            <p className="flex items-center gap-1.5 text-sm text-muted-foreground"><Icon name="archive" size={17} />Archived. Its history is kept.</p>
+            <p className="flex items-center gap-1.5 text-subhead text-muted-foreground"><Icon name="archive" size={17} />Archived. Its history is kept.</p>
           )}
         </header>
 
         <div className="flex flex-col gap-4 px-[var(--gutter)]">
           <section aria-label="What it is worth" className="flex flex-col gap-2 rounded-[22px] bg-hero p-[18px] text-hero-foreground">
-            <span className="text-[13px] text-hero-muted">{owner ? first(owner.name) : 'Joint'} · {what}</span>
+            <span className="text-subhead text-hero-muted">{owner ? first(owner.name) : 'Joint'} · {what}</span>
             {value !== null
-              ? <Figure minor={value} className="text-[38px] font-bold leading-none tracking-tight tabular-nums" />
+              ? <Figure minor={value} className="text-large-title font-bold leading-none tracking-tight tabular-nums" />
               : (
                 <span className="flex flex-col gap-1">
-                  <span className="text-[34px] font-bold leading-none tabular-nums">{h.quantity ? native(h.quantity) : '—'}</span>
-                  <span className="flex items-center gap-1.5 text-sm text-hero-muted"><Icon name="info" size={17} />Not valued yet</span>
+                  <span className="text-large-title font-bold leading-none tabular-nums">{h.quantity ? native(h.quantity) : '—'}</span>
+                  <span className="flex items-center gap-1.5 text-body text-hero-muted"><Icon name="info" size={17} />Not valued yet</span>
                 </span>
               )}
-            {value !== null && h.quantity && <span className="text-sm text-hero-muted">{native(h.quantity)}{h.as_of ? ` on ${dayLabel(h.as_of)}` : ''}</span>}
+            {value !== null && h.quantity && <span className="text-body text-hero-muted">{native(h.quantity)}{h.as_of ? ` on ${dayLabel(h.as_of)}` : ''}</span>}
           </section>
 
           <RateLine base={base} subject={subject} rate={rate} stale={staleLine} canWrite={canWrite} fx={fx} />
@@ -101,13 +101,13 @@ export default async function Holding({ params }: { params: Promise<{ id: string
           )}
 
           <section aria-label="History" className="flex flex-col gap-1.5">
-            <h2 className="px-0.5 text-[13px] font-semibold text-muted-foreground">History</h2>
+            <h2 className="px-0.5 text-subhead font-semibold text-muted-foreground">History</h2>
             <ol className="overflow-hidden rounded-[18px] bg-card">
               {snapshots.map((s) => (
                 <li key={s.id} className="flex flex-col gap-2 border-b border-border px-3.5 py-3 last:border-b-0">
                   <span className="flex items-baseline justify-between gap-3">
-                    <span className="text-[15px]">{longDay(s.as_of)}</span>
-                    <span className="text-[15px] font-semibold tabular-nums">{native(s.quantity)}</span>
+                    <span className="text-body">{longDay(s.as_of)}</span>
+                    <span className="text-body font-semibold tabular-nums">{native(s.quantity)}</span>
                   </span>
                   {forSnap(s.id).length > 0 && <Thumbs photos={forSnap(s.id)} />}
                 </li>
@@ -118,7 +118,7 @@ export default async function Holding({ params }: { params: Promise<{ id: string
 
           {own.length > 0 && (
             <section aria-label="Photos" className="flex flex-col gap-1.5">
-              <h2 className="px-0.5 text-[13px] font-semibold text-muted-foreground">Photos</h2>
+              <h2 className="px-0.5 text-subhead font-semibold text-muted-foreground">Photos</h2>
               <div className="rounded-[18px] bg-card p-3.5"><Thumbs photos={own} /></div>
             </section>
           )}
@@ -141,7 +141,7 @@ function Thumbs({ photos }: { photos: { id: string; name: string; mime: string }
             className="block overflow-hidden rounded-xl border border-border">
             {p.mime === 'application/pdf' ? (
               <span className="flex size-16 flex-col items-center justify-center gap-0.5 bg-muted text-muted-foreground">
-                <Icon name="picture_as_pdf" size={24} /><span className="text-[11px] font-medium">PDF</span>
+                <Icon name="picture_as_pdf" size={24} /><span className="text-caption font-medium">PDF</span>
               </span>
             ) : (
               // eslint-disable-next-line @next/next/no-img-element -- a private, per-household file; next/image would cache it

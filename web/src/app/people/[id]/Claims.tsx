@@ -39,8 +39,8 @@ export default function Claims({ claims, ways, canEdit, person, bills = [] }: {
   /* Page-level forms: settleClaim and abandonClaim go straight into useActionState and post without script. */
   return (
     <section aria-label="Owed for shared costs" className="mx-[var(--gutter)] flex flex-col gap-1.5">
-      <h2 className="px-0.5 text-[13px] font-semibold text-muted-foreground">Owed for shared costs</h2>
-      <p className="px-0.5 pb-1 text-[13px] leading-relaxed text-muted-foreground">
+      <h2 className="px-0.5 text-subhead font-semibold text-muted-foreground">Owed for shared costs</h2>
+      <p className="px-0.5 pb-1 text-subhead leading-relaxed text-muted-foreground">
         Things you paid for that they owe part of. Already counted in the month you bought
         them — this is only what is coming back.
       </p>
@@ -54,15 +54,15 @@ export default function Claims({ claims, ways, canEdit, person, bills = [] }: {
               <div className="flex items-center gap-3">
                 <Link href={`/entries/${c.txn_id}`}
                   className="flex min-h-11 min-w-0 flex-1 flex-col justify-center gap-0.5 text-foreground">
-                  <span className="text-[15px] font-medium leading-snug [overflow-wrap:anywhere]">{c.merchant || c.category || 'Entry'}</span>
-                  <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <span className="text-body font-medium leading-snug [overflow-wrap:anywhere]">{c.merchant || c.category || 'Entry'}</span>
+                  <span className="flex items-center gap-1 text-footnote text-muted-foreground">
                     {new Date(c.occurred_on).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
                     {c.status === 'part_paid' && ` · ${format(Number(c.received))} in`}
                     {done && <span className={`inline-flex items-center gap-0.5 ${done.tone}`}>· <Icon name={done.icon} size={13} />{done.text}</span>}
                     {c.note ? ` · ${c.note}` : ''}
                   </span>
                 </Link>
-                <span className={`flex-none text-[15px] font-semibold tabular-nums ${done ? 'text-muted-foreground' : 'text-money-in'}`}>
+                <span className={`flex-none text-body font-semibold tabular-nums ${done ? 'text-muted-foreground' : 'text-money-in'}`}>
                   {live ? '+' : ''}{format(Number(live ? c.outstanding : c.expected_amount))}
                 </span>
               </div>
@@ -75,14 +75,14 @@ export default function Claims({ claims, ways, canEdit, person, bills = [] }: {
                       autoFocus defaultValue={toKeys(Number(c.outstanding))} />
                     <Field label="Date" name="occurred_on" type="date" defaultValue={today} required />
                     <div role="group" className="flex flex-col gap-1.5">
-                      <span className="text-sm font-medium text-muted-foreground">How it came back</span>
+                      <span className="text-subhead font-medium text-muted-foreground">How it came back</span>
                       <PayPicker name="paidWith" ways={ways} defaultValue={defaultRef(ways)} />
                     </div>
                     {state && !state.ok && <Problem>{state.error}</Problem>}
                     <div className="flex gap-2">
                       <Button type="button" variant="secondary" onClick={() => setSettling(null)}
                         className="h-12 rounded-xl px-3.5 font-semibold">Cancel</Button>
-                      <Button type="submit" disabled={pending} className="h-12 flex-1 rounded-xl text-base font-semibold">
+                      <Button type="submit" disabled={pending} className="h-12 flex-1 rounded-xl text-headline font-semibold">
                         {pending ? 'Saving…' : 'Record it'}
                       </Button>
                     </div>
@@ -114,7 +114,7 @@ export default function Claims({ claims, ways, canEdit, person, bills = [] }: {
         })}
       </ul>
       {live.length === 0 && (
-        <p className="px-0.5 text-[13px] text-muted-foreground">Nothing outstanding on shared costs.</p>
+        <p className="px-0.5 text-subhead text-muted-foreground">Nothing outstanding on shared costs.</p>
       )}
     </section>
   );

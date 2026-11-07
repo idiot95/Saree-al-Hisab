@@ -134,11 +134,11 @@ export default function Calendar({ schedules, canWrite, today }: {
           <Icon name="autodebit" size={19} />
         </span>
         <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-          <span className="text-base font-semibold">
+          <span className="text-headline font-semibold">
             {MONTHS[m - 1]} {y}
             <span className="font-normal text-muted-foreground"> · {hijriSpan(y, m)}</span>
           </span>
-          <span className={cn('text-sm', overdue ? 'text-destructive' : 'text-muted-foreground')}>
+          <span className={cn('text-body', overdue ? 'text-destructive' : 'text-muted-foreground')}>
             {overdue ? `${overdue} overdue · ` : ''}{summary}
           </span>
         </span>
@@ -170,12 +170,12 @@ export default function Calendar({ schedules, canWrite, today }: {
 
         {!isNow && (
           <button type="button" onClick={() => { const c = civil(today); setYm({ y: c.y, m: c.m }); }}
-            className="mx-auto flex min-h-11 items-center rounded-full px-3 text-sm font-semibold text-primary">
+            className="mx-auto flex min-h-11 items-center rounded-full px-3 text-body font-semibold text-primary">
             Back to today
           </button>
         )}
 
-        <p className="mt-0.5 flex flex-wrap gap-x-3 gap-y-1 text-xs leading-snug text-muted-foreground">
+        <p className="mt-0.5 flex flex-wrap gap-x-3 gap-y-1 text-footnote leading-snug text-muted-foreground">
           <Key status="coming" kind="expense">goes out</Key>
           <Key status="coming" kind="income">comes in</Key>
           <Key status="overdue" kind="expense">overdue</Key>
@@ -188,16 +188,16 @@ export default function Calendar({ schedules, canWrite, today }: {
         {selCivil && sel && (
           <>
             <header className="flex flex-col gap-0.5 pt-0.5 pb-2">
-              <h3 className="text-lg font-semibold">
+              <h3 className="text-headline font-semibold">
                 {DAYS[new Date(selCivil.y, selCivil.m - 1, selCivil.d).getDay()]} {selCivil.d} {MONTHS[selCivil.m - 1]}
               </h3>
-              <span className="text-sm text-muted-foreground">
+              <span className="text-subhead text-muted-foreground">
                 {formatHijri(toHijri(selCivil))}{sel === today ? ' · today' : ''}
               </span>
             </header>
 
             {selected.length === 0 ? (
-              <p className="mb-3 text-sm leading-normal text-muted-foreground">Nothing is scheduled for this day.</p>
+              <p className="mb-3 text-subhead leading-normal text-muted-foreground">Nothing is scheduled for this day.</p>
             ) : selected.map((it) => {
               const daysAway = Math.round((Date.parse(it.on) - Date.parse(today)) / 86400000);
               const settled = it.status === 'paid' || it.status === 'skipped';
@@ -217,12 +217,12 @@ export default function Calendar({ schedules, canWrite, today }: {
                     <Icon name={it.s.icon ?? 'autodebit'} size={19} />
                   </span>
                   <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-                    <span className="text-base font-semibold [overflow-wrap:anywhere]">{it.s.name}</span>
-                    <span className="text-sm text-muted-foreground">
+                    <span className="text-headline font-semibold [overflow-wrap:anywhere]">{it.s.name}</span>
+                    <span className="text-subhead text-muted-foreground">
                       {cap(describeRule(it.s.rule, it.s.cal))}
                       {it.movedFrom && ` · moved from the ${civil(it.movedFrom).d}${suffix(civil(it.movedFrom).d)}`}
                     </span>
-                    <span className={cn('flex flex-wrap items-center gap-1.5 text-sm',
+                    <span className={cn('flex flex-wrap items-center gap-1.5 text-body',
                       it.status === 'paid' ? 'text-money-in' : it.status === 'overdue' ? 'text-destructive' : 'text-muted-foreground')}>
                       <Icon name={it.status === 'paid' ? 'check' : it.status === 'skipped' ? 'skip' : 'autodebit'} size={14} />
                       {it.status === 'paid' ? (income ? 'Came in' : 'Paid') : it.status === 'skipped' ? 'Skipped'
@@ -235,7 +235,7 @@ export default function Calendar({ schedules, canWrite, today }: {
                       )}
                     </span>
                   </span>
-                  <span className={cn('flex-none text-lg font-semibold tabular-nums', income ? 'text-money-in' : 'text-money-out', settled && 'opacity-70')}>
+                  <span className={cn('flex-none text-headline font-semibold tabular-nums', income ? 'text-money-in' : 'text-money-out', settled && 'opacity-70')}>
                     {income ? '+' : ''}{format(it.s.amount)}
                   </span>
                 </div>

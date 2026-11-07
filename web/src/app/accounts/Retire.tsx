@@ -7,7 +7,7 @@ import { archiveMethod, makeDefaultMethod } from './actions';
 
 /* Under a way to pay: Default (a word with a check, the one this household reaches for first) or Make default,
    and Archive behind a second tap. Each a 44px target, in the row's quiet ink. */
-const link = 'press flex min-h-11 items-center gap-1.5 rounded-lg px-2 text-sm font-semibold disabled:opacity-60';
+const link = 'press flex min-h-11 items-center gap-1.5 rounded-lg px-2 text-body font-semibold disabled:opacity-60';
 
 export function MethodControls({ id, isDefault }: { id: string; isDefault: boolean }) {
   const [retireState, retire, retiring] = useActionState(archiveMethod, null);
@@ -18,7 +18,7 @@ export function MethodControls({ id, isDefault }: { id: string; isDefault: boole
     <div className="-ml-2 flex flex-col items-start gap-1.5">
       <div className="flex flex-wrap items-center gap-1">
         {isDefault ? (
-          <span className="ml-2 flex items-center gap-1 rounded-md bg-accent px-2 py-1 text-xs font-bold text-accent-foreground">
+          <span className="ml-2 flex items-center gap-1 rounded-md bg-accent px-2 py-1 text-footnote font-bold text-accent-foreground">
             <Icon name="check" size={14} />Default
           </span>
         ) : (

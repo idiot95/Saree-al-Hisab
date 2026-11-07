@@ -45,12 +45,12 @@ export default function Suggested({ have, canEdit, onResult }: {
           <Icon name="add" size={20} />
         </span>
         <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-          <span className="text-[15px] font-semibold">Suggested categories</span>
-          <span className="text-[13px] leading-snug text-muted-foreground">{groups.length} groups you could add, each with its subcategories</span>
+          <span className="text-body font-semibold">Suggested categories</span>
+          <span className="text-subhead leading-snug text-muted-foreground">{groups.length} groups you could add, each with its subcategories</span>
         </span>
         <Icon name="expand_more" size={20} className="flex-none text-muted-foreground transition-transform group-open:rotate-180" />
       </summary>
-      <p className="border-t border-border px-[var(--pad)] py-3 text-[13px] leading-snug text-muted-foreground">
+      <p className="border-t border-border px-[var(--pad)] py-3 text-subhead leading-snug text-muted-foreground">
         Add a group and it is yours to rename or retire. Nothing you already have is changed.
       </p>
       <div className="border-t border-border px-[var(--pad)]">
@@ -65,8 +65,8 @@ export default function Suggested({ have, canEdit, onResult }: {
                   className="flex min-h-[52px] min-w-0 flex-1 items-center gap-3 py-1.5 text-left text-foreground">
                   <Chip icon={g.icon} tint={g.tint} size={38} radius={999} />
                   <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-                    <span className="text-[15px] font-semibold leading-snug [overflow-wrap:anywhere]">{g.name}</span>
-                    <span className="text-[13px] leading-snug text-muted-foreground">
+                    <span className="text-body font-semibold leading-snug [overflow-wrap:anywhere]">{g.name}</span>
+                    <span className="text-subhead leading-snug text-muted-foreground">
                       {g.children.length} within{own ? ` · ${own} already yours` : ''}
                       {g.scope === 'income' ? ' · income' : ''}
                     </span>
@@ -76,7 +76,7 @@ export default function Suggested({ have, canEdit, onResult }: {
                 {canEdit && (
                   <button type="button" onClick={() => adopt(g.name)} disabled={busy !== null}
                     aria-label={`Add ${g.name}`}
-                    className={`press flex min-h-11 flex-none items-center gap-1 rounded-full border border-border bg-card px-3.5 text-sm font-semibold text-primary disabled:cursor-default ${busy && busy !== g.name ? 'opacity-50' : ''}`}>
+                    className={`press flex min-h-11 flex-none items-center gap-1 rounded-full border border-border bg-card px-3.5 text-body font-semibold text-primary disabled:cursor-default ${busy && busy !== g.name ? 'opacity-50' : ''}`}>
                     <Icon name="add" size={18} />{busy === g.name ? 'Adding…' : 'Add'}
                   </button>
                 )}
@@ -89,7 +89,7 @@ export default function Suggested({ have, canEdit, onResult }: {
                     return (
                       /* Already yours wears the group's tint (data, so a style) and a check; the rest are plain. */
                       <span key={c.name}
-                        className={`inline-flex min-h-8 items-center gap-1 rounded-full px-2.5 text-xs font-semibold ${has ? '' : 'border border-border bg-card text-foreground'}`}
+                        className={`inline-flex min-h-8 items-center gap-1 rounded-full px-2.5 text-footnote font-semibold ${has ? '' : 'border border-border bg-card text-foreground'}`}
                         style={has ? { background: bg, color: ink } : undefined}>
                         <Icon name={has ? 'check' : c.icon} size={14} />
                         {c.name}

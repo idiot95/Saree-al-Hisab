@@ -45,10 +45,10 @@ export function Row({ icon, caption, value, tag, onClick, muted = false, expande
         muted ? 'text-muted-foreground' : 'text-foreground')}>
       <span className="flex size-6 shrink-0 items-center justify-center text-muted-foreground">{icon}</span>
       <span className="flex min-w-0 flex-1 flex-col">
-        {caption && <span className="text-xs font-medium text-muted-foreground">{caption}</span>}
-        <span className="text-[15px] leading-snug font-medium [overflow-wrap:anywhere]">{value}</span>
+        {caption && <span className="text-footnote font-medium text-muted-foreground">{caption}</span>}
+        <span className="text-body leading-snug font-medium [overflow-wrap:anywhere]">{value}</span>
       </span>
-      {tag && <span className="shrink-0 text-xs text-muted-foreground">{tag}</span>}
+      {tag && <span className="shrink-0 text-footnote text-muted-foreground">{tag}</span>}
       <Icon name={expanded ? 'expand_less' : 'expand_more'} size={20} className="text-muted-foreground" />
     </button>
   );
@@ -115,14 +115,14 @@ export function WhenRow({ value, onChange, today }: {
             const on = iso === value;
             return (
               <button key={iso} type="button" role="radio" aria-checked={on} onClick={() => pick(iso)}
-                style={choice(on)} className="min-h-11 rounded-full px-4 text-sm font-semibold">
+                style={choice(on)} className="min-h-11 rounded-full px-4 text-body font-semibold">
                 {friendlyDay(iso, today)}
               </button>
             );
           })}
         </div>
         <MonthGrid value={value} today={today} max={today} onPick={pick} />
-        <p className="mt-2.5 mb-1 text-xs leading-snug text-muted-foreground">
+        <p className="mt-2.5 mb-1 text-footnote leading-snug text-muted-foreground">
           Chosen: {friendlyDay(value, today)} · {formatHijri(toHijri(civil(value)), true)}
         </p>
       </PickDrawer>

@@ -113,10 +113,10 @@ export default function Bills({ staged, onChange }: {
             }}>
               <Icon name={s.mime === 'application/pdf' ? 'invoice' : 'camera'} size={17} />
               <span style={{
-                flex: 1, minWidth: 0, fontSize: 'var(--step--1)', fontWeight: 600,
+                flex: 1, minWidth: 0, fontSize: 'var(--text-subhead)', fontWeight: 600,
                 overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
               }}>{s.name}</span>
-              <span style={{ fontSize: 'var(--step--2)', color: 'var(--muted-foreground)' }}>{kb(s.bytes)}</span>
+              <span style={{ fontSize: 'var(--text-footnote)', color: 'var(--muted-foreground)' }}>{kb(s.bytes)}</span>
               <button type="button" aria-label={`Remove ${s.name}`}
                 onClick={() => { haptic('select'); onChange(staged.filter((_, n) => n !== i)); }}
                 style={{
@@ -133,7 +133,7 @@ export default function Bills({ staged, onChange }: {
           style={{
             minHeight: 48, borderRadius: 13, display: 'flex', alignItems: 'center', gap: 9,
             padding: '0 14px', border: '1px dashed var(--input)', background: 'var(--card)',
-            color: 'var(--foreground)', fontSize: 'var(--step--1)', fontWeight: 600,
+            color: 'var(--foreground)', fontSize: 'var(--text-subhead)', fontWeight: 600,
           }}>
           <Icon name="camera" size={17} />
           {busy ? 'Adding…' : staged.length ? 'Add another bill' : 'Attach a bill or photo'}
@@ -142,7 +142,7 @@ export default function Bills({ staged, onChange }: {
       <input ref={input} type="file" accept="image/*,application/pdf" multiple
         onChange={(e) => take(e.target.files)} style={{ display: 'none' }} />
       {problem && (
-        <span role="alert" style={{ fontSize: 'var(--step--2)', color: 'var(--destructive)' }}>{problem}</span>
+        <span role="alert" style={{ fontSize: 'var(--text-footnote)', color: 'var(--destructive)' }}>{problem}</span>
       )}
     </div>
   );

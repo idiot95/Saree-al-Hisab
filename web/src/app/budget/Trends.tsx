@@ -64,9 +64,9 @@ export default function Trends({ month, partial, day, future, series, cats, tabs
   return (
     <section id="trends" aria-labelledby="trends-title" className="flex scroll-mt-4 flex-col gap-4">
       <div className="px-[var(--gutter)]">
-        <h2 id="trends-title" className="text-[22px] font-semibold leading-tight">Trends</h2>
+        <h2 id="trends-title" className="text-title font-semibold leading-tight">Trends</h2>
         {average > 0 && !future && (
-          <p className="text-sm text-muted-foreground">
+          <p className="text-subhead text-muted-foreground">
             <span className="whitespace-nowrap">{format(average)} a month</span>{' '}
             <span className="whitespace-nowrap">on average</span>
           </p>
@@ -80,7 +80,7 @@ export default function Trends({ month, partial, day, future, series, cats, tabs
       ) : (
         <>
           {lastMonth > 0 && thisMonth > 0 && (
-            <p className="mx-[var(--gutter)] flex items-start gap-3 rounded-[18px] bg-card px-4 py-3.5 text-sm leading-snug">
+            <p className="mx-[var(--gutter)] flex items-start gap-3 rounded-[18px] bg-card px-4 py-3.5 text-body leading-snug">
               <Icon name={thisMonth > lastMonth ? 'trending_up' : thisMonth < lastMonth ? 'trending_down' : 'trending_flat'}
                 size={20} className="mt-px text-primary" />
               <span>
@@ -103,10 +103,10 @@ export default function Trends({ month, partial, day, future, series, cats, tabs
                       className="press flex min-h-14 items-center gap-3 py-2">
                       <Chip icon={s.icon} tint={s.tint} size={34} radius={10} iconSize={18} />
                       <span className="flex min-w-0 flex-1 flex-col gap-1.5">
-                        <span className="flex items-baseline justify-between gap-2 text-sm">
+                        <span className="flex items-baseline justify-between gap-2 text-body">
                           <span className="font-medium [overflow-wrap:anywhere]">{s.name}</span>
                           <span className="flex flex-none items-baseline gap-2">
-                            <span className="text-xs text-muted-foreground tabular-nums">{Math.round((s.amount / thisMonth) * 100)}%</span>
+                            <span className="text-footnote text-muted-foreground tabular-nums">{Math.round((s.amount / thisMonth) * 100)}%</span>
                             <span className="font-semibold tabular-nums">{format(s.amount)}</span>
                           </span>
                         </span>
@@ -130,12 +130,12 @@ export default function Trends({ month, partial, day, future, series, cats, tabs
                       className="press flex min-h-14 items-center gap-3 py-2">
                       <Chip icon={m.icon} tint={m.tint} size={34} radius={10} iconSize={18} />
                       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-                        <span className="text-sm font-medium [overflow-wrap:anywhere]">{m.name}</span>
-                        <span className="text-xs text-muted-foreground tabular-nums">
+                        <span className="text-body font-medium [overflow-wrap:anywhere]">{m.name}</span>
+                        <span className="text-footnote text-muted-foreground tabular-nums">
                           {format(Number(m.before))} → {format(Number(m.now))}
                         </span>
                       </span>
-                      <span className="flex flex-none items-center gap-1 text-sm font-semibold tabular-nums">
+                      <span className="flex flex-none items-center gap-1 text-body font-semibold tabular-nums">
                         <Icon name={m.delta > 0 ? 'trending_up' : 'trending_down'} size={16} className="text-muted-foreground" />
                         {format(Math.abs(m.delta))} {m.delta > 0 ? 'more' : 'less'}
                       </span>
@@ -153,7 +153,7 @@ export default function Trends({ month, partial, day, future, series, cats, tabs
                   <LazySpendLine points={shown.map((p) => ({
                     label: short(p.month), spent: Number(p.spent), budget: Number(p.budget) > 0 ? Number(p.budget) : null,
                   }))} />
-                  <p aria-hidden="true" className="mt-1.5 flex gap-4 text-xs text-muted-foreground">
+                  <p aria-hidden="true" className="mt-1.5 flex gap-4 text-footnote text-muted-foreground">
                     <span className="flex items-center gap-1.5"><span className="h-0.5 w-4 rounded-full bg-primary" />Spent</span>
                     {shown.some((p) => Number(p.budget) > 0) && (
                       <span className="flex items-center gap-1.5">
@@ -163,7 +163,7 @@ export default function Trends({ month, partial, day, future, series, cats, tabs
                   </p>
                 </>
               )}
-              <ul className={`flex flex-col gap-2.5 text-sm ${shown.length > 1 ? 'mt-3 border-t border-border pt-3' : ''}`}>
+              <ul className={`flex flex-col gap-2.5 text-body ${shown.length > 1 ? 'mt-3 border-t border-border pt-3' : ''}`}>
                 {shown.map((p) => {
                   const spent = Number(p.spent), budget = Number(p.budget);
                   const over = p.entries > 0 && budget > 0 && spent > budget;
@@ -173,13 +173,13 @@ export default function Trends({ month, partial, day, future, series, cats, tabs
                       {/* A month with nothing recorded is not a month you came in under budget: you simply did not
                           record anything, and saying otherwise turns a gap in the data into a compliment. */}
                       {p.entries === 0 ? (
-                        <span className="text-xs text-muted-foreground">nothing recorded</span>
+                        <span className="text-footnote text-muted-foreground">nothing recorded</span>
                       ) : over ? (
-                        <span className="flex items-center gap-1 text-xs font-semibold text-destructive">
+                        <span className="flex items-center gap-1 text-footnote font-semibold text-destructive">
                           <Icon name="warning" size={14} />Over budget by {format(spent - budget)}
                         </span>
                       ) : budget > 0 ? (
-                        <span className="text-xs text-muted-foreground tabular-nums">{format(budget - spent)} under budget</span>
+                        <span className="text-footnote text-muted-foreground tabular-nums">{format(budget - spent)} under budget</span>
                       ) : null}
                       <span className="min-w-[72px] text-right font-semibold tabular-nums">{spent === 0 ? '—' : format(spent)}</span>
                     </li>
@@ -197,7 +197,7 @@ export default function Trends({ month, partial, day, future, series, cats, tabs
                   return (
                     <li key={t.id}>
                       <Link href={`/tab/${t.id}`} className="press flex min-h-14 flex-col justify-center gap-1.5 py-2">
-                        <span className="flex items-center gap-2.5 text-sm">
+                        <span className="flex items-center gap-2.5 text-body">
                           <Chip icon="folder" tint={tabTint(t.id)} size={28} radius={8} iconSize={15} />
                           <span className="min-w-0 flex-1 font-medium [overflow-wrap:anywhere]">{t.name}</span>
                           <span className="font-semibold tabular-nums">{format(owed)}</span>
@@ -205,7 +205,7 @@ export default function Trends({ month, partial, day, future, series, cats, tabs
                         <span role="img" aria-label={`${t.name}: ${format(owed)} owed`} className="block h-2 overflow-hidden rounded-full bg-muted">
                           <span className="block h-full rounded-full bg-primary" style={{ width: `${((owed / owingMax) * 100).toFixed(1)}%` }} />
                         </span>
-                        <span className="text-xs text-muted-foreground">
+                        <span className="text-footnote text-muted-foreground">
                           {Number(t.back) > 0
                             ? `${format(Number(t.back))} of ${format(Number(t.owed_in_all))} back`
                             : 'None back yet'}
@@ -216,7 +216,7 @@ export default function Trends({ month, partial, day, future, series, cats, tabs
                   );
                 })}
               </ul>
-              <p className="mt-2 flex items-baseline gap-3 border-t border-border pt-3 text-sm">
+              <p className="mt-2 flex items-baseline gap-3 border-t border-border pt-3 text-body">
                 <span className="flex-1 text-muted-foreground">All open tabs</span>
                 <span className="font-semibold tabular-nums">{format(owingTotal)}</span>
               </p>
@@ -226,7 +226,7 @@ export default function Trends({ month, partial, day, future, series, cats, tabs
           {cameBack && (
             <Card title="Came back, six months">
               <LazyBackBars points={receipts.map((r) => ({ label: short(r.month), back: Number(r.back) }))} />
-              <ul className="mt-3 flex flex-col gap-2.5 border-t border-border pt-3 text-sm">
+              <ul className="mt-3 flex flex-col gap-2.5 border-t border-border pt-3 text-body">
                 {receipts.map((r) => (
                   <li key={r.month} className="flex items-baseline gap-3">
                     <span className="flex-1 text-muted-foreground">{long(r.month)}</span>
@@ -245,7 +245,7 @@ export default function Trends({ month, partial, day, future, series, cats, tabs
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section aria-label={title} className="mx-[var(--gutter)] flex flex-col gap-1.5">
-      <h3 className="px-0.5 text-[13px] font-semibold text-muted-foreground">{title}</h3>
+      <h3 className="px-0.5 text-subhead font-semibold text-muted-foreground">{title}</h3>
       <div className="rounded-[18px] bg-card px-4 py-3">{children}</div>
     </section>
   );

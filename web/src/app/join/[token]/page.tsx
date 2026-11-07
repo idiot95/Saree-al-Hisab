@@ -71,11 +71,11 @@ export default async function Join({ params, searchParams }: {
           <Icon name={invite.role === 'adult' ? 'edit' : 'visibility'} size={20} />
         </span>
         <span className="flex min-w-0 flex-col gap-1">
-          <span className="text-xs font-semibold text-muted-foreground">Your role</span>
-          <span className="text-base font-semibold">
+          <span className="text-footnote font-semibold text-muted-foreground">Your role</span>
+          <span className="text-headline font-semibold">
             {invite.role === 'adult' ? 'Contributing member' : 'Viewer'}
           </span>
-          <span className="text-sm leading-normal text-muted-foreground">
+          <span className="text-subhead leading-normal text-muted-foreground">
             {invite.role === 'adult'
               ? 'Add and edit entries, and set budgets. You will see everything the household records.'
               : 'Read every entry, budget and chart. You cannot change them.'}
@@ -143,7 +143,7 @@ export default async function Join({ params, searchParams }: {
         </details>
       )}
 
-      <Small className="text-xs">
+      <Small className="text-footnote">
         <b className="text-foreground">{passwordOpen
           ? 'Anyone who opens this link can take this place.'
           : 'Only the Google account it was sent to can take this place.'}</b> Do not forward it. It works

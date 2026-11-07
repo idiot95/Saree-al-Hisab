@@ -173,14 +173,14 @@ export default async function Guide() {
               <li key={s.title} className={i === 0 ? '' : 'border-t border-border'}>
                 <details className="group">
                   <summary className="flex min-h-14 cursor-pointer list-none items-center gap-3 px-[var(--pad)] py-2.5 [&::-webkit-details-marker]:hidden">
-                    <span className="grid size-7 flex-none place-items-center rounded-full bg-accent text-xs font-bold text-accent-foreground tabular-nums">{i + 1}</span>
-                    <span className="flex-1 text-[15px] font-semibold leading-snug">{s.title}</span>
+                    <span className="grid size-7 flex-none place-items-center rounded-full bg-accent text-footnote font-bold text-accent-foreground tabular-nums">{i + 1}</span>
+                    <span className="flex-1 text-body font-semibold leading-snug">{s.title}</span>
                     <Icon name="expand_more" size={20} className="flex-none text-muted-foreground transition-transform group-open:rotate-180" />
                   </summary>
                   <div className="flex flex-col gap-2.5 pr-[var(--pad)] pb-4 pl-[calc(var(--pad)+40px)]">
-                    {s.lines.map((l) => <p key={l} className="text-[15px] leading-relaxed text-foreground">{l}</p>)}
+                    {s.lines.map((l) => <p key={l} className="text-body leading-relaxed text-foreground">{l}</p>)}
                     <Link href={s.href}
-                      className="flex min-h-11 items-center gap-1 self-start text-sm font-semibold text-primary">
+                      className="flex min-h-11 items-center gap-1 self-start text-body font-semibold text-primary">
                       {s.link}<Icon name="chevron_right" size={18} />
                     </Link>
                   </div>

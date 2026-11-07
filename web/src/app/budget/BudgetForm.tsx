@@ -46,12 +46,12 @@ export default function BudgetForm({ month, rows, canEdit }: {
 
       <div data-topbar className="sticky top-0 z-20 mb-3 flex items-center gap-3 border-b border-border bg-card px-4 py-2.5">
         <span className="flex flex-1 flex-col">
-          <span className="text-xs text-muted-foreground">Month total</span>
-          <span data-month-total className="text-xl font-bold tabular-nums">{format(total)}</span>
+          <span className="text-footnote text-muted-foreground">Month total</span>
+          <span data-month-total className="text-title font-bold tabular-nums">{format(total)}</span>
         </span>
         {canEdit && (
           <Button type="submit" disabled={pending || !changed} variant={changed ? 'default' : 'secondary'}
-            className="h-11 rounded-xl px-5 text-base font-semibold in-data-[platform=android]:h-12">
+            className="h-11 rounded-xl px-5 text-headline font-semibold in-data-[platform=android]:h-12">
             {pending ? 'Saving…' : changed ? 'Save' : <><Icon name="check" size={18} />Saved</>}
           </Button>
         )}
@@ -59,7 +59,7 @@ export default function BudgetForm({ month, rows, canEdit }: {
 
       {state && !state.ok && <div className="mx-4 mb-3"><Problem>{state.error}</Problem></div>}
       {state?.ok && !changed && (
-        <p role="status" className="mx-4 mb-3 flex items-center gap-1.5 rounded-xl bg-accent px-3 py-2.5 text-sm font-semibold text-accent-foreground">
+        <p role="status" className="mx-4 mb-3 flex items-center gap-1.5 rounded-xl bg-accent px-3 py-2.5 text-body font-semibold text-accent-foreground">
           <Icon name="check_circle" size={18} />{state.message}
         </p>
       )}
@@ -73,10 +73,10 @@ export default function BudgetForm({ month, rows, canEdit }: {
             <li key={r.category_id} className="flex min-h-[72px] items-center gap-3 border-b border-border py-2 last:border-b-0">
               <Chip icon={r.icon} tint={r.tint} size={36} radius={10} />
               <span className="flex min-w-0 flex-1 flex-col gap-1">
-                <span className="text-[15px] font-medium [overflow-wrap:anywhere]">
+                <span className="text-body font-medium [overflow-wrap:anywhere]">
                   {r.name}
                   {r.archived && (
-                    <span className="ml-1.5 rounded-md bg-muted px-1.5 py-0.5 align-middle text-[10px] font-bold tracking-wide text-muted-foreground">RETIRED</span>
+                    <span className="ml-1.5 rounded-md bg-muted px-1.5 py-0.5 align-middle text-caption font-bold tracking-wide text-muted-foreground">RETIRED</span>
                   )}
                 </span>
                 {budget > 0 && (
@@ -87,7 +87,7 @@ export default function BudgetForm({ month, rows, canEdit }: {
                       style={{ width: `${Math.min(100, (spent / budget) * 100)}%` }} />
                   </span>
                 )}
-                <span className={`flex flex-wrap items-center gap-x-1 text-xs tabular-nums ${over ? 'font-semibold text-destructive' : 'text-muted-foreground'}`}>
+                <span className={`flex flex-wrap items-center gap-x-1 text-footnote tabular-nums ${over ? 'font-semibold text-destructive' : 'text-muted-foreground'}`}>
                   {over && <Icon name="warning" size={13} />}
                   {budget > 0
                     ? <>{format(spent)} of {format(budget)}{over && ' · over budget'}</>
@@ -96,7 +96,7 @@ export default function BudgetForm({ month, rows, canEdit }: {
               </span>
 
               <label className={`flex h-12 flex-none items-center gap-1 rounded-xl px-2.5 ${canEdit ? 'border border-input bg-background' : ''}`}>
-                <span className="text-sm text-muted-foreground">{symbol}</span>
+                <span className="text-subhead text-muted-foreground">{symbol}</span>
                 <input
                   name={`c_${r.category_id}`} inputMode="decimal" disabled={!canEdit} aria-label={`${r.name} for this month`}
                   value={draft[r.category_id] ?? ''} placeholder="0"

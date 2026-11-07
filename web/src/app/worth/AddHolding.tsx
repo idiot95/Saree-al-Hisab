@@ -21,7 +21,7 @@ const PURITY: Record<'gold' | 'silver', { key: string; word: string }[]> = {
   gold: [{ key: '24k', word: '24k' }, { key: '22k', word: '22k' }, { key: '18k', word: '18k' }, { key: '14k', word: '14k' }],
   silver: [{ key: '999', word: 'Fine (999)' }, { key: 'sterling', word: 'Sterling (925)' }],
 };
-const chip = 'press min-h-11 flex-auto rounded-full border border-border bg-card px-4 text-sm font-medium data-[state=on]:border-primary data-[state=on]:bg-primary data-[state=on]:text-primary-foreground';
+const chip = 'press min-h-11 flex-auto rounded-full border border-border bg-card px-4 text-body font-medium data-[state=on]:border-primary data-[state=on]:bg-primary data-[state=on]:text-primary-foreground';
 
 /* The + on Wealth: a pot of foreign cash, or gold, or silver, with what there is of it today and, if wanted,
    a photo of it. The first figure is saved with the holding, so a new holding is never empty. */
@@ -63,7 +63,7 @@ export default function AddHolding({ base, members }: { base: string; members: {
           {metal ? (
             <>
               <div className="flex flex-col gap-1.5">
-                <span className="text-sm font-medium text-muted-foreground">Purity</span>
+                <span className="text-subhead font-medium text-muted-foreground">Purity</span>
                 <input type="hidden" name="purity" value={purity} />
                 <ToggleGroup type="single" value={purity} aria-label="Purity"
                   onValueChange={(v) => v && setPurity(v)} className="flex w-full flex-wrap gap-2">
@@ -76,7 +76,7 @@ export default function AddHolding({ base, members }: { base: string; members: {
           ) : (
             <>
               <label className="flex flex-col gap-1.5">
-                <span className="text-sm font-medium text-muted-foreground">Currency</span>
+                <span className="text-subhead font-medium text-muted-foreground">Currency</span>
                 {/* Native on purpose, like the household's own currency field: fifty-odd options are a wheel on a phone. */}
                 <select name="currency" required defaultValue={base === 'USD' ? 'EUR' : 'USD'}
                   className="h-12 rounded-xl border border-input bg-card px-3 text-[length:var(--field)] text-foreground">
@@ -92,7 +92,7 @@ export default function AddHolding({ base, members }: { base: string; members: {
           <OwnerSelect members={members} />
           <PhotoField files={files} onChange={setFiles} />
           {state && !state.ok && <Problem>{state.error}</Problem>}
-          <Button type="submit" disabled={pending} className="h-12 rounded-xl text-base font-semibold">
+          <Button type="submit" disabled={pending} className="h-12 rounded-xl text-headline font-semibold">
             {pending ? 'Adding…' : 'Add'}
           </Button>
         </form>

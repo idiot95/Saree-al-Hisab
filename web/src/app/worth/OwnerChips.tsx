@@ -27,7 +27,7 @@ export default function OwnerChips({ chips, current, onPick }: {
               onPick(c.key);
               window.history.replaceState(null, '', href);
             }}
-            className={`press flex min-h-11 items-center rounded-full border px-4 text-sm transition-colors ${on
+            className={`press flex min-h-11 items-center rounded-full border px-4 text-body transition-colors ${on
               ? 'border-primary bg-primary font-semibold text-primary-foreground'
               : 'border-border bg-card font-medium text-foreground'}`}>
             {c.chip}

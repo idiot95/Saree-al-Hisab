@@ -57,7 +57,7 @@ export default function CategoryFinder({ open, onClose, categories, selected, on
           background: on ? 'var(--muted)' : 'transparent', color: 'var(--foreground)',
         }}>
         <Chip icon={c.icon} tint={c.tint} size={child ? 30 : 36} />
-        <span style={{ flex: 1, minWidth: 0, fontSize: child ? 'var(--step--1)' : 'var(--step-0)', fontWeight: 600 }}>
+        <span style={{ flex: 1, minWidth: 0, fontSize: child ? 'var(--text-subhead)' : 'var(--text-body)', fontWeight: 600 }}>
           {c.name}
         </span>
         {on && (
@@ -81,7 +81,7 @@ export default function CategoryFinder({ open, onClose, categories, selected, on
           color: 'var(--foreground)', fontSize: 'var(--field)',
         }} />
       {families.length === 0 && (
-        <p style={{ margin: '14px 0', fontSize: 'var(--step--1)', color: 'var(--muted-foreground)' }}>
+        <p style={{ margin: '14px 0', fontSize: 'var(--text-subhead)', color: 'var(--muted-foreground)' }}>
           Nothing called that. Categories are set up under Settings.
         </p>
       )}

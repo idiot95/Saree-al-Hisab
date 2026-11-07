@@ -91,17 +91,17 @@ export default async function Tab({ params, searchParams }: {
                 in words, with an icon for settled. */}
             <section aria-label={outstanding > 0 ? 'Still to come back' : 'On this tab'}
               className="flex flex-col gap-2 rounded-[22px] bg-card p-[18px]">
-              <span className="text-[13px] text-muted-foreground">{outstanding > 0 ? 'Still to come back' : 'On this tab'}</span>
+              <span className="text-subhead text-muted-foreground">{outstanding > 0 ? 'Still to come back' : 'On this tab'}</span>
               {outstanding > 0 ? (
                 <Figure minor={outstanding} sign
-                  className="text-[38px] font-bold leading-none tracking-tight text-money-in tabular-nums" />
+                  className="text-large-title font-bold leading-none tracking-tight text-money-in tabular-nums" />
               ) : (
-                <span className="flex items-center gap-2 text-[30px] font-bold leading-none tracking-tight">
+                <span className="flex items-center gap-2 text-large-title font-bold leading-none tracking-tight">
                   {tab.costs > 0 && <Icon name="check_circle" size={28} className="text-money-in" />}
                   {tab.costs === 0 ? 'Nothing yet' : 'Settled up'}
                 </span>
               )}
-              <p className="text-[13px] leading-snug text-muted-foreground">
+              <p className="text-subhead leading-snug text-muted-foreground">
                 {tab.costs > 0 || back > 0 ? (
                   <>
                     {tab.costs > 0 && <><Figure minor={Number(tab.put_on)} /> put on across {tab.costs} {tab.costs === 1 ? 'cost' : 'costs'}</>}
@@ -110,7 +110,7 @@ export default async function Tab({ params, searchParams }: {
                   </>
                 ) : canEdit ? 'Add the first cost below.' : 'Nothing has been put on it yet.'}
               </p>
-              {tab.note && <p className="text-[13px] text-muted-foreground">{tab.note}</p>}
+              {tab.note && <p className="text-subhead text-muted-foreground">{tab.note}</p>}
             </section>
             <TabContacts tabId={tab.id} canEdit={canEdit && !closed}
               people={people.map((p) => ({
@@ -135,7 +135,7 @@ export default async function Tab({ params, searchParams }: {
             bills={bills.map((b) => ({ id: b.id, txnId: b.txn_id, name: b.name, mime: b.mime }))}
           />
 
-          <p className="px-[var(--gutter)] text-[13px] leading-relaxed text-muted-foreground">
+          <p className="px-[var(--gutter)] text-subhead leading-relaxed text-muted-foreground">
             A cost on this tab is owed back in full, split equally between the people on it — or
             held by the tab itself while nobody is named. Whether it was <em>your</em> spending is
             asked of each cost, and money back is never counted as income.
@@ -146,12 +146,12 @@ export default async function Tab({ params, searchParams }: {
           <div className="fixed inset-x-0 bottom-0 z-30 flex gap-2 border-t border-border bg-background px-[var(--gutter)] pt-3 pb-[calc(14px+env(safe-area-inset-bottom,0px))]">
             <MoneyBack tabId={tab.id} ways={ways} today={today} owing={owing} />
             {closed ? (
-              <span className="flex min-h-[54px] flex-[1.3] items-center justify-center gap-2 rounded-2xl bg-muted text-base font-semibold text-muted-foreground">
+              <span className="flex min-h-[54px] flex-[1.3] items-center justify-center gap-2 rounded-2xl bg-muted text-headline font-semibold text-muted-foreground">
                 <Icon name="folder" size={18} />Closed
               </span>
             ) : (
               <Link href={`/add?tab=${tab.id}`}
-                className="press flex min-h-[54px] flex-[1.3] items-center justify-center gap-2 rounded-2xl bg-primary text-base font-semibold text-primary-foreground">
+                className="press flex min-h-[54px] flex-[1.3] items-center justify-center gap-2 rounded-2xl bg-primary text-headline font-semibold text-primary-foreground">
                 <Icon name="plus" size={18} />
                 Add cost
               </Link>

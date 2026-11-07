@@ -64,14 +64,14 @@ export default function Reconcile({ accountId, credit, today, lastOn, cleared, e
         <DateChips value={on} onChange={(v) => { setOn(v); setUnticked(new Set()); }} today={today}
           dir="past" min={lastOn ?? undefined} max={today} label="Statement date" />
         <label className="flex flex-col gap-1.5">
-          <span className="text-sm font-medium text-muted-foreground">
+          <span className="text-subhead font-medium text-muted-foreground">
             {credit ? 'What the statement says you owe' : 'Closing balance on the statement'}
           </span>
           <input inputMode="decimal" value={keys} placeholder="0" autoComplete="off"
             aria-label={credit ? 'Amount owed on the statement' : 'Statement balance'}
             onChange={(e) => setKeys(e.target.value.replace(/[^0-9.]/g, ''))}
-            className="h-14 w-full rounded-xl border border-input bg-card px-3.5 text-[26px] font-semibold tracking-tight tabular-nums text-foreground" />
-          {typed && <span className="text-xs text-muted-foreground">{format(magnitude)}</span>}
+            className="h-14 w-full rounded-xl border border-input bg-card px-3.5 text-title-2 font-semibold tracking-tight tabular-nums text-foreground" />
+          {typed && <span className="text-footnote text-muted-foreground">{format(magnitude)}</span>}
         </label>
       </section>
 
@@ -80,7 +80,7 @@ export default function Reconcile({ accountId, credit, today, lastOn, cleared, e
         className="mx-[var(--gutter)] flex flex-col gap-2 rounded-[18px] border border-border bg-background px-3.5 py-3">
         <Line label="Statement" value={typed ? shown(statement) : '—'} />
         <Line label={`Ticked off${ticked.length ? ` (${ticked.length})` : ''}`} value={shown(reached)} />
-        <div className={`flex items-center gap-2 border-t border-border pt-2 text-[15px] font-semibold ${!typed ? 'text-muted-foreground' : matches ? 'text-primary' : 'text-attention-soft-foreground'}`}>
+        <div className={`flex items-center gap-2 border-t border-border pt-2 text-body font-semibold ${!typed ? 'text-muted-foreground' : matches ? 'text-primary' : 'text-attention-soft-foreground'}`}>
           {typed && <Icon name={matches ? 'check_circle' : 'warning'} size={18} />}
           <span className="flex-1">{!typed ? 'Enter the statement balance' : matches ? 'It matches' : 'Difference'}</span>
           {typed && !matches && <span className="tabular-nums">{shown(difference)}</span>}
@@ -89,10 +89,10 @@ export default function Reconcile({ accountId, credit, today, lastOn, cleared, e
 
       <section aria-labelledby="sec-unmatched" className="flex flex-col gap-1.5 px-[var(--gutter)]">
         <div className="flex min-h-11 items-center gap-2 px-0.5">
-          <h2 id="sec-unmatched" className="flex-1 text-[13px] font-semibold text-muted-foreground">Not matched yet</h2>
+          <h2 id="sec-unmatched" className="flex-1 text-subhead font-semibold text-muted-foreground">Not matched yet</h2>
           {upTo.length > 1 && (
             <button type="button" onClick={() => { haptic('select'); setUnticked(unticked.size ? new Set() : new Set(upTo.map((e) => e.id))); }}
-              className="press flex min-h-11 items-center gap-1 px-1 text-sm font-semibold text-primary">
+              className="press flex min-h-11 items-center gap-1 px-1 text-body font-semibold text-primary">
               <Icon name={unticked.size ? 'done_all' : 'remove'} size={18} />
               {unticked.size ? 'Tick all' : 'Untick all'}
             </button>
@@ -106,14 +106,14 @@ export default function Reconcile({ accountId, credit, today, lastOn, cleared, e
                 <input type="checkbox" checked={isOn} onChange={() => toggle(e.id)}
                   className="size-5 flex-none accent-primary" />
                 <span className={`flex min-w-0 flex-1 flex-col gap-0.5 ${isOn ? '' : 'opacity-60'}`}>
-                  <span className="text-[15px] font-semibold leading-snug [overflow-wrap:anywhere]">{e.what}</span>
-                  <span className="text-[13px] leading-snug text-muted-foreground [overflow-wrap:anywhere]">
+                  <span className="text-body font-semibold leading-snug [overflow-wrap:anywhere]">{e.what}</span>
+                  <span className="text-subhead leading-snug text-muted-foreground [overflow-wrap:anywhere]">
                     {new Date(`${e.on}T00:00:00`).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
                     {e.via ? ` · ${e.via}` : ''}
                     {isOn ? '' : ' · not on the statement'}
                   </span>
                 </span>
-                <span className={`flex-none text-[15px] font-semibold tabular-nums ${isOn ? '' : 'opacity-60'} ${e.signed > 0 ? 'text-money-in' : ''}`}>
+                <span className={`flex-none text-body font-semibold tabular-nums ${isOn ? '' : 'opacity-60'} ${e.signed > 0 ? 'text-money-in' : ''}`}>
                   {signedText(e.signed)}
                 </span>
               </label>
@@ -124,7 +124,7 @@ export default function Reconcile({ accountId, credit, today, lastOn, cleared, e
           )}
         </div>
         {later > 0 && (
-          <p className="px-0.5 text-[13px] leading-snug text-muted-foreground">
+          <p className="px-0.5 text-subhead leading-snug text-muted-foreground">
             {later} {later === 1 ? 'entry is' : 'entries are'} dated after the statement and {later === 1 ? 'waits' : 'wait'} for the next one.
           </p>
         )}
@@ -139,7 +139,7 @@ export default function Reconcile({ accountId, credit, today, lastOn, cleared, e
           </button>
         ) : (
           <>
-            <p className="text-sm leading-normal text-muted-foreground">
+            <p className="text-subhead leading-normal text-muted-foreground">
               {difference > 0
                 ? `The statement has ${shown(difference)} more than the books. Something that came in may be missing here, or something going out here is not on the statement yet.`
                 : `The books have ${shown(difference)} more than the statement. Something that went out may be missing here, or something coming in here is not on the statement yet.`}
@@ -151,7 +151,7 @@ export default function Reconcile({ accountId, credit, today, lastOn, cleared, e
             <button type="submit" name="adjust" value="yes" disabled={pending} className={quietBtn}>
               {pending ? 'Saving…' : `Record ${signedText(difference)} as an adjustment`}
             </button>
-            <p className="text-[13px] leading-snug text-muted-foreground">
+            <p className="text-subhead leading-snug text-muted-foreground">
               An adjustment brings the balance in line on the statement date. It is not spending and not
               income, and undoing this match deletes it.
             </p>
@@ -164,7 +164,7 @@ export default function Reconcile({ accountId, credit, today, lastOn, cleared, e
 
 function Line({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-baseline gap-2.5 text-sm">
+    <div className="flex items-baseline gap-2.5 text-body">
       <span className="flex-1 text-muted-foreground">{label}</span>
       <span className="font-semibold tabular-nums">{value}</span>
     </div>
@@ -180,7 +180,7 @@ export function UndoLatest({ id }: { id: string }) {
       className="flex flex-none flex-col items-end">
       <input type="hidden" name="id" value={id} />
       <button type="submit" disabled={pending}
-        className={`press flex min-h-11 items-center gap-1 rounded-xl px-3 text-sm font-semibold disabled:opacity-60 ${sure ? 'bg-destructive/10 text-destructive' : 'text-muted-foreground'}`}>
+        className={`press flex min-h-11 items-center gap-1 rounded-xl px-3 text-body font-semibold disabled:opacity-60 ${sure ? 'bg-destructive/10 text-destructive' : 'text-muted-foreground'}`}>
         <Icon name="restore" size={18} />{pending ? 'Undoing…' : sure ? 'Yes, undo' : 'Undo'}
       </button>
       {state && !state.ok && <ErrorNote>{state.error}</ErrorNote>}

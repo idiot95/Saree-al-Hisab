@@ -47,12 +47,12 @@ export default function Snack({ snack, onClose, ttl = 6000 }: {
           <path d="M5 12.5l4.5 4.5L19 7.5" />
         </svg>
       )}
-      <span style={{ flex: 1, fontSize: 'var(--step--1)', fontWeight: 600, lineHeight: 1.35 }}>
+      <span style={{ flex: 1, fontSize: 'var(--text-subhead)', fontWeight: 600, lineHeight: 1.35 }}>
         {snack.text}
       </span>
       {(snack.undo || snack.action) && (
         <button className="flex items-center justify-center text-center" type="button" style={{
-          minHeight: 44, padding: '0 14px', borderRadius: 10, fontSize: 'var(--step--1)',
+          minHeight: 44, padding: '0 14px', borderRadius: 10, fontSize: 'var(--text-subhead)',
           fontWeight: 700, color: 'inherit', textDecoration: 'underline', textUnderlineOffset: 3,
           letterSpacing: '.01em', flex: 'none',
         }} onClick={() => { haptic('select'); (snack.undo ?? snack.action?.run)?.(); onClose(); }}>

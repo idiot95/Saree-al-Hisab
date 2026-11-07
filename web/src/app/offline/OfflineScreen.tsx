@@ -61,7 +61,7 @@ export default function OfflineScreen() {
 
 function Banner() {
   return (
-    <div className="mx-[var(--gutter)] mb-3 flex items-center gap-2.5 rounded-[14px] bg-attention-soft py-2 pr-1.5 pl-3.5 text-sm font-semibold leading-snug text-attention-soft-foreground">
+    <div className="mx-[var(--gutter)] mb-3 flex items-center gap-2.5 rounded-[14px] bg-attention-soft py-2 pr-1.5 pl-3.5 text-body font-semibold leading-snug text-attention-soft-foreground">
       <Icon name="wifi_off" size={20} />
       <span className="flex-1">
         No connection. Entries saved here stay on this phone and go into the books when signal
@@ -81,22 +81,22 @@ function Pending({ queue }: { queue: Queued[] }) {
   if (queue.length === 0) return null;
   return (
     <section aria-label="Waiting to be sent" className="mx-[var(--gutter)] mb-3 flex flex-col gap-1.5">
-      <h2 className="px-0.5 text-[13px] font-semibold text-muted-foreground">Waiting for signal · {queue.length}</h2>
+      <h2 className="px-0.5 text-subhead font-semibold text-muted-foreground">Waiting for signal · {queue.length}</h2>
       <ul className="overflow-hidden rounded-[18px] bg-card">
         {queue.map((q) => (
           <li key={q.clientRef} className="flex min-h-[52px] items-center gap-2.5 border-b border-border pl-[var(--pad)] last:border-b-0">
             <span className="flex min-w-0 flex-1 flex-col gap-0.5 py-2">
-              <span className="text-sm font-semibold [overflow-wrap:anywhere]">
+              <span className="text-body font-semibold [overflow-wrap:anywhere]">
                 {q.kind === 'income' ? 'Income' : q.kind === 'transfer' ? 'Move' : (q.merchant || 'Expense')}
                 <span className="font-medium text-muted-foreground"> · {q.occurredOn}</span>
               </span>
               {q.stuck && (
-                <span className="inline-flex items-start gap-1 text-xs text-destructive">
+                <span className="inline-flex items-start gap-1 text-footnote text-destructive">
                   <Icon name="error" size={14} className="mt-px" />Not accepted: {q.stuck}
                 </span>
               )}
             </span>
-            <span className="flex-none text-[15px] font-semibold tabular-nums">{format(q.amountMinor)}</span>
+            <span className="flex-none text-body font-semibold tabular-nums">{format(q.amountMinor)}</span>
             <button type="button" aria-label={`Discard ${format(q.amountMinor)}`}
               onClick={() => { haptic('select'); dequeue(q.clientRef); }}
               className="press grid size-11 flex-none place-items-center rounded-full text-muted-foreground in-data-[platform=android]:size-12">
@@ -118,14 +118,14 @@ function Bare({ queue }: { queue: Queued[] }) {
         <span className="grid size-16 place-items-center rounded-full bg-muted text-muted-foreground">
           <Icon name="wifi_off" size={30} />
         </span>
-        <h1 className="text-[30px] font-bold tracking-tight leading-tight">No connection</h1>
-        <p className="max-w-[34ch] text-base leading-normal text-muted-foreground">
+        <h1 className="text-large-title font-bold tracking-tight leading-tight">No connection</h1>
+        <p className="max-w-[34ch] text-body leading-normal text-muted-foreground">
           Your books live on the server, so they need a signal to open. Nothing has been lost.
           Open Add Entry once while online, and from then on entries can be written here
           without a signal and sent when it returns.
         </p>
         {queue.length > 0 && (
-          <p className="text-sm text-muted-foreground">
+          <p className="text-subhead text-muted-foreground">
             {queue.length === 1 ? 'One entry is' : `${queue.length} entries are`} waiting on this phone to be sent.
           </p>
         )}

@@ -33,7 +33,7 @@ export default function AddAccount({ startOpen = false }: { startOpen?: boolean 
       {said}
       <AddRow ref={opener} onClick={() => setOpen(true)}
         done={state?.ok && state.message
-          ? <span className="flex items-center gap-1 text-sm font-semibold text-primary"><Icon name="check" size={16} />Added</span>
+          ? <span className="flex items-center gap-1 text-body font-semibold text-primary"><Icon name="check" size={16} />Added</span>
           : null}>
         Add an account
       </AddRow>
@@ -52,8 +52,8 @@ export default function AddAccount({ startOpen = false }: { startOpen?: boolean 
               onChange={() => setKind(k.id)} className="mt-0.5 size-[19px] flex-none accent-primary" />
             <Chip icon={ACCOUNT_ICON[k.id]} tint={ACCOUNT_TINT[k.id]} size={34} radius={9} iconSize={17} />
             <span className="flex min-w-0 flex-col gap-0.5">
-              <span className="text-[15px] font-semibold">{k.label}</span>
-              <span className="text-sm leading-snug text-muted-foreground">{k.what}</span>
+              <span className="text-body font-semibold">{k.label}</span>
+              <span className="text-subhead leading-snug text-muted-foreground">{k.what}</span>
             </span>
           </label>
         ))}

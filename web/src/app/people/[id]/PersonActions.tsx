@@ -30,11 +30,11 @@ export default function PersonActions({ personId, name, balance, ways, categorie
   if (mode === null) {
     return (
       <div className="mx-[var(--gutter)] flex flex-wrap gap-2">
-        <Button type="button" onClick={() => setMode('lend')} className="h-[54px] flex-1 basis-40 rounded-2xl text-base font-semibold">
+        <Button type="button" onClick={() => setMode('lend')} className="h-[54px] flex-1 basis-40 rounded-2xl text-headline font-semibold">
           <Icon name="payments" size={18} />Lend money
         </Button>
         <Button type="button" variant="outline" onClick={() => setMode('back')}
-          className="h-[54px] flex-1 basis-40 rounded-2xl border-border bg-card text-base font-semibold dark:border-border dark:bg-card">
+          className="h-[54px] flex-1 basis-40 rounded-2xl border-border bg-card text-headline font-semibold dark:border-border dark:bg-card">
           <Icon name="receivable" size={18} />Got money back
         </Button>
       </div>
@@ -107,15 +107,15 @@ export default function PersonActions({ personId, name, balance, ways, categorie
 }
 
 function Title({ children }: { children: React.ReactNode }) {
-  return <h2 className="text-lg font-bold">{children}</h2>;
+  return <h2 className="text-headline font-bold">{children}</h2>;
 }
 function Explain({ children }: { children: React.ReactNode }) {
-  return <p className="text-[13px] leading-relaxed text-muted-foreground">{children}</p>;
+  return <p className="text-subhead leading-relaxed text-muted-foreground">{children}</p>;
 }
 function PayField({ label, ways }: { label: string; ways: Way[] }) {
   return (
     <div role="group" className="flex flex-col gap-1.5">
-      <span className="text-sm font-medium text-muted-foreground">{label}</span>
+      <span className="text-subhead font-medium text-muted-foreground">{label}</span>
       <PayPicker name="paidWith" ways={ways} defaultValue={defaultRef(ways)} />
     </div>
   );
@@ -125,11 +125,11 @@ function Row({ onCancel, pending, label, danger }: {
 }) {
   return (
     <div className="flex gap-2">
-      <Button type="button" variant="secondary" onClick={onCancel} className="h-12 rounded-xl px-4 text-base font-semibold">
+      <Button type="button" variant="secondary" onClick={onCancel} className="h-12 rounded-xl px-4 text-headline font-semibold">
         Cancel
       </Button>
       <Button type="submit" disabled={pending}
-        className={`h-12 flex-1 rounded-xl text-base font-semibold ${danger ? 'bg-destructive/10 text-destructive hover:bg-destructive/15' : ''}`}>
+        className={`h-12 flex-1 rounded-xl text-headline font-semibold ${danger ? 'bg-destructive/10 text-destructive hover:bg-destructive/15' : ''}`}>
         {pending ? 'Saving…' : label}
       </Button>
     </div>

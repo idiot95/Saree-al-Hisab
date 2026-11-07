@@ -108,14 +108,14 @@ export default function EntryList({ days, canEdit, tools = false, flat = false, 
           </form>
           {!everyMonth && q.trim() && (
             <Link href={`/entries?q=${encodeURIComponent(q.trim())}`}
-              className="flex min-h-11 items-center gap-2 self-start px-1 text-sm font-semibold text-primary">
+              className="flex min-h-11 items-center gap-2 self-start px-1 text-body font-semibold text-primary">
               <Icon name="search" size={16} /> Search every month for “{q.trim()}”
             </Link>
           )}
           <div role="group" aria-label="Kind of entry" className="-mx-2 flex flex-wrap">
             {FILTERS.map((f) => (
               <button key={f.key} type="button" aria-pressed={filter === f.key} onClick={() => setFilter(f.key)}
-                className={`flex min-h-11 flex-none items-center gap-1 whitespace-nowrap rounded-full px-2 text-[13px] ${filter === f.key
+                className={`flex min-h-11 flex-none items-center gap-1 whitespace-nowrap rounded-full px-2 text-subhead ${filter === f.key
                   ? 'font-semibold text-primary' : 'font-medium text-muted-foreground'}`}>
                 {filter === f.key && <Icon name="check" size={16} />}{f.label}
               </button>
@@ -124,7 +124,7 @@ export default function EntryList({ days, canEdit, tools = false, flat = false, 
         </div>
       )}
       {tools && nothing && (
-        <p className="mx-[var(--gutter)] rounded-[18px] bg-card px-6 py-8 text-center text-sm text-muted-foreground">
+        <p className="mx-[var(--gutter)] rounded-[18px] bg-card px-6 py-8 text-center text-subhead text-muted-foreground">
           {q ? `Nothing ${everyMonth ? 'here' : 'this month'} matches “${q.trim()}”.` : `Nothing of that kind ${everyMonth ? 'here' : 'this month'}.`}
         </p>
       )}
@@ -134,7 +134,7 @@ export default function EntryList({ days, canEdit, tools = false, flat = false, 
         return (
           <section key={d.on} aria-label={flat ? undefined : d.label} className={flat ? '' : 'mb-4 flex flex-col gap-1.5'}>
             {!flat && (
-              <h2 className="mx-[var(--gutter)] px-0.5 text-[13px] font-semibold text-muted-foreground">{d.label}</h2>
+              <h2 className="mx-[var(--gutter)] px-0.5 text-subhead font-semibold text-muted-foreground">{d.label}</h2>
             )}
             <div className={`${flat ? '' : 'mx-[var(--gutter)]'} overflow-hidden rounded-[18px] bg-card px-[var(--pad)]`}>
               {rows.map((e, i) => (
@@ -175,12 +175,12 @@ function Entry({ e, last }: { e: Row; last: boolean }) {
         <Chip icon={e.icon} tint={e.tint} size={40} radius={12} />
       )}
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <span className="text-[15px] font-medium [overflow-wrap:anywhere]">
+        <span className="text-body font-medium [overflow-wrap:anywhere]">
           {cameBack
             ? `Came back from ${e.people ?? 'them'}`
             : e.merchant || e.category || (lent ? 'Laid out' : move ? 'Transfer' : 'Entry')}
         </span>
-        <span className="text-xs text-muted-foreground [overflow-wrap:anywhere]">
+        <span className="text-footnote text-muted-foreground [overflow-wrap:anywhere]">
           {lent
             ? `lent to ${e.people ?? 'them'}`
             : cameBack
@@ -194,7 +194,7 @@ function Entry({ e, last }: { e: Row; last: boolean }) {
       </span>
       {/* Money in is green with a +; money out is plain ink; a move between your own accounts is muted — the same
           money in a different pocket. */}
-      <span className={`flex-none text-[15px] font-semibold tabular-nums ${incoming || cameBack
+      <span className={`flex-none text-body font-semibold tabular-nums ${incoming || cameBack
         ? 'text-money-in' : move ? 'text-muted-foreground' : 'text-foreground'}`}>
         {incoming || cameBack ? '+' : ''}{format(Number(e.amount))}
       </span>

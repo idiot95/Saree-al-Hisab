@@ -71,7 +71,7 @@ export default function BottomDrawer({ open, onClose, label, showTitle = false, 
         className={cn('bg-card text-foreground outline-none', typing
           && 'data-[vaul-drawer-direction=bottom]:max-h-[79dvh] in-data-[platform=android]:data-[vaul-drawer-direction=bottom]:max-h-[86dvh]')}>
         <DrawerGrip ref={close} />
-        <DrawerTitle className={showTitle ? 'px-[var(--gutter)] pb-1 text-xl font-bold' : 'sr-only'}>{label}</DrawerTitle>
+        <DrawerTitle className={showTitle ? 'px-[var(--gutter)] pb-1 text-title font-bold' : 'sr-only'}>{label}</DrawerTitle>
         <div data-kb={kb > 0} className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-[var(--gutter)] pt-2 pb-[calc(18px+env(safe-area-inset-bottom))] data-[kb=true]:pb-[18px]">
           <InDrawer.Provider value={true}>{children}</InDrawer.Provider>
         </div>

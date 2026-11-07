@@ -29,7 +29,7 @@ export default async function ReconcilePicker() {
           sub="Match an account to its statement: tick off what the statement shows, and find what the books are missing." />
 
         <section aria-labelledby="sec-which" className="flex flex-col gap-1.5 px-[var(--gutter)] pb-8">
-          <h2 id="sec-which" className="px-0.5 text-[13px] font-semibold text-muted-foreground">Which account</h2>
+          <h2 id="sec-which" className="px-0.5 text-subhead font-semibold text-muted-foreground">Which account</h2>
           {accounts.length === 0 && (
             /* The way to add one only for someone who may: a viewer is told there is nothing yet, and no more. */
             <Empty icon="account_balance" inset={false}
@@ -46,10 +46,10 @@ export default async function ReconcilePicker() {
                     className="press flex min-h-[72px] items-center gap-3 px-[var(--pad)] py-3 text-foreground no-underline">
                     <Chip icon={ACCOUNT_ICON[a.kind]} tint={ACCOUNT_TINT[a.kind]} size={38} radius={999} />
                     <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-                      <span className="text-[15px] font-semibold leading-snug [overflow-wrap:anywhere]">
+                      <span className="text-body font-semibold leading-snug [overflow-wrap:anywhere]">
                         {a.name}{a.last4 ? <span className="font-medium text-muted-foreground"> · {a.last4}</span> : null}
                       </span>
-                      <span className="text-[13px] leading-snug text-muted-foreground">
+                      <span className="text-subhead leading-snug text-muted-foreground">
                         {a.last_on ? <Icon name="check_circle" size={14} className="mr-1 align-[-2px]" /> : <Icon name="schedule" size={14} className="mr-1 align-[-2px]" />}
                         {a.last_on
                           ? `Matched ${new Date(`${a.last_on}T00:00:00`).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}`
@@ -58,8 +58,8 @@ export default async function ReconcilePicker() {
                       </span>
                     </span>
                     <span className="flex flex-none flex-col items-end gap-0.5">
-                      <span className="text-[15px] font-semibold tabular-nums">{format(Math.abs(bal))}</span>
-                      <span className="text-xs text-muted-foreground">
+                      <span className="text-body font-semibold tabular-nums">{format(Math.abs(bal))}</span>
+                      <span className="text-footnote text-muted-foreground">
                         {credit ? (bal < 0 ? 'owed' : 'in credit') : bal < 0 ? 'overdrawn' : 'in the books'}
                       </span>
                     </span>

@@ -52,15 +52,15 @@ export default async function SmsDraft({ params }: { params: Promise<{ id: strin
       <main className="min-h-dvh bg-background text-foreground" style={{ paddingBottom: TAB_BAR_SPACE }}>
         <PageHead back="/entries?f=sms" title="Bank message" sub={`${d.sender ? `From ${d.sender} · ` : ''}${received}`} />
         <div className="flex flex-col gap-5 px-[var(--gutter)]">
-          <p className="flex min-h-11 items-center gap-2 self-start rounded-full bg-muted px-3.5 text-sm font-semibold">
+          <p className="flex min-h-11 items-center gap-2 self-start rounded-full bg-muted px-3.5 text-body font-semibold">
             <Icon name={status.icon} size={18} /> {status.word}
           </p>
 
           <section aria-label="The message" className="flex flex-col gap-2">
             <Label>The message</Label>
             {d.body
-              ? <p className="whitespace-pre-wrap rounded-2xl border border-border bg-card p-4 text-sm leading-relaxed [overflow-wrap:anywhere]">{d.body}</p>
-              : <p className="rounded-2xl border border-dashed border-border p-4 text-sm leading-relaxed text-muted-foreground">
+              ? <p className="whitespace-pre-wrap rounded-2xl border border-border bg-card p-4 text-body leading-relaxed [overflow-wrap:anywhere]">{d.body}</p>
+              : <p className="rounded-2xl border border-dashed border-border p-4 text-subhead leading-relaxed text-muted-foreground">
                   The text was deleted once it was handled, or after 30 days. What was read from it is below.
                 </p>}
           </section>
@@ -69,25 +69,25 @@ export default async function SmsDraft({ params }: { params: Promise<{ id: strin
             <Label>What was read from it</Label>
             <dl className="rounded-2xl border border-border bg-card px-4">
               <div className="flex min-h-12 items-center justify-between gap-3 border-b border-border">
-                <dt className="text-sm text-muted-foreground">Direction</dt>
-                <dd className="flex items-center gap-1.5 text-sm font-semibold"><Icon name={dir.icon} size={18} /> {dir.word}</dd>
+                <dt className="text-subhead text-muted-foreground">Direction</dt>
+                <dd className="flex items-center gap-1.5 text-body font-semibold"><Icon name={dir.icon} size={18} /> {dir.word}</dd>
               </div>
               {facts.map(([k, v], i) => (
                 <div key={k} className={`flex min-h-12 items-center justify-between gap-3 ${i === facts.length - 1 ? '' : 'border-b border-border'}`}>
-                  <dt className="text-sm text-muted-foreground">{k}</dt>
-                  <dd className="min-w-0 text-right text-sm font-semibold [overflow-wrap:anywhere]">{v}</dd>
+                  <dt className="text-subhead text-muted-foreground">{k}</dt>
+                  <dd className="min-w-0 text-right text-body font-semibold [overflow-wrap:anywhere]">{v}</dd>
                 </div>
               ))}
             </dl>
             {d.via === 'model' && (
-              <p className="px-1 text-xs leading-relaxed text-muted-foreground">Read with your Gemini key: check it before saving.</p>
+              <p className="px-1 text-footnote leading-relaxed text-muted-foreground">Read with your Gemini key: check it before saving.</p>
             )}
           </section>
 
           {d.status === 'open' && canWrite && (
             <div className="flex flex-col gap-2.5">
               <Link href={`/add?draft=${d.id}`}
-                className="press flex min-h-12 items-center justify-center gap-2 rounded-xl bg-primary text-base font-semibold text-primary-foreground">
+                className="press flex min-h-12 items-center justify-center gap-2 rounded-xl bg-primary text-headline font-semibold text-primary-foreground">
                 <Icon name="add" size={20} /> Review and add
               </Link>
               <DismissDraft id={d.id} />

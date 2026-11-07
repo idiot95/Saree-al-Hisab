@@ -13,7 +13,7 @@ export function Field({ label, hint, ...rest }: { label: string; hint?: string }
     <label className="flex flex-col gap-1.5">
       <span className={fieldLabel}>{label}</span>
       <Input {...rest} className="h-12 rounded-xl bg-card px-3.5 text-[length:var(--field)] md:text-[length:var(--field)]" />
-      {hint && <span className="text-xs leading-snug text-muted-foreground">{hint}</span>}
+      {hint && <span className="text-footnote leading-snug text-muted-foreground">{hint}</span>}
     </label>
   );
 }
