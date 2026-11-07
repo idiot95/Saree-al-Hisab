@@ -212,7 +212,8 @@ capture_token, sms_draft). Where an older section disagrees, this wins.
   is lost, and offers Try again (`retry`) and Home — never the error's text; `app/not-found.tsx` is "Nothing here".
 
 **Drawers and calendars.** Every bottom drawer is shadcn's Drawer (vaul). `components/ui/drawer.tsx` gives every
-one the same frame: capped at **86dvh** (the Add drawer alone is **79dvh on an iPhone**, see `/add` below), 24px corners, and the grip across the top is a real **Close** button
+one the same frame: capped at **86dvh** (the Add drawer and a `BottomDrawer` with `typing` — the category finder —
+are **79dvh on an iPhone**, so vaul lifts them clear of the keyboard; see `/add` below), 24px corners, and the grip across the top is a real **Close** button
 (`DrawerGrip`, 44px / 48 on Android, a drag that ends on it is not a click). `src/app/BottomDrawer.tsx` is the one to
 use (`open`, `onClose`, `label`, `showTitle`, `focus`, `repositionInputs`): it takes focus (the Close grip, or the
 `focus` ref), notes its opener as it is asked to open and gives focus back there on close (a field with `autoFocus`
@@ -261,7 +262,8 @@ is no override. Each cleanup deletes only rows the run made, by id or by a run-u
   queue shape, nested pickers; every drawer has Close and its cap — 86dvh, the Add drawer 79 on an iPhone; a long Paid
   with wraps; the keyboard simulated on an iPhone and on Android with the amount and More's fields clear of Save; the
   amount's type steps and 2340.5 saved as 234050 paise; Add open on the tap with the route held back; the kind
-  switch's arrow keys), `plan-taps.mjs`
+  switch's arrow keys; a held /add abandoned by Back, a tab or a redirect to sign-in, and a Save made while it is held
+  kept on the phone and landing as one row; `--only 9 --tag before` runs the keyboard checks against an older build), `plan-taps.mjs`
   (the Trends redirect, a two-step budget, Make current, Adjust this month), `loans-taps.mjs` (Money back, swipe
   rows, a throwaway tab, lend and repay), `activity-taps.mjs` (chips, redirects, returns from an entry),
   `sms-taps.mjs` (a forwarded message to a draft, Review, Save, Dismiss and Undo), `accounts-taps.mjs` (a balance
@@ -424,7 +426,13 @@ grows (52px to 8 characters, 42 to 11, 34 to 14, then 28) so it is never clipped
 the drawer at once from `ql.pickers.v1` when they are this household's and under a week old (else the form's frame
 inside the drawer), while the link fetches `@modal/(.)add`; its page (`AddSheet`) hands the server's props to the open
 drawer instead of opening another, and the form follows them (the way to pay, the day) until the person chooses, so
-nothing typed is lost. A close before the route lands steps back off it when it does. The drawer slides in over
+nothing typed is lost. Offline the plus does not open it (the worker's /offline answers as before). A close before
+the route lands steps back off it when it does — only a plain `/add` arriving on the same screen within 10s; any move
+elsewhere forgets the close, so a later Pay or Add cost is never bounced. If the address moves anywhere but `/add`
+before landing (Back, another tab, a redirect to sign-in), Next has dropped the navigation and the drawer is
+abandoned with it. **Save never waits on a pending route**: a Server Action queues behind a navigation still on its
+way, so `saveEntry` gets 8s, after which the entry is kept on the phone and `SyncQueue` is asked to send it
+(`ql:drain`); every save now carries a `clientRef`, so the two deliveries are one row (add-taps §12). The drawer slides in over
 240ms on `cubic-bezier(.22,1,.36,1)` (vaul's 500ms stays for drags and closing), and the plus carries no view
 transition. Other ways into /add (a card's Pay, a tab's Add cost, a bank message's Review) open the route's own
 drawer as before. The
@@ -443,7 +451,7 @@ last paid BY would make its own Pay unsaveable. Pick drawers are vaul's
 keypad**: the amount is a plain `<input inputMode="decimal">` that takes the
 phone's own keyboard and formats as it is typed — `typed()` tidies what the
 keyboard gave, `keysDisplay()` groups the rupees and leaves the paise exactly
-as typed (`2,340.5` mid-entry), and `tidy()` (`tidyKeys`) writes the field the way Save says it on blur — no
+as typed (`2,340.5` mid-entry; a point before the digits that ends a word, as in "Rs. 2,340.50", is not a decimal point), and `tidy()` (`tidyKeys`) writes the field the way Save says it on blur — no
 `.00` a whole amount never needed (`2,340`), the paise once there are some (`2,340.50`); the minor units are
 exactly the ones typed (`fromKeys(tidyKeys(k)) === fromKeys(k)`, held by `money.test`). `settle()` still fills the
 minor digits for the forms that want the accounting form. Every choice is a wrapping row of chips — nothing scrolls
@@ -1594,7 +1602,8 @@ storage after it opens. The design, in the order the pieces matter:
   reconnect without asking "did it go?". A `householdId` that is not the
   signed-in household is refused outright: an entry typed under one sign-in
   never lands in another's books.
-- **`SyncQueue`** in the root layout drains the queue on mount and on
+- **`SyncQueue`** in the root layout drains the queue on mount, on `ql:drain` (an entry kept because the server was
+  slow, not offline) and on
   `online`, single-flight, and never on the auth or offline screens. A
   network failure stops the drain and keeps everything; a server refusal
   ("that category was retired") marks the entry *stuck* with the reason, and

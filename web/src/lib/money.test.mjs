@@ -96,6 +96,12 @@ assert.equal(toKeys(0), '0');
 assert.equal(typed('2340'), '2340');
 assert.equal(typed('2,340'), '2340');                 // a comma the person typed
 assert.equal(typed('₹2,340.5'), '2340.5');            // a symbol pasted in
+assert.equal(typed('Rs. 2,340.50'), '2340.50');       // "Rs."'s point is not a decimal point
+assert.equal(typed('Rs.2340'), '2340');
+assert.equal(typed('INR 2,340.50'), '2340.50');
+assert.equal(typed('₹2,340.50'), '2340.50');
+assert.equal(typed('₹.5'), '0.5');                    // a bare point before the digits is still one
+assert.equal(fromKeys(typed('Rs. 2,340.50')), 234050);
 assert.equal(typed('2340.555'), '2340.55');           // two paise digits at most
 assert.equal(typed('23.4.5'), '23.45');               // one point
 assert.equal(typed('.5'), '0.5');

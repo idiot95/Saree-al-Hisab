@@ -71,7 +71,7 @@ export default function CategoryFinder({ open, onClose, categories, selected, on
   };
 
   return (
-    <BottomDrawer open={open} onClose={onClose} label="Find a category" focus={box}>
+    <BottomDrawer open={open} onClose={onClose} label="Find a category" focus={box} typing>
       <input ref={box} type="search" value={q} onChange={(e) => setQ(e.target.value)}
         placeholder="Find a category" aria-label="Find a category" autoComplete="off"
         enterKeyHint="search"

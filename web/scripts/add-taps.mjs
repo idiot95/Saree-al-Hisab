@@ -21,7 +21,12 @@
       2340.5 is saved as 234050 paise.
   11. Add opens on the tap from the phone's kept pickers, before /add has answered, keeps what was typed when the
       route lands, and the kind switch is a radio group the arrow keys move along.
+  12. /add never landing: Back, or a close then another tab, or a redirect to sign-in, leaves no drawer and no stale
+      cancel; a Save while /add is held is kept on the phone after its wait and lands as one row once let go.
 
+   --only 9,12 runs those sections; --tag before|after names §9's keyboard shots (with --shots dir). §9 finds the
+   drawer, its footer and its scroller by role and shape when the data-add-* hooks are absent, so it can be run with
+   `--only 9 --tag before` against an older build (afcbad7) and report positions there rather than throw.
    Rows this run wrote are removed at the end unless --keep.                                                   */
 import { createRequire } from 'node:module';
 import fs from 'node:fs';
@@ -41,6 +46,11 @@ const argv = process.argv.slice(2);
 const arg = (k) => { const i = argv.indexOf(k); return i >= 0 ? argv[i + 1] : null; };
 const LOGIN = arg('--login') ?? 'ammar@example.com:Correct-horse-9';
 const SHOTS = arg('--shots');
+/** Prefix for the keyboard shots (§9): `--tag before` on the old build, `--tag after` on this one. */
+const TAG = arg('--tag');
+/** Only these sections, e.g. `--only 9` (to run the keyboard checks against an older build). */
+const ONLY = arg('--only')?.split(',');
+const want = (n) => !ONLY || ONLY.includes(String(n));
 const KEEP = argv.includes('--keep');
 
 const url = localOwnerUrl(ROOT);
@@ -147,7 +157,7 @@ const keysFor = (minor) => (minor % 100 === 0 ? String(minor / 100) : (minor / 1
 
 try {
   /* ── 1. three taps ───────────────────────────────────────────────────── */
-  {
+  if (want(1)) {
     const { ctx, page } = await context(ios);
     const drawer = await openDrawer(page);
     await drawerHasCloseAndCap(page, drawer, 'the Add drawer (iPhone)', 0.79);
@@ -240,7 +250,7 @@ try {
   }
 
   /* ── 2. income that clears a claim ───────────────────────────────────── */
-  {
+  if (want(2)) {
     const claims = await sql`
       select cs.id, cs.outstanding::bigint as o from claim_state cs join txn t on t.id = cs.txn_id and t.deleted_at is null
       where cs.household_id = ${HH} and cs.status in ('open','part_paid') and cs.outstanding > 0 order by t.occurred_on`;
@@ -272,7 +282,7 @@ try {
   }
 
   /* ── 3. a Move ───────────────────────────────────────────────────────── */
-  {
+  if (want(3)) {
     const { ctx, page } = await context(pixel);
     await page.goto(`${BASE}/add`);
     await kindRadio(page, 'Move').click();
@@ -302,7 +312,7 @@ try {
   }
 
   /* ── 4. an expense on a tab, "No, I covered it" ──────────────────────── */
-  {
+  if (want(4)) {
     const [tab] = await sql`select id, name from ledger_book where household_id = ${HH} and closed_at is null limit 1`;
     if (!tab) console.log('  skip tab: no open tab');
     else {
@@ -326,7 +336,7 @@ try {
   }
 
   /* ── 5. offline, then back ───────────────────────────────────────────── */
-  {
+  if (want(5)) {
     const { ctx, page } = await context(ios);
     const drawer = await openDrawer(page);
     await ctx.setOffline(true);
@@ -348,7 +358,7 @@ try {
   }
 
   /* ── 6. an entry queued by the old wizard ────────────────────────────── */
-  {
+  if (want(6)) {
     const [cat] = await sql`select id from category where household_id = ${HH} and archived_at is null
       and scope in ('expense','both') order by sort_order limit 1`;
     const [rail] = await sql`select pm.id from payment_method pm where pm.household_id = ${HH} and pm.archived_at is null limit 1`;
@@ -372,7 +382,7 @@ try {
   }
 
   /* ── 7. All opens the finder, over the drawer ───────────────────────── */
-  {
+  if (want(7)) {
     const { ctx, page } = await context(ios);
     const drawer = await openDrawer(page);
     await page.keyboard.type('50');
@@ -451,7 +461,7 @@ try {
   }
 
   /* ── 8. card Pay after paying BY that card ───────────────────────────── */
-  {
+  if (want(8)) {
     /* The remembered way opens an expense, never a move: last paid by the card, then the card's Pay
        (/add?kind=transfer&to=<card>, no from) must not start From the card itself. */
     const [card] = await sql`select a.id, a.name, (select pm.id from payment_method pm where pm.funding_account_id = a.id
@@ -484,46 +494,61 @@ try {
   }
 
   /* ── 9. the keyboard, on an iPhone and on Android ─────────────────────── */
-  {
+  /* Positions, not hooks: the drawer, its footer and its scroller are found by role and shape first (the hooks are only
+     a preference), so on a build without them — afcbad7, say — this reports where things were rather than throwing.
+     Every case's problems are collected and reported together. */
+  if (want(9)) {
     const KB = 336;
-    /* What is on screen with the keyboard up, and where the field, the footer and Save are. A field passes when all of
-       it is between the top of what is visible (and the top of the drawer's scroller) and the top of the footer that
-       holds Save, and Save is wholly above the keyboard. */
     const where = (page, which) => page.evaluate((which) => {
       const vv = window.visualViewport;
-      const drawer = document.querySelector('[data-add-drawer]');
-      const el = which === 'amount' ? drawer.querySelector('input[aria-label^="Amount in"]') : document.activeElement;
-      const r = el.getBoundingClientRect(), foot = drawer.querySelector('[data-add-footer]').getBoundingClientRect();
-      const save = drawer.querySelector('[data-save]').getBoundingClientRect();
-      const scroller = drawer.querySelector('[data-add-scroll]').getBoundingClientRect();
-      return { top: Math.max(vv.offsetTop, scroller.top), bottom: vv.offsetTop + vv.height, field: [r.top, r.bottom],
-        foot: foot.top, save: [save.top, save.bottom], drawer: drawer.getBoundingClientRect().top,
-        name: el.getAttribute('aria-label') ?? el.getAttribute('placeholder'), pad: getComputedStyle(drawer.querySelector('[data-add-footer]')).paddingBottom };
+      const amount = document.querySelector('[data-slot=drawer-content] input[aria-label^="Amount in"]');
+      const drawer = document.querySelector('[data-add-drawer]') ?? amount?.closest('[data-slot=drawer-content]');
+      const el = which === 'amount' ? amount : document.activeElement;
+      const save = drawer.querySelector('[data-save]') ?? [...drawer.querySelectorAll('button')].find((x) => /^Save\b/.test(x.textContent.trim()));
+      const footer = drawer.querySelector('[data-add-footer]') ?? save.parentElement;
+      const scrolls = (n) => /(auto|scroll)/.test(getComputedStyle(n).overflowY);
+      let scroller = drawer.querySelector('[data-add-scroll]');
+      if (!scroller) { scroller = el.parentElement; while (scroller && scroller !== drawer && !scrolls(scroller)) scroller = scroller.parentElement; }
+      const r = el.getBoundingClientRect(), s = save.getBoundingClientRect();
+      return { top: Math.max(vv.offsetTop, scroller.getBoundingClientRect().top), bottom: vv.offsetTop + vv.height,
+        field: [r.top, r.bottom], foot: footer.getBoundingClientRect().top, save: [s.top, s.bottom],
+        drawer: drawer.getBoundingClientRect().top, cap: parseFloat(getComputedStyle(drawer).maxHeight), vh: innerHeight,
+        name: el.getAttribute('aria-label') ?? el.getAttribute('placeholder'), pad: getComputedStyle(footer).paddingBottom };
     }, which);
-    const clear = (m, what) => {
-      assert.ok(m.field[0] >= m.top - 0.5 && m.field[1] <= m.foot + 0.5,
-        `${what}: "${m.name}" is wholly visible and clear of Save (field ${m.field.map(Math.round)}, visible from ${Math.round(m.top)}, footer at ${Math.round(m.foot)})`);
-      assert.ok(m.save[0] >= m.top && m.save[1] <= m.bottom + 0.5, `${what}: Save is above the keyboard (${m.save.map(Math.round)} of ${Math.round(m.bottom)})`);
-    };
-    for (const [label, device, vp, os] of [
-      ['iPhone 393×852', ios, { width: 393, height: 852 }, 'ios'],
-      ['iPhone Safari tab 393×659', ios, { width: 393, height: 659 }, 'ios'],
-      ['Pixel 412×915', pixel, { width: 412, height: 915 }, 'android'],
+    const tag = TAG ? `${TAG}-` : '';
+    const allProblems = [];
+    for (const [label, file, device, vp, os] of [
+      ['iPhone 393×852', 'iphone-393x852', ios, { width: 393, height: 852 }, 'ios'],
+      ['iPhone Safari tab 393×659', 'iphone-393x659-safari', ios, { width: 393, height: 659 }, 'ios'],
+      ['Pixel 412×915', 'pixel-412x915', pixel, { width: 412, height: 915 }, 'android'],
     ]) {
+      const problems = [];
+      const clear = (m, what) => {
+        const f = m.field.map(Math.round);
+        if (!(m.field[0] >= m.top - 0.5 && m.field[1] <= m.foot + 0.5)) {
+          problems.push(`${what}: "${m.name}" at ${f} is not wholly visible above Save (visible from ${Math.round(m.top)}, footer from ${Math.round(m.foot)})`);
+        }
+        if (!(m.save[0] >= m.top && m.save[1] <= m.bottom + 0.5)) {
+          problems.push(`${what}: Save at ${m.save.map(Math.round)} is not above the keyboard (visible to ${Math.round(m.bottom)})`);
+        }
+      };
       const { ctx, page } = await context(device, 'light', vp, os === 'ios' ? KB : 0);
-      const drawer = await openDrawer(page);
-      await drawerHasCloseAndCap(page, drawer, `the Add drawer (${label})`, os === 'ios' ? 0.79 : 0.86);
+      await openDrawer(page);
+      const drawer = page.locator('[data-slot=drawer-content]').filter({ has: page.getByLabel(/^Amount in/) });
+      const share = os === 'ios' ? 0.79 : 0.86;
+      const shot = async (what) => { if (SHOTS) { fs.mkdirSync(SHOTS, { recursive: true }); await page.screenshot({ path: path.join(SHOTS, `${tag}${file}-kb-${what}.png`) }); } };
       const kb = async () => { if (os === 'android') await page.setViewportSize({ width: vp.width, height: 450 }); await page.waitForTimeout(450); };
       const down = async () => { if (os === 'android') await page.setViewportSize(vp); await page.waitForTimeout(150); };
       await kb();
       await page.keyboard.type('234050');
       const m = await where(page, 'amount');
-      clear(m, `${label}, amount`);
+      if (Math.abs(m.cap - m.vh * share) > 1) problems.push(`the Add drawer is capped at ${m.cap}px, not ${Math.round(share * 100)}dvh of ${m.vh}px`);
+      clear(m, 'amount');
       if (os === 'ios') {
-        assert.ok(m.drawer <= 27, `${label}: vaul lifts the drawer to the top of what is visible (top ${Math.round(m.drawer)})`);
-        assert.equal(m.pad, '10px', `${label}: no home-indicator padding under Save while the keyboard is up`);
+        if (!(m.drawer <= 27)) problems.push(`vaul did not lift the drawer to the top of what is visible (top ${Math.round(m.drawer)})`);
+        if (m.pad !== '10px') problems.push(`home-indicator padding under Save while the keyboard is up (${m.pad})`);
       }
-      if (SHOTS) await page.screenshot({ path: path.join(SHOTS, `kb-${os}-${vp.height}-amount.png`) });
+      await shot('amount');
       await drawer.getByLabel(/^Amount in/).evaluate((e) => e.blur());
       await down();
       await drawer.getByRole('button', { name: /Note, bill, tab/ }).click();
@@ -533,18 +558,38 @@ try {
         await kb();
         await page.keyboard.type('Corner shop');
         await page.waitForTimeout(150);
-        clear(await where(page, 'active'), `${label}, ${name}`);
-        if (SHOTS) await page.screenshot({ path: path.join(SHOTS, `kb-${os}-${vp.height}-${name.toLowerCase()}.png`) });
+        clear(await where(page, 'active'), name);
+        await shot(name.toLowerCase());
         await field.evaluate((e) => e.blur());
         await down();
       }
-      ok(`${label}, keyboard up: the amount, Where and Remarks are each wholly visible above Save, and Save above the keyboard`);
+      /* The category finder, opened from Add with its search box focused: the same cap, lifted the same way. */
+      await drawer.getByRole('button', { name: 'All categories' }).click();
+      const finder = page.getByRole('dialog', { name: 'Find a category' });
+      const search = finder.getByRole('searchbox', { name: 'Find a category' });
+      await search.waitFor();
+      await kb();
+      await page.waitForTimeout(300);
+      const fm = await finder.evaluate((d) => {
+        const vv = window.visualViewport, box = d.querySelector('input[type=search]').getBoundingClientRect();
+        return { top: d.getBoundingClientRect().top, cap: parseFloat(getComputedStyle(d).maxHeight), vh: innerHeight,
+          box: [box.top, box.bottom], bottom: vv.offsetTop + vv.height, focused: document.activeElement?.type === 'search' };
+      });
+      if (!fm.focused) problems.push('the finder\'s search box is not focused');
+      if (Math.abs(fm.cap - fm.vh * share) > 1) problems.push(`the category finder is capped at ${fm.cap}px, not ${Math.round(share * 100)}dvh of ${fm.vh}px`);
+      if (!(fm.box[0] >= 0 && fm.box[1] <= fm.bottom)) problems.push(`the finder's search box at ${fm.box.map(Math.round)} is not above the keyboard (to ${Math.round(fm.bottom)})`);
+      if (os === 'ios' && !(fm.top <= 27)) problems.push(`vaul did not lift the category finder (top ${Math.round(fm.top)})`);
+      await shot('finder');
+      await down();
       await ctx.close();
+      if (problems.length) allProblems.push(`${label}:\n      ${problems.join('\n      ')}`);
+      else ok(`${label}, keyboard up: the amount, Where and Remarks are each wholly visible above Save, Save above the keyboard, and the category finder's search is lifted clear of it`);
     }
+    assert.deepEqual(allProblems, [], `the keyboard covers what is being typed:\n    ${allProblems.join('\n    ')}`);
   }
 
   /* ── 10. the amount fits, and keeps its paise ─────────────────────────── */
-  {
+  if (want(10)) {
     for (const width of [393, 360]) {
       const { ctx, page } = await context(ios, 'light', { width, height: 800 });
       const drawer = await openDrawer(page);
@@ -585,7 +630,7 @@ try {
   }
 
   /* ── 11. Add opens on the tap; the kind switch takes the arrow keys ────── */
-  {
+  if (want(11)) {
     const { ctx, page } = await context(ios);
     /* The route held back, so what is on screen before it answers is what the tap drew by itself. */
     let hold = 0;
@@ -600,12 +645,16 @@ try {
     await page.waitForURL((u) => u.pathname === '/', { timeout: 10000 });
     await page.locator('[data-add-drawer]').waitFor({ state: 'detached' });
     hold = 2500;
+    // Home afresh, so the router has forgotten the /add it fetched and the tap really waits on the held route.
+    await page.goto(`${BASE}/`);
+    await page.waitForLoadState('networkidle');
     const t0 = Date.now();
     await page.locator('a[href="/add"]').first().click();
     drawer = page.locator('[data-add-drawer]');
     await drawer.getByLabel(/^Amount in/).waitFor();
     await page.waitForFunction(() => document.activeElement?.getAttribute('aria-label')?.startsWith('Amount in'));
     const opened = Date.now() - t0;
+    assert.notEqual(new URL(page.url()).pathname, '/add', 'focused before /add landed');
     assert.ok(opened < 1500, `the drawer and its focused amount are up before the route answers (${opened}ms, route held 2500ms)`);
     const settled = await page.evaluate(() => new Promise((res) => {
       const el = document.querySelector('[data-add-drawer]'); const t = performance.now();
@@ -638,8 +687,10 @@ try {
     await page.waitForURL((u) => u.pathname === '/', { timeout: 10000 });
     await page.locator('[data-add-drawer]').waitFor({ state: 'detached' });
     /* Put away BEFORE the route answers: when it does, it is stepped back off at once — Home, no drawer. */
+    await page.goto(`${BASE}/`);
     await page.locator('a[href="/add"]').first().click();
     await page.locator('[data-add-drawer]').getByLabel(/^Amount in/).waitFor();
+    assert.notEqual(new URL(page.url()).pathname, '/add', 'put away before /add landed');
     await page.keyboard.press('Escape');
     await page.waitForTimeout(hold + 1500);
     assert.equal(new URL(page.url()).pathname, '/', `closed before the route arrived, the address ends at Home (${page.url()})`);
@@ -649,7 +700,7 @@ try {
   }
   /* A phone that has never opened Add: the drawer still opens on the tap, holding the form's frame until the route
      answers, then the form. */
-  {
+  if (want(11)) {
     const { ctx, page } = await context(pixel);
     await page.route((u) => new URL(u).pathname === '/add', async (route) => {
       if (route.request().headers()['rsc']) await new Promise((r) => setTimeout(r, 1500));
@@ -665,8 +716,144 @@ try {
     await ctx.close();
   }
 
+  /* ── 12. a drawer whose /add never lands, and a Save while it is on its way ── */
+  if (want(12)) {
+    /* The /add route (its RSC request) held at a gate the test opens. */
+    const held = async (page) => {
+      const g = { open: null };
+      g.wait = new Promise((r) => { g.open = r; });
+      await page.route((u) => new URL(u).pathname === '/add', async (route) => {
+        if (!route.request().headers()['rsc']) return route.continue();
+        await g.wait;
+        await route.continue().catch(() => {});
+      });
+      g.reset = () => { g.wait = new Promise((r) => { g.open = r; }); };
+      return g;
+    };
+    const noDrawer = async (page) => assert.equal(await page.locator('[data-slot=drawer-content]').count(), 0, 'no drawer is left open');
+    const plus = (page) => page.locator('nav[aria-label=Main] a[href="/add"]').click();
+    /* Open Add once so the phone keeps its pickers, then load Home afresh: the router forgets the /add it just
+       fetched, so the next tap really does wait on the held route. */
+    const warm = async (page) => {
+      await openDrawer(page);
+      await page.keyboard.press('Escape');
+      await page.waitForURL((u) => u.pathname === '/');
+      await page.goto(`${BASE}/`);
+    };
+    /* The drawer is up and the address is not /add yet: it was opened by the tap, ahead of the route. */
+    const ahead = async (page) => {
+      await page.locator('[data-add-drawer]').getByLabel(/^Amount in/).waitFor();
+      assert.notEqual(new URL(page.url()).pathname, '/add', 'the drawer is up before /add has landed');
+    };
+
+    // Back before /add answers: the drawer goes with the screen Back leads to, and nothing comes back later.
+    {
+      const { ctx, page } = await context(pixel);
+      await openDrawer(page);                        // keep the pickers
+      await page.keyboard.press('Escape');
+      await page.waitForURL((u) => u.pathname === '/');
+      await page.goto(`${BASE}/entries`);
+      await page.locator('nav[aria-label=Main] a[href="/"]').click();
+      await page.waitForURL((u) => u.pathname === '/');
+      const g = await held(page);
+      await plus(page);
+      await ahead(page);
+      await page.goBack();
+      await page.waitForURL((u) => u.pathname === '/entries', { timeout: 10000 });
+      await page.locator('[data-add-drawer]').waitFor({ state: 'detached', timeout: 5000 });
+      g.open();
+      await page.waitForTimeout(1500);
+      assert.equal(new URL(page.url()).pathname, '/entries', 'Back went where Back goes, and stayed there');
+      await noDrawer(page);
+      ok('Back before /add answered: the drawer goes with the screen, and the dropped /add never reopens it');
+      await ctx.close();
+    }
+
+    // Closed before /add answered, then another tab: the next /add opened another way (a tab's Add cost) shows normally.
+    {
+      const [tab] = await sql`select id from ledger_book where household_id = ${HH} and closed_at is null limit 1`;
+      const { ctx, page } = await context(ios);
+      await warm(page);
+      const g = await held(page);
+      await plus(page);
+      await ahead(page);
+      await page.keyboard.press('Escape');            // put away before the route answered
+      await page.locator('nav[aria-label=Main] a[href="/people"]').click();
+      await page.waitForURL((u) => u.pathname === '/people', { timeout: 10000 });
+      g.open();
+      if (!tab) console.log('  skip Add cost: no open tab');
+      else {
+        await page.locator(`a[href="/tab/${tab.id}"]`).first().click();
+        await page.waitForURL((u) => u.pathname === `/tab/${tab.id}`, { timeout: 10000 });
+        await page.locator(`a[href="/add?tab=${tab.id}"]`).first().click();
+        await page.waitForURL((u) => u.pathname === '/add', { timeout: 10000 });
+        await page.locator('[data-slot=drawer-content]').getByLabel(/^Amount in/).waitFor({ timeout: 10000 });
+        await page.waitForTimeout(1500);
+        assert.equal(new URL(page.url()).pathname, '/add', `the Add cost drawer is not bounced back (${page.url()})`);
+        assert.equal(await page.locator('[data-slot=drawer-content]').count(), 1, 'its drawer shows');
+        ok('closed before /add answered, then another tab: the next Add cost opens its drawer normally');
+      }
+      await ctx.close();
+    }
+
+    // A redirect to /signin while /add is on its way (the session expired): the drawer does not stay over sign-in.
+    {
+      const { ctx, page } = await context(ios);
+      await warm(page);
+      const g = await held(page);
+      await plus(page);
+      await ahead(page);
+      /* The session ends while /add is on its way ("Sign out everywhere" moves this epoch), so the route answers with
+         sign-in. Put back afterwards, which makes the run's own session good again. */
+      const [{ v: epoch }] = await sql`select sessions_valid_from as v from app_user where id = ${user.id}`;
+      await sql`update app_user set sessions_valid_from = now() + interval '1 minute' where id = ${user.id}`;
+      try {
+        g.open();
+        await page.waitForURL((u) => u.pathname.startsWith('/signin'), { timeout: 15000 });
+        await page.waitForTimeout(800);
+        await noDrawer(page);
+      } finally {
+        await sql`update app_user set sessions_valid_from = ${epoch} where id = ${user.id}`;
+      }
+      ok('the session ended while /add was on its way: it went to sign-in, and the drawer went with the screen');
+      await ctx.close();
+    }
+
+    // Save while /add is still on its way: kept on the phone after the wait, and one row once the route is let go.
+    {
+      const { ctx, page } = await context(ios);
+      await warm(page);
+      const g = await held(page);
+      await plus(page);
+      await ahead(page);
+      const drawer = page.locator('[data-add-drawer]');
+      await page.waitForFunction(() => document.activeElement?.getAttribute('aria-label')?.startsWith('Amount in'));
+      await page.keyboard.type('443');
+      await drawer.locator('[data-category-tile]').first().click();
+      const t0 = Date.now();
+      await drawer.locator('[data-save]').click();
+      await drawer.getByText(/kept on this phone/).waitFor({ timeout: 12000 });
+      const waited = Date.now() - t0;
+      assert.ok(waited >= 7500, `kept only after Save's wait (${waited}ms)`);
+      const queued = await page.evaluate(() => JSON.parse(localStorage.getItem('ql.queue.v1') ?? '[]'));
+      assert.equal(queued.length, 1, 'one entry kept on the phone');
+      const ref = queued[0].clientRef;
+      assert.match(ref, /^[0-9a-f-]{36}$/);
+      ok(`Save with /add still on its way: after ${(waited / 1000).toFixed(1)}s the entry is kept on the phone (clientRef ${ref.slice(0, 8)}…)`);
+      g.open();
+      await page.waitForFunction(() => JSON.parse(localStorage.getItem('ql.queue.v1') ?? '[]').length === 0, null, { timeout: 30000 });
+      await page.waitForTimeout(1000);
+      const rows = await sql`select id, amount::bigint as amount from txn where household_id = ${HH} and client_ref = ${ref}`;
+      rows.forEach((r) => wrote.add(r.id));
+      assert.equal(rows.length, 1, `exactly one row for that client_ref (${rows.length})`);
+      assert.equal(Number(rows[0].amount), 44300);
+      ok('let go, the save that waited and the kept copy land as exactly one row (₹443) by client_ref');
+      await ctx.close();
+    }
+  }
+
   /* ── screenshots ─────────────────────────────────────────────────────── */
-  if (SHOTS) {
+  if (SHOTS && !ONLY) {
     fs.mkdirSync(SHOTS, { recursive: true });
     for (const [label, device, vp] of [['ios-393', ios, { width: 393, height: 852 }], ['android-412', pixel, { width: 412, height: 915 }]]) {
       for (const theme of ['light', 'dark']) {

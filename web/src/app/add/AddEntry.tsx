@@ -10,7 +10,7 @@ import { useMoney } from '@/app/currency';
 import { saveEntry, checkDuplicate, type Draft } from './actions';
 import { startPending } from '../pending';
 import { haptic } from '../haptics';
-import { enqueue, readPickers, writePickers, type Queued } from './queue';
+import { DRAIN_EVENT, enqueue, readPickers, writePickers, type Queued } from './queue';
 import { type Category } from '../CategoryFinder';
 import { type Staged } from './Bills';
 import { fits } from '@/lib/scope';
@@ -40,6 +40,9 @@ import { useKeyboardInset } from './keyboard';
    screen still save. */
 
 type Kind = 'expense' | 'income' | 'transfer';
+
+/** How long Save waits for the server before keeping the entry on the phone instead. */
+const SAVE_PATIENCE_MS = 8000;
 
 const KINDS: { id: Kind; label: string }[] = [
   { id: 'expense', label: 'Expense' },
@@ -118,6 +121,10 @@ export default function AddEntry({
   const [keys, setKeys] = useState(() => (draft?.amountMinor ? toKeys(draft.amountMinor) : ''));
   const amountBox = useRef<HTMLInputElement>(null);
   const footer = useRef<HTMLDivElement>(null);
+  /* The one viewport listener waiting to bring a focused field clear of Save: replaced on each focus, dropped on
+     unmount, so they never pile up where no resize comes (Android, a second field with the keyboard already up). */
+  const waiting = useRef<(() => void) | null>(null);
+  useEffect(() => () => waiting.current?.(), []);
   const [categoryId, setCategoryId] = useState<string | null>(draft?.categoryId ?? null);
   /* Only the categories that take this kind of entry. A category picked for
      one kind and then the kind changed is simply let go of. */
@@ -219,7 +226,10 @@ export default function AddEntry({
       tabCoveredMinor: kind === 'expense' && more.tabId && more.coveredKeys ? fromKeys(more.coveredKeys) : null,
       countsAsSpend: kind === 'expense' && more.tabId ? mine : null,
       settles: settling.map((c) => c.id),
-      ...(smsRef.current ? { clientRef: smsRef.current, draftId: smsRef.current } : {}),
+      /* Every save carries a reference minted here (a bank message's own id when it came from one), so that if it
+         is also kept on the phone — see the race below — the two deliveries are one row. */
+      clientRef: smsRef.current ?? crypto.randomUUID(),
+      ...(smsRef.current ? { draftId: smsRef.current } : {}),
     };
     const clear = () => {
       setKeys(''); setCategoryId(null); setDupe(null);
@@ -243,8 +253,16 @@ export default function AddEntry({
     if (offline || !navigator.onLine) { keep(); return; }
     start(async () => {
       let r;
-      try { r = await saveEntry(d); }
-      catch { keep(); return; }  // the request itself failed: no signal, or it dropped mid-way
+      /* A Server Action waits in the router's queue behind a navigation still on its way — the /add this drawer was
+         opened ahead of, on a connection that has gone quiet. So the save gets SAVE_PATIENCE_MS; after that the
+         entry is kept on the phone and SyncQueue sends it when it can. The reference makes the two deliveries (this
+         one, if it does go through, and the queue's) a single row. */
+      const sending = saveEntry(d);
+      sending.catch(() => { /* answered by the race below, or too late to matter */ });
+      try {
+        r = await Promise.race([sending, new Promise<'slow'>((res) => setTimeout(() => res('slow'), SAVE_PATIENCE_MS))]);
+      } catch { keep(); return; }  // the request itself failed: no signal, or it dropped mid-way
+      if (r === 'slow') { keep(); dispatchEvent(new Event(DRAIN_EVENT)); return; }
       if (r.ok) {
         haptic('success'); clear(); smsRef.current = null;
         /* The server now remembers this as the way last paid with (an expense only); so does the phone, so the
@@ -284,7 +302,12 @@ export default function AddEntry({
       if (over > 0) (t.closest('[data-add-scroll]') ?? document.scrollingElement)?.scrollBy({ top: over });
     };
     requestAnimationFrame(go);
-    window.visualViewport?.addEventListener('resize', () => requestAnimationFrame(go), { once: true });
+    waiting.current?.();
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const onResize = () => { waiting.current = null; requestAnimationFrame(go); };
+    vv.addEventListener('resize', onResize, { once: true });
+    waiting.current = () => { vv.removeEventListener('resize', onResize); waiting.current = null; };
   };
 
   /* The amount steps down as it grows, so the whole of it is always on screen: 52px to eight characters
@@ -313,7 +336,9 @@ export default function AddEntry({
     more.note ? 'remark' : null, more.bills.length ? `${more.bills.length} bill${more.bills.length > 1 ? 's' : ''}` : null,
     more.shared ? null : 'not shared',
   ].filter(Boolean).join(' · ');
-  const moreLabel = kind === 'income' && claims.length > 0 ? 'What it clears, note, bill, tab…' : 'Note, bill, tab, shared…';
+  /* Drawn from the phone's pickers the claims are not known yet; the income label assumes there may be some, so the
+     row does not change its words when the server's answer arrives. */
+  const moreLabel = kind === 'income' && (claims.length > 0 || cached) ? 'What it clears, note, bill, tab…' : 'Note, bill, tab, shared…';
 
   return (
     <InDrawer.Provider value={sheet}>

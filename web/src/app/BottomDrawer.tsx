@@ -3,6 +3,8 @@
 import { createContext, useContext, useRef, useState } from 'react';
 import { Drawer as Vaul } from 'vaul';
 import { Drawer, DrawerContent, DrawerGrip, DrawerTitle } from '@/components/ui/drawer';
+import { cn } from '@/lib/utils';
+import { useKeyboardInset } from './add/keyboard';
 
 /* The app's bottom drawer: shadcn's Drawer (vaul) with the few things every drawer here wants, so the call sites
    only say what is in it. It rises over the screen it came from, which stays visible above it under the overlay.
@@ -23,7 +25,7 @@ import { Drawer, DrawerContent, DrawerGrip, DrawerTitle } from '@/components/ui/
 /** True inside a drawer: a drawer opened from there nests. */
 export const InDrawer = createContext(false);
 
-export default function BottomDrawer({ open, onClose, label, showTitle = false, focus, repositionInputs = true, children }: {
+export default function BottomDrawer({ open, onClose, label, showTitle = false, focus, repositionInputs = true, typing = false, children }: {
   open: boolean; onClose: () => void;
   /** The drawer's accessible name. Shown as its heading when showTitle is set; otherwise for screen readers only,
       and the content draws its own heading. */
@@ -33,9 +35,15 @@ export default function BottomDrawer({ open, onClose, label, showTitle = false, 
   focus?: React.RefObject<HTMLElement | null>;
   /** Off for a drawer with no text fields. */
   repositionInputs?: boolean;
+  /** A drawer whose point is a field typed into (the category finder's search): on an iPhone it is capped at 79dvh,
+      as the Add drawer is, so vaul lifts it clear of the keyboard instead of squeezing it under its old top edge
+      (vaul only lifts a drawer of at most 80% of the window), and it drops the home-indicator padding while the
+      keyboard is up. Android keeps 86dvh: Chrome resizes the page itself. */
+  typing?: boolean;
   children: React.ReactNode;
 }) {
   const Root = useContext(InDrawer) ? Vaul.NestedRoot : Drawer;
+  const kb = useKeyboardInset(typing && open);
   const close = useRef<HTMLButtonElement>(null);
   /* Where focus was when the drawer opened, so closing puts it back. Radix only returns focus to a DrawerTrigger,
      and these drawers are opened by the caller's own button (and, nested, from inside another drawer). Noted as the
@@ -59,10 +67,12 @@ export default function BottomDrawer({ open, onClose, label, showTitle = false, 
         }}
         /* 86dvh, the 24px corners and the grip are DrawerContent's own for a bottom drawer, so every drawer has them;
            the grip is placed here only to be handed focus. */
-        className="bg-card text-foreground outline-none">
+        data-typing={typing || undefined}
+        className={cn('bg-card text-foreground outline-none', typing
+          && 'data-[vaul-drawer-direction=bottom]:max-h-[79dvh] in-data-[platform=android]:data-[vaul-drawer-direction=bottom]:max-h-[86dvh]')}>
         <DrawerGrip ref={close} />
         <DrawerTitle className={showTitle ? 'px-[var(--gutter)] pb-1 text-xl font-bold' : 'sr-only'}>{label}</DrawerTitle>
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-[var(--gutter)] pt-2 pb-[calc(18px+env(safe-area-inset-bottom))]">
+        <div data-kb={kb > 0} className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-[var(--gutter)] pt-2 pb-[calc(18px+env(safe-area-inset-bottom))] data-[kb=true]:pb-[18px]">
           <InDrawer.Provider value={true}>{children}</InDrawer.Provider>
         </div>
       </DrawerContent>

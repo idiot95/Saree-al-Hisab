@@ -113,7 +113,7 @@ export default async function RootLayout({ children, modal }: { children: React.
           {/* Add Entry as a drawer over the screen it was opened from (app/@modal). */}
           {modal}
           {/* The same drawer, opened on the tab bar's tap before /add has arrived (add/instant.ts). */}
-          {actor?.household_id && <InstantAdd householdId={actor.household_id} />}
+          {actor?.household_id && <Suspense fallback={null}><InstantAdd householdId={actor.household_id} /></Suspense>}
           <SyncQueue />
           <PendingSkeleton />
           {/* useSearchParams needs a boundary of its own, or the whole tree would wait on it. */}

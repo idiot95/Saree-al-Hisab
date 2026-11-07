@@ -1075,8 +1075,13 @@ try {
   await upsert(xts, 100, yesterday);
   ok(await at(xts, yesterday) === '400', 'on yesterday, the override dated yesterday is the rate: 100 × 4 = 400 (today\'s quote is not yet known)');
   ok(await at(xts, today) === '300', 'on today, the override dated today beats the quote dated today');
-  ok((await sql`select value_minor from holding_value_at(${hh.id}, ${yesterday}::date) where id = ${kwd}`)[0].value_minor === null,
+  /* On a day no real quote can have: price_quote is global, and the app caches real KWD rates (yesterday's among
+     them), so asking about yesterday passed or failed by whether the app had fetched one (P1 review). The snapshot
+     is taken away again at once, so nothing after this sees it. */
+  await upsert(kwd, 1700, '2001-01-02');
+  ok((await sql`select value_minor from holding_value_at(${hh.id}, '2001-01-02'::date) where id = ${kwd}`)[0].value_minor === null,
     'a holding with a figure but no rate yet that day is valued NULL, not zero');
+  await sql`delete from holding_snapshot where holding_id = ${kwd} and as_of = '2001-01-02'`;
   ok((await sql`select value_minor from holding_value_at(${hh.id}, '2000-01-01'::date) where id = ${gold.id}`)[0].value_minor === null,
     'before its first snapshot a holding has no value');
   ok((await sql`select count(*)::int as n from holding_value_at(${elsewhere.id}, current_date)`)[0].n === 0,

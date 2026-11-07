@@ -43,7 +43,8 @@ export default function TabBar({ current }: { current: string }) {
               <Link href="/add" aria-label="Add an entry"
                 onClick={(e) => {
                   haptic('tap');
-                  if (e.button === 0 && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey) openInstant();
+                  // Offline, the link goes to /add and the worker answers with /offline, as before: nothing to open here.
+                  if (e.button === 0 && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey && navigator.onLine) openInstant();
                 }} className={`press ${ADD_TILE_CLASS}`}>
                 <Icon name={t.icon} size={28} />
               </Link>
