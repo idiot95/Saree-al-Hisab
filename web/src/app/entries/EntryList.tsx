@@ -1,5 +1,6 @@
 'use client';
 
+import { cn } from '@/lib/utils';
 import Link from '@/app/NavLink';
 import { useRouter } from 'next/navigation';
 import { useCallback, useMemo, useState, useTransition } from 'react';
@@ -9,6 +10,7 @@ import { useMoney } from '@/app/currency';
 import { removeEntry, restoreEntry } from './actions';
 import { startPending } from '../pending';
 import { Chip, Icon } from '../Icon';
+import { chip, chipQuiet, chipQuietOn, chipQuietRow } from '../form-bits';
 
 export type Row = {
   id: string; kind: string; amount: string; merchant: string | null;
@@ -31,7 +33,7 @@ const INCOMING = new Set(['income', 'claim_receipt', 'refund', 'adjust_in']);
    one gesture with no dialog in front of it. */
 /* Activity's All can narrow the month by what kind of money it was, and find a line by any word on it. Both run
    over the month already on screen, so they answer as you type. (The chips above — All, To review, Upcoming,
-   From SMS — choose the view; these only narrow the list, so they are drawn smaller and lead with "Every kind".) */
+   From SMS — choose the view; these only narrow the list, so they are drawn at the same chip's quiet weight and lead with "Every kind".) */
 const FILTERS = [
   { key: 'all', label: 'Every kind', test: () => true },
   { key: 'spending', label: 'Spending', test: (e: Row) => e.kind === 'expense' },
@@ -100,7 +102,7 @@ export default function EntryList({ days, canEdit, tools = false, flat = false, 
             <label className="flex min-h-11 items-center gap-2 rounded-xl border border-border bg-card px-3 text-muted-foreground focus-within:border-ring in-data-[platform=android]:min-h-12">
               <Icon name="search" size={18} />
               <input type="search" name="q" value={q} onChange={(e) => setQ(e.target.value)}
-                placeholder={everyMonth ? 'Search every month' : 'Search, or press Enter for every month'}
+                placeholder={everyMonth ? 'Search every month' : 'Search this month'}
                 aria-label="Search entries" enterKeyHint="search"
                 className="min-w-0 flex-1 bg-transparent py-2 text-foreground outline-none placeholder:text-muted-foreground" />
               {q && <button type="button" onClick={() => setQ('')} aria-label="Clear search" className="-mr-2 grid size-11 flex-none place-items-center rounded-full in-data-[platform=android]:size-12"><span className="grid size-7 place-items-center rounded-full bg-muted"><Icon name="close" size={15} /></span></button>}
@@ -112,12 +114,12 @@ export default function EntryList({ days, canEdit, tools = false, flat = false, 
               <Icon name="search" size={16} /> Search every month for “{q.trim()}”
             </Link>
           )}
-          <div role="group" aria-label="Kind of entry" className="-mx-2 flex flex-wrap">
+          {/* The same chip as the views above, at its quiet weight: one chip language on the screen, two weights. */}
+          <div role="group" aria-label="Kind of entry" className={`pt-1.5 ${chipQuietRow}`}>
             {FILTERS.map((f) => (
               <button key={f.key} type="button" aria-pressed={filter === f.key} onClick={() => setFilter(f.key)}
-                className={`flex min-h-11 flex-none items-center gap-1 whitespace-nowrap rounded-full px-2 text-subhead ${filter === f.key
-                  ? 'font-semibold text-primary' : 'font-medium text-muted-foreground'}`}>
-                {filter === f.key && <Icon name="check" size={16} />}{f.label}
+                className={cn(chip, filter === f.key ? chipQuietOn : chipQuiet)}>
+                {f.label}
               </button>
             ))}
           </div>

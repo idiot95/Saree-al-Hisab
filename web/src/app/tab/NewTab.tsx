@@ -7,6 +7,7 @@ import { Field } from '../worth/fields';
 import { keepFields } from '../form-hooks';
 import { Icon } from '../Icon';
 import { haptic } from '../haptics';
+import { headerPill } from '../form-bits';
 import BottomDrawer from '../BottomDrawer';
 import { createTab } from './actions';
 import NewPeople from './NewPeople';
@@ -28,7 +29,7 @@ export default function NewTab() {
   return (
     <>
       <button type="button" onClick={() => { haptic('select'); setOpen(true); }}
-        className="press flex min-h-11 flex-none items-center gap-1.5 rounded-full bg-primary px-4 text-body font-semibold text-primary-foreground in-data-[platform=android]:min-h-12">
+        className={`${headerPill} bg-primary text-primary-foreground`}>
         <Icon name="add" size={18} />
         New tab
       </button>

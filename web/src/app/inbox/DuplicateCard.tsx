@@ -4,6 +4,7 @@ import Link from '@/app/NavLink';
 import { useActionState } from 'react';
 import { notDuplicate, dropDuplicate } from './actions';
 import { useMoney } from '@/app/currency';
+import { statusPill } from '../form-bits';
 import { Icon } from '../Icon';
 
 type Side = {
@@ -26,7 +27,7 @@ export default function DuplicateCard({ low, high, reason, canWrite = true }: {
 
   return (
     <article className="flex flex-col gap-3 rounded-[18px] bg-card p-4">
-      <p className="flex items-center gap-1.5 self-start rounded-lg bg-attention-soft px-2.5 py-1 text-footnote font-semibold text-attention-soft-foreground">
+      <p className={`${statusPill} self-start bg-attention-soft text-attention-soft-foreground`}>
         <Icon name="content_copy" size={15} /> Possibly the same thing
       </p>
       <p className="text-subhead leading-relaxed text-muted-foreground">

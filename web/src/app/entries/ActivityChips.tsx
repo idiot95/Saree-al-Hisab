@@ -3,6 +3,7 @@
 import Link from '@/app/NavLink';
 import { useState } from 'react';
 import { haptic } from '../haptics';
+import { chip, chipOff, chipOn, chipRow, countBadge } from '../form-bits';
 
 export type ActivityFilter = 'all' | 'review' | 'upcoming' | 'sms';
 
@@ -36,7 +37,7 @@ export default function ActivityChips({ current, review, sms, month }: {
   };
   return (
     /* The row wraps, never scrolls sideways: what is offered can be counted. */
-    <nav aria-label="Activity" className="flex flex-wrap gap-1.5">
+    <nav aria-label="Activity" className={chipRow}>
       {chips.map((c) => {
         const on = c.key === lit;
         return (
@@ -47,13 +48,11 @@ export default function ActivityChips({ current, review, sms, month }: {
               if (c.key !== lit) haptic('select');
               setPicked(c.key);
             }}
-            className={`press flex min-h-11 min-w-11 flex-none items-center justify-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 text-body in-data-[platform=android]:min-h-12 transition-colors ${on
-              ? 'border-primary bg-primary font-semibold text-primary-foreground'
-              : 'border-border bg-card font-medium text-foreground'}`}>
+            className={`${chip} ${on ? chipOn : chipOff}`}>
             {c.label}
             {!!c.count && (
-              <span className={`grid min-w-5 place-items-center rounded-full px-1.5 text-caption font-bold leading-5 tabular-nums ${on
-                ? 'bg-primary-foreground text-primary' : 'bg-attention-soft text-attention-soft-foreground'}`}>
+              <span className={`${countBadge} ${on
+                ? 'bg-primary-foreground/90 text-primary' : 'bg-attention-soft text-attention-soft-foreground'}`}>
                 {c.count}
               </span>
             )}

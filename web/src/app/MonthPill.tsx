@@ -1,6 +1,7 @@
 import Link from '@/app/NavLink';
 import { monthKey } from '@/lib/money';
 import { Icon } from './Icon';
+import { monthPill, monthStep } from './form-bits';
 
 const shift = (m: string, by: number) => {
   const d = new Date(m);
@@ -13,14 +14,18 @@ const shift = (m: string, by: number) => {
 export default function MonthPill({ month, path, keep = '' }: { month: string; path: string; keep?: string }) {
   const name = new Date(month).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' });
   return (
-    <div className="flex flex-none items-center rounded-full border border-border bg-card">
-      <Link href={`${path}?m=${shift(month, -1)}${keep}`} aria-label="Previous month" className="press grid size-11 place-items-center rounded-full active:bg-muted data-pressed:bg-muted">
+    <div className={monthPill}>
+      <Link href={`${path}?m=${shift(month, -1)}${keep}`} aria-label="Previous month" className={STEP}>
         <Icon name="chevron_left" size={18} />
       </Link>
-      <span className="min-w-[76px] text-center text-body font-semibold">{name}</span>
-      <Link href={`${path}?m=${shift(month, 1)}${keep}`} aria-label="Next month" className="press grid size-11 place-items-center rounded-full active:bg-muted data-pressed:bg-muted">
+      <span className="min-w-[68px] text-center text-subhead font-semibold">{name}</span>
+      <Link href={`${path}?m=${shift(month, 1)}${keep}`} aria-label="Next month" className={STEP}>
         <Icon name="chevron_right" size={18} />
       </Link>
     </div>
   );
 }
+
+/* The chips' height, 32px drawn, so the pill and the chip row under it read as one family; each arrow's target is
+   44px (48 on Android) through the same invisible ::after as a chip (form-bits). */
+const STEP = `press relative ${monthStep} rounded-full transition-colors active:bg-muted data-pressed:bg-muted after:absolute after:-inset-x-0.5 after:-inset-y-[7px] after:content-[''] in-data-[platform=android]:after:-inset-y-[9px]`;

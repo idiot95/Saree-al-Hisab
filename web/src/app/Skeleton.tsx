@@ -1,6 +1,8 @@
 import { TABS, TAB_BAR_SPACE, BACK_SPACE, tabLook } from './tabs';
+import { cn } from '@/lib/utils';
 import { BAR_CLASS, ADD_TILE_CLASS, slotClass, TabFace } from './TabItem';
 import { Icon } from './Icon';
+import { chip, chipOff, chipOn, chipQuiet, chipQuietOn, chipQuietRow, chipRow, countBadge, monthPill, monthStep } from './form-bits';
 
 /* What a screen looks like in the moment between the tap and the data.
 
@@ -64,25 +66,25 @@ function Head({ back = false, eyebrow, title, sub, subLines = 1, subSample, righ
           <Icon name="chevron_left" size={22} />
         </span>
       )}
-      <div className="flex items-end justify-between gap-3">
-        <div className="min-w-0 flex-1">
-          {eyebrow === true ? <Ghost as="p" className="text-footnote" w="w-16">Eyebrow</Ghost>
-            : eyebrow ? <p className="text-footnote text-muted-foreground">{eyebrow}</p> : null}
+      <div>
+        {eyebrow === true ? <Ghost as="p" className="text-footnote" w="w-16">Eyebrow</Ghost>
+          : eyebrow ? <p className="text-footnote text-muted-foreground">{eyebrow}</p> : null}
+        <div className="flex items-center justify-between gap-3">
           {title
-            ? <h1 className="text-large-title font-bold tracking-tight leading-tight [overflow-wrap:anywhere]">{title}</h1>
-            : <Ghost as="div" title className="text-large-title font-bold tracking-tight leading-tight" w="w-3/5">Title</Ghost>}
-          {sub === undefined ? null
-            : sub ? <p className="text-subhead text-muted-foreground">{sub}</p>
-            : <Ghost as="p" className="text-body" w={subLines > 1 ? 'w-full' : 'w-1/2'}>{subSample ?? SAMPLE[subLines - 1]}</Ghost>}
+            ? <h1 className="min-w-0 text-large-title font-bold tracking-tight leading-tight [overflow-wrap:anywhere]">{title}</h1>
+            : <Ghost as="div" title className="min-w-0 flex-1 text-large-title font-bold tracking-tight leading-tight" w="w-3/5">Title</Ghost>}
+          {right}
         </div>
-        {right}
+        {sub === undefined ? null
+          : sub ? <p className="text-subhead text-muted-foreground">{sub}</p>
+          : <Ghost as="p" className="text-subhead" w={subLines > 1 ? 'w-full' : 'w-1/2'}>{subSample ?? SAMPLE[subLines - 1]}</Ghost>}
       </div>
       {children}
     </header>
   );
 }
 
-/* Sample lines for a ghost to wrap like the real one: one, two and three lines of text-body at phone width. */
+/* Sample lines for a ghost to wrap like the real one: one, two and three lines of text-subhead at phone width. */
 const SAMPLE = [
   '4 categories budgeted',
   'Never matched. The first match starts from the balance this account was opened with.',
@@ -90,10 +92,24 @@ const SAMPLE = [
 ];
 
 /** A tab's own big header (Home, Activity, Wealth): a small line, the title bold at 32px. */
-function TabHead({ title, line, right, below, pb = 'pb-3', lineFirst = false }: {
+function TabHead({ title, line, right, below, pb = 'pb-3', lineFirst = false, rightOnTitle = false }: {
   title: React.ReactNode; line: string; right?: React.ReactNode; below?: React.ReactNode; pb?: string; lineFirst?: boolean;
+  /** The right-hand piece centred on the title's line (Activity's month pill), not at the foot of the block. */
+  rightOnTitle?: boolean;
 }) {
-  const small = <Ghost as="p" className={lineFirst ? 'text-subhead' : 'text-body'} w="w-2/5">{line}</Ghost>;
+  const small = <Ghost as="p" className="text-subhead" w="w-2/5">{line}</Ghost>;
+  if (rightOnTitle) return (
+    <header className={`flex flex-col gap-3 px-[var(--gutter)] pt-4 ${pb}`}>
+      <div>
+        <div className="flex items-center justify-between gap-3">
+          <h1 className="min-w-0 text-large-title font-bold leading-tight tracking-tight">{title}</h1>
+          {right}
+        </div>
+        {small}
+      </div>
+      {below}
+    </header>
+  );
   return (
     <header className={`flex flex-col gap-3 px-[var(--gutter)] pt-4 ${pb}`}>
       <div className="flex items-end justify-between gap-3">
@@ -250,43 +266,45 @@ const CHIPS: { key: View; label: string }[] = [
   { key: 'all', label: 'All' }, { key: 'review', label: 'To review' }, { key: 'upcoming', label: 'Upcoming' }, { key: 'sms', label: 'From SMS' },
 ];
 
-/** The month pill (MonthPill), drawn: the two arrows and the month, on a card ground. */
+/** The month pill (MonthPill), drawn: the two arrows and the month, on a card ground, at a chip's height. */
 function MonthPillStill() {
   return (
-    <div className="flex flex-none items-center rounded-full border border-border bg-card text-muted-foreground">
-      <span className="grid size-11 place-items-center"><Icon name="chevron_left" size={20} /></span>
-      <Ghost className="min-w-[76px] text-center text-body font-semibold" w="w-full">{monthNow('short')}</Ghost>
-      <span className="grid size-11 place-items-center"><Icon name="chevron_right" size={20} /></span>
+    <div className={`${monthPill} text-muted-foreground`}>
+      <span className={monthStep}><Icon name="chevron_left" size={18} /></span>
+      <Ghost className="min-w-[68px] text-center text-subhead font-semibold" w="w-full">{monthNow('short')}</Ghost>
+      <span className={monthStep}><Icon name="chevron_right" size={18} /></span>
     </div>
   );
 }
 
 /** Activity, by chip: the title, the line under it, the month pill on All, the four chips, then the view. */
 function Activity({ stillBar, view }: Draw & { view: View }) {
+  /* To review and From SMS carry a count on the real screen; the frame draws a ghost of it, so the row does not
+     reflow when the counts arrive. */
   const chips = (
-    <div aria-hidden className="flex flex-wrap gap-1.5">
+    <div aria-hidden className={chipRow}>
       {CHIPS.map((c) => (
-        <span key={c.key} className={`flex min-h-11 min-w-11 flex-none items-center justify-center whitespace-nowrap rounded-full border px-2.5 text-body in-data-[platform=android]:min-h-12 ${c.key === view
-          ? 'border-primary bg-primary font-semibold text-primary-foreground' : 'border-border bg-card font-medium text-foreground'}`}>
+        <span key={c.key} className={`${chip} ${c.key === view ? chipOn : chipOff}`}>
           {c.label}
+          {(c.key === 'review' || c.key === 'sms') && <span className={`${countBadge} ${c.key === view ? 'bg-primary-foreground/30' : 'bg-muted'}`} />}
         </span>
       ))}
     </div>
   );
   return (
     <Frame name="activity" current="/entries" space="bar" stillBar={stillBar}>
-      <TabHead title="Activity" line="10 entries · ₹11,609 spent" right={view === 'all' ? <MonthPillStill /> : undefined} below={chips} />
+      <TabHead title="Activity" line="10 entries · ₹11,609 spent" right={view === 'all' ? <MonthPillStill /> : undefined} rightOnTitle below={chips} />
       <div className="pb-6">
         {view === 'all' && (
           <div className="pt-3">
             <div className="flex flex-col gap-1.5 px-[var(--gutter)] pb-3">
               <span className="flex min-h-11 items-center gap-2 rounded-xl border border-border bg-card px-3 text-muted-foreground in-data-[platform=android]:min-h-12">
                 <Icon name="search" size={18} />
-                <span className="py-2 text-muted-foreground">Search, or press Enter for every month</span>
+                <span className="py-2 text-muted-foreground">Search this month</span>
               </span>
-              <div className="-mx-2 flex flex-wrap">
-                {['All', 'Spent', 'Came in', 'Moved'].map((k) => (
-                  <span key={k} className="flex min-h-11 items-center px-2"><Ghost className="text-subhead" w="w-full">{k}</Ghost></span>
+              <div className={`pt-1.5 ${chipQuietRow}`}>
+                {['Every kind', 'Spending', 'Income', 'Moves', 'Shared'].map((k, i) => (
+                  <span key={k} className={cn(chip, i === 0 ? chipQuietOn : chipQuiet)}>{k}</span>
                 ))}
               </div>
             </div>
@@ -408,7 +426,7 @@ export function AddFrame({ sheet = false }: { sheet?: boolean }) {
 function Loans({ stillBar }: Draw) {
   return (
     <Frame name="loans" current="/people" space="bar" stillBar={stillBar}>
-      <Head title="Loans" right={<S className="h-11 w-[116px] rounded-full in-data-[platform=android]:h-12" />} />
+      <Head title="Loans" right={<S className="h-9 w-[108px] rounded-full" />} />
       <div className="flex flex-col gap-5 px-[var(--gutter)] pb-6">
         <FigureCard size="text-display" />
         <section aria-hidden className="flex flex-col gap-1.5">
@@ -448,8 +466,8 @@ function Tab({ stillBar }: Draw) {
       <div className="flex flex-col gap-5 pb-6">
         <div className="flex flex-col gap-3 px-[var(--gutter)]">
           <FigureCard label="Still to come back" lines={['₹4,000 put on across 3 costs · ₹500 back']} />
-          <div aria-hidden className="flex flex-wrap gap-2">
-            {['w-[120px]', 'w-[104px]', 'w-[132px]', 'w-[96px]'].map((w) => <S key={w} className={`h-11 rounded-full ${w}`} />)}
+          <div aria-hidden className={chipRow}>
+            {['w-[104px]', 'w-[92px]', 'w-[116px]', 'w-[84px]'].map((w) => <S key={w} className={`h-8 rounded-full ${w}`} />)}
           </div>
         </div>
         <section aria-hidden className="mx-[var(--gutter)] flex flex-col gap-1.5">
@@ -471,9 +489,9 @@ function Wealth({ stillBar }: Draw) {
     <Frame name="wealth" current="/worth" space="bar" stillBar={stillBar}>
       <TabHead title="Wealth" line="Household" lineFirst right={<S className="size-11 rounded-full in-data-[platform=android]:size-12" />} />
       <div className="flex flex-col gap-4">
-        <div aria-hidden className="flex flex-wrap gap-2 px-[var(--gutter)]">
-          {['Household', 'Ammar', 'Sara', 'Joint'].map((n) => (
-            <span key={n} className="flex min-h-11 items-center rounded-full border border-border bg-card px-4 text-body">
+        <div aria-hidden className={`${chipRow} px-[var(--gutter)]`}>
+          {['Household', 'Ammar', 'Sara', 'Joint'].map((n, i) => (
+            <span key={n} className={`${chip} ${i === 0 ? chipOn : chipOff}`}>
               <Ghost w="w-full">{n}</Ghost>
             </span>
           ))}

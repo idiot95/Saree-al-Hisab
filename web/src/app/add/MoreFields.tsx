@@ -10,6 +10,7 @@ import { haptic } from '../haptics';
 import Bills, { type Staged } from './Bills';
 import { cn } from '@/lib/utils';
 import { choice } from '../choice';
+import { chip, chipOn, chipRow, statusPill } from '../form-bits';
 import type { Claim, Tab } from './AddEntry';
 
 /* Everything an entry CAN carry beyond amount, category, way and day: where, a remark, the bill, a tab and what it
@@ -90,7 +91,7 @@ export default function MoreFields({ kind, state, set, tabs, claims, minor, toda
                   <span className="flex flex-col items-end gap-0.5">
                     <span className={cn('text-body font-[620] tracking-[-0.018em]', isOn ? 'text-money-in' : 'text-muted-foreground')}>{format(c.outstanding)}</span>
                     {exactIds.has(c.id) && (
-                      <span className="text-caption font-bold tracking-wider whitespace-nowrap text-primary uppercase">Exact match</span>
+                      <span className={`${statusPill} -mr-1 bg-accent text-accent-foreground`}><Icon name="check" size={13} />Exact match</span>
                     )}
                   </span>
                 </button>
@@ -106,7 +107,7 @@ export default function MoreFields({ kind, state, set, tabs, claims, minor, toda
               </p>
               {minor !== owedBack && (
                 <button type="button" onClick={() => { haptic('select'); onUseOwed(owedBack); }}
-                  className="min-h-11 shrink-0 rounded-full bg-primary px-3 text-footnote font-semibold text-primary-foreground">
+                  className={`${chip} ${chipOn}`}>
                   Use {format(owedBack)}
                 </button>
               )}
@@ -128,14 +129,14 @@ export default function MoreFields({ kind, state, set, tabs, claims, minor, toda
           </p>
         )}
         {tabs.length > 0 && (
-          <div role="group" aria-label="Which tab" className="flex flex-wrap gap-2">
+          <div role="group" aria-label="Which tab" className={chipRow}>
             {tabs.map((t) => {
               const isOn = t.id === state.tabId;
               return (
                 <button key={t.id} type="button" aria-pressed={isOn}
                   onClick={() => { haptic('select'); set('tabId', isOn ? null : t.id); }}
                   style={choice(isOn)}
-                  className="flex min-h-11 max-w-full items-center gap-1.5 rounded-full pr-3.5 pl-2.5 text-body font-semibold">
+                  className={cn(chip, 'pl-2.5 font-semibold')}>
                   <Icon name="tab" size={16} />
                   <span className="truncate">{t.name}</span>
                 </button>

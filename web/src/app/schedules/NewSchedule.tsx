@@ -1,5 +1,6 @@
 'use client';
 
+import { cn } from '@/lib/utils';
 import { useActionState, useState } from 'react';
 import { Field, ErrorNote } from '../auth-ui';
 import { buildRule, describeRule, friendlyDay, maxDay, nextDates, type Calendar } from '@/lib/recur';
@@ -14,7 +15,7 @@ import { defaultRef, type Way } from '@/lib/pay';
 import { fits } from '@/lib/scope';
 import { choice } from '../choice';
 import { Icon } from '../Icon';
-import { AddRow, Said, fieldLabel, formCard, ghost, solid } from '../form-bits';
+import { AddRow, Said, chip, fieldLabel, formCard, ghost, solid } from '../form-bits';
 
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -160,7 +161,7 @@ function ScheduleForm({ ways, categories, tabs, onClose }: {
             <span className="flex-1 text-body font-semibold">{endsLine}</span>
             <input type="hidden" name="ends" value="never" />
             <button type="button" onClick={() => setEndsOpen(true)}
-              className="press flex min-h-11 items-center gap-1 rounded-full bg-muted px-3.5 text-body font-semibold text-primary">
+              className={cn(chip, 'gap-1 border-muted bg-muted font-semibold text-primary')}>
               <Icon name="edit" size={16} />Change
             </button>
           </div>

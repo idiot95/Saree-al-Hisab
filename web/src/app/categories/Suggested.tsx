@@ -1,10 +1,12 @@
 'use client';
 
+import { cn } from '@/lib/utils';
 import { useState, useTransition } from 'react';
 import { Chip, Icon, tintOf } from '../Icon';
 import { ghost } from '../form-bits';
 import { haptic } from '../haptics';
 import { adoptSuggested } from './actions';
+import { chip, chipOff } from '../form-bits';
 import { LIBRARY, alreadyHave } from '@/lib/taxonomy';
 
 /* The library, offered a group at a time. Each row is a parent with its
@@ -76,7 +78,7 @@ export default function Suggested({ have, canEdit, onResult }: {
                 {canEdit && (
                   <button type="button" onClick={() => adopt(g.name)} disabled={busy !== null}
                     aria-label={`Add ${g.name}`}
-                    className={`press flex min-h-11 flex-none items-center gap-1 rounded-full border border-border bg-card px-3.5 text-body font-semibold text-primary disabled:cursor-default ${busy && busy !== g.name ? 'opacity-50' : ''}`}>
+                    className={cn(chip, chipOff, 'gap-1 pl-2.5 font-semibold text-primary disabled:cursor-default', busy && busy !== g.name && 'opacity-50')}>
                     <Icon name="add" size={18} />{busy === g.name ? 'Adding…' : 'Add'}
                   </button>
                 )}

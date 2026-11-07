@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from 'react';
 import { changeRole, issueReset, removeMember } from './actions';
+import { statusPill } from '../form-bits';
 import { Icon } from '../Icon';
 import { ErrorNote } from '../auth-ui';
 import { Avatar } from './rows';
@@ -54,7 +55,7 @@ export default function MemberRow({ member, canManage, isSelf, origin }: {
         </span>
 
         {!canManage || isSelf ? (
-          <span className="flex-none rounded-lg bg-muted px-2.5 py-1.5 text-subhead font-semibold text-muted-foreground">
+          <span className={`${statusPill} bg-muted text-muted-foreground`}>
             {LABEL[member.role]}
           </span>
         ) : (

@@ -13,6 +13,32 @@ export const solid = 'press flex min-h-12 flex-1 items-center justify-center gap
 export const ghost = 'press flex min-h-12 items-center justify-center gap-2 rounded-xl bg-muted px-4 text-headline font-semibold text-muted-foreground disabled:opacity-60';
 export const danger = 'press flex min-h-12 items-center justify-center gap-2 rounded-xl bg-destructive/10 px-4 text-headline font-semibold text-destructive disabled:opacity-60';
 
+/* One chip, app-wide (v3.1 P3, ux-audit C1). What is drawn is 32px; what takes the tap is 44 (48 on Android): an
+   invisible ::after reaches 6px (8) past the border, so the shape stays small while the target stays honest. A row
+   of chips is `chipRow` — gap-y-3 is 32 + 12 = 44, so wrapped rows' targets meet but never overlap. Colours change
+   over --dur-2; the press is the global .press scale. */
+/** The shape and the hit area. Add `chipOff`/`chipOn`, or a `choice()` style, for the colours. */
+export const chip = "press relative inline-flex h-8 max-w-full flex-none items-center justify-center gap-1.5 whitespace-nowrap rounded-full border px-3 text-subhead transition-colors duration-(--dur-2) after:absolute after:inset-x-0 after:-inset-y-[7px] after:content-[''] in-data-[platform=android]:after:-inset-y-[9px]";
+export const chipOff = 'border-border bg-card font-medium text-foreground';
+export const chipOn = 'border-primary bg-primary font-semibold text-primary-foreground';
+/** The quiet weight of the same chip (Activity's kind filter): no ground until chosen, then plum soft. */
+export const chipQuiet = 'border-transparent bg-transparent px-2 font-medium text-muted-foreground';
+export const chipQuietOn = 'border-transparent bg-accent px-2 font-semibold text-accent-foreground';
+/** Their row: closer set, and pulled out by the chip's padding so the first word sits on the gutter. */
+export const chipQuietRow = '-mx-2 flex flex-wrap gap-x-1 gap-y-3 in-data-[platform=android]:gap-y-4';
+/** A wrapping row of chips. */
+export const chipRow = 'flex flex-wrap gap-x-2 gap-y-3 in-data-[platform=android]:gap-y-4';
+/** A count inside a chip (To review 3): 18px, its right edge tucked in so the chip's padding reads even. */
+export const countBadge = 'grid h-[18px] min-w-[18px] place-items-center rounded-full px-1 -mr-1 text-caption leading-[18px] font-semibold tabular-nums transition-colors duration-(--dur-2)';
+/** A status that is read, not tapped (Owner, Current, Possibly the same thing, Retired): 24px, one height for all.
+ *  A status still carries an icon or a word, never colour alone. */
+export const statusPill = 'inline-flex h-6 flex-none items-center gap-1 whitespace-nowrap rounded-full px-2 text-footnote font-semibold';
+/** The month pill (MonthPill) and its loading frame: a chip's 32px, each arrow 40 wide (44 on Android). */
+export const monthPill = 'flex h-8 flex-none items-center rounded-full border border-border bg-card';
+export const monthStep = 'grid h-full w-10 place-items-center in-data-[platform=android]:w-11';
+/** A header's action pill (New tab): drawn 36px, the same ::after making the target 44 (48). */
+export const headerPill = "press relative inline-flex h-9 flex-none items-center gap-1.5 rounded-full px-4 text-body font-semibold after:absolute after:inset-x-0 after:-inset-y-1 after:content-[''] in-data-[platform=android]:after:-inset-y-1.5";
+
 /** A native select dressed as the shadcn Input: 48px, the field size, the card ground. */
 export const selectCls = 'h-12 w-full appearance-auto rounded-xl border border-input bg-card px-3 text-[length:var(--field)] text-foreground';
 

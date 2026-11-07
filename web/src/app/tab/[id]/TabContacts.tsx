@@ -1,5 +1,6 @@
 'use client';
 
+import { cn } from '@/lib/utils';
 import Link from '@/app/NavLink';
 import { useActionState, useCallback, useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -12,6 +13,7 @@ import { useMoney } from '@/app/currency';
 import { addToTab, removeFromTab } from '../actions';
 import NewPeople from '../NewPeople';
 import { Face } from '../look';
+import { chip, chipOff, chipRow } from '../../form-bits';
 
 type Person = { id: string; name: string; tint: string; onTab: boolean; inAll: number; owed: number };
 
@@ -40,11 +42,11 @@ export default function TabContacts({ tabId, people, canEdit }: {
 
   return (
     <>
-      <div className="flex flex-wrap gap-2">
+      <div className={chipRow}>
         {people.map((p) => (
           <button key={p.id} type="button" onClick={() => { haptic('tap'); setOpen(true); }}
-            className="press flex min-h-11 items-center gap-2 rounded-full border border-border bg-card py-1 pl-1.5 pr-3 text-body font-semibold text-foreground">
-            <Face name={p.name} tint={p.tint} size={30} />
+            className={cn(chip, chipOff, 'pl-1 font-semibold')}>
+            <Face name={p.name} tint={p.tint} size={24} />
             {first(p.name)}
             <span className="flex items-center gap-0.5 font-medium text-muted-foreground">
               {p.owed > 0 ? format(p.owed) : p.inAll > 0 ? <><Icon name="check" size={14} />settled</> : null}
@@ -53,7 +55,7 @@ export default function TabContacts({ tabId, people, canEdit }: {
         ))}
         {canEdit && (
           <button type="button" onClick={() => { haptic('select'); setOpen(true); }}
-            className="press flex min-h-11 items-center gap-1.5 rounded-full border border-dashed border-input pl-3 pr-3.5 text-subhead font-semibold text-muted-foreground">
+            className={cn(chip, 'border-dashed border-input bg-transparent font-semibold text-muted-foreground')}>
             <Icon name="plus" size={16} />
             {people.length === 0 ? 'Add a contact' : 'Contact'}
           </button>

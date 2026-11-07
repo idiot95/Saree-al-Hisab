@@ -8,6 +8,7 @@ import { withHousehold } from '@/db/client';
 import { format, monthKey } from '@/lib/money';
 import { Progress } from '@/components/ui/progress';
 import { Chip, Icon } from '../Icon';
+import { statusPill } from '../form-bits';
 import { Figure } from '../Figure';
 import TabBar from '../TabBar';
 import { TAB_BAR_SPACE } from '../tabs';
@@ -213,7 +214,7 @@ function CategoryLine({ row, month }: { row: Row; month: string }) {
             <span className="min-w-0 text-body font-medium [overflow-wrap:anywhere]">
               {row.name}
               {row.archived && (
-                <span className="ml-1.5 rounded-md bg-muted px-1.5 py-0.5 align-middle text-caption font-bold tracking-wide text-muted-foreground">RETIRED</span>
+                <span className={`${statusPill} ml-1.5 bg-muted align-middle text-muted-foreground`}><Icon name="archive" size={13} />Retired</span>
               )}
             </span>
             <span className={`flex flex-none items-center gap-1 text-body font-semibold tabular-nums ${over ? 'text-destructive' : ''}`}>

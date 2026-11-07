@@ -14,13 +14,14 @@ export default function PageHead({ title, sub, right, back, eyebrow, children }:
       {back && <Back to={back} />}
       <header className="flex flex-col gap-3 px-[var(--gutter)] pb-4 pt-4">
         {back && <BackLink to={back} />}
-        <div className="flex items-end justify-between gap-3">
-          <div className="min-w-0">
-            {eyebrow && <p className="text-footnote text-muted-foreground">{eyebrow}</p>}
-            <h1 className="text-large-title font-bold tracking-tight leading-tight [overflow-wrap:anywhere]">{title}</h1>
-            {sub && <p className="text-subhead text-muted-foreground">{sub}</p>}
+        {/* `right` (a month pill, New tab, a menu) sits on the title's line, centred on it. */}
+        <div>
+          {eyebrow && <p className="text-footnote text-muted-foreground">{eyebrow}</p>}
+          <div className="flex items-center justify-between gap-3">
+            <h1 className="min-w-0 text-large-title font-bold tracking-tight leading-tight [overflow-wrap:anywhere]">{title}</h1>
+            {right}
           </div>
-          {right}
+          {sub && <p className="text-subhead text-muted-foreground">{sub}</p>}
         </div>
         {children}
       </header>

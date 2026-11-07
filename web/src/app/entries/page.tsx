@@ -15,6 +15,7 @@ import { byDay } from './rows';
 import MonthPill from '../MonthPill';
 import { Icon } from '../Icon';
 import { Empty } from './parts';
+import { chip, chipRow } from '../form-bits';
 import { loadReview } from './ReviewView';
 import { loadUpcoming } from './UpcomingView';
 import { loadSms } from './SmsView';
@@ -105,10 +106,12 @@ async function ActivityScreen({ sp }: { sp: Params }) {
       right={<MonthPill month={shown} path="/entries" keep={keep} />}
       chips={filtered ? (
         /* One category, from a budget line: the chips would mean "all of Activity", so the way out is one chip. */
-        <Link href={`/entries?m=${shown}`} replace data-replace
-          className="press flex min-h-11 items-center gap-1.5 self-start rounded-full bg-accent px-3.5 text-body font-semibold text-accent-foreground">
-          <Icon name="close" size={16} /> Showing one category
-        </Link>
+        <div className={chipRow}>
+          <Link href={`/entries?m=${shown}`} replace data-replace
+            className={`${chip} border-accent bg-accent font-semibold text-accent-foreground`}>
+            <Icon name="close" size={16} /> Showing one category
+          </Link>
+        </div>
       ) : chips}>
       {entries.length === 0 ? (
         <div className="pt-3">
@@ -140,10 +143,12 @@ function Search({ entries, words, canEdit, chips }: {
     <Shell sub={`${entries.length === 0 ? 'Nothing found' : `${entries.length}${entries.length >= 200 ? '+' : ''} found`} in every month`}
       chips={<>
         {chips}
-        <Link href="/entries" replace data-replace
-          className="press flex min-h-11 items-center gap-1.5 self-start rounded-full bg-accent px-3.5 text-body font-semibold text-accent-foreground">
-          <Icon name="close" size={16} /> Back to this month
-        </Link>
+        <div className={chipRow}>
+          <Link href="/entries" replace data-replace
+            className={`${chip} border-accent bg-accent font-semibold text-accent-foreground`}>
+            <Icon name="close" size={16} /> Back to this month
+          </Link>
+        </div>
       </>}>
       <EntryList days={days} canEdit={canEdit} tools initialQ={words} everyMonth />
     </Shell>
@@ -159,12 +164,13 @@ function Shell({ title = 'Activity', sub, right, chips, children }: {
     <Screen>
       <main className="min-h-dvh bg-background text-foreground" style={{ paddingBottom: TAB_BAR_SPACE }}>
         <header className="flex flex-col gap-3 px-[var(--gutter)] pb-3 pt-4">
-          <div className="flex items-end justify-between gap-3">
-            <div className="min-w-0">
-              <h1 className="text-large-title font-bold leading-tight tracking-tight [overflow-wrap:anywhere]">{title}</h1>
-              <p className="text-subhead text-muted-foreground">{sub}</p>
+          {/* The month pill sits on the title's line, centred on it, at the chips' height. */}
+          <div>
+            <div className="flex items-center justify-between gap-3">
+              <h1 className="min-w-0 text-large-title font-bold leading-tight tracking-tight [overflow-wrap:anywhere]">{title}</h1>
+              {right}
             </div>
-            {right}
+            <p className="text-subhead text-muted-foreground">{sub}</p>
           </div>
           {chips}
         </header>

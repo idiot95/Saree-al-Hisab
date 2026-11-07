@@ -11,6 +11,7 @@ import { formatHijri, toHijri } from '@/lib/hijri';
 import { haptic } from '../haptics';
 import { cn } from '@/lib/utils';
 import { choice } from '../choice';
+import { chip, chipRow } from '../form-bits';
 
 /* The answers that nearly always stay as they are — how it was paid, which day, where a move lands — as one row
    each that says the current answer and opens a drawer to change it. The full choices (every way to pay as a
@@ -110,12 +111,12 @@ export function WhenRow({ value, onChange, today }: {
       <Row icon={<Icon name="calendar_month" size={22} />} caption="When" value={friendlyDay(value, today)}
         onClick={() => setOpen(true)} />
       <PickDrawer open={open} onClose={() => setOpen(false)} title="Which day was it">
-        <div role="radiogroup" aria-label="Which day was it" className="mb-3 flex flex-wrap gap-2">
+        <div role="radiogroup" aria-label="Which day was it" className={`mb-3 ${chipRow}`}>
           {quick.map((iso) => {
             const on = iso === value;
             return (
               <button key={iso} type="button" role="radio" aria-checked={on} onClick={() => pick(iso)}
-                style={choice(on)} className="min-h-11 rounded-full px-4 text-body font-semibold">
+                style={choice(on)} className={`${chip} font-semibold`}>
                 {friendlyDay(iso, today)}
               </button>
             );

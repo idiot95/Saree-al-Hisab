@@ -245,6 +245,21 @@ function checkTapTargets(vw) {
         getComputedStyle(e).display === 'inline' && !e.matches('a, button, [role=button]') &&
         Array.from(e.childNodes).some((n) => n.nodeType === 3 && n.nodeValue.trim()));
   };
+  /* A chip draws 32px and takes the tap over 44 (48) through an absolutely placed ::after (form-bits `chip`): the
+     target is the union of the box and that pseudo-element, which elementFromPoint also hits. */
+  const hitBox = (el, r) => {
+    const a = getComputedStyle(el, '::after');
+    if (a.position !== 'absolute' || a.content === 'none' || a.content === 'normal') return r;
+    const cs = getComputedStyle(el);
+    const bl = parseFloat(cs.borderLeftWidth) || 0, bt = parseFloat(cs.borderTopWidth) || 0;
+    const br = parseFloat(cs.borderRightWidth) || 0, bb = parseFloat(cs.borderBottomWidth) || 0;
+    const px = (v) => (/px$/.test(v) ? parseFloat(v) : 0);
+    // Insets are from the padding box, which sits inside the border.
+    const top = r.top + bt + px(a.top), bottom = r.bottom - bb - px(a.bottom);
+    const left = r.left + bl + px(a.left), right = r.right - br - px(a.right);
+    const u = { top: Math.min(r.top, top), bottom: Math.max(r.bottom, bottom), left: Math.min(r.left, left), right: Math.max(r.right, right) };
+    return { ...u, width: u.right - u.left, height: u.bottom - u.top };
+  };
   for (const el of document.body.querySelectorAll('a, button, [role=button], input, select')) {
     if (el.tagName === 'INPUT' && el.type === 'hidden') continue;
     if (el.hasAttribute('data-tap-ok')) {
@@ -265,9 +280,10 @@ function checkTapTargets(vw) {
     if (clipped) continue;
     if (r.right <= 0 || r.left >= vw || r.bottom + window.scrollY <= 0) continue;
     if (inlineInRunningText(el)) continue;
+    r = hitBox(el, r);
     const anc = el.parentElement && el.parentElement.closest('a, button, [role=button], label');
     if (anc) {
-      const ar = anc.getBoundingClientRect();
+      const ar = hitBox(anc, anc.getBoundingClientRect());
       if (ar.width * ar.height > r.width * r.height) r = ar;
     }
     const iconOnly = (el.tagName === 'BUTTON' || el.getAttribute('role') === 'button') && !(el.textContent || '').replace(/\s+/g, '').replace(/[-]/g, '');
@@ -514,6 +530,12 @@ const SCENARIOS = [
       <button style="position:absolute;left:-500px;width:10px;height:10px"></button>
       <a href="#" style="display:inline-block;padding:14px 20px"><span><button style="width:10px;height:10px;display:inline-block;padding:0">in</button></span></a>
       <p id="last">Last line, clear of the bar</p></div><div class="bar">Bar</div>` },
+  { name: 'a 32px chip whose ::after reaches 48px passes', expect: [],
+    html: `<style>.chip{position:relative;height:32px;padding:0 12px;border:1px solid #999;border-radius:99px}
+      .chip::after{content:'';position:absolute;left:0;right:0;top:-9px;bottom:-9px}</style>
+      <div style="padding:30px 16px 80px"><button class="chip">Upcoming</button></div>` },
+  { name: 'a 32px chip with no hit area fails', expect: ['tap'],
+    html: `<div style="padding:30px 16px 80px"><button style="height:32px;padding:0 12px;border:1px solid #999">Upcoming</button></div>` },
   { name: 'text under the bottom bar that can scroll clear passes', expect: [],
     html: `<div style="padding:16px 16px 100px;height:1500px"><p>Top</p><p style="position:absolute;top:1490px;margin:0">Ends the page</p></div><div class="bar">Bar</div>` },
   { name: 'text that cannot scroll clear fails', expect: ['overlap'],

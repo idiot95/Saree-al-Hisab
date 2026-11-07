@@ -7,6 +7,7 @@ import { Field } from '../../worth/fields';
 import { keepFields } from '../../form-hooks';
 import { Icon } from '../../Icon';
 import { haptic } from '../../haptics';
+import { chip, chipOff, chipOn, chipRow } from '../../form-bits';
 import BottomDrawer from '../../BottomDrawer';
 import PayPicker from '../../PayPicker';
 import { DateChips } from '../../DatePick';
@@ -66,11 +67,11 @@ export default function MoneyBack({ tabId, ways, today, owing }: {
             {owing.length > 1 && (
               <div role="group" aria-label="From" className="flex flex-col gap-2">
                 <span className="text-subhead font-medium text-muted-foreground">From</span>
-                <div className="flex flex-wrap gap-2">
+                <div className={chipRow}>
                   {owing.map((o, i) => (
                     <button key={o.id ?? 'tab'} type="button" aria-pressed={i === who}
                       onClick={() => { haptic('select'); setWho(i); setTicked(new Set()); }}
-                      className="press flex min-h-11 items-center gap-1.5 rounded-full border border-border bg-card px-3.5 text-body font-semibold aria-pressed:border-primary aria-pressed:bg-primary aria-pressed:text-primary-foreground">
+                      className={`${chip} ${i === who ? chipOn : chipOff}`}>
                       {o.name}
                       <span className="font-medium opacity-90">{format(o.owed)}</span>
                     </button>

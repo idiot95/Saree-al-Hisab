@@ -8,6 +8,7 @@ import Screen from '../../../Screen';
 import TabBar from '../../../TabBar';
 import { TAB_BAR_SPACE } from '../../../tabs';
 import { Icon } from '../../../Icon';
+import { statusPill } from '../../../form-bits';
 import { DIRECTION } from '../../direction';
 import DismissDraft from './DismissDraft';
 
@@ -52,8 +53,8 @@ export default async function SmsDraft({ params }: { params: Promise<{ id: strin
       <main className="min-h-dvh bg-background text-foreground" style={{ paddingBottom: TAB_BAR_SPACE }}>
         <PageHead back="/entries?f=sms" title="Bank message" sub={`${d.sender ? `From ${d.sender} · ` : ''}${received}`} />
         <div className="flex flex-col gap-5 px-[var(--gutter)]">
-          <p className="flex min-h-11 items-center gap-2 self-start rounded-full bg-muted px-3.5 text-body font-semibold">
-            <Icon name={status.icon} size={18} /> {status.word}
+          <p className={`${statusPill} self-start bg-muted`}>
+            <Icon name={status.icon} size={14} /> {status.word}
           </p>
 
           <section aria-label="The message" className="flex flex-col gap-2">

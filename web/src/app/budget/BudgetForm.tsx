@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Chip, Icon } from '../Icon';
+import { statusPill } from '../form-bits';
 import { ErrorNote as Problem } from '../auth-ui';
 import { saveBudget } from './actions';
 import { useMoney } from '@/app/currency';
@@ -76,7 +77,7 @@ export default function BudgetForm({ month, rows, canEdit }: {
                 <span className="text-body font-medium [overflow-wrap:anywhere]">
                   {r.name}
                   {r.archived && (
-                    <span className="ml-1.5 rounded-md bg-muted px-1.5 py-0.5 align-middle text-caption font-bold tracking-wide text-muted-foreground">RETIRED</span>
+                    <span className={`${statusPill} ml-1.5 bg-muted align-middle text-muted-foreground`}><Icon name="archive" size={13} />Retired</span>
                   )}
                 </span>
                 {budget > 0 && (

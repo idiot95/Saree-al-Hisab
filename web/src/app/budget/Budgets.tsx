@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { statusPill } from '../form-bits';
 import { Icon, Chip } from '../Icon';
 import { haptic } from '../haptics';
 import { useMoney } from '@/app/currency';
@@ -135,7 +136,7 @@ function Row({ budget, lines, spentBy, open, onToggle, onEdit }: {
             <span className="flex flex-wrap items-center gap-2">
               <span className="text-body font-semibold [overflow-wrap:anywhere]">{budget.name}</span>
               {budget.current && (
-                <span className="flex items-center gap-1 rounded-full bg-accent px-2 py-0.5 text-caption font-semibold text-accent-foreground">
+                <span className={`${statusPill} bg-accent text-accent-foreground`}>
                   <Icon name="check_circle" size={13} />In use
                 </span>
               )}
