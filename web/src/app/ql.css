@@ -151,6 +151,7 @@
      --dur-3       push and pop, a sheet coming up
      --dur-4       the ceiling for anything a person waits through
      --dur-flourish  decoration after arrival only (a tab icon's pop, a check drawing itself)
+     --dur-roll    a Figure's digits rolling after a change (NumberFlow reads it through motion.ts)
    Drawers keep vaul's own timing for drags and closing (components/ui/drawer.tsx). */
 :root {
   --dur-press: 90ms;
@@ -159,6 +160,7 @@
   --dur-3: 240ms;
   --dur-4: 300ms;
   --dur-flourish: 420ms;
+  --dur-roll: 600ms;
 }
 /* The curves, as Tailwind easings (ease-out, ease-in, ease-press, ease-ios, ease-spring). ease-out is for anything
    arriving, ease-in for anything leaving (at about two thirds of the arrival's time); ease-ios is UIKit's curve, kept

@@ -172,5 +172,5 @@ export function Segmented<T extends string>({ name, value, options, onChange, la
 const chip: React.CSSProperties = {
   minHeight: 44, padding: '0 14px', display: 'flex', alignItems: 'center', flex: 'none',
   borderRadius: 999, fontSize: 'var(--step--1)', fontWeight: 600, whiteSpace: 'nowrap',
-  transition: 'background .15s, color .15s',
+  transition: 'background var(--dur-1) var(--ease-out), color var(--dur-1) var(--ease-out)',
 };

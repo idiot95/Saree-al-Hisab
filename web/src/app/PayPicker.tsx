@@ -25,7 +25,7 @@ import { choice } from './choice';
 export const CHIP: React.CSSProperties = {
   minHeight: 44, maxWidth: '100%', padding: '0 13px 0 10px', display: 'flex', alignItems: 'center',
   gap: 7, borderRadius: 999, fontSize: 'var(--step--1)', fontWeight: 600,
-  transition: 'background .15s, color .15s',
+  transition: 'background var(--dur-1) var(--ease-out), color var(--dur-1) var(--ease-out)',
 };
 export const CHIP_TEXT: React.CSSProperties = { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' };
 
@@ -52,7 +52,7 @@ const TWO_LINES: React.CSSProperties = { overflowWrap: 'anywhere' };
 
 export const TILE: React.CSSProperties = {
   minHeight: 56, padding: '8px 10px', borderRadius: 14, display: 'flex', alignItems: 'center', gap: 10,
-  minWidth: 0, textAlign: 'left', transition: 'background .15s, color .15s',
+  minWidth: 0, textAlign: 'left', transition: 'background var(--dur-1) var(--ease-out), color var(--dur-1) var(--ease-out)',
 };
 
 /** One answer to "how did you pay?": icon, name, and what stands behind it. */
