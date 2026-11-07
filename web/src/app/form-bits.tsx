@@ -22,14 +22,15 @@ export const danger = 'press flex min-h-12 items-center justify-center gap-2 rou
 export const chip = "press relative inline-flex h-8 min-w-12 max-w-full flex-none items-center justify-center gap-1.5 whitespace-nowrap rounded-full border px-3 text-subhead transition-colors duration-(--dur-2) after:absolute after:inset-x-0 after:-inset-y-[7px] after:content-[''] in-data-[platform=android]:after:-inset-y-[9px]";
 /** Unchosen: white with a hairline in the field's ink (border-input), which is the darker of the two edges in dark. */
 export const chipOff = 'border-input bg-card font-medium text-foreground';
-export const chipOn = 'border-primary bg-primary font-semibold text-primary-foreground';
+/** Chosen: the primary plum. The same weight as unchosen, so lighting a chip never widens it and rewraps the row. */
+export const chipOn = 'border-primary bg-primary font-medium text-primary-foreground';
 /** The quiet weight of the same chip (Activity's kind filter): no ground until chosen, then plum soft. */
 export const chipQuiet = 'border-transparent bg-transparent px-2 font-medium text-muted-foreground';
-export const chipQuietOn = 'border-transparent bg-accent px-2 font-semibold text-accent-foreground';
+export const chipQuietOn = 'border-transparent bg-accent px-2 font-medium text-accent-foreground';
 /** Their row: closer set, and pulled out by the chip's padding so the first word sits on the gutter. */
 export const chipQuietRow = '-mx-2 flex flex-wrap gap-x-1 gap-y-3 in-data-[platform=android]:gap-y-4';
 /** A wrapping row of chips. */
-export const chipRow = 'flex flex-wrap gap-x-2 gap-y-3 in-data-[platform=android]:gap-y-4';
+export const chipRow = 'flex flex-wrap gap-x-1.5 gap-y-3 in-data-[platform=android]:gap-y-4';
 /** A count inside a chip (To review 3): 18px, its right edge tucked in so the chip's padding reads even. */
 export const countBadge = 'grid h-[18px] min-w-[18px] place-items-center rounded-full px-1 -mr-1 text-caption leading-[18px] font-semibold tabular-nums transition-colors duration-(--dur-2)';
 /** A status that is read, not tapped (Owner, Current, Possibly the same thing, Retired): 24px, one height for all.
