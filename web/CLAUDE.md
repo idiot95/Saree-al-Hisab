@@ -289,9 +289,14 @@ first, the Hijri day under each date, `min`/`max` as disabled days and paging bo
 `marksFor` for Upcoming's dots. **It is loaded on open** (v3.1 P5, perf row 9): screens import
 `src/app/LazyCalendar.tsx`, never HijriCalendar itself (its date helpers are in `calendar-dates.ts`), so
 react-day-picker (~23KB gz) is in no route's first load — it was in every one, through the root layout's Add drawer.
-An opener spreads `opensCalendar` (the import starts on pointerdown/focus), the drawer draws at once and the grid's
-exact height is held until it lands; Upcoming's month renders the grid only while unfolded; `/offline` bundles it and
-`primeCalendar`s the loader, so the worker's snapshot has it with no signal.
+A screen that can open a grid loads it in idle time once mounted (`useCalendarSoon`: Add's When row, `DateChips`,
+Upcoming's month), and an opener spreads `opensCalendar` (the import also starts on pointerdown/focus); the drawer
+draws at once, and until the grid renders its room holds `GridGhost` — the same month drawn still (caption,
+weekdays, day numbers) at the grid's exact height. A failed import is never kept, and the grid's own boundary says
+"The month needs a signal…" with Try again in its room, so the drawer and what was typed stay (P5 fix round 1).
+Upcoming's month renders the grid only while unfolded; `/offline` bundles it and `primeCalendar`s the loader, so the
+worker's snapshot has it with no signal. `scripts/calendar.check.mjs` blocks the chunk to prove the boundary, and
+checks the ghost.
 
 **Form state after an action** (`src/app/form-hooks.tsx`; it was in worth/fields until the final review). React resets a `<form action>` after it settles —
 refusals and successes alike — which put radios and selects back to their defaults while the component's state kept
@@ -324,7 +329,8 @@ is no override. Each cleanup deletes only rows the run made, by id or by a run-u
   `link=` for a link, so `/|link=^Add an entry$` sweeps the Add drawer over Home), so a drawer or form is swept open; with a dialog open, overlap is measured inside it. The default routes include the
   category add form open. One line per failure; non-zero exit on any. WebKit needs its own Playwright browser, which
   is not installed here — `--engine all` runs what is there and the run says what was not.
-- `node scripts/frames.check.mjs [--routes …] [--size 360x780,375x667,393x852] [--os ios|android|all] [--theme …|all]`:
+- `node scripts/frames.check.mjs [--routes …] [--size 360x780,375x667,393x852] [--os ios|android|all] [--theme …|all]`
+  (a phase's verification runs `--os all --theme all`, 264 measurements; the default is iOS light only, 66):
   each loading frame against the screen it stands in for (it locks tables on localhost only, so the frame is caught
   on screen): title, hero and first heading within 4px, and the still tab bar lights the same slot; the three widths
   by default.
@@ -593,7 +599,7 @@ hidden input; there is no `<select>` of payment modes anywhere, because one
 listing every rail under every account showed "ICICI Amazon Pay" twice and
 read as nonsense. Wrap it in a `<div role="group">`, never a `<label>` — a
 label around buttons activates the first chip. The entries list shows the
-rail when there is one and the account when there is not. `sw.js` is v43 (v43, v3.1 P5: static routes and navigation preload, see "The service worker does not cache pages"; v41: Instrument Serif dropped, the offline title is Inter bold; v37, Task 28: the offline Add's When drawer is shadcn Calendar now; v36 was the icon font gaining the Accounts, Categories and Scan glyphs).
+rail when there is one and the account when there is not. `sw.js` is v44 (v44, P5 fix round 1: every navigation answered from its preload, `/api/*` never the worker's; v43, v3.1 P5: static routes and navigation preload, see "The service worker does not cache pages"; v41: Instrument Serif dropped, the offline title is Inter bold; v37, Task 28: the offline Add's When drawer is shadcn Calendar now; v36 was the icon font gaining the Accounts, Categories and Scan glyphs).
 Before Save, a debounced
 `checkDuplicate` shows what a household member already recorded within ±1% and
 ±2 days, which is the prevention half of the duplicate rule; the Inbox card is
@@ -728,9 +734,12 @@ Removed from your only household? `/no-household` offers the way out that
 matters — start your own — rather than leaving you stranded waiting to be
 re-invited.
 
-`/api/auth`, `/signin`, `/signup`, `/join`, `/reset` and `/terms` are let
+All of `/api/*`, `/signin`, `/signup`, `/join`, `/reset`, `/offline` and `/terms` are let
 through by the proxy without a session (`NO_REDIRECT`; everywhere else the proxy only checks that the cookie is
-ours and unexpired, see "The proxy asks the database nothing") — they have to open for
+ours and unexpired, see "The proxy asks the database nothing"). **So every route handler under `/api` judges its
+caller itself** — `currentActor`, or `screenCaller` in `src/app/api/guard.ts` for the POSTs the screens make (same
+origin by `Sec-Fetch-Site`/`Origin`, then `currentActor` with only its redirect read as 401 and anything else a 500,
+then a per-household limit in `rate_limit`: `/api/rates` and `/api/sms/purge`, six a minute, 429 past it) — they have to open for
 someone not signed in yet, and a redirect on `/api/auth` would break the
 round trip to Google. The CSP's `form-action` includes
 `https://accounts.google.com`, because the sign-in form posts to us and the
@@ -864,7 +873,9 @@ session with `proxyAuth` from `src/auth.config.ts`: the shared Auth.js settings 
 that only decrypts and checks expiry. A forged or expired cookie is still sent to `/signin` by the proxy; a revoked
 one passes it and is refused one step later by **contextFor**, which every page and Server Action reaches through
 `src/db/queries.ts` (`actorOrNull`/`currentActor`) and so do both route handlers that read the actor
-(`/attachment/[id]`, `/attachment/h/[id]`: a plain 404; `/api/rates` and `/api/sms/purge`: a 401). `/api/auth/[...nextauth]` is Auth.js with the full jwt
+(`/attachment/[id]`, `/attachment/h/[id]`: a plain 404; `/api/rates` and `/api/sms/purge`: a 401, through
+`screenCaller`). The matcher's exclusions `icons/`, `brands/` and `fonts/` carry their slash, so a page that only
+starts with the word keeps the proxy and its CSP. `/api/auth/[...nextauth]` is Auth.js with the full jwt
 callback; `/api/capture/sms` is outside the proxy and answers to its bearer key alone. A page with a `loading.tsx`
 streams its frame before it runs, so a revoked cookie there sees the frame and then the in-stream redirect to
 `/signin`, never data. `src/auth.config.ts` must never import `src/db` — the built proxy
@@ -1673,8 +1684,13 @@ cached, which is what makes a return visit instant. **It wakes only for what it 
 browser has static routing (`InstallEvent.addRoutes`, Chromium) only navigations and `/_next/static`, `/icons`,
 `/brands` and the manifest are routed to it, and every RSC fetch, Server Action and `/api` call goes straight to the
 network without waking an idle worker (25–45ms, more on a cheap phone); navigation preload starts a document's
-request while it boots. Safari ignores `addRoutes` and keeps the old path — the handler passes those requests on
-itself. Nothing new is cached.
+request while it boots. **With preload on, the handler answers every GET navigation from `event.preloadResponse`
+before any early return, and never fetches it again** (P5 fix round 1): v43 returned early for `/api/*` first, so
+Chromium sent such a navigation twice — and Google's callback, `/api/auth/callback/google`, carries a code that
+works once. `/api/*` is also the first static rule (`network`), and an `/api/*` navigation gets no `/offline`
+stand-in. Safari ignores `addRoutes`: every request reaches the handler, GET navigations take the preload branch
+first (one request each), and preload is never made for anything else. `scripts/sw-preload.check.mjs` counts what
+reaches the server through a proxy with the worker in control. Nothing new is cached.
 
 ### Recording without signal
 
@@ -1708,7 +1724,7 @@ storage after it opens. The design, in the order the pieces matter:
   person decides. Stuck entries are never retried on their own.
 - **`/offline` is `force-dynamic`** though it reads nothing, because every
   script tag carries the request's CSP nonce and a prerendered page ships
-  with none. The worker (`public/sw.js`, `VERSION = 'v43'`) fetches it once at
+  with none. The worker (`public/sw.js`, `VERSION = 'v44'`) fetches it once at
   install, `credentials: 'omit'`, together with every `/_next/static/` script
   and stylesheet the markup names, so the cached copy is a self-consistent
   snapshot: the nonce in its cached headers is the nonce in its cached
@@ -1979,11 +1995,13 @@ frame committed first and React held the content for its 300ms reveal throttle. 
 reads**: Next sends a whole prefetch's data request without any prefetch header, so a render cannot tell it from a
 visit; anything that writes stays off prefetched screens. Wealth renders with the last stored rates and names those
 over a day old (read in its one transaction, `dueRateBases`); once on screen it POSTs `/api/rates`
-(`src/app/api/rates/route.ts`: currentActor, then `ensureRates`, the provider calls and the `price_quote` write) and
-redraws if anything came back, the older lines saying "updating" until then and "couldn't update" if a provider
-failed — so its render writes nothing and it is prefetched like the other tabs (v3.1 P5; it was not, while
-`ensureRates` ran in the render). The holding page (`/worth/[id]`, never prefetched) still refreshes its one rate as
-it renders. Activity's
+(`src/app/api/rates/route.ts`: `screenCaller`, the due bases in one query, then `ensureRates`, the provider calls
+and the `price_quote` write) and redraws when ANY rendered base is no longer stale, whoever refreshed it
+(`worth/rate-refresh.ts` `useRateRefresh`; each base asked once per screen). The lines say "updating", then
+"<Gold> rate updated" (kept in their room, so nothing below moves) or "couldn't update" — so its render writes
+nothing and it is prefetched like the other tabs (v3.1 P5; it was not, while `ensureRates` ran in the render). The
+holding page (`/worth/[id]`) does the same for its one rate since P5 fix round 1. `scripts/rates.check.mjs` holds
+the POST while the rates are refreshed elsewhere and fails if a line is left saying "updating". Activity's
 `purgeSmsBodies` runs only on From SMS, in `after()` (the message screen and the capture endpoint purge too).
 `scripts/prefetch-writes.check.mjs` logs every data-changing statement on the local cluster while Home, Loans, the
 household and Activity load with all their prefetches (Wealth's among them, with every stored rate aged two days for

@@ -158,8 +158,8 @@
        Forty-three figures were being drawn with proportional digits because
        each one had to remember to ask. In a ledger the column not lining up is
        the failure, so the default is the safe one and prose pays a hair of
-       extra digit width for it. The slashed zero comes along: 0 against O at
-       12px is worth more than the purity. */
+       extra digit width for it. (`zero` is asked for, but Google's Inter has
+       no slashed zero, so it draws the plain one; P5 review M6.) */
     font-variant-numeric: tabular-nums slashed-zero lining-nums;
     font-feature-settings: "tnum" 1, "zero" 1, "lnum" 1;
     -webkit-font-smoothing: antialiased;

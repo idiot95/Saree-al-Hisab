@@ -16,10 +16,11 @@ import './globals.css';
 
 /* Inter, for a ledger, for two reasons that are not taste.
 
-   Numbers: it carries true tabular figures (tnum) and a slashed zero (zero).
-   Without fixed-width digits a column of amounts does not line up, which is
-   the one thing a column of amounts is for — and 0 against O matters when the
-   figure is money.
+   Numbers: it carries true tabular figures (tnum). Without fixed-width digits
+   a column of amounts does not line up, which is the one thing a column of
+   amounts is for. (Google's build of Inter has no slashed-zero `zero`
+   feature, so the stylesheet's request for one draws the plain zero; P5
+   review M6.)
 
    Text: it was drawn for screens rather than adapted to them. A tall x-height
    keeps 12px labels legible, and the ink traps stop counters filling in at the
