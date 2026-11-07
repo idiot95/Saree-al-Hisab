@@ -3,7 +3,7 @@
    Pixel 7 with the CPU throttled 4× and 150ms added to every request — about what the owner's phone sees in India.
 
      node scripts/nav-timing.mjs [--lat 150] [--cpu 4] [--reps 3] [--only regex] [--json file] [--state file]
-                                 [--report-only]
+                                 [--report-only] [--gone 0.1]
 
    Env: NAV_BASE (default http://localhost:3000). --state is a signed-in Playwright storage state (default
    .sweep-state.json, which `node scripts/sweep.mjs --login …` writes). It only reads: nothing is saved.
@@ -14,9 +14,10 @@
        moving on the page (a shimmer, a figure rolling) does not count. Taken from finger-up, so a press drawn while
        the finger is still down counts as 0 (shown as ≤0).
      · content  — the first painted frame once the destination is really there: the address is the target's, no
-       pending frame covers it (a leaving one counts until it has faded below half opacity), no shimmer is left
+       pending frame covers it (a leaving one counts until it has faded below 0.1 opacity), no shimmer is left
        outside one, and its <main> has text (for the Add drawer: the dialog has stopped moving).
-     · fade     — how long a leaving frame stayed above half opacity over the arrived screen.
+     · settled  — report only: when the arrival reveal (Reveal.tsx) had finished; content is readable before it.
+     · fade     — how long a leaving frame stayed above 0.1 opacity over the arrived screen.
      · blank    — how long the screen showed nothing: no frame, no <main>, or no text outside the tab bar.
      · vt       — view transitions started; rsc — server renders the tap asked for (navigations + prefetches).
    Medians over --reps runs, each in a fresh context.
@@ -47,6 +48,8 @@ const REPORT_ONLY = argv.includes('--report-only');
 const DEBUG = argv.includes('--debug');
 const HOLD = 80;
 const WATCH = 3000; // ms after the tap that the page is sampled
+/* A leaving frame counts as gone below this opacity (v3.1 P4: was 0.5, which called a half-faded frame "content"). */
+const GONE = Number(arg('--gone', 0.1));
 
 /* In the page, before anything else runs: event times, a sample of what the screen holds on every frame, and the
    view transitions started. */
@@ -65,13 +68,17 @@ function instrument() {
       c.querySelectorAll('nav').forEach((n) => n.remove());
       return c.textContent.replace(/\s+/g, '');
     }).join('');
-    const shim = [...document.querySelectorAll('.shim')].some((s) => !inOv(s) && visible(s));
+    const shim = [...document.querySelectorAll('[data-shim], .shim')].some((s) => !inOv(s) && visible(s));
     const dialog = [...document.querySelectorAll('[role=dialog]')].find(visible);
+    /* The arrival reveal (Reveal.tsx) still running on the screen: content is readable from its first frame (40%),
+       so it is reported as `settled`, never counted into content. */
+    const reveal = document.getAnimations().filter((a) => a.animationName === 'enter' && a.playState === 'running'
+      && a.effect?.target && !inOv(a.effect.target) && a.effect.target.closest('main')).length;
     return {
       t: now(), url: location.pathname + location.search,
       overlay: live.length > 0, overlayAny: ovs.length > 0,
       ovOp: Math.max(0, ...ovs.filter((o) => o.hasAttribute('data-leaving')).map((o) => parseFloat(getComputedStyle(o).opacity))),
-      main: mains.length, text: text.length, shim,
+      main: mains.length, text: text.length, shim, reveal,
       dim: document.documentElement.hasAttribute('data-pending-same'),
       dialogTop: dialog ? Math.round(dialog.getBoundingClientRect().top) : null,
       dialogForm: dialog ? !!dialog.querySelector('input') : false,
@@ -206,7 +213,7 @@ async function once(browser, r) {
       const at = S.find((s) => s.dialogTop !== null && s.dialogForm && Math.abs(s.dialogTop - fin) <= 1);
       readyAt = at ? at.t : null;
     } else {
-      const at = S.find((s) => r.to.test(s.url) && !s.overlay && !(s.ovOp > 0.5) && !s.dim && s.main > 0 && s.text > 20 && !s.shim);
+      const at = S.find((s) => r.to.test(s.url) && !s.overlay && !(s.ovOp > GONE) && !s.dim && s.main > 0 && s.text > 20 && !s.shim);
       readyAt = at ? at.t : null;
     }
     let blank = 0;
@@ -235,14 +242,17 @@ async function once(browser, r) {
       if (await diff(base.data, f.data, box) > 1.5 || ((s?.overlayAny || s?.dim) && await diff(base.data, f.data) > 0.5)) { firstFrame = f.ts; break; }
     }
     decoded.clear();
-    /* How long a leaving frame stayed above half opacity over the arrived screen. */
+    /* How long a leaving frame stayed above GONE opacity over the arrived screen. */
     const leaving = S.find((x) => x.overlayAny && !x.overlay);
-    const faded = leaving ? S.find((x) => x.t >= leaving.t && !(x.ovOp > 0.5)) : null;
+    const faded = leaving ? S.find((x) => x.t >= leaving.t && !(x.ovOp > GONE)) : null;
     const fade = leaving && faded ? Math.round(faded.t - leaving.t) : null;
+    /* When the arrival reveal had finished (report only). */
+    const still = readyAt === null ? null : S.find((x) => x.t >= readyAt && !x.reveal);
     return {
       up: Math.round(up - down),
       feedback: firstFrame === undefined ? null : Math.round(firstFrame - epoch(up)),
       content: readyAt === null ? null : Math.round(painted(readyAt)),
+      settled: still ? Math.round(painted(still.t)) : null,
       fade,
       blank: Math.round(blank),
       vt: nav.vt,
@@ -277,13 +287,14 @@ for (const r of ROUTES) {
     name: r.name, key: r.key, runs,
     fade: median(ok.map((x) => x.fade)),
     up: median(ok.map((x) => x.up)), feedback: median(ok.map((x) => x.feedback)), content: median(ok.map((x) => x.content)),
+    settled: median(ok.map((x) => x.settled)),
     blank: Math.max(0, ...ok.map((x) => x.blank)), vt: median(ok.map((x) => x.vt)),
     rsc: median(ok.map((x) => x.rsc)), pf: median(ok.map((x) => x.pf)),
     errors: runs.filter((x) => x.error).map((x) => x.error),
   };
   rows.push(row);
   const fb = row.feedback === null ? '—' : row.feedback <= 0 ? '≤0' : row.feedback;
-  console.log(`${r.name.padEnd(38)} feedback ${String(fb).padStart(4)}  content ${String(row.content ?? '—').padStart(5)}  blank ${String(row.blank).padStart(4)}  fade ${String(row.fade ?? '—').padStart(3)}  vt ${row.vt}  rsc ${row.rsc}+${row.pf}pf${row.errors.length ? `  errors: ${row.errors.join(' | ')}` : ''}`);
+  console.log(`${r.name.padEnd(38)} feedback ${String(fb).padStart(4)}  content ${String(row.content ?? '—').padStart(5)}  settled ${String(row.settled ?? '—').padStart(5)}  blank ${String(row.blank).padStart(4)}  fade ${String(row.fade ?? '—').padStart(3)}  vt ${row.vt}  rsc ${row.rsc}+${row.pf}pf${row.errors.length ? `  errors: ${row.errors.join(' | ')}` : ''}`);
 }
 await browser.close();
 if (JSON_OUT) fs.writeFileSync(JSON_OUT, JSON.stringify({ at: new Date().toISOString(), lat: LAT, cpu: CPU, reps: REPS, rows }, null, 1));
