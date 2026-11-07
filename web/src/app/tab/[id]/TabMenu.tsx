@@ -10,6 +10,7 @@ import { haptic } from '../../haptics';
 import BottomDrawer from '../../BottomDrawer';
 import { useMoney } from '@/app/currency';
 import { deleteTab, renameTab, toggleTabClosed } from '../actions';
+import { rowRule } from '../../form-bits';
 
 /* A tab's settings, behind the dots in its header: rename, close or reopen,
    delete. Kept off the screen itself because they are done once in a tab's
@@ -37,7 +38,7 @@ export default function TabMenu({ tabId, name, note, closed, held }: {
 
   const row = (icon: string, label: string, sub: string, onClick?: () => void, danger?: boolean) => (
     <button type={onClick ? 'button' : 'submit'} onClick={onClick}
-      className={`press flex min-h-15 w-full items-center gap-3 border-b border-border text-left ${danger ? 'text-destructive' : 'text-foreground'}`}>
+      className={`press relative flex min-h-15 w-full items-center gap-3 text-left ${rowRule} [--rule-x:48px] ${danger ? 'text-destructive' : 'text-foreground'}`}>
       <span className="grid size-9 flex-none place-items-center rounded-[10px] bg-muted"><Icon name={icon} size={18} /></span>
       <span className="flex flex-1 flex-col gap-0.5">
         <span className="text-body font-semibold">{label}</span>

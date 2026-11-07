@@ -1,5 +1,6 @@
 import { notFound, redirect } from 'next/navigation';
 import { EmptyLine } from '../../entries/parts';
+import { liRule } from '../../form-bits';
 import { actorOrNull, membersOf } from '@/db/queries';
 import { baseOf, holdingById, photosFor, snapshotsFor } from '@/db/holdings';
 import { ensureRates } from '@/db/prices';
@@ -104,7 +105,7 @@ export default async function Holding({ params }: { params: Promise<{ id: string
             <h2 className="px-0.5 text-subhead font-semibold text-muted-foreground">History</h2>
             <ol className="overflow-hidden rounded-[20px] bg-card shadow-card">
               {snapshots.map((s) => (
-                <li key={s.id} className="flex flex-col gap-2 border-b border-border px-3.5 py-3 last:border-b-0">
+                <li key={s.id} className={`flex flex-col gap-2 px-3.5 py-3 ${liRule} [--rule-x:14px]`}>
                   <span className="flex items-baseline justify-between gap-3">
                     <span className="text-body">{longDay(s.as_of)}</span>
                     <span className="text-body font-semibold tabular-nums">{native(s.quantity)}</span>

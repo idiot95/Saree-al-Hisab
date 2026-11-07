@@ -8,7 +8,7 @@ import { withHousehold } from '@/db/client';
 import { format, monthKey } from '@/lib/money';
 import { Progress } from '@/components/ui/progress';
 import { Chip, Icon } from '../Icon';
-import { statusPill } from '../form-bits';
+import { statusPill, liRule } from '../form-bits';
 import { Figure } from '../Figure';
 import TabBar from '../TabBar';
 import { TAB_BAR_SPACE } from '../tabs';
@@ -205,7 +205,7 @@ function CategoryLine({ row, month }: { row: Row; month: string }) {
   const over = cap > 0 && used > cap;
   const kids = (row.kids as { id: string; name: string; spent: string }[]).filter((k) => Number(k.spent) > 0);
   return (
-    <li className="border-b border-border last:border-b-0">
+    <li className={`${liRule} [--rule-x:62px]`}>
       <Link href={`/entries?m=${month}&c=${row.category_id}`}
         className="press flex min-h-[68px] items-center gap-3 px-3.5 py-3">
         <Chip icon={row.icon} tint={row.tint} size={36} />

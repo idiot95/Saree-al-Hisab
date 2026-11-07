@@ -1,6 +1,7 @@
 'use client';
 
 import { useActionState, useState } from 'react';
+import { rowRule } from '../../form-bits';
 import { Icon } from '../../Icon';
 import { haptic } from '../../haptics';
 import { revokePhone, type RevokeResult } from './actions';
@@ -13,7 +14,7 @@ export default function PhoneRow({ id, label, who, created, used, canRevoke, las
   const [sure, setSure] = useState(false);
   const [state, act, pending] = useActionState<RevokeResult, FormData>(revokePhone, null);
   return (
-    <div className={`flex min-h-[76px] items-center gap-3 py-3 ${last ? '' : 'border-b border-border'}`}>
+    <div className={`relative flex min-h-[76px] items-center gap-3 py-3 ${last ? '' : `${rowRule} [--rule-r:16px]`}`}>
       <span className="grid size-10 flex-none place-items-center rounded-full bg-muted text-muted-foreground">
         <Icon name="smartphone" size={20} />
       </span>

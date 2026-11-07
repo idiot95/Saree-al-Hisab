@@ -9,6 +9,7 @@ import { forcedTheme, THEME_COOKIE } from '@/lib/theme';
 import { Icon } from '../Icon';
 import { quietBtn } from '../auth-ui';
 import { cn } from '@/lib/utils';
+import { liRule } from '../form-bits';
 
 /* What the app is when there is no signal.
 
@@ -84,7 +85,7 @@ function Pending({ queue }: { queue: Queued[] }) {
       <h2 className="px-0.5 text-subhead font-semibold text-muted-foreground">Waiting for signal · {queue.length}</h2>
       <ul className="overflow-hidden rounded-[20px] bg-card shadow-card">
         {queue.map((q) => (
-          <li key={q.clientRef} className="flex min-h-[52px] items-center gap-2.5 border-b border-border pl-[var(--pad)] last:border-b-0">
+          <li key={q.clientRef} className={`flex min-h-[52px] items-center gap-2.5 pl-[var(--pad)] ${liRule} [--rule-x:var(--pad)]`}>
             <span className="flex min-w-0 flex-1 flex-col gap-0.5 py-2">
               <span className="text-body font-semibold [overflow-wrap:anywhere]">
                 {q.kind === 'income' ? 'Income' : q.kind === 'transfer' ? 'Move' : (q.merchant || 'Expense')}

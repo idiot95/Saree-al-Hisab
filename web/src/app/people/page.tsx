@@ -1,5 +1,6 @@
 import Link from '@/app/NavLink';
 import { Empty, EmptyLine } from '../entries/parts';
+import { liRule, rowRule, rulePad, ruleSwipe } from '../form-bits';
 import { redirect } from 'next/navigation';
 import { actorOrNull, claimsFor, peopleFor, receiptsByMonth, tabList, type TabRow } from '@/db/queries';
 import { withHousehold } from '@/db/client';
@@ -128,7 +129,7 @@ export default async function LoanCentre() {
                 {lent.map((p) => {
                   const bal = Number(p.balance);
                   return (
-                    <li key={p.id} className="border-b border-border last:border-b-0">
+                    <li key={p.id} className={`${liRule} [--rule-x:66px]`}>
                       <Link href={`/people/${p.id}`}
                         className="press flex min-h-16 items-center gap-3 px-3.5">
                         <Face name={p.name} tint={p.tint} size={40} />
@@ -173,7 +174,7 @@ function TabItem({ t, last, canWrite, quiet = false }: { t: TabRow; last: boolea
   return (
     <Swipeable actions={actions} commit={false}>
       <Link href={`/tab/${t.id}`} draggable={false}
-        className={`relative flex min-h-16 items-center gap-3 py-3 ${last ? '' : 'after:absolute after:right-0 after:bottom-0 after:left-12 after:h-px after:bg-border'} ${quiet ? 'opacity-75' : ''}`}>
+        className={`relative flex min-h-16 items-center gap-3 py-3 ${last ? '' : `${rowRule} ${actions.length ? ruleSwipe : rulePad} [--rule-x:48px]`} ${quiet ? 'opacity-75' : ''}`}>
         <Chip icon="folder" tint={tabTint(t.id)} size={36} />
         <span className="flex min-w-0 flex-1 flex-col gap-1">
           <span className="text-body font-medium leading-snug [overflow-wrap:anywhere]">{t.name}</span>

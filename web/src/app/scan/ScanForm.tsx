@@ -4,7 +4,7 @@ import Link from '@/app/NavLink';
 import { useActionState, useState } from 'react';
 import { ErrorNote, primaryBtn } from '../auth-ui';
 import { Icon } from '../Icon';
-import { formCard } from '../form-bits';
+import { formCard, liRule } from '../form-bits';
 import { scan } from './actions';
 import { useMoney } from '@/app/currency';
 
@@ -122,7 +122,7 @@ function Draft({ result }: {
 
 function Line({ label, value }: { label: string; value: string | null }) {
   return (
-    <div className="flex min-h-[46px] items-center gap-3 border-b border-border py-2 last:border-b-0">
+    <div className={`flex min-h-[46px] items-center gap-3 py-2 ${liRule} [--rule-x:0px] [--rule-r:var(--pad)]`}>
       <dt className="flex-1 text-subhead text-muted-foreground">{label}</dt>
       <dd className={`flex items-center gap-1 text-right text-body font-semibold [overflow-wrap:anywhere] ${value ? 'text-foreground' : 'text-destructive'}`}>
         {!value && <Icon name="error" size={16} />}{value ?? 'not readable'}

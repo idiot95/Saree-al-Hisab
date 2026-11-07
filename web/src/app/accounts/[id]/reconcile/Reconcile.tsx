@@ -1,6 +1,7 @@
 'use client';
 
 import { EmptyLine } from '../../../entries/parts';
+import { liRule } from '../../../form-bits';
 import Link from '@/app/NavLink';
 import { useActionState, useState } from 'react';
 import { ErrorNote, primaryBtn, quietBtn } from '../../../auth-ui';
@@ -102,7 +103,7 @@ export default function Reconcile({ accountId, credit, today, lastOn, cleared, e
           {upTo.map((e) => {
             const isOn = !unticked.has(e.id);
             return (
-              <label key={e.id} className="flex min-h-[60px] cursor-pointer items-center gap-3 border-b border-border px-[var(--pad)] py-2.5 last:border-b-0">
+              <label key={e.id} className={`flex min-h-[60px] cursor-pointer items-center gap-3 px-[var(--pad)] py-2.5 ${liRule} [--rule-x:calc(var(--pad)+32px)]`}>
                 <input type="checkbox" checked={isOn} onChange={() => toggle(e.id)}
                   className="size-5 flex-none accent-primary" />
                 <span className={`flex min-w-0 flex-1 flex-col gap-0.5 ${isOn ? '' : 'opacity-60'}`}>

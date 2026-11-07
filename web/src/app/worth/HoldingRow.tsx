@@ -1,5 +1,6 @@
 import Link from '@/app/NavLink';
 import { Icon } from '../Icon';
+import { liRule } from '../form-bits';
 import type { HoldingItem } from './types';
 
 /* One pot or one metal: what it is, whose it is and how much of it, and what it is worth in the household's
@@ -10,7 +11,7 @@ export default function HoldingRow({ h, value }: { h: HoldingItem; value: string
   const amount = value === null ? [] : [h.native];
   const sub = [h.ownerName, ...amount, ...(h.kind === 'metal' ? [h.badge] : [])].join(' · ');
   return (
-    <li className="border-b border-border last:border-b-0">
+    <li className={`${liRule} [--rule-x:66px]`}>
       <Link href={`/worth/${h.id}`}
         className="press flex min-h-16 items-center gap-3 px-3.5 py-2.5">
         {h.kind === 'fx_cash' ? (

@@ -3,7 +3,8 @@
 import Link from '@/app/NavLink';
 import { useState } from 'react';
 import { haptic } from '../haptics';
-import { ACTIVITY_CHIPS, Words, chip, chipOff, chipOn, chipRow, countBadge } from '../form-bits';
+import { cn } from '@/lib/utils';
+import { ACTIVITY_CHIPS, Words, badgeRoom, chip, chipOff, chipOn, chipRow, countBadge } from '../form-bits';
 
 export type ActivityFilter = 'all' | 'review' | 'upcoming' | 'sms';
 
@@ -22,7 +23,7 @@ export default function ActivityChips({ current, review, sms, month }: {
   const [seen, setSeen] = useState(current);
   if (seen !== current) { setSeen(current); setPicked(null); }
   const lit = picked ?? current;
-  const chips: { key: ActivityFilter; label: string; short?: string; count?: number }[] = ACTIVITY_CHIPS.map((c) => ({
+  const chips: { key: ActivityFilter; label: string; short?: string; wide?: boolean; count?: number }[] = ACTIVITY_CHIPS.map((c) => ({
     ...c, count: c.key === 'review' ? review : c.key === 'sms' ? sms : undefined,
   }));
   const hrefOf = (key: ActivityFilter) => {
@@ -46,8 +47,9 @@ export default function ActivityChips({ current, review, sms, month }: {
               setPicked(c.key);
             }}
             aria-label={c.count ? `${c.label} ${c.count}` : c.label}
-            className={`${chip} ${on ? chipOn : chipOff}`}>
-            <Words label={c.label} short={c.short} />
+            /* A chip that can carry a count keeps the badge's room when it has none (form-bits badgeRoom). */
+            className={cn(chip, on ? chipOn : chipOff, c.count === 0 && badgeRoom)}>
+            <Words label={c.label} short={c.short} wide={c.wide} />
             {!!c.count && (
               <span className={`${countBadge} ${on
                 ? 'bg-primary-foreground/90 text-primary' : 'bg-attention-soft text-attention-soft-foreground'}`}>

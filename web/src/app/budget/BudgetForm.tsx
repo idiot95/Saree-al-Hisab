@@ -3,7 +3,7 @@
 import { useActionState, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Chip, Icon } from '../Icon';
-import { statusPill } from '../form-bits';
+import { statusPill, liRule } from '../form-bits';
 import { ErrorNote as Problem } from '../auth-ui';
 import { saveBudget } from './actions';
 import { useMoney } from '@/app/currency';
@@ -71,7 +71,7 @@ export default function BudgetForm({ month, rows, canEdit }: {
           const budget = ofField(draft[r.category_id]);
           const over = budget > 0 && spent > budget;
           return (
-            <li key={r.category_id} className="flex min-h-[72px] items-center gap-3 border-b border-border py-2 last:border-b-0">
+            <li key={r.category_id} className={`flex min-h-[72px] items-center gap-3 py-2 ${liRule} [--rule-x:48px] [--rule-r:16px]`}>
               <Chip icon={r.icon} tint={r.tint} size={36} />
               <span className="flex min-w-0 flex-1 flex-col gap-1">
                 <span className="text-body font-medium [overflow-wrap:anywhere]">

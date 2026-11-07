@@ -1,5 +1,6 @@
 import Link from '@/app/NavLink';
 import { EmptyLine } from '../entries/parts';
+import { rowRule, rulePad } from '../form-bits';
 import { redirect } from 'next/navigation';
 import { Chip, RAIL_ICON, RAIL_TINT, ACCOUNT_ICON, ACCOUNT_TINT } from '../Icon';
 import {
@@ -171,7 +172,7 @@ export default async function Accounts() {
               note="GPay, PhonePe, net banking, a debit card — each is linked to the account it takes money from, so what you spend through it comes off the right balance. Cash and credit cards are ways to pay on their own.">
               <List>
                 {methods.map((m, i) => (
-                  <div key={m.id} className={`flex min-h-[68px] items-start gap-3 py-3 ${i === methods.length - 1 ? '' : 'border-b border-border'}`}>
+                  <div key={m.id} className={`relative flex min-h-[68px] items-start gap-3 py-3 ${i === methods.length - 1 ? '' : `${rowRule} ${rulePad} [--rule-x:50px]`}`}>
                     <Chip icon={RAIL_ICON[m.kind] ?? 'tag'} tint={RAIL_TINT[m.kind] ?? 'neutral'} size={38} />
                     <div className="flex min-w-0 flex-1 flex-col gap-0.5">
                       <span className="text-body font-semibold leading-snug [overflow-wrap:anywhere]">{m.name}</span>

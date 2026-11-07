@@ -3,7 +3,7 @@
 import { cn } from '@/lib/utils';
 import { useState, useTransition } from 'react';
 import { Chip, Icon, tintOf } from '../Icon';
-import { ghost } from '../form-bits';
+import { ghost, rowRule, rulePad } from '../form-bits';
 import { haptic } from '../haptics';
 import { adoptSuggested } from './actions';
 import { chip, chipOff } from '../form-bits';
@@ -60,7 +60,7 @@ export default function Suggested({ have, canEdit, onResult }: {
           const isOpen = open === g.name;
           const own = children + (parent ? 1 : 0);
           return (
-            <div key={g.name} className={i === groups.length - 1 ? '' : 'border-b border-border'}>
+            <div key={g.name} className={i === groups.length - 1 ? 'relative' : `relative ${rowRule} ${rulePad} [--rule-x:50px]`}>
               <div className="flex min-h-[60px] items-center gap-2.5">
                 <button type="button" aria-expanded={isOpen}
                   onClick={() => { haptic('tap'); setOpen(isOpen ? null : g.name); }}

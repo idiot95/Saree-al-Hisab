@@ -1,5 +1,6 @@
 import Link from '@/app/NavLink';
 import { Empty } from '../../entries/parts';
+import { liRule } from '../../form-bits';
 import { redirect } from 'next/navigation';
 import { actorOrNull, reconcileTargets } from '@/db/queries';
 import { format } from '@/lib/money';
@@ -41,7 +42,7 @@ export default async function ReconcilePicker() {
               const bal = Number(a.balance);
               const credit = a.kind === 'credit';
               return (
-                <li key={a.id} className="border-b border-border last:border-b-0">
+                <li key={a.id} className={`${liRule} [--rule-x:calc(var(--pad)+50px)]`}>
                   <Link href={`/accounts/${a.id}/reconcile`}
                     className="press flex min-h-[72px] items-center gap-3 px-[var(--pad)] py-3 text-foreground no-underline">
                     <Chip icon={ACCOUNT_ICON[a.kind]} tint={ACCOUNT_TINT[a.kind]} size={38} />

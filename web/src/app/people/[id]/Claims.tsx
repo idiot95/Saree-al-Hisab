@@ -1,6 +1,7 @@
 'use client';
 
 import Link from '@/app/NavLink';
+import { liRule } from '../../form-bits';
 import { useActionState, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { ErrorNote as Problem } from '../../auth-ui';
@@ -50,7 +51,7 @@ export default function Claims({ claims, ways, canEdit, person, bills = [] }: {
           const done = word(c.status);
           const live = c.status === 'open' || c.status === 'part_paid';
           return (
-            <li key={c.id} className="flex flex-col gap-2.5 border-b border-border px-3.5 py-3 last:border-b-0">
+            <li key={c.id} className={`flex flex-col gap-2.5 px-3.5 py-3 ${liRule} [--rule-x:14px]`}>
               <div className="flex items-center gap-3">
                 <Link href={`/entries/${c.txn_id}`}
                   className="flex min-h-11 min-w-0 flex-1 flex-col justify-center gap-0.5 text-foreground">

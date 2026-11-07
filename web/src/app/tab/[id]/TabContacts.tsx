@@ -13,7 +13,7 @@ import { useMoney } from '@/app/currency';
 import { addToTab, removeFromTab } from '../actions';
 import NewPeople from '../NewPeople';
 import { Face } from '../look';
-import { chip, chipOff, chipRow } from '../../form-bits';
+import { chip, chipOff, chipRow, liRule } from '../../form-bits';
 
 type Person = { id: string; name: string; tint: string; onTab: boolean; inAll: number; owed: number };
 
@@ -68,7 +68,7 @@ export default function TabContacts({ tabId, people, canEdit }: {
           {people.length > 0 && (
             <ul className="flex flex-col">
               {people.map((p) => (
-                <li key={p.id} className="flex min-h-15 items-center gap-3 border-b border-border last:border-b-0">
+                <li key={p.id} className={`flex min-h-15 items-center gap-3 ${liRule}`}>
                   <Face name={p.name} tint={p.tint} />
                   <Link href={`/people/${p.id}`}
                     className="flex min-h-11 min-w-0 flex-1 flex-col justify-center gap-0.5 text-foreground">

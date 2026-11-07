@@ -1,6 +1,7 @@
 'use client';
 
 import Link from '@/app/NavLink';
+import { liRule, rowRule, rulePad, ruleSwipe } from '../../form-bits';
 import { useCallback, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import SwipeRow, { type SwipeAction } from '../../SwipeRow';
@@ -142,7 +143,7 @@ export default function TabEntries({
             {m.rows.map((e, i) => (
               <SwipeRow key={e.id} commit={false} actions={canEdit ? actionsFor(e) : []}>
                 <Link href={edit(e.id)} draggable={false}
-                  className={`flex min-h-16 items-center gap-3 py-2.5 text-foreground ${i === m.rows.length - 1 ? '' : 'border-b border-border'}`}>
+                  className={`relative flex min-h-16 items-center gap-3 py-2.5 text-foreground ${i === m.rows.length - 1 ? '' : `${rowRule} ${canEdit ? ruleSwipe : rulePad} [--rule-x:48px]`}`}>
                   {e.incoming ? <Chip icon="receivable" tint="green" size={36} /> : <Chip icon={e.icon} tint={e.tint} size={36} />}
                   <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                     <span className="text-body font-medium leading-snug [overflow-wrap:anywhere]">{e.title}</span>
@@ -376,7 +377,7 @@ function RemindBody({ entry, tabId, tabName, claims, bills }: {
           {rows.map((r) => {
             const done = sent.has(r.key);
             return (
-              <li key={r.key} className="flex min-h-[62px] items-center gap-3 border-b border-border last:border-b-0">
+              <li key={r.key} className={`flex min-h-[62px] items-center gap-3 ${liRule}`}>
                 {r.name ? <Face name={r.name} tint={r.tint} /> : <Chip icon="folder" tint={tabTint(tabId)} />}
                 <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                   <span className="text-body font-semibold">{r.name ?? 'Nobody named'}</span>

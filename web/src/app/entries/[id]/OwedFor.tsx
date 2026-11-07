@@ -6,7 +6,7 @@ import { addClaim, abandonClaim } from '../../people/actions';
 import { useMoney } from '@/app/currency';
 import { useFocusSoon, useKeepOnRefusal, useOnSuccess } from '../../form-hooks';
 import { Icon } from '../../Icon';
-import { Said, fieldLabel, ghost, selectCls, solid } from '../../form-bits';
+import { Said, fieldLabel, ghost, selectCls, solid, rowRule, rulePad } from '../../form-bits';
 import { cn } from '@/lib/utils';
 
 type Person = { id: string; name: string };
@@ -52,7 +52,7 @@ export default function OwedFor({ txnId, entryAmount, people, claims, canEdit }:
           {claims.map((c, i) => {
             const w = WORD[c.status] ?? WORD.open;
             return (
-              <li key={c.id} className={cn('flex min-h-14 items-center gap-2.5 py-1.5', i < claims.length - 1 && 'border-b border-border')}>
+              <li key={c.id} className={cn('relative flex min-h-14 items-center gap-2.5 py-1.5', i < claims.length - 1 && `${rowRule} [--rule-x:0px] ${rulePad}`)}>
                 <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                   <span className="text-body font-semibold [overflow-wrap:anywhere]">{c.person}</span>
                   <span className={cn('flex items-center gap-1 text-subhead', w.ink)}>

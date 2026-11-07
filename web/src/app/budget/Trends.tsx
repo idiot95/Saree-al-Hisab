@@ -5,6 +5,7 @@ import { tabTint } from '../tab/look';
 import { format } from '@/lib/money';
 import type { categoryTrend, monthlySeries, receiptsByMonth, tabList } from '@/db/queries';
 import { LazyBackBars, LazySpendLine } from './LazyCharts';
+import { liRule } from '../form-bits';
 
 /* Trends, the bottom of Plan (#trends): where the month went, what moved against last month, six months of
    spending against the budget, what is owed to you by tab, and six months of money back.
@@ -125,7 +126,7 @@ export default function Trends({ month, partial, day, future, series, cats, tabs
             <Card title={partial ? `Changes on ${prevName}, day for day` : `Changes on ${prevName}`}>
               <ul className="flex flex-col">
                 {movers.map((m) => (
-                  <li key={m.id} className="border-b border-border last:border-b-0">
+                  <li key={m.id} className={`${liRule} [--rule-x:46px] [--rule-r:16px]`}>
                     <Link href={`/entries?m=${month}&c=${m.id}`}
                       className="press flex min-h-14 items-center gap-3 py-2">
                       <Chip icon={m.icon} tint={m.tint} size={34} iconSize={18} />

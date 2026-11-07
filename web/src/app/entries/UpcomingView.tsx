@@ -1,5 +1,6 @@
 import { categoriesFor, schedulesFor, tabsForEntry, type ScheduleRow } from '@/db/queries';
 import { withHousehold } from '@/db/client';
+import { rowRule, rulePad, ruleSwipe } from '../form-bits';
 import { waysToPay } from '@/db/payment';
 import { format } from '@/lib/money';
 import { daysBetween, describeRule, isFinished, nextUnsettled, outstandingDues, parseRule, ruleOf } from '@/lib/recur';
@@ -138,7 +139,7 @@ function Rows({ schedules, canWrite, today, todayIso, done = false }: {
             { label: done ? 'Remove' : 'Stop', icon: 'stop', tone: 'danger', act: archiveSchedule,
               fields: { scheduleId: s.id }, done: `${s.name} ${done ? 'removed' : 'stopped'}.` },
           ] : []}>
-            <div className={`flex min-h-[72px] items-center gap-3 py-2.5 ${i === schedules.length - 1 ? '' : 'border-b border-border'}`}>
+            <div className={`relative flex min-h-[72px] items-center gap-3 py-2.5 ${i === schedules.length - 1 ? '' : `${rowRule} ${canWrite ? ruleSwipe : rulePad}`}`}>
               <Chip icon={s.icon ?? 'autodebit'} tint={s.tint} size={40} />
               <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                 <span className="text-body font-medium [overflow-wrap:anywhere]">{s.name}</span>

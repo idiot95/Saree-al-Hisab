@@ -1,5 +1,6 @@
 import { notFound, redirect } from 'next/navigation';
 import { actorOrNull, reconcileAccount } from '@/db/queries';
+import { liRule } from '../../../form-bits';
 import { format } from '@/lib/money';
 import { Icon } from '../../../Icon';
 import PageHead from '../../../PageHead';
@@ -89,7 +90,7 @@ export default async function ReconcileAccount({ params, searchParams }: {
               <h2 id="sec-matched" className="px-0.5 text-subhead font-semibold text-muted-foreground">Statements matched</h2>
               <ul className="overflow-hidden rounded-[20px] bg-card shadow-card">
                 {history.map((r, i) => (
-                  <li key={r.id} className="flex min-h-16 items-center gap-3 border-b border-border px-[var(--pad)] py-2.5 last:border-b-0">
+                  <li key={r.id} className={`flex min-h-16 items-center gap-3 px-[var(--pad)] py-2.5 ${liRule} [--rule-x:var(--pad)]`}>
                     <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                       <span className="text-body font-semibold">{day(r.on, true)}</span>
                       <span className="text-subhead leading-snug text-muted-foreground [overflow-wrap:anywhere]">

@@ -6,6 +6,7 @@ import { TAB_BAR_SPACE } from '../tabs';
 import PageHead from '../PageHead';
 import Screen from '../Screen';
 import { Icon } from '../Icon';
+import { liRule } from '../form-bits';
 
 export const metadata = { title: 'How it works · Saree al-Hisab' };
 export const dynamic = 'force-dynamic';
@@ -170,7 +171,7 @@ export default async function Guide() {
         <div className="px-[var(--gutter)] pb-8">
           <ol className="overflow-hidden rounded-[20px] bg-card shadow-card">
             {SECTIONS.map((s, i) => (
-              <li key={s.title} className={i === 0 ? '' : 'border-t border-border'}>
+              <li key={s.title} className={`${liRule} [--rule-x:calc(var(--pad)+40px)]`}>
                 <details className="group">
                   <summary className="flex min-h-14 cursor-pointer list-none items-center gap-3 px-[var(--pad)] py-2.5 [&::-webkit-details-marker]:hidden">
                     <span className="grid size-7 flex-none place-items-center rounded-full bg-accent text-footnote font-bold text-accent-foreground tabular-nums">{i + 1}</span>

@@ -12,7 +12,7 @@ import { bankFromName } from '@/lib/card-brand';
 import { startPending } from '../pending';
 import { OwnerSelect } from '../worth/fields';
 import { keepFields } from '../form-hooks';
-import { Info, ghost, solid } from '../form-bits';
+import { Info, ghost, solid, rowRule, rulePad, ruleSwipe } from '../form-bits';
 
 /* Tap the row and it becomes its own form; save and it becomes a row again.
    The same move as a category, because a person who has learnt one should
@@ -43,7 +43,7 @@ export default function EditAccount({ account, canWrite, last, block = false, ch
   const [open, setOpen] = useState(false);
   const router = useRouter();
   /* A row: its chip, the words (which wrap rather than cut off) and the balance. Hairlines between rows. */
-  const shape = `${block ? 'flex flex-col gap-2.5 py-4' : 'flex min-h-[76px] items-center gap-3 py-3'} ${last ? '' : 'border-b border-border'}`;
+  const shape = `relative ${block ? 'flex flex-col gap-2.5 py-4' : 'flex min-h-[76px] items-center gap-3 py-3'} ${last ? '' : `${rowRule} [--rule-x:50px] ${canWrite ? ruleSwipe : rulePad}`}`;
 
   if (!canWrite) return <div className={shape}>{children}</div>;
 
@@ -89,7 +89,7 @@ export function AccountForm({ account: a, last = true, onDone }: {
   const [sure, setSure] = useState(false);
 
   return (
-    <div className={`flex flex-col gap-3.5 py-4 ${last ? '' : 'border-b border-border'}`}>
+    <div className={`relative flex flex-col gap-3.5 py-4 ${last ? '' : `${rowRule} ${rulePad} [--rule-x:0px]`}`}>
       {/* JS-only: this form replaces the row only after a tap, so the client closure loses no no-JS path. */}
       <form onSubmit={keepFields(act)} aria-label={`Edit ${a.name}`} className="flex flex-col gap-3.5">
         <input type="hidden" name="id" value={a.id} />

@@ -3,7 +3,7 @@
 import { useActionState, useCallback, useId, useRef, useState, useTransition } from 'react';
 import { Icon, Chip, tintOf } from '../Icon';
 import { ErrorNote, Field } from '../auth-ui';
-import { fieldLabel, formCard, ghost, selectCls, solid, AddRow as AddButton, Said } from '../form-bits';
+import { fieldLabel, formCard, ghost, selectCls, solid, AddRow as AddButton, Said, rowRule, rulePad, ruleSwipe } from '../form-bits';
 import SwipeRow from '../SwipeRow';
 import Snack, { type SnackState } from '../Snack';
 import { haptic } from '../haptics';
@@ -456,7 +456,7 @@ function Row({ cat, last, canEdit, lifted, onEdit, grip }: {
     </>
   );
   return (
-    <div className={`flex items-center ${h} ${last || lifted ? '' : 'border-b border-border'}`}>
+    <div className={`relative flex items-center ${h} ${last || lifted ? '' : `${rowRule} ${child ? '[--rule-x:82px]' : '[--rule-x:50px]'} ${child && canEdit ? ruleSwipe : rulePad}`}`}>
       {canEdit ? (
         <button type="button" onClick={onEdit} aria-label={`Edit ${cat.name}`}
           className={`flex min-w-0 flex-1 items-center gap-3 text-left text-foreground ${h}`}>{body}</button>
@@ -486,7 +486,7 @@ function EditRow({ cat, first, last, parents, onDone }: {
   const parent = parents.find((p) => p.id === parentId) ?? null;
 
   return (
-    <div className="flex flex-col gap-3.5 border-b border-border py-4 last:border-b-0">
+    <div className={`relative flex flex-col gap-3.5 py-4 ${rowRule} ${rulePad} [--rule-x:0px] last:after:hidden`}>
       {/* JS-only (opened by a tap): keepFields, so a refusal never resets Under or the scope back. */}
       <form onSubmit={keepFields(act)} aria-label={`Edit ${cat.name}`} className="flex flex-col gap-3.5">
         <input type="hidden" name="id" value={cat.id} />
@@ -573,7 +573,7 @@ function RetiredRow({ cat, under, last, canEdit, onBack }: {
 }) {
   const [, restore] = useActionState(restoreCategory, null);
   return (
-    <div className={`flex min-h-[68px] items-center gap-3 py-2.5 ${last ? '' : 'border-b border-border'}`}>
+    <div className={`relative flex min-h-[68px] items-center gap-3 py-2.5 ${last ? '' : `${rowRule} ${rulePad} [--rule-x:48px]`}`}>
       <span className="opacity-70"><Chip icon={cat.icon} tint={cat.tint} size={36} /></span>
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span className="text-body font-semibold leading-snug text-muted-foreground [overflow-wrap:anywhere]">{cat.name}</span>

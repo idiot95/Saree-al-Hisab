@@ -1,5 +1,6 @@
 import Link from '@/app/NavLink';
 import { billsDue, duplicatesFor, schedulesFor } from '@/db/queries';
+import { liRule, rowRule, rulePad, ruleSwipe } from '../form-bits';
 import { withHousehold } from '@/db/client';
 import { outstandingDues } from '@/lib/recur';
 import { format } from '@/lib/money';
@@ -41,7 +42,7 @@ export async function loadReview(hh: string, canWrite: boolean, sms: number) {
                   { label: 'Pay', icon: 'move', tone: 'primary',
                     href: `/add?kind=transfer&to=${b.account_id}&amount=${Number(b.outstanding)}` },
                 ] : []}>
-                  <div className={`flex min-h-[72px] items-center gap-3 py-2.5 ${i === bills.length - 1 ? '' : 'border-b border-border'}`}>
+                  <div className={`relative flex min-h-[72px] items-center gap-3 py-2.5 ${i === bills.length - 1 ? '' : `${rowRule} ${canWrite ? ruleSwipe : rulePad}`}`}>
                     <span className={`grid size-10 flex-none place-items-center rounded-[12px] ${overdue
                       ? 'bg-destructive/10 text-destructive' : 'bg-attention-soft text-attention-soft-foreground'}`}>
                       <Icon name="card" size={20} />
@@ -115,7 +116,7 @@ export async function loadReview(hh: string, canWrite: boolean, sms: number) {
 function Pointer({ href, icon, strong, rest }: { href: string; icon: string; strong: string; rest: string }) {
   return (
     <Link href={href} replace data-replace motion="fade"
-      className="press flex min-h-14 items-center gap-3 border-b border-border px-3.5 last:border-b-0">
+      className={`press flex min-h-14 items-center gap-3 px-3.5 ${liRule} [--rule-x:48px]`}>
       <Icon name={icon} size={22} className="text-primary" />
       <span className="flex-1 text-body"><b className="font-semibold">{strong}</b>
         <span className="text-muted-foreground"> · {rest}</span></span>

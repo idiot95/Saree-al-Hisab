@@ -8,7 +8,7 @@ import Screen from '../../../Screen';
 import TabBar from '../../../TabBar';
 import { TAB_BAR_SPACE } from '../../../tabs';
 import { Icon } from '../../../Icon';
-import { statusPill } from '../../../form-bits';
+import { statusPill, rowRule } from '../../../form-bits';
 import { DIRECTION } from '../../direction';
 import DismissDraft from './DismissDraft';
 
@@ -69,12 +69,12 @@ export default async function SmsDraft({ params }: { params: Promise<{ id: strin
           <section aria-label="What was read from it" className="flex flex-col gap-2">
             <Label>What was read from it</Label>
             <dl className="rounded-2xl border border-border bg-card px-4">
-              <div className="flex min-h-12 items-center justify-between gap-3 border-b border-border">
+              <div className={`relative flex min-h-12 items-center justify-between gap-3 ${rowRule} [--rule-x:0px] [--rule-r:16px]`}>
                 <dt className="text-subhead text-muted-foreground">Direction</dt>
                 <dd className="flex items-center gap-1.5 text-body font-semibold"><Icon name={dir.icon} size={18} /> {dir.word}</dd>
               </div>
               {facts.map(([k, v], i) => (
-                <div key={k} className={`flex min-h-12 items-center justify-between gap-3 ${i === facts.length - 1 ? '' : 'border-b border-border'}`}>
+                <div key={k} className={`relative flex min-h-12 items-center justify-between gap-3 ${i === facts.length - 1 ? '' : `${rowRule} [--rule-x:0px] [--rule-r:16px]`}`}>
                   <dt className="text-subhead text-muted-foreground">{k}</dt>
                   <dd className="min-w-0 text-right text-body font-semibold [overflow-wrap:anywhere]">{v}</dd>
                 </div>

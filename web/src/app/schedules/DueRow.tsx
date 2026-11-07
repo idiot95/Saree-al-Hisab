@@ -6,7 +6,7 @@ import SwipeRow from '../SwipeRow';
 import { recordDue, skipDue } from './actions';
 import MoveDue from './MoveDue';
 import { ErrorNote, Field } from '../auth-ui';
-import { ghost, solid } from '../form-bits';
+import { ghost, solid, rowRule, rulePad } from '../form-bits';
 import { friendlyDay, type Calendar } from '@/lib/recur';
 import { useMoney } from '@/app/currency';
 
@@ -49,7 +49,7 @@ export default function DueRow({
   });
 
   return (
-    <div className="flex flex-col gap-2.5 border-b border-border py-2.5 last:border-b-0">
+    <div className={`relative flex flex-col gap-2.5 py-2.5 ${rowRule} ${rulePad} last:after:hidden`}>
       <SwipeRow actions={open ? [] : [
         { label: 'Skip', icon: <Icon name="skip" size={20} />, act: skipNow },
         ...(canMove ? [{ label: 'Move', icon: <Icon name="move" size={20} />,
