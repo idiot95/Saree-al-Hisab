@@ -64,9 +64,8 @@ export default function TabBar({ current }: { current: string }) {
           <Link
             key={t.href} href={t.href} motion={motion} pressNow
             /* Tapped all day, so each other tab is fetched whole as the bar comes into view: the tap then needs no
-               server render at all (NavLink). Not the tab of the screen already here, and not Wealth: its render
-               refreshes the day's exchange and metal rates (calls to the price providers and a write), which must
-               happen when the person opens it, never because a bar scrolled into view. */
+               server render at all (NavLink). Not the tab of the screen already here. Wealth too since v3.1 P5: its
+               render only reads; the day's rates are refreshed once its screen is up (POST /api/rates). */
             prefetch={!tabLook(t, current).here}
             aria-current={here ? 'page' : on ? 'true' : undefined}
             /* Lit as the finger lands, before the screen has arrived. Put back if the touch ends anywhere but on this
@@ -82,8 +81,10 @@ export default function TabBar({ current }: { current: string }) {
             onPointerLeave={() => { if (lifted.current !== 'inside') putBack(); }}
             onLostPointerCapture={() => { if (lifted.current !== 'inside') putBack(); }}
             onPointerCancel={putBack}
-            /* A tick under the thumb as the tab is taken — the moment of the tap, not the moment the screen arrives. */
-            onClick={() => { if (!here) { haptic('tap'); take(); } }}
+            /* A tick under the thumb as the tab is taken — the moment of the tap, not the moment the screen arrives.
+               A click is a finished activation however it came (Enter, a mouse, a tap), so the tab stays lit: a
+               pointer then crossing and leaving it must not put it back while its screen is on the way (p2 N2). */
+            onClick={() => { lifted.current = 'inside'; if (!here) { haptic('tap'); take(); } }}
             className={`press ${slotClass(on)}`}
           >
             <TabFace t={t} on={on} here={here} live />
