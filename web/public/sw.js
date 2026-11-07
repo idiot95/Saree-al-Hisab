@@ -28,9 +28,18 @@
        and keeps doing exactly what it did: every request reaches the handler below, which passes the same ones on.
      · Navigation preload: a document load starts its network request while the worker boots, and the handler
        answers with that response. The /offline fallback is unchanged.
-   Nothing new is cached: no HTML, no RSC, nothing with a household's data in it. */
+   Nothing new is cached: no HTML, no RSC, nothing with a household's data in it.
 
-const VERSION = 'v43';
+   With preload on, the browser has already sent a navigation's request by the time the handler runs, so the handler
+   must answer every navigation with that response (v44, P5 fix round 1). v43 returned early for /api/* before its
+   navigate branch, so Chromium sent the request a second time — and Google's sign-in callback is a navigation to
+   /api/auth/callback/google whose code works once: the preload spent it and the person saw the second, refused try.
+   Now /api/* goes straight to the network without the worker where static routing exists (the first rule), and
+   wherever the handler does see a navigation — /api/* included, which is how Safari, with no addRoutes, sees it —
+   it answers with the preloaded response and never asks again. An /api/* navigation gets no /offline stand-in: an
+   auth answer is never replaced by a page. */
+
+const VERSION = 'v44';
 const SHELL = `shell-${VERSION}`;
 const ASSETS = `assets-${VERSION}`;
 const OFFLINE = '/offline';
@@ -57,6 +66,8 @@ function routeStatically(event) {
   if (typeof event.addRoutes !== 'function' || typeof URLPattern !== 'function') return null;
   const handled = { or: [{ requestMode: 'navigate' }, ...CACHED.map((pathname) => ({ urlPattern: new URLPattern({ pathname }) }))] };
   return Promise.resolve(event.addRoutes([
+    // Auth.js, the rates and the purge: never the worker's, so never preloaded and never asked twice.
+    { condition: { urlPattern: new URLPattern({ pathname: '/api/*' }) }, source: 'network' },
     { condition: handled, source: 'fetch-event' },
     { condition: { urlPattern: new URLPattern({ pathname: '/*' }) }, source: 'network' },
   ])).catch(() => {});
@@ -91,28 +102,30 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   const { request } = event;
-  if (request.method !== 'GET') return;
 
-  const url = new URL(request.url);
-  if (url.origin !== self.location.origin) return;
-
-  // Never touch authentication, and never cache anything it returns.
-  if (url.pathname.startsWith('/api/')) return;
-
-  if (request.mode === 'navigate') {
-    // The preloaded response when there is one (never cached: it is a household's page), else the network; with
-    // neither, the offline screen.
+  /* Every navigation first, before any early return: the preload (GET navigations only) has already gone out, and
+     its response is the answer. Fetched again only when there was no preload; never a second time after one. */
+  if (request.mode === 'navigate' && request.method === 'GET') {
+    const api = new URL(request.url).pathname.startsWith('/api/');
     event.respondWith((async () => {
       try {
         const preloaded = await event.preloadResponse;
         if (preloaded) return preloaded;
         return await fetch(request);
       } catch {
-        return (await caches.match(OFFLINE)) ?? Response.error();
+        // The offline screen for a page; for authentication (an /api/* navigation), only the failure itself.
+        return api ? Response.error() : ((await caches.match(OFFLINE)) ?? Response.error());
       }
     })());
     return;
   }
+
+  if (request.method !== 'GET') return;
+  const url = new URL(request.url);
+  if (url.origin !== self.location.origin) return;
+
+  // Never touch authentication, and never cache anything it returns.
+  if (url.pathname.startsWith('/api/')) return;
 
   // Content-hashed assets: safe to keep, and the reason a second visit is fast.
   const cacheable = CACHED.some((p) => (p.endsWith('*') ? url.pathname.startsWith(p.slice(0, -1)) : url.pathname === p));
