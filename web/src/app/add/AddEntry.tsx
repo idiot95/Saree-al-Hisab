@@ -107,6 +107,10 @@ export default function AddEntry({
   /* A save with bills still on its way after SAVE_PATIENCE_MS: it is waited for (the phone's queue cannot hold bills),
      and this says so rather than leaving "Saving…" alone. */
   const [slow, setSlow] = useState(false);
+  /* Its timer is the component's: a drawer closed (or the screen left) while bills are still sending must not set
+     state on a form that is gone. */
+  const slowTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  useEffect(() => () => clearTimeout(slowTimer.current), []);
   /* The bank message this entry is made from, until it has been saved or kept once: a second entry typed on the
      same screen afterwards is a different entry, and must not be mistaken for a retry of the first. */
   const smsRef = useRef(fromSms?.clientRef ?? null);
@@ -266,8 +270,8 @@ export default function AddEntry({
         /* With bills attached there is no race: the phone's queue cannot hold them, so the real answer is waited
            for and the bills go with the entry. */
         if (d.attachments?.length) {
-          const later = setTimeout(() => setSlow(true), SAVE_PATIENCE_MS);
-          try { r = await sending; } finally { clearTimeout(later); setSlow(false); }
+          slowTimer.current = setTimeout(() => setSlow(true), SAVE_PATIENCE_MS);
+          try { r = await sending; } finally { clearTimeout(slowTimer.current); slowTimer.current = undefined; setSlow(false); }
         } else {
           r = await Promise.race([sending, new Promise<'slow'>((res) => setTimeout(() => res('slow'), SAVE_PATIENCE_MS))]);
         }
