@@ -259,7 +259,7 @@ function useReorder(ids: string[], onCommit: (ids: string[]) => void) {
   });
 
   const shift = (id: string): React.CSSProperties => {
-    const ease = 'transform .18s cubic-bezier(.2,.8,.2,1)';
+    const ease = 'transform var(--dur-2) var(--ease-out)';
     if (!drag) return { transition: ease };
     const i = ids.indexOf(id);
     if (id === drag.id) {

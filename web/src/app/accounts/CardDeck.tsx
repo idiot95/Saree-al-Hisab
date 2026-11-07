@@ -82,7 +82,7 @@ export default function CardDeck({ cards, canWrite }: { cards: CardInfo[]; canWr
             <button key={c.edit.id} type="button" onClick={() => go(i)}
               aria-label={`Card ${i + 1} of ${cards.length}`} aria-current={i === at ? 'true' : undefined}
               className="group flex size-11 items-center justify-center p-0 in-data-[platform=android]:size-12">
-              <span aria-hidden className={cn('h-[7px] rounded-full transition-[width,background-color] duration-200',
+              <span aria-hidden className={cn('h-[7px] rounded-full transition-[width,background-color] duration-(--dur-2)',
                 i === at ? 'w-[18px] bg-foreground' : 'w-[7px] bg-input')} />
             </button>
           ))}

@@ -236,7 +236,7 @@ export default function SwipeRow({ actions, commit = true, grip = true, flush = 
         position: 'absolute', top: 0, bottom: 0, right: 0, display: 'flex',
         width: Math.max(W, -x),
         visibility: x === 0 && !drag ? 'hidden' : 'visible',
-        transition: x === 0 && !drag ? 'visibility 0s linear .24s' : 'none',
+        transition: x === 0 && !drag ? 'visibility 0s linear var(--dur-3)' : 'none',
       }}>
         {actions.map((a, i) => {
           const [bg, ink] = TONE[a.tone ?? 'neutral'];
@@ -251,7 +251,7 @@ export default function SwipeRow({ actions, commit = true, grip = true, flush = 
                 paddingLeft: fires ? 26 : 0, alignSelf: 'stretch',
                 background: bg, color: ink, opacity: armed && !fires ? 0 : 1,
                 fontSize: 'var(--step--2)', fontWeight: 600, letterSpacing: '.01em',
-                transition: 'flex .16s ease, opacity .12s ease, padding .16s ease',
+                transition: 'flex var(--dur-2) var(--ease-out), opacity var(--dur-1) var(--ease-out), padding var(--dur-2) var(--ease-out)',
                 ...(fires ? { alignItems: 'flex-start' } : {}),
               }}>
               {a.icon}
@@ -270,7 +270,7 @@ export default function SwipeRow({ actions, commit = true, grip = true, flush = 
           padding: flush ? 0 : grip ? '0 calc(var(--pad) + 28px) 0 var(--pad)' : '0 var(--pad)',
           touchAction: 'pan-y',
           transform: `translateX(${x}px)`,
-          transition: drag ? 'none' : 'transform .24s cubic-bezier(.2,.8,.2,1)',
+          transition: drag ? 'none' : 'transform var(--dur-3) var(--ease-out)',
         }}
       >
         {children}
@@ -285,7 +285,7 @@ export default function SwipeRow({ actions, commit = true, grip = true, flush = 
             }}>
             {/* "More": the one icon everybody reads as "this has actions". A left chevron read as Back. */}
             <svg width={18} height={18} viewBox="0 0 24 24" fill="currentColor" aria-hidden
-              style={{ transform: open ? 'rotate(90deg)' : 'none', transition: 'transform .2s ease' }}>
+              style={{ transform: open ? 'rotate(90deg)' : 'none', transition: 'transform var(--dur-2) var(--ease-out)' }}>
               <circle cx="12" cy="5.5" r="1.7" /><circle cx="12" cy="12" r="1.7" /><circle cx="12" cy="18.5" r="1.7" />
             </svg>
           </button>

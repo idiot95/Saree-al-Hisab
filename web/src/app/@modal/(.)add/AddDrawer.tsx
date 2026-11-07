@@ -30,8 +30,8 @@ export default function AddDrawer({ children, open = true, onClose }: {
   return (
     <Drawer open={open} onOpenChange={(o) => { if (!o) { if (onClose) onClose(); else router.back(); } }}>
       <DrawerContent data-add-drawer
-        overlayClassName="data-[state=open]:[animation-duration:240ms]! data-[state=open]:[animation-timing-function:cubic-bezier(.22,1,.36,1)]!"
-        className="bg-background data-[vaul-drawer-direction=bottom]:max-h-[79dvh] in-data-[platform=android]:data-[vaul-drawer-direction=bottom]:max-h-[86dvh] data-[state=open]:[animation-duration:240ms]! data-[state=open]:[animation-timing-function:cubic-bezier(.22,1,.36,1)]!">
+        overlayClassName="data-[state=open]:[animation-duration:var(--dur-3)]! data-[state=open]:[animation-timing-function:var(--ease-out)]!"
+        className="bg-background data-[vaul-drawer-direction=bottom]:max-h-[79dvh] in-data-[platform=android]:data-[vaul-drawer-direction=bottom]:max-h-[86dvh] data-[state=open]:[animation-duration:var(--dur-3)]! data-[state=open]:[animation-timing-function:var(--ease-out)]!">
         <DrawerTitle className="sr-only">New entry</DrawerTitle>
         <div className="flex min-h-0 flex-1 flex-col">{children}</div>
       </DrawerContent>

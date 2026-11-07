@@ -32,6 +32,10 @@ export function Figure({ minor, currency, sign = false, paise = false, className
       format={p.format}
       prefix={p.prefix}
       animated={live}
+      /* The roll is a flourish after a change, never something waited through: about 600ms, not the library's 900. */
+      transformTiming={{ duration: 600, easing: 'cubic-bezier(.22, 1, .36, 1)' }}
+      spinTiming={{ duration: 600, easing: 'cubic-bezier(.22, 1, .36, 1)' }}
+      opacityTiming={{ duration: 300, easing: 'ease-out' }}
       respectMotionPreference
       role="img"
       aria-label={format(minor, ccy, { sign, paise })}

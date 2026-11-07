@@ -50,7 +50,7 @@ export default function WealthView({ views, initial, items, potRates, metalRates
         {/* The bar is the shape; the legend under it is the record, word and figure for each class. */}
         <div aria-hidden="true" className="flex h-2.5 gap-0.5 overflow-hidden rounded-full bg-hero-foreground/15">
           {whole > 0 && inBar.map((p) => (
-            <span key={p.key} className={`${p.swatch} basis-0 transition-[flex-grow] duration-500 ease-out`}
+            <span key={p.key} className={`${p.swatch} basis-0 transition-[flex-grow] duration-(--dur-flourish) ease-out`}
               style={{ flexGrow: p.value }} />
           ))}
         </div>
