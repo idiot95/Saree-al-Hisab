@@ -8,6 +8,7 @@ import HijriCalendar, { MONTHS, civil, hijriSpan, type DayMarks } from '../Hijri
 import { cn } from '@/lib/utils';
 import { haptic } from '../haptics';
 import DueRow from './DueRow';
+import { rowRule, rulePad } from '../form-bits';
 import { useMoney } from '@/app/currency';
 import { datesInMonth, describeRule, type Calendar as Cal } from '@/lib/recur';
 import { formatHijri, toHijri } from '@/lib/hijri';
@@ -211,7 +212,7 @@ export default function Calendar({ schedules, canWrite, today }: {
               }
               const income = it.s.kind === 'income';
               return (
-                <div key={`${it.s.id}:${it.dueOn}`} className="flex min-h-16 items-center gap-3 border-b border-border py-2.5">
+                <div key={`${it.s.id}:${it.dueOn}`} className={`relative flex min-h-16 items-center gap-3 py-2.5 ${rowRule} ${rulePad} last:after:hidden`}>
                   <span className={cn('grid size-10 flex-none place-items-center rounded-[12px]',
                     settled ? 'bg-muted text-muted-foreground' : 'bg-attention-soft text-attention-soft-foreground')}>
                     <Icon name={it.s.icon ?? 'autodebit'} size={19} />
