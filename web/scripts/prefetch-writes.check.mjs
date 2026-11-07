@@ -55,6 +55,9 @@ try {
   const browser = await chromium.launch();
   const ctx = await browser.newContext({ ...pixel, storageState: STATE, baseURL: BASE, serviceWorkers: 'block' });
   const page = await ctx.newPage();
+  /* Opening the app purges old message text (Housekeeping → POST /api/sms/purge, 2.5s after a load): a write a
+     visit makes on purpose, never a prefetch. Held back here so the log holds only what the renders did. */
+  await page.route('**/api/sms/purge', (r) => r.abort());
   const rsc = [];
   page.on('request', (r) => { if (/[?&]_rsc=/.test(r.url())) rsc.push(new URL(r.url()).pathname + (r.headers()['next-router-prefetch'] ? ' (tree)' : '')); });
   for (const s of SCREENS) {

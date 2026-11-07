@@ -10,7 +10,8 @@
    (src/auth.config.ts `proxyAuth`), so a revoked cookie passes it and has to be refused by the authorisation
    boundary behind it, contextFor. This proves that it is, on all three kinds of door: a page (Activity, which lists
    a known entry), a Server Action (checkDuplicate, which returns a matching entry), and a route handler
-   (/attachment/[id], with a throwaway bill this script inserts and deletes). The same cookie gets the data while
+   (/attachment/[id], with a throwaway bill this script inserts and deletes; and the two POST endpoints the screens
+   call, /api/rates and /api/sms/purge, which answer 401). The same cookie gets the data while
    fresh and none once revoked, and the revoked page's answer carries the page's CSP header, so it came from the
    page and not from the proxy. A forged and an expired cookie are still sent to /signin by the proxy itself.
 
@@ -121,6 +122,10 @@ try {
   const a1 = await action(new Map(oldCopy));
   ok(a1.status === 200 && !a1.redirect && a1.body.includes(hit.merchant),
     `fresh: the Server Action returns the entry (${a1.status})`);
+  const api = async (path, m) => (await fetch(B + path, { method: 'POST', redirect: 'manual',
+    headers: { cookie: cookieHeader(m), origin: B } })).status;
+  ok(await api('/api/rates', new Map(oldCopy)) === 200, 'fresh: POST /api/rates answers');
+  ok(await api('/api/sms/purge', new Map(oldCopy)) === 200, 'fresh: POST /api/sms/purge answers');
   const f1 = await file(new Map(oldCopy));
   ok(f1.status === 200 && f1.bytes.equals(PNG), `fresh: the route handler serves the bill (${f1.status})`);
 
@@ -142,6 +147,8 @@ try {
   ok(!a2.body.includes(hit.merchant), 'revoked: the Server Action returns no entry');
   ok(new URL(a2.redirect.split(';')[0] || 'x:', B).pathname === '/signin',
     `revoked: the Server Action redirects to /signin (${a2.status} ${a2.redirect})`);
+  ok(await api('/api/rates', new Map(oldCopy)) === 401, 'revoked: POST /api/rates is refused (401)');
+  ok(await api('/api/sms/purge', new Map(oldCopy)) === 401, 'revoked: POST /api/sms/purge is refused (401)');
   const f2 = await file(new Map(oldCopy));
   ok(f2.status === 404 && !f2.bytes.includes(PNG), `revoked: the route handler answers 404 (${f2.status})`);
 

@@ -864,7 +864,7 @@ session with `proxyAuth` from `src/auth.config.ts`: the shared Auth.js settings 
 that only decrypts and checks expiry. A forged or expired cookie is still sent to `/signin` by the proxy; a revoked
 one passes it and is refused one step later by **contextFor**, which every page and Server Action reaches through
 `src/db/queries.ts` (`actorOrNull`/`currentActor`) and so do both route handlers that read the actor
-(`/attachment/[id]`, `/attachment/h/[id]`: a plain 404). `/api/auth/[...nextauth]` is Auth.js with the full jwt
+(`/attachment/[id]`, `/attachment/h/[id]`: a plain 404; `/api/rates` and `/api/sms/purge`: a 401). `/api/auth/[...nextauth]` is Auth.js with the full jwt
 callback; `/api/capture/sms` is outside the proxy and answers to its bearer key alone. A page with a `loading.tsx`
 streams its frame before it runs, so a revoked cookie there sees the frame and then the in-stream redirect to
 `/signin`, never data. `src/auth.config.ts` must never import `src/db` — the built proxy
@@ -1315,8 +1315,12 @@ draft statements live in `src/lib/sms-draft.ts` (handle-taking, so the
 invariants run them): accept and dismiss null the body at once and stamp
 `decided_at` (0039); `restoreDraftIn` is Undo for 15 minutes;
 `purgeSmsBodiesIn` nulls the text of anything decided or older than 30 days,
-called after From SMS (`/entries?f=sms`) renders, as the message screen renders, and on every
-arrival at the endpoint — there is no scheduler. Dismissing on the message
+called after From SMS (`/entries?f=sms`) renders, as the message screen renders, on every
+arrival at the endpoint, and **on every app open** — there is no scheduler. The last is the reliable one (v3.1 P5,
+p2-review N1): `Housekeeping` in the root layout POSTs `/api/sms/purge` 2.5s after each page load for anyone in a
+household (a POST, so never prefetched; currentActor first), because a household can go weeks without opening From
+SMS and Activity, which everyone opens, is prefetched and may not write. `/terms` says the text goes the next time
+anyone opens the app after the 30 days. Dismissing on the message
 screen redirects to `/entries?f=sms&dismissed=<id>`, which offers the Undo. The address a phone is given is `AUTH_URL` when set (production must set it), else the request's host;
 `lib/capture-origin.ts` decides, and on a Vercel preview host (a `vercel.app` host that is not
 `VERCEL_PROJECT_PRODUCTION_URL`, or `VERCEL_ENV=preview`) the screen warns that the address and keys made there die

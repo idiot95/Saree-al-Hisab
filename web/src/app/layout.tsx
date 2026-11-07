@@ -8,6 +8,7 @@ import { Suspense } from 'react';
 import NavTrail from './NavTrail';
 import RegisterSW from './RegisterSW';
 import SyncQueue from './SyncQueue';
+import Housekeeping from './Housekeeping';
 import PendingSkeleton from './PendingSkeleton';
 import InstantAdd from './add/InstantAdd';
 import localFont from 'next/font/local';
@@ -117,6 +118,7 @@ export default async function RootLayout({ children, modal }: { children: React.
           {modal}
           {/* The same drawer, opened on the tab bar's tap before /add has arrived (add/instant.ts). */}
           {actor?.household_id && <Suspense fallback={null}><InstantAdd householdId={actor.household_id} /></Suspense>}
+          {actor?.household_id && <Housekeeping />}
           <SyncQueue />
           {/* It reads the query (a same-screen change is done when the query is), so it needs a boundary too. */}
           <Suspense fallback={null}><PendingSkeleton /></Suspense>
