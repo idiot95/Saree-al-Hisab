@@ -122,10 +122,15 @@ try {
   const a1 = await action(new Map(oldCopy));
   ok(a1.status === 200 && !a1.redirect && a1.body.includes(hit.merchant),
     `fresh: the Server Action returns the entry (${a1.status})`);
-  const api = async (path, m) => (await fetch(B + path, { method: 'POST', redirect: 'manual',
-    headers: { cookie: cookieHeader(m), origin: B } })).status;
-  ok(await api('/api/rates', new Map(oldCopy)) === 200, 'fresh: POST /api/rates answers');
-  ok(await api('/api/sms/purge', new Map(oldCopy)) === 200, 'fresh: POST /api/sms/purge answers');
+  const api = async (path, m, origin = B) => (await fetch(B + path, { method: 'POST', redirect: 'manual',
+    headers: { cookie: cookieHeader(m), origin } })).status;
+  /* 429 is an answer too: the household's six a minute may be spent by the screens loaded before this run. */
+  const answers = (st) => st === 200 || st === 429;
+  ok(answers(await api('/api/rates', new Map(oldCopy))), 'fresh: POST /api/rates answers');
+  ok(answers(await api('/api/sms/purge', new Map(oldCopy))), 'fresh: POST /api/sms/purge answers');
+  ok(await api('/api/rates', new Map(oldCopy), 'https://elsewhere.example') === 403
+    && await api('/api/sms/purge', new Map(oldCopy), 'https://elsewhere.example') === 403,
+  'fresh, but from another origin: both POST endpoints answer 403');
   const f1 = await file(new Map(oldCopy));
   ok(f1.status === 200 && f1.bytes.equals(PNG), `fresh: the route handler serves the bill (${f1.status})`);
 
