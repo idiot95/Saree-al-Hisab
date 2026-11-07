@@ -117,8 +117,8 @@ capture_token, sms_draft). Where an older section disagrees, this wins.
   bills + duplicates and From SMS's is open drafts, so the two add up to Home's tile. The month pill and search
   belong to All (`?m=`, `?q=`, `?c=` as before); Upcoming keeps its own calendar month; review and SMS are not
   month-filtered. `/inbox` and `/schedules` are redirects that keep every param (`/inbox?dismissed=` goes to
-  `?f=sms`); `/inbox/sms/[id]` stays the message screen and returns to `/entries?f=sms`. `purgeSmsBodies`, the
-  badge counts and the chip's reads run in one transaction on every render. Chips replace the address, and the
+  `?f=sms`); `/inbox/sms/[id]` stays the message screen and returns to `/entries?f=sms`. The badge counts and the chip's
+  reads run in one transaction on every render; `purgeSmsBodies` runs on From SMS only, after the response. Chips replace the address, and the
   Back trail replaces its last `/entries` step to match. An entry opened from a chip carries `from=` (duplicates →
   `?f=review`, the calendar drawer → `?f=upcoming`), and Back, Save and Delete return there: `entries/back.ts`
   `safeBack` is the one exact list of where they may go (`scripts/activity-taps.mjs` drives chips, redirects
@@ -270,7 +270,9 @@ is no override. Each cleanup deletes only rows the run made, by id or by a run-u
   `sms-taps.mjs` (a forwarded message to a draft, Review, Save, Dismiss and Undo), `accounts-taps.mjs` (a balance
   and a reconciliation Figure, cards after a refusal, a way to pay, a regular payment, categories, an invitation, a
   claim — each success's focus and announcement), `offline-taps.mjs` (the worker, /offline, a queued entry draining
-  into one row), and `drawers.check.mjs` (Wealth's drawers: Close, 86dvh, focus back). Run any as `node
+  into one row), `drawers.check.mjs` (Wealth's drawers: Close, 86dvh, focus back), `nav-taps.mjs` (the tap frame, the dim and the
+  press under real touches) and `prefetch-writes.check.mjs` (no write while prefetched screens load; it switches the
+  local cluster's statement logging on and back off). `nav-timing.mjs` times every navigation (see Motion). Run any as `node
   scripts/<name>.mjs` (most take `--state`, some `--shots dir`; add, plan, loans, activity, sms and offline take
   `--keep`, accounts and drawers.check do not). The sweep's summary line says how many screen-states it measured,
   per engine pass.
@@ -1227,7 +1229,7 @@ draft statements live in `src/lib/sms-draft.ts` (handle-taking, so the
 invariants run them): accept and dismiss null the body at once and stamp
 `decided_at` (0039); `restoreDraftIn` is Undo for 15 minutes;
 `purgeSmsBodiesIn` nulls the text of anything decided or older than 30 days,
-called as `/entries` and the message screen render and on every
+called after From SMS (`/entries?f=sms`) renders, as the message screen renders, and on every
 arrival at the endpoint — there is no scheduler. Dismissing on the message
 screen redirects to `/entries?f=sms&dismissed=<id>`, which offers the Undo. The address a phone is given is `AUTH_URL` when set (production must set it), else the request's host;
 `lib/capture-origin.ts` decides, and on a Vercel preview host (a `vercel.app` host that is not
@@ -1835,9 +1837,12 @@ timings**, in `ql.css`: `--dur-press` 90ms, `--dur-1` 120 (fades, small state; T
 anything waited through), `--dur-flourish` 420 (after arrival only: the tab icon's pop, `.check-draw`); curves as
 Tailwind easings — `ease-out` (enters), `ease-in` (exits), `ease-press`, `ease-ios` (drags, follow-through),
 `ease-spring`. Use them; no one-off durations. Drawers keep vaul's own timing for drags and closing; the Add drawer
-opens on `--dur-3`. NumberFlow rolls in about 600ms. **Press feedback is drawn at pointerdown**: NavLink sets
-`data-pressed` (a phone paints `:active` only around the release) and drops it when the finger lifts, leaves, or
-drags past 10px; `.press` scales on it and every link dims (`data-pressed:opacity-75`). Reduced motion shortens all
+opens on `--dur-3`. NumberFlow rolls in about 600ms. **Press feedback is drawn by hand**: NavLink sets
+`data-pressed` (a phone paints `:active` only around the release) 50ms after the finger lands if it has stayed
+within 3px, else on the lift for a tap (held 100ms); a touch the browser takes for a scroll, a 10px drift or a leave
+never draws it. The tab bar, where nothing scrolls, presses at once (`pressNow`), and the frame is rendered the frame
+after the tap so the press is painted first. `.press` scales on it and every link dims (`data-pressed:opacity-75`). A tab lights as the
+finger lands and is put back if the touch ends anywhere but on it. Reduced motion shortens all
 of it to nothing. `scripts/nav-timing.mjs` measures tap → first changed pixel and tap → content for every route at
 Pixel 7, 4× CPU, +150ms, and fails on feedback over 50ms, any blank frame, or Home → profile content over 450ms.
 
@@ -1846,17 +1851,29 @@ Pixel 7, 4× CPU, +150ms, and fails on feedback over 50ms, any blank frame, or H
 `startPending(href, motion)`; the overlay draws `SkeletonFor(path)` with no grace period under the real tab bar (the
 path keeps its query), and comes down when the destination's `<Screen>` lands (`Landed`, a layout effect;
 `error.tsx` and `not-found.tsx` carry it too), when the address goes somewhere else (a redirect, another tab), or
-after 10s — so a route whose loading frame the phone did not know never shows a blank page. It then dissolves over
-`--dur-1` while the screen underneath is already live: content never waits for an animation. `frameFor` in
+after 10s — so a route whose loading frame the phone did not know never shows a blank page. In that commit it stops
+where its entry had got to (never moving on over the arrived screen), takes no taps, and fades over `--dur-1` on
+`ease-out`: content never waits for an animation. A tap to the address already on screen supersedes whatever was
+pending (Next drops that navigation, so nothing would land to clear it); a same-screen dim ends when the query
+leaves the one it started on; the Add drawer put away before its /add landed clears that /add's frame.
+`scripts/nav-taps.mjs` holds these: a superseded push and chip, no ghost over a prefetched push at 1×, no press on a
+scroll, a tab lit then slid off, `?saved=`. `frameFor` in
 `Skeleton.tsx` is the one map from a path to its frame, and every loading.tsx draws from it, so the frame on tap and
 the frame the server streams are the same picture.
 
-**Prefetch is deliberate** (`NavLink`). A link does not prefetch, except the five tabs (not the one you are on) and
-Home's four doors (the avatar, the month card, net worth, owed to you), which pass `prefetch` and are fetched whole
-as they come into view, so their tap needs no server render. `prefetch="auto"` (down to the loading frame) was
-measured and was worse: the frame committed first and React held the content for its 300ms reveal throttle. Whole
-prefetches are trusted 30s (`staleTimes.static`, the same as a visited screen) and every write empties them. A Home
-view costs about six such renders, ~100KB uncompressed.
+**Prefetch is deliberate** (`NavLink`). A link does not prefetch, except the tabs (not the one you are on) and Home's
+doors (the avatar, the month card, owed to you), which pass `prefetch` and are fetched whole as they come into view,
+so their tap needs no server render. `prefetch="auto"` (down to the loading frame) was measured and was worse: the
+frame committed first and React held the content for its 300ms reveal throttle. Whole prefetches are trusted 30s
+(`staleTimes.static`, the same as a visited screen) and every write empties them. **A prefetched render only
+reads**: Next sends a whole prefetch's data request without any prefetch header, so a render cannot tell it from a
+visit; anything that writes stays off prefetched screens. Wealth refreshes the day's rates as it renders (provider
+calls and a `price_quote` write, so the figures are fresh when opened) and is never prefetched; Activity's
+`purgeSmsBodies` runs only on From SMS, in `after()` (the message screen and the capture endpoint purge too).
+`scripts/prefetch-writes.check.mjs` logs every data-changing statement on the local cluster while Home, Loans, the
+household and Activity load with all their prefetches, and fails on any (with From SMS's purge as the control that
+the log sees writes). A Home view costs four whole prefetches (Activity, Loans, the household, Plan), about 90KB
+uncompressed.
 
 **Undo instead of "Are you sure"** (`src/app/Snack.tsx`): delete and retire
 happen at once and can be taken back for fifteen minutes — `removeEntry` sets

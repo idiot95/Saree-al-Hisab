@@ -9,11 +9,14 @@
    .sweep-state.json, which `node scripts/sweep.mjs --login …` writes). It only reads: nothing is saved.
 
    For each route, from the moment the finger lifts (the `click`; the finger is held 80ms, as a real tap is):
-     · feedback — the first screencast frame after the finger came down, i.e. the first pixel that changed. Taken
-       from finger-up, so a press state drawn while the finger is still down counts as 0 (shown as ≤0).
+     · feedback — the first screencast frame after the finger came down whose pixels changed where it counts:
+       inside the tapped element's box, or anywhere while the tap's frame or same-screen dim is up. Anything else
+       moving on the page (a shimmer, a figure rolling) does not count. Taken from finger-up, so a press drawn while
+       the finger is still down counts as 0 (shown as ≤0).
      · content  — the first painted frame once the destination is really there: the address is the target's, no
-       pending frame covers it, no shimmer is left outside one, and its <main> has text (for the Add drawer: the
-       dialog has stopped moving).
+       pending frame covers it (a leaving one counts until it has faded below half opacity), no shimmer is left
+       outside one, and its <main> has text (for the Add drawer: the dialog has stopped moving).
+     · fade     — how long a leaving frame stayed above half opacity over the arrived screen.
      · blank    — how long the screen showed nothing: no frame, no <main>, or no text outside the tab bar.
      · vt       — view transitions started; rsc — server renders the tap asked for (navigations + prefetches).
    Medians over --reps runs, each in a fresh context.
@@ -27,6 +30,7 @@ import { fileURLToPath } from 'node:url';
 
 const require = createRequire(import.meta.url);
 const { chromium, devices } = require('playwright');
+const sharp = require('sharp');
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(HERE, '..');
@@ -66,6 +70,7 @@ function instrument() {
     return {
       t: now(), url: location.pathname + location.search,
       overlay: live.length > 0, overlayAny: ovs.length > 0,
+      ovOp: Math.max(0, ...ovs.filter((o) => o.hasAttribute('data-leaving')).map((o) => parseFloat(getComputedStyle(o).opacity))),
       main: mains.length, text: text.length, shim,
       dim: document.documentElement.hasAttribute('data-pending-same'),
       dialogTop: dialog ? Math.round(dialog.getBoundingClientRect().top) : null,
@@ -101,7 +106,7 @@ async function setup(browser) {
   }
   const frames = [];
   cdp.on('Page.screencastFrame', (f) => {
-    frames.push(f.metadata.timestamp * 1000);
+    frames.push({ ts: f.metadata.timestamp * 1000, data: f.data });
     cdp.send('Page.screencastFrameAck', { sessionId: f.sessionId }).catch(() => {});
   });
   const reqs = [];
@@ -121,6 +126,25 @@ async function tap(page, cdp, loc) {
   await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y }] });
   await page.waitForTimeout(HOLD);
   await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  return b;
+}
+
+/* Mean absolute difference of two screencast frames (JPEG, base64), over a box in CSS pixels or the whole frame. */
+const decoded = new Map();
+async function pixels(data) {
+  if (!decoded.has(data)) decoded.set(data, await sharp(Buffer.from(data, 'base64')).removeAlpha().raw().toBuffer({ resolveWithObject: true }));
+  return decoded.get(data);
+}
+async function diff(a, b, box) {
+  const A = await pixels(a), B = await pixels(b);
+  const { width: w, height: h, channels: c } = A.info;
+  if (B.info.width !== w || B.info.height !== h) return 255;
+  const k = w / 412;
+  const x0 = box ? Math.max(0, Math.floor(box.x * k)) : 0, x1 = box ? Math.min(w, Math.ceil((box.x + box.width) * k)) : w;
+  const y0 = box ? Math.max(0, Math.floor(box.y * k)) : 0, y1 = box ? Math.min(h, Math.ceil((box.y + box.height) * k)) : h;
+  let sum = 0, n = 0;
+  for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) for (let i = 0; i < c; i++) { const o = (y * w + x) * c + i; sum += Math.abs(A.data[o] - B.data[o]); n++; }
+  return n ? sum / n : 0;
 }
 
 const tabLink = (href) => `nav[aria-label=Main] a[href="${href}"]`;
@@ -163,9 +187,9 @@ async function once(browser, r) {
     await page.evaluate(() => { window.__nav.marks.length = 0; window.__nav.samples.length = 0; window.__nav.vt = 0; });
     await cdp.send('Page.startScreencast', { format: 'jpeg', quality: 20, maxWidth: 412, maxHeight: 915, everyNthFrame: 1 });
     await page.waitForTimeout(500);
-    frames.length = 0; reqs.length = 0;
+    reqs.length = 0;
     const origin = await page.evaluate(() => performance.timeOrigin);
-    await tap(page, cdp, page.locator(r.sel).first());
+    const box = await tap(page, cdp, page.locator(r.sel).first());
     await page.waitForTimeout(WATCH);
     await cdp.send('Page.stopScreencast');
     const nav = await page.evaluate(() => window.__nav);
@@ -173,7 +197,7 @@ async function once(browser, r) {
     const up = nav.marks.find((m) => m.n === 'up')?.t;
     if (down === undefined || up === undefined) throw new Error('the tap did not register');
     const epoch = (t) => origin + t;
-    const painted = (t) => { const f = frames.find((x) => x >= epoch(t)); return f === undefined ? null : f - epoch(up); };
+    const painted = (t) => { const f = frames.find((x) => x.ts >= epoch(t)); return f === undefined ? null : f.ts - epoch(up); };
     const S = nav.samples.filter((s) => s.t >= down);
     let readyAt = null;
     if (r.dialog) {
@@ -182,7 +206,7 @@ async function once(browser, r) {
       const at = S.find((s) => s.dialogTop !== null && s.dialogForm && Math.abs(s.dialogTop - fin) <= 1);
       readyAt = at ? at.t : null;
     } else {
-      const at = S.find((s) => r.to.test(s.url) && !s.overlay && !s.dim && s.main > 0 && s.text > 20 && !s.shim);
+      const at = S.find((s) => r.to.test(s.url) && !s.overlay && !(s.ovOp > 0.5) && !s.dim && s.main > 0 && s.text > 20 && !s.shim);
       readyAt = at ? at.t : null;
     }
     let blank = 0;
@@ -194,16 +218,32 @@ async function once(browser, r) {
     if (DEBUG) {
       let last = '';
       for (const s of S) {
-        const k = `${s.url} ov=${s.overlay ? 1 : s.overlayAny ? 'L' : 0} main=${s.main} text=${s.text} shim=${s.shim ? 1 : 0} dim=${s.dim ? 1 : 0} dlg=${s.dialogTop}`;
+        const k = `${s.url} ov=${s.overlay ? 1 : s.overlayAny ? 'L' : 0} main=${s.main} text=${s.text} shim=${s.shim ? 1 : 0} dim=${s.dim ? 1 : 0} op=${s.ovOp.toFixed(1)} dlg=${s.dialogTop}`;
         if (k !== last) { console.log(`   ${Math.round(s.t - up)}ms ${k}`); last = k; }
       }
       for (const q of reqs) console.log(`   req ${q.pf ? 'PF ' : ''}${q.url.slice(0, 60)} ${Math.round(q.at - epoch(up))} → ${q.end ? Math.round(q.end - epoch(up)) : '?'}`);
     }
-    const firstFrame = frames.find((x) => x > epoch(down) + 1);
+    /* The first frame after the finger landed that changed in the tapped box, or anywhere while the tap's frame or
+       dim was up (the sample nearest before the frame says which). */
+    const base = [...frames].reverse().find((f) => f.ts <= epoch(down));
+    let firstFrame;
+    for (const f of frames.filter((x) => x.ts > epoch(down) + 1)) {
+      if (!base) { firstFrame = f.ts; break; }
+      const t = f.ts - origin;
+      const s = [...nav.samples].reverse().find((x) => x.t <= t);
+      if (DEBUG) console.log(`   frame ${Math.round(f.ts - epoch(up))}ms box Δ${(await diff(base.data, f.data, box)).toFixed(2)} all Δ${(await diff(base.data, f.data)).toFixed(2)} ov=${s?.overlayAny ? 1 : 0} dim=${s?.dim ? 1 : 0}`);
+      if (await diff(base.data, f.data, box) > 1.5 || ((s?.overlayAny || s?.dim) && await diff(base.data, f.data) > 0.5)) { firstFrame = f.ts; break; }
+    }
+    decoded.clear();
+    /* How long a leaving frame stayed above half opacity over the arrived screen. */
+    const leaving = S.find((x) => x.overlayAny && !x.overlay);
+    const faded = leaving ? S.find((x) => x.t >= leaving.t && !(x.ovOp > 0.5)) : null;
+    const fade = leaving && faded ? Math.round(faded.t - leaving.t) : null;
     return {
       up: Math.round(up - down),
       feedback: firstFrame === undefined ? null : Math.round(firstFrame - epoch(up)),
       content: readyAt === null ? null : Math.round(painted(readyAt)),
+      fade,
       blank: Math.round(blank),
       vt: nav.vt,
       rsc: reqs.filter((q) => !q.pf).length, pf: reqs.filter((q) => q.pf).length,
@@ -235,6 +275,7 @@ for (const r of ROUTES) {
   const ok = runs.filter((x) => !x.error);
   const row = {
     name: r.name, key: r.key, runs,
+    fade: median(ok.map((x) => x.fade)),
     up: median(ok.map((x) => x.up)), feedback: median(ok.map((x) => x.feedback)), content: median(ok.map((x) => x.content)),
     blank: Math.max(0, ...ok.map((x) => x.blank)), vt: median(ok.map((x) => x.vt)),
     rsc: median(ok.map((x) => x.rsc)), pf: median(ok.map((x) => x.pf)),
@@ -242,7 +283,7 @@ for (const r of ROUTES) {
   };
   rows.push(row);
   const fb = row.feedback === null ? '—' : row.feedback <= 0 ? '≤0' : row.feedback;
-  console.log(`${r.name.padEnd(38)} feedback ${String(fb).padStart(4)}  content ${String(row.content ?? '—').padStart(5)}  blank ${String(row.blank).padStart(4)}  vt ${row.vt}  rsc ${row.rsc}+${row.pf}pf${row.errors.length ? `  errors: ${row.errors.join(' | ')}` : ''}`);
+  console.log(`${r.name.padEnd(38)} feedback ${String(fb).padStart(4)}  content ${String(row.content ?? '—').padStart(5)}  blank ${String(row.blank).padStart(4)}  fade ${String(row.fade ?? '—').padStart(3)}  vt ${row.vt}  rsc ${row.rsc}+${row.pf}pf${row.errors.length ? `  errors: ${row.errors.join(' | ')}` : ''}`);
 }
 await browser.close();
 if (JSON_OUT) fs.writeFileSync(JSON_OUT, JSON.stringify({ at: new Date().toISOString(), lat: LAT, cpu: CPU, reps: REPS, rows }, null, 1));
