@@ -17,9 +17,20 @@
    names, so the whole thing is a self-consistent snapshot: the nonce in its
    cached headers is the nonce in its cached markup, and the chunks it asks
    for are the chunks that were cached beside it. Bump VERSION when the
-   offline screen changes, so the snapshot is taken again. */
+   offline screen changes, so the snapshot is taken again.
 
-const VERSION = 'v42';
+   Idle cost (v3.1 P5, perf row 10). A request the worker handles has to wake it first, which after half a minute
+   idle is 25–45ms on a laptop and more on a cheap phone — paid on every tap's RSC fetch, though the handler only
+   ever passed those on. So:
+     · Where the browser has static routing (InstallEvent.addRoutes, Chromium), only navigations and the cached
+       assets (/_next/static, /icons, /brands, the manifest) are routed to this worker; everything else — RSC data,
+       Server Actions, /api, attachments — goes straight to the network without waking it. Safari has no addRoutes
+       and keeps doing exactly what it did: every request reaches the handler below, which passes the same ones on.
+     · Navigation preload: a document load starts its network request while the worker boots, and the handler
+       answers with that response. The /offline fallback is unchanged.
+   Nothing new is cached: no HTML, no RSC, nothing with a household's data in it. */
+
+const VERSION = 'v43';
 const SHELL = `shell-${VERSION}`;
 const ASSETS = `assets-${VERSION}`;
 const OFFLINE = '/offline';
@@ -37,8 +48,24 @@ function assetsNamedIn(html) {
   return [...found];
 }
 
+/* The assets the fetch handler caches; the static routes and the handler share this one list. */
+const CACHED = ['/_next/static/*', '/icons/*', '/brands/*', '/manifest.webmanifest'];
+
+/* Chromium's static routing: navigations and CACHED to this worker, the rest to the network without it. Rules are
+   read in order and the first that matches wins. Best effort: a browser that refuses a rule keeps the old path. */
+function routeStatically(event) {
+  if (typeof event.addRoutes !== 'function' || typeof URLPattern !== 'function') return null;
+  const handled = { or: [{ requestMode: 'navigate' }, ...CACHED.map((pathname) => ({ urlPattern: new URLPattern({ pathname }) }))] };
+  return Promise.resolve(event.addRoutes([
+    { condition: handled, source: 'fetch-event' },
+    { condition: { urlPattern: new URLPattern({ pathname: '/*' }) }, source: 'network' },
+  ])).catch(() => {});
+}
+
 self.addEventListener('install', (event) => {
+  const routed = routeStatically(event);
   event.waitUntil((async () => {
+    await routed;
     const shell = await caches.open(SHELL);
     // A fresh copy, never one the browser's own cache is holding on to.
     const page = await fetch(OFFLINE, { cache: 'reload', credentials: 'omit' });
@@ -53,13 +80,13 @@ self.addEventListener('install', (event) => {
 });
 
 self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys()
-      .then((keys) => Promise.all(
-        keys.filter((k) => k !== SHELL && k !== ASSETS).map((k) => caches.delete(k)),
-      ))
-      .then(() => self.clients.claim()),
-  );
+  event.waitUntil((async () => {
+    // A document's request starts while the worker is still waking; the handler answers with it.
+    if (self.registration.navigationPreload) await self.registration.navigationPreload.enable().catch(() => {});
+    const keys = await caches.keys();
+    await Promise.all(keys.filter((k) => k !== SHELL && k !== ASSETS).map((k) => caches.delete(k)));
+    await self.clients.claim();
+  })());
 });
 
 self.addEventListener('fetch', (event) => {
@@ -73,17 +100,22 @@ self.addEventListener('fetch', (event) => {
   if (url.pathname.startsWith('/api/')) return;
 
   if (request.mode === 'navigate') {
-    event.respondWith(
-      fetch(request).catch(() => caches.match(OFFLINE).then((r) => r ?? Response.error())),
-    );
+    // The preloaded response when there is one (never cached: it is a household's page), else the network; with
+    // neither, the offline screen.
+    event.respondWith((async () => {
+      try {
+        const preloaded = await event.preloadResponse;
+        if (preloaded) return preloaded;
+        return await fetch(request);
+      } catch {
+        return (await caches.match(OFFLINE)) ?? Response.error();
+      }
+    })());
     return;
   }
 
   // Content-hashed assets: safe to keep, and the reason a second visit is fast.
-  const cacheable = url.pathname.startsWith('/_next/static/')
-    || url.pathname.startsWith('/icons/')
-    || url.pathname.startsWith('/brands/')
-    || url.pathname === '/manifest.webmanifest';
+  const cacheable = CACHED.some((p) => (p.endsWith('*') ? url.pathname.startsWith(p.slice(0, -1)) : url.pathname === p));
   if (!cacheable) return;
 
   event.respondWith(

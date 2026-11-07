@@ -588,7 +588,7 @@ hidden input; there is no `<select>` of payment modes anywhere, because one
 listing every rail under every account showed "ICICI Amazon Pay" twice and
 read as nonsense. Wrap it in a `<div role="group">`, never a `<label>` — a
 label around buttons activates the first chip. The entries list shows the
-rail when there is one and the account when there is not. `sw.js` is v41 (v41: Instrument Serif dropped, the offline title is Inter bold; v37, Task 28: the offline Add's When drawer is shadcn Calendar now; v36 was the icon font gaining the Accounts, Categories and Scan glyphs).
+rail when there is one and the account when there is not. `sw.js` is v43 (v43, v3.1 P5: static routes and navigation preload, see "The service worker does not cache pages"; v41: Instrument Serif dropped, the offline title is Inter bold; v37, Task 28: the offline Add's When drawer is shadcn Calendar now; v36 was the icon font gaining the Accounts, Categories and Scan glyphs).
 Before Save, a debounced
 `checkDuplicate` shows what a household member already recorded within ±1% and
 ±2 days, which is the prevention half of the duplicate rule; the Inbox card is
@@ -1660,7 +1660,12 @@ has to come off the home screen and go back on.
 server-rendered from a household's books, so a cached page is somebody's
 finances sitting on disk for whoever picks the phone up next. Navigations go to
 the network every time and fall back to `/offline`. Content-hashed assets are
-cached, which is what makes a return visit instant.
+cached, which is what makes a return visit instant. **It wakes only for what it handles** (v3.1 P5): where the
+browser has static routing (`InstallEvent.addRoutes`, Chromium) only navigations and `/_next/static`, `/icons`,
+`/brands` and the manifest are routed to it, and every RSC fetch, Server Action and `/api` call goes straight to the
+network without waking an idle worker (25–45ms, more on a cheap phone); navigation preload starts a document's
+request while it boots. Safari ignores `addRoutes` and keeps the old path — the handler passes those requests on
+itself. Nothing new is cached.
 
 ### Recording without signal
 
@@ -1694,7 +1699,7 @@ storage after it opens. The design, in the order the pieces matter:
   person decides. Stuck entries are never retried on their own.
 - **`/offline` is `force-dynamic`** though it reads nothing, because every
   script tag carries the request's CSP nonce and a prerendered page ships
-  with none. The worker (`public/sw.js`, `VERSION = 'v41'`) fetches it once at
+  with none. The worker (`public/sw.js`, `VERSION = 'v43'`) fetches it once at
   install, `credentials: 'omit'`, together with every `/_next/static/` script
   and stylesheet the markup names, so the cached copy is a self-consistent
   snapshot: the nonce in its cached headers is the nonce in its cached
