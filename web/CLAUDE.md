@@ -71,8 +71,8 @@ capture_token, sms_draft). Where an older section disagrees, this wins.
   default variant, `solid`, Add's Save), never a faded plum.
 - **One chip** (v3.1 P3, ux-audit C1; `form-bits.tsx`): `chip` is drawn 32px (`h-8`, `px-3`, `text-subhead`,
   `min-w-12`, `rounded-full`, 1px border) and takes the tap over 44px (48 on Android) through an invisible absolute
-  `::after`; `chipOff` (card, `border-input`), `chipOn` (primary, the same weight so a lit chip never rewraps its
-  row), `chipQuiet`/`chipQuietOn` (Activity's kind filter: no ground until chosen, then plum soft), `chipRow`
+  `::after`; every chip is `font-medium`, lit or not (a bolder lit chip would widen and rewrap its row); `chipOff`
+  (card, `border-input`), `chipOn` (primary), `chipQuiet`/`chipQuietOn` (Activity's kind filter: no ground until chosen, then plum soft), `chipRow`
   (`gap-x-1.5 gap-y-3`, so wrapped rows' targets meet but never overlap), `countBadge` (18px), `statusPill` (24px,
   every read-only status: Owner, In use, Possibly the same thing, Retired, Exact match), `headerPill` (36px drawn,
   New tab), `monthPill`/`monthStep` (MonthPill and its frame, at a chip's height). Combine with `cn()` when adding
@@ -150,7 +150,10 @@ capture_token, sms_draft). Where an older section disagrees, this wins.
   and both returns against a running build). `Segments`/`ActivityNav` are gone. A card holding swipe rows keeps
   `px-[var(--pad)]`: SwipeRow's negative margin is `--pad`, and any other padding makes the card scrollable, so
   opening a row scrolls it and the scroll closes the row again. All's kind filter (Every kind · Spending · Income ·
-  Moves · Shared) is the same chip at its quiet weight, so the screen has one chip language (v3.1 P3); search says
+  Moves · Shared) is the same chip at its quiet weight, set edge to edge on the gutter, so the screen has one chip
+  language (v3.1 P3). Below 390px wide the long words are short — Review, SMS, All (kinds), Spent — so each row is
+  one line at 360: two spans swapped by `max-[389px]:` (form-bits `Words`, `ACTIVITY_CHIPS`, `KIND_SHORT`), the
+  chip's name the whole label, and the Activity frame draws the same words; search says
   "Search this month". On Upcoming, when something is due in the next two weeks, *Every regular payment* opens
   folded to one line ("Every regular payment · n", a `<details>`), since the dues above already list them; a due row
   wears the payment's own category chip and says late with an icon and the word.

@@ -15,11 +15,12 @@ export const danger = 'press flex min-h-12 items-center justify-center gap-2 rou
 
 /* One chip, app-wide (v3.1 P3, ux-audit C1). What is drawn is 32px; what takes the tap is 44 (48 on Android): an
    invisible ::after reaches 6px (8) past the border, so the shape stays small while the target stays honest. A chip
-   is never narrower than 48px, so "All" is a short pill, not a dot. A row of chips is `chipRow`: gap-y-3 is
+   is never narrower than 48px, so "All" is a short pill, not a dot. Every chip is font-medium, lit or not (the
+   colour is the answer, and a bolder lit chip would widen and rewrap its row). A row of chips is `chipRow`: gap-y-3 is
    32 + 12 = 44, so wrapped rows' targets meet but never overlap. Colours change over --dur-2; the press is the
    global .press scale. */
 /** The shape and the hit area. Add `chipOff`/`chipOn`, or a `choice()` style, for the colours. */
-export const chip = "press relative inline-flex h-8 min-w-12 max-w-full flex-none items-center justify-center gap-1.5 whitespace-nowrap rounded-full border px-3 text-subhead transition-colors duration-(--dur-2) after:absolute after:inset-x-0 after:-inset-y-[7px] after:content-[''] in-data-[platform=android]:after:-inset-y-[9px]";
+export const chip = "press relative inline-flex h-8 min-w-12 max-w-full flex-none items-center justify-center gap-1.5 whitespace-nowrap rounded-full border px-3 text-subhead font-medium transition-colors duration-(--dur-2) after:absolute after:inset-x-0 after:-inset-y-[7px] after:content-[''] in-data-[platform=android]:after:-inset-y-[9px]";
 /** Unchosen: white with a hairline in the field's ink (border-input), which is the darker of the two edges in dark. */
 export const chipOff = 'border-input bg-card font-medium text-foreground';
 /** Chosen: the primary plum. The same weight as unchosen, so lighting a chip never widens it and rewraps the row. */
@@ -27,8 +28,9 @@ export const chipOn = 'border-primary bg-primary font-medium text-primary-foregr
 /** The quiet weight of the same chip (Activity's kind filter): no ground until chosen, then plum soft. */
 export const chipQuiet = 'border-transparent bg-transparent px-2 font-medium text-muted-foreground';
 export const chipQuietOn = 'border-transparent bg-accent px-2 font-medium text-accent-foreground';
-/** Their row: closer set, and pulled out by the chip's padding so the first word sits on the gutter. */
-export const chipQuietRow = '-mx-2 flex flex-wrap gap-x-1 gap-y-3 in-data-[platform=android]:gap-y-4';
+/** Their row: set edge to edge (only the lit one has a ground, and each keeps its padding), its first pill on the
+ *  gutter like every card and chip on the screen, so the five fit on one line at 393px (and their short words at 360). */
+export const chipQuietRow = 'flex flex-wrap gap-x-0 gap-y-3 in-data-[platform=android]:gap-y-4';
 /** A wrapping row of chips. */
 export const chipRow = 'flex flex-wrap gap-x-1.5 gap-y-3 in-data-[platform=android]:gap-y-4';
 /** A count inside a chip (To review 3): 18px, its right edge tucked in so the chip's padding reads even. */
@@ -45,6 +47,30 @@ export const headerPill = "press relative inline-flex h-9 flex-none items-center
 /** A list row's hairline, the iOS way (ux-audit O22): from where the text starts (past a 40px chip and its 12px gap)
  *  to the card's right edge. On a relative row; the caller adds the right reach (after:-right-…) to the card's edge. */
 export const rowRule = "after:pointer-events-none after:absolute after:bottom-0 after:left-[52px] after:h-px after:bg-border after:content-['']";
+
+/* Activity's chips and kind filter, shared with their loading frame (Skeleton) so the two say the same words. Below
+   390px wide the long ones show a short word (the four views and the five kinds then each fit on one line at 360);
+   the switch is CSS, so the first paint is right, and the chip's name stays the whole label (aria-label). */
+export const ACTIVITY_CHIPS: { key: 'all' | 'review' | 'upcoming' | 'sms'; label: string; short?: string }[] = [
+  { key: 'all', label: 'All' },
+  { key: 'review', label: 'To review', short: 'Review' },
+  { key: 'upcoming', label: 'Upcoming' },
+  { key: 'sms', label: 'From SMS', short: 'SMS' },
+];
+export const KIND_WORDS: Record<string, string> = { all: 'Every kind', spending: 'Spending', income: 'Income', moves: 'Moves', shared: 'Shared' };
+export const KIND_SHORT: Record<string, string> = { all: 'All', spending: 'Spent' };
+
+/** A chip's words: the label, or below 390px its short form where it has one. Hidden from assistive tech either way;
+ *  the chip carries the full label as its name. */
+export function Words({ label, short }: { label: string; short?: string }) {
+  if (!short) return <span aria-hidden>{label}</span>;
+  return (
+    <>
+      <span aria-hidden className="max-[389px]:hidden">{label}</span>
+      <span aria-hidden className="hidden max-[389px]:inline">{short}</span>
+    </>
+  );
+}
 
 /** A native select dressed as the shadcn Input: 48px, the field size, the card ground. */
 export const selectCls = 'h-12 w-full appearance-auto rounded-xl border border-input bg-card px-3 text-[length:var(--field)] text-foreground';

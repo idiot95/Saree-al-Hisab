@@ -6,7 +6,7 @@
    Env: ACTIVITY_BASE (default http://localhost:3000), ACTIVITY_EMAIL (default ammar@example.com, the person --state is). Reads OWNER_DATABASE_URL from .env.local.
    --state is a signed-in Playwright storage state for an owner or contributing member (default .sweep-state.json).
 
-   1. At 360px the four chips wrap and never scroll sideways; each is a link to ?f=…, and each lands lit.
+   1. At 360px the four chips sit on one line (short words below 390px) and never scroll sideways; each is a link to ?f=…, and each lands lit.
    2. /inbox and /schedules redirect to their chips, keeping their params.
    3. A possible duplicate opens with from=/entries?f=review, and Save there lands back on To review.
    4. Upcoming: Record the first due from its swipe; the calendar's drawer shows it paid with "See the entry";
@@ -58,10 +58,15 @@ try {
   const nav = page.getByRole('navigation', { name: 'Activity' });
   await nav.waitFor();
   const box = await nav.evaluate((el) => ({ sw: el.scrollWidth, cw: el.clientWidth, ox: getComputedStyle(el).overflowX,
-    right: Math.max(...[...el.children].map((c) => c.getBoundingClientRect().right)), vw: innerWidth }));
+    right: Math.max(...[...el.children].map((c) => c.getBoundingClientRect().right)), vw: innerWidth,
+    tops: [...new Set([...el.children].map((c) => Math.round(c.getBoundingClientRect().top)))],
+    words: [...el.children].map((c) => c.innerText.replace(/\s+/g, ' ').trim()) }));
   assert.ok(box.sw <= box.cw && box.ox !== 'auto' && box.ox !== 'scroll', `the chip row does not scroll: ${JSON.stringify(box)}`);
   assert.ok(box.right <= box.vw, `every chip is on screen at 360px: ${JSON.stringify(box)}`);
-  ok('at 360px the four chips wrap: nothing scrolls sideways, every chip is on screen');
+  /* Below 390px the two long chips show short words (Review, SMS), so the four sit on one line; their names stay whole. */
+  assert.equal(box.tops.length, 1, `the four chips are on one line at 360px: ${JSON.stringify(box)}`);
+  assert.ok(box.words.some((w) => /^Review\b/.test(w)) && box.words.includes('SMS'), `short words at 360px: ${JSON.stringify(box.words)}`);
+  ok(`at 360px the four chips sit on one line (${box.words.join(' · ')}): nothing scrolls sideways, every chip is on screen`);
   for (const [name, f] of [['To review', 'review'], ['Upcoming', 'upcoming'], ['From SMS', 'sms'], ['All', null]]) {
     const chip = nav.getByRole('link', { name: new RegExp(`^${name}`) });
     assert.equal(await chip.getAttribute('href'), f ? `/entries?f=${f}` : '/entries');

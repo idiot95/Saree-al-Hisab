@@ -2,7 +2,7 @@ import { TABS, TAB_BAR_SPACE, BACK_SPACE, tabLook } from './tabs';
 import { cn } from '@/lib/utils';
 import { BAR_CLASS, ADD_TILE_CLASS, slotClass, TabFace } from './TabItem';
 import { Icon } from './Icon';
-import { chip, chipOff, chipOn, chipQuiet, chipQuietOn, chipQuietRow, chipRow, countBadge, monthPill, monthStep } from './form-bits';
+import { ACTIVITY_CHIPS, KIND_SHORT, KIND_WORDS, Words, chip, chipOff, chipOn, chipQuiet, chipQuietOn, chipQuietRow, chipRow, countBadge, monthPill, monthStep } from './form-bits';
 
 /* What a screen looks like in the moment between the tap and the data.
 
@@ -262,9 +262,6 @@ function Home({ stillBar }: Draw) {
 }
 
 type View = 'all' | 'review' | 'upcoming' | 'sms';
-const CHIPS: { key: View; label: string }[] = [
-  { key: 'all', label: 'All' }, { key: 'review', label: 'To review' }, { key: 'upcoming', label: 'Upcoming' }, { key: 'sms', label: 'From SMS' },
-];
 
 /** The month pill (MonthPill), drawn: the two arrows and the month, on a card ground, at a chip's height. */
 function MonthPillStill() {
@@ -284,9 +281,9 @@ function Activity({ stillBar, view }: Draw & { view: View }) {
      messages wait, and a ghost there would wrap the row at 393px when there are none. */
   const chips = (
     <div aria-hidden className={chipRow}>
-      {CHIPS.map((c) => (
+      {ACTIVITY_CHIPS.map((c) => (
         <span key={c.key} className={`${chip} ${c.key === view ? chipOn : chipOff}`}>
-          {c.label}
+          <Words label={c.label} short={c.short} />
           {c.key === 'review' && <span className={`${countBadge} ${c.key === view ? 'bg-primary-foreground/30' : 'bg-muted'}`} />}
         </span>
       ))}
@@ -304,8 +301,8 @@ function Activity({ stillBar, view }: Draw & { view: View }) {
                 <span className="py-2 text-muted-foreground">Search this month</span>
               </span>
               <div className={`pt-1.5 ${chipQuietRow}`}>
-                {['Every kind', 'Spending', 'Income', 'Moves', 'Shared'].map((k, i) => (
-                  <span key={k} className={cn(chip, i === 0 ? chipQuietOn : chipQuiet)}>{k}</span>
+                {Object.entries(KIND_WORDS).map(([k, label], i) => (
+                  <span key={k} className={cn(chip, i === 0 ? chipQuietOn : chipQuiet)}><Words label={label} short={KIND_SHORT[k]} /></span>
                 ))}
               </div>
             </div>
@@ -324,7 +321,8 @@ function Activity({ stillBar, view }: Draw & { view: View }) {
                 <div className="mx-[var(--gutter)] flex min-h-6 items-center px-0.5">
                   <H2 known={false} className="">Card bills</H2>
                 </div>
-                <div className={`mx-[var(--gutter)] ${CARD} px-[var(--pad)]`}><Rows n={n} h={view === 'upcoming' ? 'h-[94px] py-2.5' : 'min-h-[74px] py-2.5'} /></div>
+                {/* Below 375px a bill's or a due's second line wraps, so its rows are taller there. */}
+                <div className={`mx-[var(--gutter)] ${CARD} px-[var(--pad)]`}><Rows n={n} h={view === 'upcoming' ? 'h-[94px] py-2.5 max-[374px]:h-[104px]' : 'min-h-[74px] py-2.5 max-[374px]:min-h-[94px]'} /></div>
               </section>
             ))}
             {view === 'sms' && (

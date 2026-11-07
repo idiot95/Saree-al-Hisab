@@ -3,7 +3,7 @@
 import Link from '@/app/NavLink';
 import { useState } from 'react';
 import { haptic } from '../haptics';
-import { chip, chipOff, chipOn, chipRow, countBadge } from '../form-bits';
+import { ACTIVITY_CHIPS, Words, chip, chipOff, chipOn, chipRow, countBadge } from '../form-bits';
 
 export type ActivityFilter = 'all' | 'review' | 'upcoming' | 'sms';
 
@@ -22,12 +22,9 @@ export default function ActivityChips({ current, review, sms, month }: {
   const [seen, setSeen] = useState(current);
   if (seen !== current) { setSeen(current); setPicked(null); }
   const lit = picked ?? current;
-  const chips: { key: ActivityFilter; label: string; count?: number }[] = [
-    { key: 'all', label: 'All' },
-    { key: 'review', label: 'To review', count: review },
-    { key: 'upcoming', label: 'Upcoming' },
-    { key: 'sms', label: 'From SMS', count: sms },
-  ];
+  const chips: { key: ActivityFilter; label: string; short?: string; count?: number }[] = ACTIVITY_CHIPS.map((c) => ({
+    ...c, count: c.key === 'review' ? review : c.key === 'sms' ? sms : undefined,
+  }));
   const hrefOf = (key: ActivityFilter) => {
     const q = new URLSearchParams();
     if (key !== 'all') q.set('f', key);
@@ -48,8 +45,9 @@ export default function ActivityChips({ current, review, sms, month }: {
               if (c.key !== lit) haptic('select');
               setPicked(c.key);
             }}
+            aria-label={c.count ? `${c.label} ${c.count}` : c.label}
             className={`${chip} ${on ? chipOn : chipOff}`}>
-            {c.label}
+            <Words label={c.label} short={c.short} />
             {!!c.count && (
               <span className={`${countBadge} ${on
                 ? 'bg-primary-foreground/90 text-primary' : 'bg-attention-soft text-attention-soft-foreground'}`}>

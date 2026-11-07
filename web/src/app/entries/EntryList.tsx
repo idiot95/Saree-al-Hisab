@@ -10,7 +10,7 @@ import { useMoney } from '@/app/currency';
 import { removeEntry, restoreEntry } from './actions';
 import { startPending } from '../pending';
 import { Chip, Icon } from '../Icon';
-import { chip, chipQuiet, chipQuietOn, chipQuietRow, rowRule } from '../form-bits';
+import { KIND_SHORT, KIND_WORDS, Words, chip, chipQuiet, chipQuietOn, chipQuietRow, rowRule } from '../form-bits';
 
 export type Row = {
   id: string; kind: string; amount: string; merchant: string | null;
@@ -35,11 +35,11 @@ const INCOMING = new Set(['income', 'claim_receipt', 'refund', 'adjust_in']);
    over the month already on screen, so they answer as you type. (The chips above — All, To review, Upcoming,
    From SMS — choose the view; these only narrow the list, so they are drawn at the same chip's quiet weight and lead with "Every kind".) */
 const FILTERS = [
-  { key: 'all', label: 'Every kind', test: () => true },
-  { key: 'spending', label: 'Spending', test: (e: Row) => e.kind === 'expense' },
-  { key: 'income', label: 'Income', test: (e: Row) => INCOMING.has(e.kind) },
-  { key: 'moves', label: 'Moves', test: (e: Row) => MOVES.has(e.kind) },
-  { key: 'shared', label: 'Shared', test: (e: Row) => e.is_shared },
+  { key: 'all', label: KIND_WORDS.all, test: () => true },
+  { key: 'spending', label: KIND_WORDS.spending, test: (e: Row) => e.kind === 'expense' },
+  { key: 'income', label: KIND_WORDS.income, test: (e: Row) => INCOMING.has(e.kind) },
+  { key: 'moves', label: KIND_WORDS.moves, test: (e: Row) => MOVES.has(e.kind) },
+  { key: 'shared', label: KIND_WORDS.shared, test: (e: Row) => e.is_shared },
 ] as const;
 
 export default function EntryList({ days, canEdit, tools = false, flat = false, initialQ = '', everyMonth = false }: {
@@ -118,8 +118,8 @@ export default function EntryList({ days, canEdit, tools = false, flat = false, 
           <div role="group" aria-label="Kind of entry" className={`pt-1.5 ${chipQuietRow}`}>
             {FILTERS.map((f) => (
               <button key={f.key} type="button" aria-pressed={filter === f.key} onClick={() => setFilter(f.key)}
-                className={cn(chip, filter === f.key ? chipQuietOn : chipQuiet)}>
-                {f.label}
+                aria-label={f.label} className={cn(chip, filter === f.key ? chipQuietOn : chipQuiet)}>
+                <Words label={f.label} short={KIND_SHORT[f.key]} />
               </button>
             ))}
           </div>
