@@ -23,6 +23,7 @@
 import type { ComponentProps } from 'react';
 import type AddEntry from './AddEntry';
 import type { Pickers } from './queue';
+import { clearPendingTo } from '../pending';
 
 export type AddProps = Omit<ComponentProps<typeof AddEntry>, 'sheet' | 'children' | 'onQueued' | 'offline' | 'cached' | 'onClose'>;
 
@@ -64,6 +65,7 @@ export function noteOrigin(here: string) {
 /** The navigation to /add was dropped (Back, another tab, a redirect): shut, with no step back — the address is
  *  already somewhere else — and nothing left to cancel. */
 export function abandonInstant() {
+  clearPendingTo('/add');
   if (state.open || state.cancelled) set({ open: false, landed: false, cancelled: false });
 }
 
@@ -80,6 +82,8 @@ export function markLanded() {
  *  its arrival is what gets stepped back off (takeCancelled). */
 export function closeInstant(): boolean {
   if (!state.open) return false;
+  /* The /add the plus started is still pending, and with the drawer gone nothing would hide its full-page frame. */
+  clearPendingTo('/add');
   const landed = state.landed;
   // `fed` stays, so the drawer slides away showing what it showed; the next open clears it.
   set({ open: false, landed: false, cancelled: !landed });

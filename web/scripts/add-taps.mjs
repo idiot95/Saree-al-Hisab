@@ -878,6 +878,13 @@ try {
       const g = await held(page);
       await plus(page);
       await ahead(page);
+      /* From here on, no tap frame (PendingSkeleton's full-page Add frame) may show: the drawer was the feedback, and
+         putting it away must not uncover the /add still pending behind it. Watched on every frame. */
+      await page.evaluate(() => {
+        window.__frames = 0;
+        const f = () => { if (document.querySelector('[data-pending-frame]')) window.__frames++; requestAnimationFrame(f); };
+        requestAnimationFrame(f);
+      });
       await page.keyboard.press('Escape');
       await page.locator('[data-add-drawer]').waitFor({ state: 'detached' });
       await page.waitForTimeout(12000);
@@ -888,7 +895,8 @@ try {
       await page.waitForTimeout(1500);
       assert.equal(new URL(page.url()).pathname, '/', `back on Home (${page.url()})`);
       await noDrawer(page);
-      ok(`closed before /add answered and it answered 12s later${reached ? ' (it landed, and was stepped back off)' : ''}: the drawer stays shut, Home is where it was`);
+      assert.equal(await page.evaluate(() => window.__frames), 0, 'no Add frame flashed over Home after the drawer was put away');
+      ok(`closed before /add answered and it answered 12s later${reached ? ' (it landed, and was stepped back off)' : ''}: the drawer stays shut, no Add frame flashed, Home is where it was`);
       await ctx.close();
     }
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import Link from '@/app/NavLink';
 import { haptic } from './haptics';
 import { TABS, tabLook } from './tabs';
@@ -26,6 +26,9 @@ export default function TabBar({ current }: { current: string }) {
      screen it was tapped on, so arriving (a new `current`) clears it with no
      effect to run. */
   const [tapped, setTapped] = useState<{ from: string; href: string } | null>(null);
+  /* Whether the finger that lit a tab has lifted yet, and where: a touch that ends anywhere but on the tab it lit
+     (a drag off the bar, a pointer that leaves while down, a cancel) puts the bar back. */
+  const lifted = useRef<'no' | 'inside'>('no');
   const showing = tapped && tapped.from === current ? tapped.href : current;
   /* Which way a tab switch moves: towards the tab chosen, measured from the
      one lit now. From a screen no tab owns, it is a plain lateral fade. */
@@ -40,7 +43,7 @@ export default function TabBar({ current }: { current: string }) {
              A modified click (a new tab) is left to the browser. */
           return (
             <span key={t.href} className="flex h-full flex-1 items-center justify-center">
-              <Link href="/add" aria-label="Add an entry"
+              <Link href="/add" aria-label="Add an entry" pressNow
                 onClick={(e) => {
                   haptic('tap');
                   // Offline, the link goes to /add and the worker answers with /offline, as before: nothing to open here.
@@ -56,17 +59,27 @@ export default function TabBar({ current }: { current: string }) {
            owns, a plain fade. Sideways between tabs — never a push or a pop. */
         const motion = litAt < 0 || i === litAt ? 'fade' : i > litAt ? 'tab-right' : 'tab-left';
         const take = () => { if (!here) setTapped({ from: current, href: t.href }); };
+        const putBack = () => setTapped((was) => (was?.href === t.href ? null : was));
         return (
           <Link
-            key={t.href} href={t.href} motion={motion}
+            key={t.href} href={t.href} motion={motion} pressNow
             /* Tapped all day, so each other tab is fetched whole as the bar comes into view: the tap then needs no
                server render at all (NavLink). Not the tab of the screen already here. */
             prefetch={!tabLook(t, current).here}
             aria-current={here ? 'page' : on ? 'true' : undefined}
-            /* Lit as the finger lands, before the screen has arrived; a touch the browser takes back (a drag off the
-               bar) puts it back. */
-            onPointerDown={(e) => { if (e.button === 0) take(); }}
-            onPointerCancel={() => setTapped(null)}
+            /* Lit as the finger lands, before the screen has arrived. Put back if the touch ends anywhere but on this
+               tab: lifted outside it, left while still down, or taken back by the browser (a drag, a scroll). A lift
+               on it is left lit: the click that follows navigates. */
+            onPointerDown={(e) => { if (e.button === 0) { lifted.current = 'no'; take(); } }}
+            onPointerUp={(e) => {
+              const r = e.currentTarget.getBoundingClientRect();
+              const on = e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom;
+              lifted.current = on ? 'inside' : 'no';
+              if (!on) putBack();
+            }}
+            onPointerLeave={() => { if (lifted.current !== 'inside') putBack(); }}
+            onLostPointerCapture={() => { if (lifted.current !== 'inside') putBack(); }}
+            onPointerCancel={putBack}
             /* A tick under the thumb as the tab is taken — the moment of the tap, not the moment the screen arrives. */
             onClick={() => { if (!here) { haptic('tap'); take(); } }}
             className={`press ${slotClass(on)}`}
