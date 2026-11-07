@@ -148,7 +148,7 @@ async function HomeScreen({ saved }: { saved?: string }) {
           </div>
 
           {/* The household's net worth, dark, into Wealth. */}
-          <Link href="/worth" motion="fade" prefetch
+          <Link href="/worth" motion="fade"
             className="press flex min-h-[68px] items-center gap-3 rounded-[18px] bg-hero px-4 py-3.5 text-hero-foreground">
             <Icon name="trending_up" size={22} className="text-hero-4" />
             <span className="flex min-w-0 flex-1 flex-col gap-0.5">

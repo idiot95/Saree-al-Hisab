@@ -12,12 +12,13 @@ import { startPending, type Motion } from './pending';
    about a hundred server renders a second. Prefetching on intent (a finger coming down) was tried next and was pure
    cost: the click followed about 100ms later, long before the prefetch returned, so each tap made three server
    renders (perf-findings.md §3). So a link does not prefetch at all, and the handful that are tapped all day — the
-   five tabs and Home's four doors (household, the month card, net worth, owed to you) — pass `prefetch`, which
+   tabs and Home's doors (household, the month card, owed to you) — pass `prefetch`, which
    fetches the whole screen as the link comes into view: the tap then costs no server render and the screen is
    already on the phone. `prefetch="auto"` (only down to the loading frame) was measured and was worse here: the
    frame committed first and React then held the content for its 300ms reveal throttle (p2-report.md). Whole
    prefetches go stale after 30s like any visited screen (next.config `staleTimes`), and every write empties them.
-   Rows never prefetch.
+   A prefetched render must only read (scripts/prefetch-writes.check.mjs), so Wealth — whose render refreshes the
+   day's rates — is never prefetched. Rows never prefetch.
 
    `motion` is how the destination comes on (pending.ts): `push` deeper, `pop` back out, `fade` sideways from Home,
    `tab-left`/`tab-right` between tabs. It replaces the old `transitionTypes`, which started a view transition that

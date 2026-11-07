@@ -2,6 +2,7 @@ import { Suspense } from 'react';
 import { SkeletonFor } from '../Skeleton';
 import Link from '@/app/NavLink';
 import { redirect } from 'next/navigation';
+import { after } from 'next/server';
 import { actorOrNull, budgetFor, entriesFor, inboxCount, monthTotals, purgeSmsBodies, searchEntries } from '@/db/queries';
 import { withHousehold } from '@/db/client';
 import { digitsOf, format, monthKey } from '@/lib/money';
@@ -58,12 +59,15 @@ async function ActivityScreen({ sp }: { sp: Params }) {
   const words = typeof sp.q === 'string' ? sp.q.trim().slice(0, 60) : '';
   const shown = month ?? monthKey(new Date());
   const categoryId = sp.c && /^[0-9a-f-]{36}$/.test(sp.c) ? sp.c : null;
-  /* One transaction for the screen: forwarded bank messages lose their text once handled or after thirty days
-     (there is no scheduler, so the screen that lists them does it as it opens, whichever chip), the counts for the
-     chips' badges — card bills and duplicates on To review, open drafts on From SMS, together Home's tile — and
-     the reads of the one view on screen. The loaders' own withHousehold joins this scope. */
+  /* Forwarded bank messages lose their text once handled or after thirty days, and there is no scheduler, so the
+     screen that lists them does it — From SMS, after the response has gone (`after`), so it never holds the screen
+     up. Not on the other chips: All is prefetched whole by the tab bar (NavLink), and a prefetch must never write.
+     The message screen (which shows a body) and every arrival at the capture endpoint purge too. */
+  if (f === 'sms') after(() => purgeSmsBodies(hh));
+  /* One transaction for the screen: the counts for the chips' badges — card bills and duplicates on To review, open
+     drafts on From SMS, together Home's tile — and the reads of the one view on screen. The loaders' own
+     withHousehold joins this scope. */
   const { inbox, view, all, found } = await withHousehold(hh, async () => {
-    await purgeSmsBodies(hh);
     const inbox = await inboxCount(hh);
     const view = f === 'review' ? await loadReview(hh, canWrite, inbox.sms)
       : f === 'upcoming' ? await loadUpcoming(hh, canWrite, sp.new === '1')

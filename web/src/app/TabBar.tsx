@@ -19,6 +19,9 @@ import { openInstant } from './add/instant';
 
    Hick's Law and Miller: five slots, no more. */
 
+/* Screens whose render does more than read (see TabBar's prefetch). */
+const NO_PREFETCH = new Set(['/worth']);
+
 export default function TabBar({ current }: { current: string }) {
   /* The tab tapped lights at once, before its screen has arrived: the loading
      frame says where you are going, and the bar should agree with it rather
@@ -64,8 +67,10 @@ export default function TabBar({ current }: { current: string }) {
           <Link
             key={t.href} href={t.href} motion={motion} pressNow
             /* Tapped all day, so each other tab is fetched whole as the bar comes into view: the tap then needs no
-               server render at all (NavLink). Not the tab of the screen already here. */
-            prefetch={!tabLook(t, current).here}
+               server render at all (NavLink). Not the tab of the screen already here, and not Wealth: its render
+               refreshes the day's exchange and metal rates (calls to the price providers and a write), which must
+               happen when the person opens it, never because a bar scrolled into view. */
+            prefetch={!tabLook(t, current).here && !NO_PREFETCH.has(t.href)}
             aria-current={here ? 'page' : on ? 'true' : undefined}
             /* Lit as the finger lands, before the screen has arrived. Put back if the touch ends anywhere but on this
                tab: lifted outside it, left while still down, or taken back by the browser (a drag, a scroll). A lift
