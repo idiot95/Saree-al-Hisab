@@ -110,7 +110,7 @@ Each gets its own implementation plan, branch commits and verification. The orde
 When a figure changes, its digits roll to the new value instead of jumping. Groupings and the currency symbol slide sideways as the number's width changes. This is the premium touch.
 
 - **Library:** NumberFlow (`@number-flow/react`), a maintained component built for exactly this. It formats through `Intl.NumberFormat`, so Indian grouping (`₹1,47,000`), 0/2/3-digit currencies and `AED 1,250` work through the existing `money.ts` rules. No hand-written CSS.
-- **Where it rolls** (revised 7 Nov 2026, v3.1, by the owner: "the digits rotating should be on the main home screen, not when I'm making any data entries"). Only on read surfaces, after a change the person caused elsewhere; **never while typing**, and never in lists, where it would be noise and cost frames:
+- **Where it rolls** (revised 7 Nov 2026, v3.1, by the owner: "the digits rotating should be on the main home screen, not when I'm making any data entries"). The rule: **rolling only on read surfaces, after a change the person caused elsewhere; never while typing.** Never in lists either, where it would be noise and cost frames:
   - Home: *Left to spend* and the month's figures after a save, a delete or an Undo.
   - Wealth: the net-worth headline and the class legend when switching Household / Me / member / Joint, and a holding's value after *Update balance* or a rate override.
   - Loans: *Owed to you* after Money back.

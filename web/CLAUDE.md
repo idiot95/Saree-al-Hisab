@@ -66,14 +66,21 @@ capture_token, sms_draft). Where an older section disagrees, this wins.
   `--card-shadow` in ql.css — a hairline and a pixel of shadow in light, a faint light edge in dark — because white on
   the paper ground is 1.08:1. A bottom drawer has a `border-t`. Every `Chip` (category, account, rail, tab folder) is
   one shape, a rounded square whose corner is 0.3 of its side (12px at 40); people keep round initials (40 in rows,
-  24 inside a chip). A list's hairline runs from where the text starts to the card's right edge (`form-bits`
-  `rowRule`, household's `Card`). Disabled filled buttons are `bg-muted text-muted-foreground` (button.tsx's
+  24 inside a chip). **One rule on every list** (v3.1 P4, p3-review M1): a list's hairline runs from where the row's
+  words start to the card's right edge, iOS-style — `form-bits` `rowRule` on a relative row, which reads `--rule-x`
+  (where the words start, from the row's left edge; default 52px, a 40px chip and its gap) and `--rule-r` (how far
+  the card's edge is past the row's: `rulePad` for a row on the card's padding, `ruleSwipe` inside a swipe row, whose
+  grip column is 28px more); `liRule` is the same for an `<li>` that pads itself (`last:` drops it). Household's
+  `Card` draws the same line from the card. No `border-b` between rows anywhere; the loading frames draw the same
+  rule from the same variables. Disabled filled buttons are `bg-muted text-muted-foreground` (button.tsx's
   default variant, `solid`, Add's Save), never a faded plum.
 - **One chip** (v3.1 P3, ux-audit C1; `form-bits.tsx`): `chip` is drawn 32px (`h-8`, `px-3`, `text-subhead`,
   `min-w-12`, `rounded-full`, 1px border) and takes the tap over 44px (48 on Android) through an invisible absolute
   `::after`; every chip is `font-medium`, lit or not (a bolder lit chip would widen and rewrap its row); `chipOff`
   (card, `border-input`), `chipOn` (primary), `chipQuiet`/`chipQuietOn` (Activity's kind filter: no ground until chosen, then plum soft), `chipRow`
-  (`gap-x-1.5 gap-y-3`, so wrapped rows' targets meet but never overlap), `countBadge` (18px), `statusPill` (24px,
+  (`gap-x-1.5 gap-y-3`, so wrapped rows' targets meet but never overlap), `countBadge` (18px; a chip that carries a
+  count only sometimes — To review, From SMS — takes `badgeRoom` when it has none, `px-[22px]`, so it is one width
+  either way and its loading frame's ghost badge matches it), `statusPill` (24px,
   every read-only status: Owner, In use, Possibly the same thing, Retired, Exact match), `headerPill` (36px drawn,
   New tab), `monthPill`/`monthStep` (MonthPill and its frame, at a chip's height). Combine with `cn()` when adding
   classes that compete. Colours change over `--dur-2`. `PageHead`'s `right` (a month pill, New tab, a menu) sits on
@@ -90,7 +97,7 @@ capture_token, sms_draft). Where an older section disagrees, this wins.
 - **Figures: `<Figure minor currency? sign? paise? />`** (`src/app/Figure.tsx`) is the only way a changing amount
   is drawn: NumberFlow rolls the digits when the value changes after first paint (never on load), the text is exactly
   `format()`'s, reduced motion is respected, and a screen reader gets the whole figure from its label (`role="img"`).
-  **Rolling only on read screens, after a change the person caused elsewhere; never while typing** (the owner, v3.1:
+  **Rolling only on read surfaces, after a change the person caused elsewhere; never while typing** (the owner, v3.1:
   "the digits rotating should be on the main home screen, not when I'm making any data entries"): Home (Left to spend
   and the month's figures), Wealth's net worth and holdings, Loans' "Owed to you", a balance an edit moves. Add's
   amount, Save label and every figure on a form (BudgetForm's total and rows) are static `format()` text, and lists
@@ -151,9 +158,12 @@ capture_token, sms_draft). Where an older section disagrees, this wins.
   `px-[var(--pad)]`: SwipeRow's negative margin is `--pad`, and any other padding makes the card scrollable, so
   opening a row scrolls it and the scroll closes the row again. All's kind filter (Every kind · Spending · Income ·
   Moves · Shared) is the same chip at its quiet weight, set edge to edge on the gutter, so the screen has one chip
-  language (v3.1 P3). Below 390px wide the long words are short — Review, SMS, All (kinds), Spent — so each row is
-  one line at 360: two spans swapped by `max-[389px]:` (form-bits `Words`, `ACTIVITY_CHIPS`, `KIND_SHORT`), the
-  chip's name the whole label, and the Activity frame draws the same words; search says
+  language (v3.1 P3; the kinds read *All kinds · Spending · Income · Moves · Shared* since P4). Below 390px wide the
+  long words are short — Review, All (kinds), Spend — and From SMS is "SMS" below 414 (with both counts' room the four
+  chips need 372px in full), so each row is one line at every width: two spans swapped by `max-[389px]:` /
+  `max-[413px]:` (form-bits `Words` and its `wide`, `ACTIVITY_CHIPS`, `KIND_SHORT`). A short word is always inside its
+  long one and the chip's name is the long one, so the name contains what is on screen (WCAG 2.5.3); the Activity
+  frame draws the same words; search says
   "Search this month". On Upcoming, when something is due in the next two weeks, *Every regular payment* opens
   folded to one line ("Every regular payment · n", a `<details>`), since the dues above already list them; a due row
   wears the payment's own category chip and says late with an icon and the word.
@@ -234,13 +244,27 @@ capture_token, sms_draft). Where an older section disagrees, this wins.
   structure in Tailwind: PageHead's header (or a tab's bold 34px one), the hero card, the section headings and the row
   heights. Text not known yet is a `Ghost` — a sample of the line in the same type, hidden under a shimmer — so it is
   exactly as tall, and wraps where the real line will; a Figure's ghost is half an em taller (NumberFlow's mask).
+  Words the frame does know are drawn as words (Wealth's legend, the Lend / Got money back buttons' widths, hidden),
+  and a row in a swipe row keeps the grip's 28px, so lines wrap at 360 where the real ones do; where a row's wrap
+  depends on data (a due's name, an account's), the samples are a household's ordinary ones, and no row has a
+  fixed height per width. **Premium, v3.1 P4 (ux-audit C4):** one shimmer for the whole screen — `SHIM`, a band
+  `bg-fixed` to the viewport so every block is lit by the same band at the same moment, linear over 1.6s (globals.css
+  keeps only `@keyframes shim`; `.shim` is gone, and `data-shim` marks a block); on the plum hero the block is the
+  hero's ink at 10% and the band at 18% (`SHIM_HERO`, Ghost/S `hero`), never a pale slab. A frame the **server
+  streams** (loading.tsx, Home's and Activity's Suspense fallback; `stillBar` on) fades in from `@starting-style`
+  after `--dur-1` over `--dur-2`, so a load quicker than that shows none; its still bar sits outside it and never
+  fades. The frame a **tap** draws (PendingSkeleton, `stillBar` off) is the tap's answer and keeps P2's motion
+  exactly. Activity's frame draws To review's and From SMS's badges (the real chips keep the room, `badgeRoom`);
+  Wealth's draws its "+" as the real white circle; ghost chips are the real Chip's radius per screen.
   `frameFor(href)` reads Activity's `?f=` too: loading.tsx cannot see a query, so Activity and Home render their own
   `<Suspense>` with the frame as fallback after the sign-in redirects (Home has no loading.tsx: one at the root would
   stand in front of sign-in), and `startPending` keeps the query for PendingSkeleton. Home and Plan draw Left to
   spend, the budgeted month. `node scripts/frames.check.mjs` holds the server (it locks every table but the three the
   layout reads) so the streamed frame is on screen, measures it, lets go and measures the page: the title, the hero's
-  top and height (to the fold) and the first heading agree within 4px at 393×852, and the still bar lights the same
-  slot. Lists show an empty state with an icon and a line (`entries/parts` `Empty`, or `EmptyLine` inside a busier
+  top and height (to the fold) and the first heading agree within 4px at 360×780, 375×667 and 393×852 (all three by
+  default since P4; `--os all --theme all` adds Android and dark), and the still bar lights the same slot. A pushed
+  screen titled by a name (person, tab, account, holding, household) draws a one-line ghost: when the name takes two
+  lines, what is under it is measured from the title's foot and the line says so. Lists show an empty state with an icon and a line (`entries/parts` `Empty`, or `EmptyLine` inside a busier
   screen), and the primary action where there is one. `app/error.tsx` says the screen did not load, that nothing saved
   is lost, and offers Try again (`retry`) and Home — never the error's text; `app/not-found.tsx` is "Nothing here".
 
@@ -288,9 +312,10 @@ is no override. Each cleanup deletes only rows the run made, by id or by a run-u
   `link=` for a link, so `/|link=^Add an entry$` sweeps the Add drawer over Home), so a drawer or form is swept open; with a dialog open, overlap is measured inside it. The default routes include the
   category add form open. One line per failure; non-zero exit on any. WebKit needs its own Playwright browser, which
   is not installed here — `--engine all` runs what is there and the run says what was not.
-- `node scripts/frames.check.mjs [--routes …] [--size 393x852] [--os ios|android] [--theme …]`: each loading frame
-  against the screen it stands in for (it locks tables on localhost only, so the frame is caught on screen): title,
-  hero and first heading within 4px, and the still tab bar lights the same slot.
+- `node scripts/frames.check.mjs [--routes …] [--size 360x780,375x667,393x852] [--os ios|android|all] [--theme …|all]`:
+  each loading frame against the screen it stands in for (it locks tables on localhost only, so the frame is caught
+  on screen): title, hero and first heading within 4px, and the still tab bar lights the same slot; the three widths
+  by default.
 - Tap scripts, each one screen's thumb path: `add-taps.mjs` (three taps, claims, a move, a tab, offline, the old
   queue shape, nested pickers; every drawer has Close and its cap — 86dvh, the Add drawer 79 on an iPhone; a long Paid
   with wraps; the keyboard simulated on an iPhone and on Android with the amount and More's fields clear of Save; the
@@ -1877,7 +1902,18 @@ never draws it. The tab bar, where nothing scrolls, presses at once (`pressNow`)
 after the tap so the press is painted first. `.press` scales on it and every link dims (`data-pressed:opacity-75`). A tab lights as the
 finger lands and is put back if the touch ends anywhere but on it. Reduced motion shortens all
 of it to nothing. `scripts/nav-timing.mjs` measures tap → first changed pixel and tap → content for every route at
-Pixel 7, 4× CPU, +150ms, and fails on feedback over 50ms, any blank frame, or Home → profile content over 450ms.
+Pixel 7, 4× CPU, +150ms, and fails on feedback over 50ms, any blank frame, or Home → profile content over 450ms; a leaving frame
+counts as gone only below 0.1 opacity (P4; it was 0.5), and `settled` reports when the arrival reveal ended.
+
+**Content arrives, it does not cut in** (v3.1 P4, ux-audit C4.4; `src/app/Reveal.tsx`). On a screen's arrival — a
+cold load, or a navigation to another screen — its sections below the header come up 4px out of 40% opacity, one
+after another: Home's cards (`<Reveal>` around them), Wealth's chips, hero and lists (`revealChildren`), Activity's
+first four day groups (`revealItem(i)`). `--dur-2` each, `--stagger` (40ms, ql.css) apart, the fourth and later at
+3 × `--stagger`, so all of it ends by `--dur-4`; content is readable from the first frame; the header never moves;
+`fill-mode-backwards`, so nothing is held after. **Never on a redraw:** `Landed` notes the path each `<Screen>`
+mounted at, and a screen mounting where the last one did (Home under `/?saved=…` after the Add drawer's Save, the
+saved snack's replace, an Undo, a chip, the month pill, `router.refresh`) is not arriving. The server never notes
+(effects do not run there), so SSR and hydration agree. Reduced motion: none of it.
 
 **A tap draws the destination's frame at once** (`PendingSkeleton` in the root layout, `pending.ts`). `NavLink`,
 `goBack` and every `router.push` that navigates (swipe actions, Add Entry after Save, the saved snack) call
