@@ -4,6 +4,7 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { SkeletonFor, frameFor } from './Skeleton';
 import { clearPending, pendingTarget, subscribePending } from './pending';
+import { instantState, serverInstant, subscribeInstant } from './add/instant';
 
 /* The skeleton of the screen you tapped, drawn the instant you tap it.
 
@@ -20,6 +21,9 @@ import { clearPending, pendingTarget, subscribePending } from './pending';
    that never lands — no signal — does not leave the phone behind a skeleton. */
 export default function PendingSkeleton() {
   const target = useSyncExternalStore(subscribePending, pendingTarget, () => null);
+  /* The tab bar's plus opens its drawer on the tap: the drawer is the feedback, and a full-page Add frame behind it
+     would only flash. */
+  const instant = useSyncExternalStore(subscribeInstant, instantState, serverInstant).open;
   const path = usePathname();
   const [shown, setShown] = useState<string | null>(null);
 
@@ -34,6 +38,7 @@ export default function PendingSkeleton() {
   }, [target]);
 
   if (!target || shown !== target || !frameFor(target)) return null;
+  if (instant && frameFor(target) === 'add') return null;
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 39, overflow: 'hidden', background: 'var(--background)' }}>
       {/* The real tab bar sits above at z 40, so the frame draws none of its own. */}

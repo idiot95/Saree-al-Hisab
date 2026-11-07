@@ -5,6 +5,7 @@ import { Chip, Icon } from '../Icon';
 import { haptic } from '../haptics';
 import CategoryFinder, { type Category } from '../CategoryFinder';
 import { cn } from '@/lib/utils';
+import { choice } from '../choice';
 
 /* The category, as one tap: the household's most-used categories for this kind of entry as a 4×2 grid, the last
    seat "All", which opens the finder over every category.
@@ -59,9 +60,10 @@ export default function TopCategories({ categories, top, value, onChange, label 
           return (
             <button key={c.id} type="button" role="radio" aria-checked={isOn} data-category-tile
               onClick={() => { haptic('select'); onChange(c.id); }}
-              className={cn(tile, isOn
-                ? 'border-2 border-primary bg-accent font-semibold text-accent-foreground'
-                : 'border-border bg-card font-medium text-foreground')}>
+              /* The one selected look (choice.ts): primary plum, a 1px edge either way so choosing moves nothing;
+                 the category's own colour stays on its icon chip. */
+              style={choice(isOn)}
+              className={cn(tile, 'bg-card', isOn ? 'font-semibold' : 'font-medium')}>
               <Chip icon={c.icon} tint={c.tint} size={32} radius={10} />
               <span className="line-clamp-2 w-full break-words text-center">{c.name}</span>
             </button>

@@ -346,8 +346,14 @@ function Entry({ stillBar }: Draw) {
 /** Add, opened as a page: close, the three kinds, the amount, the categories, the details card, Save. */
 function Add({ stillBar }: Draw) {
   void stillBar;
+  return <AddFrame />;
+}
+
+/** Add Entry's frame: the full page's, or (`sheet`) inside the Add drawer while a phone with no kept pickers waits
+ *  for the route (InstantAdd). */
+export function AddFrame({ sheet = false }: { sheet?: boolean }) {
   return (
-    <main aria-busy="true" data-frame="skip-label" className="flex min-h-dvh flex-col bg-background text-foreground">
+    <main aria-busy="true" data-frame="skip-label" className={`flex flex-col bg-background text-foreground ${sheet ? 'min-h-0 flex-1 overflow-hidden' : 'min-h-dvh'}`}>
       <span className="sr-only" aria-live="polite">Loading a new entry</span>
       <header className="flex flex-none flex-col gap-1 px-[var(--gutter)] pt-2">
         <div className="flex items-center justify-between gap-2">
@@ -361,9 +367,8 @@ function Add({ stillBar }: Draw) {
         </div>
         {/* The amount: the currency is the household's, not known to a frame, so the whole line is a ghost. */}
         <div className="flex min-w-0 items-baseline justify-center gap-1.5 py-2">
-          <Ghost className="text-[52px] font-bold leading-tight tracking-tight" w="w-full">₹0.00</Ghost>
+          <Ghost className="text-[52px] font-bold leading-tight tracking-tight" w="w-full">₹0</Ghost>
         </div>
-        <p className="-mt-1 mb-1 min-h-5" />
       </header>
       <div className="flex flex-1 flex-col gap-4 px-[var(--gutter)] pb-4 pt-2">
         <section aria-hidden className="flex flex-col gap-2">

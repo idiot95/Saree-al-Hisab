@@ -72,8 +72,12 @@ capture_token, sms_draft). Where an older section disagrees, this wins.
 - **Figures: `<Figure minor currency? sign? paise? />`** (`src/app/Figure.tsx`) is the only way a changing amount
   is drawn: NumberFlow rolls the digits when the value changes after first paint (never on load), the text is exactly
   `format()`'s, reduced motion is respected, and a screen reader gets the whole figure from its label (`role="img"`).
-  Rolling only where someone watches a figure change (Add's amount and Save label, Left to spend, net worth, a
-  holding, Owed to you, a balance an edit moves); lists stay static.
+  **Rolling only on read screens, after a change the person caused elsewhere; never while typing** (the owner, v3.1:
+  "the digits rotating should be on the main home screen, not when I'm making any data entries"): Home (Left to spend
+  and the month's figures), Wealth's net worth and holdings, Loans' "Owed to you", a balance an edit moves. Add's
+  amount, Save label and every figure on a form (BudgetForm's total and rows) are static `format()` text, and lists
+  stay static (SMS draft rows included). `grep -n "<Figure" src/app/add src/app/budget/BudgetForm.tsx` finds
+  nothing; `scripts/figure.check.mjs` watches Wealth's headline roll under the CSP.
 - **Platform: `data-platform="ios|android|other"` on `<html>`**, from the User-Agent and `Sec-CH-UA-Platform` on the
   server (`lib/platform.ts`), so the first paint is right. Variants are `in-data-[platform=android]:…` — the
   attribute is on `<html>` and the group class on `<body>`, so `group-data-[…]` never matches. Tap targets are 44px,
@@ -127,7 +131,9 @@ capture_token, sms_draft). Where an older section disagrees, this wins.
   current screen (`@modal/(.)add`); the type/scan/upload fan-out was removed.
   The camera in the drawer's header appears only when a scanning key is set.
 - **One selected state**: `choice.ts` `on()` is the primary plum for every chosen chip or
-  tile; a category's colour stays on its icon, never on a selection or a bar.
+  tile (Add's category tiles, day chips, tab chips and "was this your spending" too, since v3.1); a category's colour
+  stays on its icon, never on a selection or a bar. The one documented exception is Add's kind switch, a segmented
+  control (raised white on the grey track), which is a radio group with arrow keys (`role=radiogroup`, roving tabindex).
 - **Money's direction**: arriving is green with a +; leaving is plain ink.
   Red means over budget (with an icon and the word).
 - **Card bills are derived, not marked.** Nothing sets `card_cycle.status` to
@@ -206,7 +212,7 @@ capture_token, sms_draft). Where an older section disagrees, this wins.
   is lost, and offers Try again (`retry`) and Home — never the error's text; `app/not-found.tsx` is "Nothing here".
 
 **Drawers and calendars.** Every bottom drawer is shadcn's Drawer (vaul). `components/ui/drawer.tsx` gives every
-one the same frame: capped at **86dvh**, 24px corners, and the grip across the top is a real **Close** button
+one the same frame: capped at **86dvh** (the Add drawer alone is **79dvh on an iPhone**, see `/add` below), 24px corners, and the grip across the top is a real **Close** button
 (`DrawerGrip`, 44px / 48 on Android, a drag that ends on it is not a click). `src/app/BottomDrawer.tsx` is the one to
 use (`open`, `onClose`, `label`, `showTitle`, `focus`, `repositionInputs`): it takes focus (the Close grip, or the
 `focus` ref), notes its opener as it is asked to open and gives focus back there on close (a field with `autoFocus`
@@ -244,15 +250,18 @@ is no override. Each cleanup deletes only rows the run made, by id or by a run-u
 - `npm run sweep -- [--routes /,/add] [--engine chromium|webkit|all] [--out dir] [--csp] [--signed-in-links]
   [--note text]`: every route at 360×780, 375×667, 393×852, 412×915 and 430×932 (iPhone and Pixel emulation), light
   and dark: no sideways scroll, no fixed bar over text at rest, no ellipsis unless opted in (`data-truncate-ok`), tap
-  targets 44px (48 for Android icon buttons). A route can carry taps, `/categories|tap=^Add a category$`, so a
-  drawer or form is swept open; with a dialog open, overlap is measured inside it. The default routes include the
+  targets 44px (48 for Android icon buttons). A route can carry taps, `/categories|tap=^Add a category$` (a button;
+  `link=` for a link, so `/|link=^Add an entry$` sweeps the Add drawer over Home), so a drawer or form is swept open; with a dialog open, overlap is measured inside it. The default routes include the
   category add form open. One line per failure; non-zero exit on any. WebKit needs its own Playwright browser, which
   is not installed here — `--engine all` runs what is there and the run says what was not.
 - `node scripts/frames.check.mjs [--routes …] [--size 393x852] [--os ios|android] [--theme …]`: each loading frame
   against the screen it stands in for (it locks tables on localhost only, so the frame is caught on screen): title,
   hero and first heading within 4px, and the still tab bar lights the same slot.
 - Tap scripts, each one screen's thumb path: `add-taps.mjs` (three taps, claims, a move, a tab, offline, the old
-  queue shape, nested pickers; every drawer has Close and the 86dvh cap; a long Paid with wraps), `plan-taps.mjs`
+  queue shape, nested pickers; every drawer has Close and its cap — 86dvh, the Add drawer 79 on an iPhone; a long Paid
+  with wraps; the keyboard simulated on an iPhone and on Android with the amount and More's fields clear of Save; the
+  amount's type steps and 2340.5 saved as 234050 paise; Add open on the tap with the route held back; the kind
+  switch's arrow keys), `plan-taps.mjs`
   (the Trends redirect, a two-step budget, Make current, Adjust this month), `loans-taps.mjs` (Money back, swipe
   rows, a throwaway tab, lend and repay), `activity-taps.mjs` (chips, redirects, returns from an entry),
   `sms-taps.mjs` (a forwarded message to a draft, Review, Save, Dismiss and Undo), `accounts-taps.mjs` (a balance
@@ -400,12 +409,25 @@ there takes the seventh seat), then a stack of rows that each open a vaul drawer
 (`PickRows.tsx`: *Paid with* → `PayPicker`, *When* → quick days and `MonthGrid`;
 on a Move, *From* and *To* replace the tiles), a collapsed *More* row
 (`MoreFields.tsx`: Clears what is owed, the tab and its two answers, where,
-remarks, bills, shared, scan), the duplicate line, and a sticky **Save · ₹amount
-Category** (its figure a `<Figure paise="auto">` — minor units only when there
-are some, `paise: 'auto'` in `format`/`figureParts`; the echo under the field shows
-only while it is typed; what was kept, a refusal and the duplicate line sit in the
-footer above Save so none scrolls out of view; lifted above the iPhone keyboard by
-`keyboard.ts` through `visualViewport`, while vaul resizes the drawer). The
+remarks, bills, shared, scan), the duplicate line, and a pinned **Save · ₹amount
+Category** (its figure static `format(minor, { paise: 'auto' })` — minor units only when there
+are some; nothing in Add rolls, and the echo line under the field is gone (v3.1); what was kept, a refusal and the
+duplicate line sit in the footer above Save so none scrolls out of view). **The keyboard** (v3.1, ux-audit C2): the
+Add drawer is capped at 79dvh on an iPhone, because vaul's `repositionInputs` lifts a drawer of at most 80% of the
+window to 26px from the top and keeps a taller one's top edge, squeezing it (Save landed on the amount in a Safari
+tab); Android keeps 86dvh, since Chrome resizes the page (`interactive-widget=resizes-content`). In the drawer the
+form scrolls above Save (`data-add-scroll`) instead of under a sticky footer, a focused field is scrolled clear of
+Save again once the keyboard has resized things, and the footer drops its home-indicator padding while
+`keyboard.ts` reads a keyboard; on the full page Save is lifted by `keyboard.ts`. The amount's type steps down as it
+grows (52px to 8 characters, 42 to 11, 34 to 14, then 28) so it is never clipped. **Add opens on the tap**
+(perf fix 5): the tab bar's plus calls `openInstant()` (`add/instant.ts`) and `InstantAdd` in the root layout draws
+the drawer at once from `ql.pickers.v1` when they are this household's and under a week old (else the form's frame
+inside the drawer), while the link fetches `@modal/(.)add`; its page (`AddSheet`) hands the server's props to the open
+drawer instead of opening another, and the form follows them (the way to pay, the day) until the person chooses, so
+nothing typed is lost. A close before the route lands steps back off it when it does. The drawer slides in over
+240ms on `cubic-bezier(.22,1,.36,1)` (vaul's 500ms stays for drags and closing), and the plus carries no view
+transition. Other ways into /add (a card's Pay, a tab's Add cost, a bank message's Review) open the route's own
+drawer as before. The
 common entry is amount, tile, Save (`scripts/add-taps.mjs` counts the three).
 More opens itself when a tab is chosen on an expense, or when money coming in
 equals a claim to the paisa. *Paid with* opens on `app_user.last_paid_with`
@@ -421,8 +443,10 @@ last paid BY would make its own Pay unsaveable. Pick drawers are vaul's
 keypad**: the amount is a plain `<input inputMode="decimal">` that takes the
 phone's own keyboard and formats as it is typed — `typed()` tidies what the
 keyboard gave, `keysDisplay()` groups the rupees and leaves the paise exactly
-as typed (`2,340.5` mid-entry), `settle()` fills the minor digits on blur
-(`2,340.50`). Every choice is a wrapping row of chips — nothing scrolls
+as typed (`2,340.5` mid-entry), and `tidy()` (`tidyKeys`) writes the field the way Save says it on blur — no
+`.00` a whole amount never needed (`2,340`), the paise once there are some (`2,340.50`); the minor units are
+exactly the ones typed (`fromKeys(tidyKeys(k)) === fromKeys(k)`, held by `money.test`). `settle()` still fills the
+minor digits for the forms that want the accounting form. Every choice is a wrapping row of chips — nothing scrolls
 sideways, so what is offered can be counted. "How did you pay" is
 `PayPicker`, **one question with one flat list of concrete answers** in the
 words a person uses. It used to be two rows — accounts (a credit card beside a

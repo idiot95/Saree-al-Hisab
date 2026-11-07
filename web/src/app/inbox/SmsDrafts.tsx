@@ -6,11 +6,11 @@ import { useCallback, useState, useTransition } from 'react';
 import SwipeRow from '../SwipeRow';
 import Snack, { type SnackState } from '../Snack';
 import { Icon } from '../Icon';
-import { Figure } from '../Figure';
 import { startPending } from '../pending';
 import { dismissDraft, restoreDraft } from './actions';
 import { DIRECTION } from './direction';
 import { replacing } from '../backStack';
+import { useMoney } from '@/app/currency';
 
 /* Bank messages a phone forwarded, waiting to become entries. Never an entry on their own: Review opens Add entry
    with what the message said already filled in, and Save there is what records it. A row swipes to Add and Dismiss;
@@ -111,6 +111,8 @@ export default function SmsDrafts({ rows, canWrite, justDismissed = null, empty 
 }
 
 function Row({ r, last, canWrite }: { r: SmsRow; last: boolean; canWrite: boolean }) {
+  // A list row, so static (CLAUDE.md, Figures: lists stay static).
+  const { format } = useMoney();
   const d = DIRECTION[r.direction ?? 'none'];
   const where = r.account ?? (r.last4 ? `Account ending ${r.last4}` : null);
   return (
@@ -123,7 +125,7 @@ function Row({ r, last, canWrite }: { r: SmsRow; last: boolean; canWrite: boolea
         <span className="flex min-w-0 flex-1 flex-col gap-0.5">
           <span className="text-[15px] font-medium [overflow-wrap:anywhere]">
             {r.amount !== null
-              ? <><Figure minor={r.amount} paise="auto" className="tabular-nums" />{r.merchant ? ` · ${r.merchant}` : ''}</>
+              ? <><span className="tabular-nums">{format(r.amount, { paise: 'auto' })}</span>{r.merchant ? ` · ${r.merchant}` : ''}</>
               : <>Amount not found{r.merchant ? ` · ${r.merchant}` : ''}</>}
           </span>
           <span className="text-xs text-muted-foreground">{d.word} · {r.when}</span>

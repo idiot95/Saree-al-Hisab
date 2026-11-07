@@ -10,6 +10,7 @@ import { friendlyDay, shiftDay } from '@/lib/recur';
 import { formatHijri, toHijri } from '@/lib/hijri';
 import { haptic } from '../haptics';
 import { cn } from '@/lib/utils';
+import { choice } from '../choice';
 
 /* The answers that nearly always stay as they are — how it was paid, which day, where a move lands — as one row
    each that says the current answer and opens a drawer to change it. The full choices (every way to pay as a
@@ -114,8 +115,7 @@ export function WhenRow({ value, onChange, today }: {
             const on = iso === value;
             return (
               <button key={iso} type="button" role="radio" aria-checked={on} onClick={() => pick(iso)}
-                className={cn('min-h-11 rounded-full border px-4 text-sm font-semibold',
-                  on ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-card text-foreground')}>
+                style={choice(on)} className="min-h-11 rounded-full px-4 text-sm font-semibold">
                 {friendlyDay(iso, today)}
               </button>
             );

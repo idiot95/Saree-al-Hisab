@@ -6,6 +6,7 @@ import { haptic } from './haptics';
 import { TABS, tabLook } from './tabs';
 import { BAR_CLASS, ADD_TILE_CLASS, slotClass, TabFace } from './TabItem';
 import { Icon } from './Icon';
+import { openInstant } from './add/instant';
 
 /* Persistent navigation, in the thumb zone.
 
@@ -33,11 +34,17 @@ export default function TabBar({ current }: { current: string }) {
     <nav aria-label="Main" className={BAR_CLASS}>
       {TABS.map((t, i) => {
         if (t.add) {
-          /* Straight to a new entry — the drawer over this screen (app/@modal/(.)add). */
+          /* Straight to a new entry — the drawer over this screen. It opens on the tap, from the pickers this phone
+             already holds (add/instant.ts), while the link fetches /add (app/@modal/(.)add) behind it. No view
+             transition: the screen underneath does not change, and one would freeze the drawer being typed into.
+             A modified click (a new tab) is left to the browser. */
           return (
             <span key={t.href} className="flex h-full flex-1 items-center justify-center">
-              <Link href="/add" transitionTypes={['nav-lateral']} aria-label="Add an entry"
-                onClick={() => haptic('tap')} className={`press ${ADD_TILE_CLASS}`}>
+              <Link href="/add" aria-label="Add an entry"
+                onClick={(e) => {
+                  haptic('tap');
+                  if (e.button === 0 && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey) openInstant();
+                }} className={`press ${ADD_TILE_CLASS}`}>
                 <Icon name={t.icon} size={28} />
               </Link>
             </span>

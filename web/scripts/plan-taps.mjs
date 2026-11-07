@@ -133,7 +133,15 @@ try {
       and s.occurred_on >= ${MONTH}::date and s.occurred_on < (${MONTH}::date + interval '1 month')`)[0].v);
   /* Half of what has gone, so the line is over budget once saved (or ₹1 when nothing has). */
   const figure = spent > 200 ? Math.floor(spent / 200) : 1;
-  await page.getByLabel(`${catName} for this month`).fill(String(figure));
+  const box = page.getByLabel(`${catName} for this month`);
+  /* Typed key by key, the month total and the row's figure follow — as static text: nothing rolls during entry. */
+  await box.fill('');
+  await box.pressSequentially(String(figure), { delay: 30 });
+  const form = box.locator('xpath=ancestor::form');
+  assert.equal(await form.locator('number-flow-react').count(), 0, 'no rolling Figure anywhere in the budget form');
+  const total = (await form.locator('[data-month-total]').innerText()).trim();
+  assert.match(total, /^₹[\d,]+$/, `the month total is plain text (${total})`);
+  ok(`the budget form's month total (${total}) and row figures are static text while typing`);
   await page.getByRole('button', { name: 'Save', exact: true }).click();
   await page.getByRole('status').filter({ hasText: 'Budget saved.' }).waitFor({ timeout: 20000 });
   await page.waitForFunction(([name, was]) => {

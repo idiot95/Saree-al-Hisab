@@ -3,7 +3,6 @@
 import { useActionState, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Chip, Icon } from '../Icon';
-import { Figure } from '../Figure';
 import { ErrorNote as Problem } from '../auth-ui';
 import { saveBudget } from './actions';
 import { useMoney } from '@/app/currency';
@@ -21,11 +20,12 @@ type Row = {
 
    Save rides along the TOP (sticky, data-topbar so the Back pill sits under it): after eight categories a Save at
    the foot is off the screen, and one pinned to the bottom would sit under the keyboard. The total and each row's
-   figure follow what is typed (Figure), so "what does that come to" never costs a round trip. */
+   figure follow what is typed, so "what does that come to" never costs a round trip — as plain format() text:
+   nothing rolls while somebody is typing (the owner's rule; Figure is for read screens). */
 export default function BudgetForm({ month, rows, canEdit }: {
   month: string; rows: Row[]; canEdit: boolean;
 }) {
-  const { symbol, toKeys, fromKeys } = useMoney();
+  const { symbol, toKeys, fromKeys, format } = useMoney();
   /* Whole units in the box, minor units in the ledger. */
   const toField = (minor: string) => (Number(minor) === 0 ? '' : toKeys(Number(minor)));
   const ofField = (s: string | undefined) => fromKeys((s ?? '').replace(/[^0-9.]/g, '')) || 0;
@@ -47,7 +47,7 @@ export default function BudgetForm({ month, rows, canEdit }: {
       <div data-topbar className="sticky top-0 z-20 mb-3 flex items-center gap-3 border-b border-border bg-card px-4 py-2.5">
         <span className="flex flex-1 flex-col">
           <span className="text-xs text-muted-foreground">Month total</span>
-          <Figure minor={total} className="text-xl font-bold tabular-nums" />
+          <span data-month-total className="text-xl font-bold tabular-nums">{format(total)}</span>
         </span>
         {canEdit && (
           <Button type="submit" disabled={pending || !changed} variant={changed ? 'default' : 'secondary'}
@@ -90,8 +90,8 @@ export default function BudgetForm({ month, rows, canEdit }: {
                 <span className={`flex flex-wrap items-center gap-x-1 text-xs tabular-nums ${over ? 'font-semibold text-destructive' : 'text-muted-foreground'}`}>
                   {over && <Icon name="warning" size={13} />}
                   {budget > 0
-                    ? <><Figure minor={spent} /> of <Figure minor={budget} />{over && ' · over budget'}</>
-                    : spent > 0 ? <><Figure minor={spent} /> spent · not budgeted</> : 'Nothing spent yet'}
+                    ? <>{format(spent)} of {format(budget)}{over && ' · over budget'}</>
+                    : spent > 0 ? <>{format(spent)} spent · not budgeted</> : 'Nothing spent yet'}
                 </span>
               </span>
 

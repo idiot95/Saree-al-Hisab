@@ -81,15 +81,18 @@ function DrawerContent({
   className,
   children,
   handle = true,
+  overlayClassName,
   ...props
 }: React.ComponentProps<typeof DrawerPrimitive.Content> & {
   /** The grip (a Close button) across the top. Off when the caller places its own DrawerGrip (BottomDrawer, to
       hand it focus). */
   handle?: boolean
+  /** Classes for the veil behind this drawer (the Add drawer's shorter fade). */
+  overlayClassName?: string
 }) {
   return (
     <DrawerPortal data-slot="drawer-portal">
-      <DrawerOverlay />
+      <DrawerOverlay className={overlayClassName} />
       <DrawerPrimitive.Content
         data-slot="drawer-content"
         className={cn(

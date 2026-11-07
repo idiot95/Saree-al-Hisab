@@ -3,7 +3,6 @@
 import { useState, useTransition, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Icon } from '../Icon';
-import { Figure } from '../Figure';
 import { defaultRef, findRef, flatWays, pickWay, type Way } from '@/lib/pay';
 import Link from '@/app/NavLink';
 import { friendlyDay } from '@/lib/recur';
@@ -11,7 +10,7 @@ import { useMoney } from '@/app/currency';
 import { saveEntry, checkDuplicate, type Draft } from './actions';
 import { startPending } from '../pending';
 import { haptic } from '../haptics';
-import { enqueue, writePickers, type Queued } from './queue';
+import { enqueue, readPickers, writePickers, type Queued } from './queue';
 import { type Category } from '../CategoryFinder';
 import { type Staged } from './Bills';
 import { fits } from '@/lib/scope';
@@ -59,7 +58,7 @@ export type Claim = {
 
 export default function AddEntry({
   categories, ways, tabs = [], claims = [], today, householdId, draft, offline = false, onQueued, children, sheet = false,
-  canScan = false, top, paidWith: paidDefault, lastPaid = null, fromSms = null,
+  canScan = false, top, paidWith: paidDefault, lastPaid = null, fromSms = null, cached = false, onClose,
 }: {
   categories: Category[];
   /** Every real account, each with the rails that draw on it. See src/lib/pay.ts. */
@@ -68,6 +67,10 @@ export default function AddEntry({
   householdId: string;
   /** Opened as a drawer over another screen: Close steps back to it instead of going Home. */
   sheet?: boolean;
+  /** Drawn from the phone's kept pickers while the route is on its way (InstantAdd): they are not written back. */
+  cached?: boolean;
+  /** Close, when the drawer is the tab bar's rather than the route's (InstantAdd). */
+  onClose?: () => void;
   /** The household has a scanning key and this person may add: show the camera. */
   canScan?: boolean;
   /** The tiles, most used first (topCategories). Absent offline, where the phone's counts stand in. */
@@ -94,7 +97,7 @@ export default function AddEntry({
   /** Drawn under the questions — the offline screen's banner and pending list. */
   children?: React.ReactNode;
 }) {
-  const { currency, symbol, digits, format, keysDisplay, fromKeys, toKeys, typed, settle } = useMoney();
+  const { currency, symbol, format, keysDisplay, fromKeys, toKeys, typed, tidy } = useMoney();
   const router = useRouter();
   const [pending, start] = useTransition();
   const [kept, setKept] = useState<string | null>(null);
@@ -105,16 +108,16 @@ export default function AddEntry({
   /* Opened with signal, so remember what the pickers hold — names only, no
      amounts — for the offline screen to offer the same choices. */
   useEffect(() => {
-    if (offline) return;
+    if (offline || cached) return;
     writePickers({ householdId, categories, ways, tabs, top, paidWith: paidDefault, savedAt: new Date().toISOString() });
-  }, [offline, householdId, categories, ways, tabs, top, paidDefault]);
+  }, [offline, cached, householdId, categories, ways, tabs, top, paidDefault]);
 
   const [kind, setKind] = useState<Kind>(draft?.kind ?? 'expense');
   /* A scan's draft seeds the field rather than saving anything: a scanned
      figure is a suggestion, correctable the same way as a typed one. */
-  const [keys, setKeys] = useState(() => (draft?.amountMinor ? settle(toKeys(draft.amountMinor)) : ''));
+  const [keys, setKeys] = useState(() => (draft?.amountMinor ? toKeys(draft.amountMinor) : ''));
   const amountBox = useRef<HTMLInputElement>(null);
-  const [typing, setTyping] = useState(false);
+  const footer = useRef<HTMLDivElement>(null);
   const [categoryId, setCategoryId] = useState<string | null>(draft?.categoryId ?? null);
   /* Only the categories that take this kind of entry. A category picked for
      one kind and then the kind changed is simply let go of. */
@@ -124,7 +127,11 @@ export default function AddEntry({
   /* How it was paid, as one reference. A draft naming the account it leaves
      (a swipe on Money) lands on that account's usual rail; otherwise the last
      way used, resolved on the server; otherwise the first way. */
-  const [paid, setPaid] = useState(() => {
+  /* Worked out from the props on every render until somebody chooses (`paidPick`), so a drawer opened from the
+     phone's kept pickers takes the server's answer when it arrives — the way last paid with may have changed on
+     another phone — without ever overriding a choice already made. */
+  const [paidPick, setPaidPick] = useState<string | null>(null);
+  const paid = paidPick ?? (() => {
     if (draft?.paidWith && findRef(ways, draft.paidWith)) return draft.paidWith;
     const from = ways.find((w) => w.id === draft?.fromAccountId);
     if (from) return pickWay(from);
@@ -140,9 +147,12 @@ export default function AddEntry({
       ref = flatWays(ways).find((o) => o.way.id !== into)?.ref ?? ref;
     }
     return ref;
-  });
+  })();
+  const setPaid = (ref: string) => setPaidPick(ref);
   const [counterId, setCounterId] = useState<string | null>(draft?.toAccountId ?? null);
-  const [occurredOn, setOccurredOn] = useState(draft?.occurredOn ?? today);
+  // The same for the day: today, as the server says it, until a day is chosen.
+  const [onPick, setOccurredOn] = useState<string | null>(null);
+  const occurredOn = onPick ?? draft?.occurredOn ?? today;
   const [more, setMoreState] = useState<MoreState>(() => ({
     merchant: draft?.merchant ?? '', note: '', bills: [] as Staged[], tabId: draft?.tabId ?? null, coveredKeys: '',
     counts: draft?.countsAsSpend ?? null, settleIds: new Set<string>(), shared: true,
@@ -237,6 +247,12 @@ export default function AddEntry({
       catch { keep(); return; }  // the request itself failed: no signal, or it dropped mid-way
       if (r.ok) {
         haptic('success'); clear(); smsRef.current = null;
+        /* The server now remembers this as the way last paid with (an expense only); so does the phone, so the
+           next drawer opened from its pickers starts there too. */
+        if (d.kind === 'expense') {
+          const kept = readPickers();
+          if (kept && kept.householdId === householdId) writePickers({ ...kept, paidWith: d.paidWith });
+        }
         /* A cost put on a tab lands on that tab, opening "Attach the bill?"
            when none came with it, because the paper is in hand right now. */
         if (d.tabId) {
@@ -249,9 +265,45 @@ export default function AddEntry({
     });
   }
 
-  /* The keyboard covers the bottom of the page on an iPhone; the drawer is
-     resized for it by vaul, so only the full page needs lifting. */
-  const kb = useKeyboardInset(!sheet);
+  /* How much of the screen the iPhone's keyboard covers. The full page lifts Save by it; the drawer is lifted by
+     vaul itself, so there it only drops the home-indicator padding, which the keyboard hides anyway. */
+  const kb = useKeyboardInset(true);
+
+  /* A field taking focus is brought clear of the sticky footer — after the keyboard has resized things, when there
+     is a resize to wait for. The browser's own scroll-into-view stops at the scroller's bottom edge, and Save sits
+     inside the scroller. */
+  const clearOfSave = (e: React.FocusEvent) => {
+    const t = e.target as HTMLElement;
+    if (!(t instanceof HTMLTextAreaElement || (t instanceof HTMLInputElement && !['checkbox', 'radio', 'button', 'file'].includes(t.type)))) return;
+    const go = () => {
+      if (document.activeElement !== t || !t.isConnected) return;
+      t.scrollIntoView({ block: 'nearest' });
+      const foot = footer.current?.getBoundingClientRect();
+      const r = t.getBoundingClientRect();
+      const over = foot ? r.bottom + 8 - foot.top : 0;
+      if (over > 0) (t.closest('[data-add-scroll]') ?? document.scrollingElement)?.scrollBy({ top: over });
+    };
+    requestAnimationFrame(go);
+    window.visualViewport?.addEventListener('resize', () => requestAnimationFrame(go), { once: true });
+  };
+
+  /* The amount steps down as it grows, so the whole of it is always on screen: 52px to eight characters
+     ("2,34,050"), 42 to eleven ("2,34,050.50"), 34 to fourteen, and 28 for the longest a field can hold. */
+  const shown = keys === '' ? '' : keysDisplay(keys);
+  const len = shown === '' ? 1 : shown.length;
+  const amountSize = len <= 8 ? 'text-[52px]' : len <= 11 ? 'text-[42px]' : len <= 14 ? 'text-[34px]' : 'text-[28px]';
+
+  /* The kind switch is a radio group: one stop for Tab, the arrow keys move the choice (and focus) along it. */
+  const kindKeys = (e: React.KeyboardEvent<HTMLButtonElement>) => {
+    const i = KINDS.findIndex((k) => k.id === kind);
+    const n = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? (i + 1) % KINDS.length
+      : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? (i + KINDS.length - 1) % KINDS.length
+      : e.key === 'Home' ? 0 : e.key === 'End' ? KINDS.length - 1 : -1;
+    if (n < 0) return;
+    e.preventDefault();
+    chooseKind(KINDS[n].id);
+    (e.currentTarget.parentElement?.children[n] as HTMLElement | undefined)?.focus();
+  };
 
   const what = kind === 'transfer'
     ? (to ? `to ${to.name}` : '')
@@ -265,123 +317,128 @@ export default function AddEntry({
 
   return (
     <InDrawer.Provider value={sheet}>
-    <main className={cn('flex flex-col bg-background text-foreground', !sheet && 'min-h-dvh')}>
-      <header className="flex flex-none flex-col gap-1 px-[var(--gutter)] pt-2">
-        <div className="flex items-center justify-between gap-2">
-          <button type="button" aria-label="Close"
-            className="-ml-2.5 flex size-11 items-center justify-center rounded-full in-data-[platform=android]:size-12"
-            onClick={() => { haptic('select'); if (sheet) router.back(); else router.push('/', { transitionTypes: ['nav-back'] }); }}>
-            <Icon name="close" size={24} />
-          </button>
-          <div role="tablist" aria-label="Kind of entry" className="flex rounded-xl bg-muted p-[3px]">
-            {KINDS.map((k) => {
-              const isOn = k.id === kind;
-              return (
-                <button key={k.id} type="button" role="tab" aria-selected={isOn} onClick={() => chooseKind(k.id)}
-                  className={cn('min-h-11 rounded-[10px] px-3.5 text-sm transition-colors',
-                    isOn ? 'bg-raised font-semibold text-foreground shadow-sm' : 'font-medium text-muted-foreground')}>
-                  {k.label}
-                </button>
-              );
-            })}
+    <main onFocus={clearOfSave} className={cn('flex flex-col bg-background text-foreground', sheet ? 'min-h-0 flex-1' : 'min-h-dvh')}>
+      {/* In the drawer this is the scroller and Save sits below it, not over it: nothing is ever drawn under Save,
+          and a field scrolled into view lands above it. On the full page the document scrolls and Save is sticky. */}
+      <div data-add-scroll={sheet ? '' : undefined}
+        className={cn('flex flex-col', sheet ? 'min-h-0 flex-1 overflow-y-auto overscroll-contain scroll-pb-2' : 'flex-1')}>
+        <header className="flex flex-none flex-col gap-1 px-[var(--gutter)] pt-2">
+          <div className="flex items-center justify-between gap-2">
+            <button type="button" aria-label="Close"
+              className="-ml-2.5 flex size-11 items-center justify-center rounded-full in-data-[platform=android]:size-12"
+              onClick={() => {
+                haptic('select');
+                if (onClose) onClose(); else if (sheet) router.back(); else router.push('/', { transitionTypes: ['nav-back'] });
+              }}>
+              <Icon name="close" size={24} />
+            </button>
+            {/* The one selected look that is not choice.ts's plum: a segmented control, the iOS idiom for "which of
+                these three is the form", raised white on the track (CLAUDE.md, "One selected state"). */}
+            <div role="radiogroup" aria-label="Kind of entry" className="flex rounded-xl bg-muted p-[3px]">
+              {KINDS.map((k) => {
+                const isOn = k.id === kind;
+                return (
+                  <button key={k.id} type="button" role="radio" aria-checked={isOn} tabIndex={isOn ? 0 : -1}
+                    onClick={() => chooseKind(k.id)} onKeyDown={kindKeys}
+                    className={cn('min-h-11 rounded-[10px] px-3.5 text-sm transition-colors',
+                      isOn ? 'bg-raised font-semibold text-foreground shadow-sm' : 'font-medium text-muted-foreground')}>
+                    {k.label}
+                  </button>
+                );
+              })}
+            </div>
+            {!offline && canScan ? (
+              <Link href="/scan" transitionTypes={['nav-forward']} aria-label="Scan or upload a receipt"
+                className="-mr-2.5 flex size-11 items-center justify-center rounded-full text-foreground in-data-[platform=android]:size-12">
+                <Icon name="photo_camera" size={22} />
+              </Link>
+            ) : (
+              <span aria-hidden className="-mr-2.5 size-11 in-data-[platform=android]:size-12" />
+            )}
           </div>
-          {!offline && canScan ? (
-            <Link href="/scan" transitionTypes={['nav-forward']} aria-label="Scan or upload a receipt"
-              className="-mr-2.5 flex size-11 items-center justify-center rounded-full text-foreground in-data-[platform=android]:size-12">
-              <Icon name="photo_camera" size={22} />
-            </Link>
-          ) : (
-            <span aria-hidden className="-mr-2.5 size-11 in-data-[platform=android]:size-12" />
+
+          {fromSms && (
+            <p className="flex min-h-8 items-center justify-center gap-1.5 text-sm text-muted-foreground">
+              <Icon name="sms" size={16} /> From a bank message{fromSms.sender ? ` · ${fromSms.sender}` : ''}
+            </p>
           )}
-        </div>
 
-        {fromSms && (
-          <p className="flex min-h-8 items-center justify-center gap-1.5 text-sm text-muted-foreground">
-            <Icon name="sms" size={16} /> From a bank message{fromSms.sender ? ` · ${fromSms.sender}` : ''}
-          </p>
-        )}
+          {/* The amount, as a plain field the phone's keyboard fills. What it
+              shows is grouped in the household's currency; what it holds is
+              only ever the digits typed. */}
+          <label className="flex w-full min-w-0 items-baseline justify-center gap-1.5 py-2">
+            <span aria-hidden className="tabular-nums flex-none text-[28px] font-medium text-muted-foreground">{symbol.trim()}</span>
+            <input
+              ref={amountBox}
+              size={Math.max(2, len + 1)} data-amount-size={amountSize}
+              className={cn('tabular-nums w-auto max-w-[calc(100%-56px)] min-w-0 flex-initial [field-sizing:content] bg-transparent p-0 leading-tight font-bold tracking-tight text-foreground caret-primary outline-none placeholder:text-muted-foreground/50', amountSize)}
+              type="text" inputMode="decimal" autoComplete="off" enterKeyHint="done"
+              autoFocus={!draft?.amountMinor}
+              value={shown}
+              onChange={(e) => { setKept(null); setKeys(typed(e.target.value)); }}
+              /* Left, it reads the way Save says it: "2,340" stays "2,340", "2,340.5" becomes "2,340.50". */
+              onBlur={() => setKeys((k) => tidy(k))}
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); amountBox.current?.blur(); } }}
+              placeholder="0"
+              aria-label={`Amount in ${currency}`}
+            />
+            {/* The code, for a symbol that does not spell it: ₹ says INR to one
+                household and nothing to a guest. AED already says AED. */}
+            {symbol.trim() !== currency && (
+              <span className="tabular-nums flex-none text-sm font-semibold text-muted-foreground">{currency}</span>
+            )}
+          </label>
+        </header>
 
-        {/* The amount, as a plain field the phone's keyboard fills. What it
-            shows is grouped in the household's currency; what it holds is
-            only ever the digits typed. */}
-        <label className="flex min-w-0 items-baseline justify-center gap-1.5 py-2">
-          <span aria-hidden className="tabular-nums flex-none text-[28px] font-medium text-muted-foreground">{symbol.trim()}</span>
-          <input
-            ref={amountBox}
-            size={Math.max(4, (keys === '' ? (digits ? digits + 2 : 1) : keysDisplay(keys).length) + 1)}
-            className="tabular-nums w-auto max-w-[78%] min-w-0 flex-initial [field-sizing:content] bg-transparent p-0 text-[52px] leading-tight font-bold tracking-tight text-foreground caret-primary outline-none placeholder:text-muted-foreground/50"
-            type="text" inputMode="decimal" autoComplete="off" enterKeyHint="done"
-            autoFocus={!draft?.amountMinor}
-            value={keys === '' ? '' : keysDisplay(keys)}
-            onChange={(e) => { setKept(null); setKeys(typed(e.target.value)); }}
-            onFocus={() => setTyping(true)}
-            onBlur={() => { setTyping(false); setKeys((k) => settle(k)); }}
-            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); amountBox.current?.blur(); } }}
-            placeholder={digits ? `0.${'0'.repeat(digits)}` : '0'}
-            aria-label={`Amount in ${currency}`}
-          />
-          {/* The code, for a symbol that does not spell it: ₹ says INR to one
-              household and nothing to a guest. AED already says AED. */}
-          {symbol.trim() !== currency && (
-            <span className="tabular-nums flex-none text-sm font-semibold text-muted-foreground">{currency}</span>
-          )}
-        </label>
-        {/* The amount as the ledger will write it, digits rolling as they are
-            typed — only while it is being typed, since a settled field already
-            says exactly this. Decoration only: the field is the control. */}
-        <p aria-hidden data-figure-echo className="-mt-1 mb-1 min-h-5 text-center text-sm text-muted-foreground">
-          {minor > 0 && (typing || keys !== settle(keys)) && <Figure minor={minor} paise="auto" className="tabular-nums" />}
-        </p>
-      </header>
-
-      <div className="flex flex-1 flex-col gap-4 px-[var(--gutter)] pt-2 pb-4">
-        {kind !== 'transfer' && (
-          <section aria-labelledby="add-category" className="flex flex-col gap-2">
-            <span id="add-category" className="text-xs font-semibold text-muted-foreground">
-              {kind === 'income' ? 'What for · your most used' : 'Category · your most used'}
-              {allBack && ' · not needed, all of it is money back'}
-            </span>
-            <TopCategories categories={offered} top={top?.[kind]} value={categoryId}
-              onChange={setCategoryId} label={kind === 'income' ? 'What the money was for' : 'Which category'} />
-          </section>
-        )}
-
-        <div className="flex flex-col divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card">
-          <PayRow ways={ways} value={paid} onChange={(ref) => {
-            setPaid(ref);
-            if (findRef(ways, ref)?.way.id === counterId) setCounterId(null);
-          }}
-            caption={kind === 'transfer' ? 'From' : kind === 'income' ? 'Came into' : 'Paid with'}
-            title={kind === 'transfer' ? 'From which account' : kind === 'income' ? 'How did it come in' : 'How did you pay'}
-            tag={kind === 'expense' && lastPaid && paid === lastPaid ? 'last used' : undefined} />
-          {kind === 'transfer' && (
-            <ToRow ways={ways} from={fromWay?.id} value={to?.id ?? null} onChange={setCounterId} />
-          )}
-          <WhenRow value={occurredOn} onChange={setOccurredOn} today={today} />
+        <div className="flex flex-1 flex-col gap-4 px-[var(--gutter)] pt-2 pb-4">
           {kind !== 'transfer' && (
-            <Row id="add-more" icon={<Icon name="tune" size={22} />} muted={!moreSummary}
-              value={moreSummary || moreLabel} expanded={moreOpen} controls="add-more-fields"
-              onClick={() => setMoreOpen((o) => !o)} />
+            <section aria-labelledby="add-category" className="flex flex-col gap-2">
+              <span id="add-category" className="text-xs font-semibold text-muted-foreground">
+                {kind === 'income' ? 'What for · your most used' : 'Category · your most used'}
+                {allBack && ' · not needed, all of it is money back'}
+              </span>
+              <TopCategories categories={offered} top={top?.[kind]} value={categoryId}
+                onChange={setCategoryId} label={kind === 'income' ? 'What the money was for' : 'Which category'} />
+            </section>
           )}
-        </div>
 
-        {kind !== 'transfer' && moreOpen && (
-          <div id="add-more-fields" role="region" aria-labelledby="add-more">
-            <MoreFields kind={kind} state={more} set={setMore} tabs={tabs} claims={claims} minor={minor}
-              today={today} canScan={canScan} offline={offline}
-              onUseOwed={(n) => setKeys(settle(toKeys(n)))} />
+          <div className="flex flex-col divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card">
+            <PayRow ways={ways} value={paid} onChange={(ref) => {
+              setPaid(ref);
+              if (findRef(ways, ref)?.way.id === counterId) setCounterId(null);
+            }}
+              caption={kind === 'transfer' ? 'From' : kind === 'income' ? 'Came into' : 'Paid with'}
+              title={kind === 'transfer' ? 'From which account' : kind === 'income' ? 'How did it come in' : 'How did you pay'}
+              tag={kind === 'expense' && lastPaid && paid === lastPaid ? 'last used' : undefined} />
+            {kind === 'transfer' && (
+              <ToRow ways={ways} from={fromWay?.id} value={to?.id ?? null} onChange={setCounterId} />
+            )}
+            <WhenRow value={occurredOn} onChange={setOccurredOn} today={today} />
+            {kind !== 'transfer' && (
+              <Row id="add-more" icon={<Icon name="tune" size={22} />} muted={!moreSummary}
+                value={moreSummary || moreLabel} expanded={moreOpen} controls="add-more-fields"
+                onClick={() => setMoreOpen((o) => !o)} />
+            )}
           </div>
-        )}
 
-        {children && <div className="-mx-[var(--gutter)]">{children}</div>}
+          {kind !== 'transfer' && moreOpen && (
+            <div id="add-more-fields" role="region" aria-labelledby="add-more">
+              <MoreFields kind={kind} state={more} set={setMore} tabs={tabs} claims={claims} minor={minor}
+                today={today} canScan={canScan} offline={offline}
+                onUseOwed={(n) => setKeys(toKeys(n))} />
+            </div>
+          )}
+
+          {children && <div className="-mx-[var(--gutter)]">{children}</div>}
+        </div>
       </div>
 
       {/* Save, pinned under the thumb and saying what it will do, with what
           was kept, a refusal and the duplicate line above it, so none of them
           can be scrolled out of sight. On an iPhone it is lifted by however much of
           the page the keyboard covers. */}
-      <div style={{ '--kb': `${kb}px` } as React.CSSProperties}
-        className="sticky bottom-[var(--kb)] z-10 flex-none border-t border-border bg-background px-[var(--gutter)] pt-2.5 pb-[calc(10px+env(safe-area-inset-bottom))]">
+      <div ref={footer} data-add-footer data-kb={kb > 0} style={{ '--kb': `${sheet ? 0 : kb}px` } as React.CSSProperties}
+        className="sticky bottom-[var(--kb)] z-10 flex-none border-t border-border bg-background px-[var(--gutter)] pt-2.5 pb-[calc(10px+env(safe-area-inset-bottom))] data-[kb=true]:pb-2.5">
         {kept && (
           <p role="status" className="m-0 mb-2 flex items-center gap-2.5 rounded-xl bg-accent px-3.5 py-3 text-sm leading-snug font-semibold text-accent-foreground">
             <Icon name="schedule" size={18} />{kept}
@@ -412,7 +469,8 @@ export default function AddEntry({
               <span className="flex-none">Save</span>
               {minor > 0 && <>
                 {' '}<span aria-hidden className="flex-none">·</span>{' '}
-                <Figure minor={minor} paise="auto" className="tabular-nums flex-none" />
+                {/* Static: nothing rolls while it is being typed (the owner's rule; ux-audit C3). */}
+                <span className="tabular-nums flex-none">{format(minor, { paise: 'auto' })}</span>
                 {what && <>{' '}<span className="min-w-0 truncate">{what}</span></>}
               </>}
             </>

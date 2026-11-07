@@ -14,6 +14,13 @@
    4. An expense on a tab, "No, I covered it": the entry is on the tab, counts_as_spend is false, claims exist.
    5. Offline: the save is kept on the phone, and on reconnecting drains into exactly one row with its client_ref.
    6. An entry in the OLD wizard's shape, put straight into ql.queue.v1, drains into exactly one row.
+   9. The keyboard (v3.1 P1): on an iPhone (visualViewport shrunk by a 336px keyboard, vaul's iOS path) at 393×852
+      and in a 659px Safari tab, and on Android (the viewport shrunk to 450px), the amount and each field under More
+      are wholly inside what is visible and clear of the sticky Save, and Save itself is above the keyboard.
+  10. The amount fits: its type steps down as it grows and the field never clips its text; leaving it adds no ".00";
+      2340.5 is saved as 234050 paise.
+  11. Add opens on the tap from the phone's kept pickers, before /add has answered, keeps what was typed when the
+      route lands, and the kind switch is a radio group the arrow keys move along.
 
    Rows this run wrote are removed at the end unless --keep.                                                   */
 import { createRequire } from 'node:module';
@@ -70,8 +77,24 @@ if (!GIVEN) {
   await ctx.close();
 }
 
-async function context(device, theme = 'light', viewport) {
+/** A phone. `keyboard` (iPhone only) stands in for its keyboard the way the audit did: window.visualViewport becomes a
+ *  stub that is `keyboard` px shorter than the window while a text field has focus and fires `resize` as it comes and
+ *  goes, and navigator.platform says iPhone, so vaul runs its real iOS repositioning against the real drawer. */
+async function context(device, theme = 'light', viewport, keyboard = 0) {
   const ctx = await browser.newContext({ ...device, storageState: STATE, ...(viewport ? { viewport, screen: viewport } : {}) });
+  if (keyboard) {
+    await ctx.addInitScript((KB) => {
+      Object.defineProperty(navigator, 'platform', { get: () => 'iPhone' });
+      const t = new EventTarget(); let open = false;
+      const vv = { get height() { return innerHeight - (open ? KB : 0); }, get width() { return innerWidth; }, offsetTop: 0, offsetLeft: 0,
+        pageTop: 0, pageLeft: 0, scale: 1, addEventListener: t.addEventListener.bind(t), removeEventListener: t.removeEventListener.bind(t),
+        dispatchEvent: t.dispatchEvent.bind(t) };
+      Object.defineProperty(window, 'visualViewport', { get: () => vv });
+      const typing = (e) => e && (e.tagName === 'TEXTAREA' || (e.tagName === 'INPUT' && !['checkbox', 'radio', 'button', 'file'].includes(e.type)));
+      document.addEventListener('focusin', (e) => { if (typing(e.target) && !open) { open = true; setTimeout(() => t.dispatchEvent(new Event('resize')), 50); } }, true);
+      document.addEventListener('focusout', () => setTimeout(() => { if (!typing(document.activeElement) && open) { open = false; t.dispatchEvent(new Event('resize')); } }, 0), true);
+    }, keyboard);
+  }
   await ctx.addCookies([{ name: 'ql.theme', value: theme, domain: new URL(BASE).hostname, path: '/' }]);
   const page = await ctx.newPage();
   return { ctx, page };
@@ -111,12 +134,15 @@ const said = (loc) => loc.evaluate((el) => {
   return c.textContent.replace(/\s+/g, ' ').trim();
 });
 /** A drawer's shape: every drawer has a Close button and is capped at 86% of the screen (Task 30: the Add drawer and
- *  the pickers used to stop at 80vh, and only the newer drawers had a Close). */
-async function drawerHasCloseAndCap(page, drawer, what) {
+ *  the pickers used to stop at 80vh, and only the newer drawers had a Close) — except the Add drawer on an iPhone,
+ *  which stops at 79% so vaul lifts it clear of the keyboard (v3.1 P1; under 80% vaul takes the branch that does). */
+async function drawerHasCloseAndCap(page, drawer, what, share = 0.86) {
   await drawer.getByRole('button', { name: 'Close', exact: true }).first().waitFor();
   const { cap, vh } = await drawer.evaluate((el) => ({ cap: parseFloat(getComputedStyle(el).maxHeight), vh: innerHeight }));
-  assert.ok(Math.abs(cap - vh * 0.86) <= 1, `${what}: capped at 86dvh (${cap}px of ${vh}px)`);
+  assert.ok(Math.abs(cap - vh * share) <= 1, `${what}: capped at ${Math.round(share * 100)}dvh (${cap}px of ${vh}px)`);
 }
+/** The kind switch: Expense · Income · Move, a radio group. */
+const kindRadio = (page, name) => page.getByRole('radiogroup', { name: 'Kind of entry' }).getByRole('radio', { name, exact: true });
 const keysFor = (minor) => (minor % 100 === 0 ? String(minor / 100) : (minor / 100).toFixed(2));
 
 try {
@@ -124,7 +150,7 @@ try {
   {
     const { ctx, page } = await context(ios);
     const drawer = await openDrawer(page);
-    await drawerHasCloseAndCap(page, drawer, 'the Add drawer');
+    await drawerHasCloseAndCap(page, drawer, 'the Add drawer (iPhone)', 0.79);
     let taps = 0;
     await page.keyboard.type('2340'); taps++;                       // 1: the amount
     const tile = drawer.locator('[data-category-tile]').first();
@@ -134,11 +160,13 @@ try {
     await assert.doesNotReject(save.waitFor());
     const label = await said(save);
     assert.equal(label, `Save · ₹2,340 ${name}`);
+    assert.equal(await drawer.locator('number-flow-react').count(), 0, 'nothing in the Add drawer rolls: the amount, its echo and Save are static');
+    assert.equal(await drawer.locator('[data-figure-echo]').count(), 0, 'the echo line under the amount is gone');
     ok(`Save reads "${label}"`);
     await save.click(); taps++;                                      // 3: Save
     assert.equal(taps, 3);
     await page.getByText('Entry saved.').waitFor({ timeout: 15000 });
-    ok('three interactions after the drawer opens, then "Entry saved." (the drawer has a Close button and an 86dvh cap)');
+    ok('three interactions after the drawer opens, then "Entry saved." (the drawer has a Close button and a 79dvh cap on an iPhone)');
     const [row] = await waitRows((r) => r.kind === 'expense' && Number(r.amount) === 234000, '2340 expense');
     assert.ok(row.category_id);
     ok('one new expense row of ₹2,340 with its category');
@@ -222,7 +250,7 @@ try {
       const same = claims.filter((c) => Number(c.o) === target).map((c) => c.id);
       const { ctx, page } = await context(ios);
       await page.goto(`${BASE}/add`);
-      await page.getByRole('tab', { name: 'Income' }).click();
+      await kindRadio(page, 'Income').click();
       await page.getByLabel(/^Amount in/).fill(keysFor(target));
       const offer = page.locator('[data-exact-offer]');
       await offer.waitFor({ timeout: 5000 });
@@ -247,7 +275,7 @@ try {
   {
     const { ctx, page } = await context(pixel);
     await page.goto(`${BASE}/add`);
-    await page.getByRole('tab', { name: 'Move' }).click();
+    await kindRadio(page, 'Move').click();
     await page.getByLabel(/^Amount in/).fill('1000');
     const save = page.locator('[data-save]');
     assert.ok(await save.isDisabled());
@@ -455,6 +483,188 @@ try {
     }
   }
 
+  /* ── 9. the keyboard, on an iPhone and on Android ─────────────────────── */
+  {
+    const KB = 336;
+    /* What is on screen with the keyboard up, and where the field, the footer and Save are. A field passes when all of
+       it is between the top of what is visible (and the top of the drawer's scroller) and the top of the footer that
+       holds Save, and Save is wholly above the keyboard. */
+    const where = (page, which) => page.evaluate((which) => {
+      const vv = window.visualViewport;
+      const drawer = document.querySelector('[data-add-drawer]');
+      const el = which === 'amount' ? drawer.querySelector('input[aria-label^="Amount in"]') : document.activeElement;
+      const r = el.getBoundingClientRect(), foot = drawer.querySelector('[data-add-footer]').getBoundingClientRect();
+      const save = drawer.querySelector('[data-save]').getBoundingClientRect();
+      const scroller = drawer.querySelector('[data-add-scroll]').getBoundingClientRect();
+      return { top: Math.max(vv.offsetTop, scroller.top), bottom: vv.offsetTop + vv.height, field: [r.top, r.bottom],
+        foot: foot.top, save: [save.top, save.bottom], drawer: drawer.getBoundingClientRect().top,
+        name: el.getAttribute('aria-label') ?? el.getAttribute('placeholder'), pad: getComputedStyle(drawer.querySelector('[data-add-footer]')).paddingBottom };
+    }, which);
+    const clear = (m, what) => {
+      assert.ok(m.field[0] >= m.top - 0.5 && m.field[1] <= m.foot + 0.5,
+        `${what}: "${m.name}" is wholly visible and clear of Save (field ${m.field.map(Math.round)}, visible from ${Math.round(m.top)}, footer at ${Math.round(m.foot)})`);
+      assert.ok(m.save[0] >= m.top && m.save[1] <= m.bottom + 0.5, `${what}: Save is above the keyboard (${m.save.map(Math.round)} of ${Math.round(m.bottom)})`);
+    };
+    for (const [label, device, vp, os] of [
+      ['iPhone 393×852', ios, { width: 393, height: 852 }, 'ios'],
+      ['iPhone Safari tab 393×659', ios, { width: 393, height: 659 }, 'ios'],
+      ['Pixel 412×915', pixel, { width: 412, height: 915 }, 'android'],
+    ]) {
+      const { ctx, page } = await context(device, 'light', vp, os === 'ios' ? KB : 0);
+      const drawer = await openDrawer(page);
+      await drawerHasCloseAndCap(page, drawer, `the Add drawer (${label})`, os === 'ios' ? 0.79 : 0.86);
+      const kb = async () => { if (os === 'android') await page.setViewportSize({ width: vp.width, height: 450 }); await page.waitForTimeout(450); };
+      const down = async () => { if (os === 'android') await page.setViewportSize(vp); await page.waitForTimeout(150); };
+      await kb();
+      await page.keyboard.type('234050');
+      const m = await where(page, 'amount');
+      clear(m, `${label}, amount`);
+      if (os === 'ios') {
+        assert.ok(m.drawer <= 27, `${label}: vaul lifts the drawer to the top of what is visible (top ${Math.round(m.drawer)})`);
+        assert.equal(m.pad, '10px', `${label}: no home-indicator padding under Save while the keyboard is up`);
+      }
+      if (SHOTS) await page.screenshot({ path: path.join(SHOTS, `kb-${os}-${vp.height}-amount.png`) });
+      await drawer.getByLabel(/^Amount in/).evaluate((e) => e.blur());
+      await down();
+      await drawer.getByRole('button', { name: /Note, bill, tab/ }).click();
+      for (const [name, ph] of [['Where', /shop or place/], ['Remarks', /Anything worth/]]) {
+        const field = drawer.getByPlaceholder(ph);
+        await field.focus();
+        await kb();
+        await page.keyboard.type('Corner shop');
+        await page.waitForTimeout(150);
+        clear(await where(page, 'active'), `${label}, ${name}`);
+        if (SHOTS) await page.screenshot({ path: path.join(SHOTS, `kb-${os}-${vp.height}-${name.toLowerCase()}.png`) });
+        await field.evaluate((e) => e.blur());
+        await down();
+      }
+      ok(`${label}, keyboard up: the amount, Where and Remarks are each wholly visible above Save, and Save above the keyboard`);
+      await ctx.close();
+    }
+  }
+
+  /* ── 10. the amount fits, and keeps its paise ─────────────────────────── */
+  {
+    for (const width of [393, 360]) {
+      const { ctx, page } = await context(ios, 'light', { width, height: 800 });
+      const drawer = await openDrawer(page);
+      const amount = drawer.getByLabel(/^Amount in/);
+      const sizes = [];
+      for (const [keys, shown] of [['2340', '2,340'], ['234050', '2,34,050'], ['234050.50', '2,34,050.50'], ['1234567.50', '12,34,567.50'], ['999999999.99', '99,99,99,999.99']]) {
+        await amount.fill('');
+        await amount.pressSequentially(keys);
+        assert.equal(await amount.inputValue(), shown);
+        const fit = await amount.evaluate((el) => {
+          const r = el.getBoundingClientRect(), box = el.closest('[data-add-drawer]').getBoundingClientRect();
+          return { cut: el.scrollWidth > el.clientWidth + 1, inside: r.left >= box.left && r.right <= box.right, size: parseFloat(getComputedStyle(el).fontSize) };
+        });
+        assert.ok(!fit.cut && fit.inside, `${width}px, ${shown}: the whole amount is drawn (${JSON.stringify(fit)})`);
+        sizes.push(fit.size);
+      }
+      assert.deepEqual(sizes, [52, 52, 42, 34, 28], `${width}px: the type steps down as the amount grows (${sizes})`);
+      ok(`${width}px: every length of amount is drawn whole, at ${[...new Set(sizes)].join(' → ')}px`);
+      if (width === 393) {
+        await amount.fill('');
+        await amount.pressSequentially('2340');
+        await amount.blur();
+        assert.equal(await amount.inputValue(), '2,340', 'a whole amount gains no ".00" when the field is left');
+        await amount.fill('');
+        await amount.pressSequentially('2340.5');
+        await amount.blur();
+        assert.equal(await amount.inputValue(), '2,340.50', 'paise are written out once there are some');
+        await drawer.locator('[data-category-tile]').first().click();
+        assert.match(await said(drawer.locator('[data-save]')), /^Save · ₹2,340\.50 /);
+        await drawer.locator('[data-save]').click();
+        await page.getByText('Entry saved.').waitFor({ timeout: 15000 });
+        const [row] = await waitRows((r) => r.kind === 'expense' && Number(r.amount) === 234050, '2340.5 expense');
+        assert.equal(Number(row.amount), 234050);
+        ok('leaving the field adds no ".00" to 2,340; 2340.5 reads 2,340.50 and is saved as 234050 paise');
+      }
+      await ctx.close();
+    }
+  }
+
+  /* ── 11. Add opens on the tap; the kind switch takes the arrow keys ────── */
+  {
+    const { ctx, page } = await context(ios);
+    /* The route held back, so what is on screen before it answers is what the tap drew by itself. */
+    let hold = 0;
+    await page.route((u) => new URL(u).pathname === '/add', async (route) => {
+      if (route.request().headers()['rsc'] && hold) await new Promise((r) => setTimeout(r, hold));
+      await route.continue();
+    });
+    // A first open with signal, as on any phone that has opened Add before: its pickers are kept.
+    let drawer = await openDrawer(page);
+    await page.waitForFunction(() => !!localStorage.getItem('ql.pickers.v1'));
+    await page.keyboard.press('Escape');
+    await page.waitForURL((u) => u.pathname === '/', { timeout: 10000 });
+    await page.locator('[data-add-drawer]').waitFor({ state: 'detached' });
+    hold = 2500;
+    const t0 = Date.now();
+    await page.locator('a[href="/add"]').first().click();
+    drawer = page.locator('[data-add-drawer]');
+    await drawer.getByLabel(/^Amount in/).waitFor();
+    await page.waitForFunction(() => document.activeElement?.getAttribute('aria-label')?.startsWith('Amount in'));
+    const opened = Date.now() - t0;
+    assert.ok(opened < 1500, `the drawer and its focused amount are up before the route answers (${opened}ms, route held 2500ms)`);
+    const settled = await page.evaluate(() => new Promise((res) => {
+      const el = document.querySelector('[data-add-drawer]'); const t = performance.now();
+      const look = () => (el.getAnimations().every((a) => a.playState !== 'running') ? res(Math.round(performance.now() - t)) : requestAnimationFrame(look));
+      look();
+    }));
+    await page.keyboard.type('58');
+    assert.equal(await drawer.locator('[data-category-tile]').count() > 0, true, 'the tiles are there from the phone\'s pickers');
+    await page.waitForURL((u) => u.pathname === '/add', { timeout: 10000 });
+    await page.waitForTimeout(800);
+    assert.equal(await page.locator('[data-slot=drawer-content]').count(), 1, 'one drawer once the route lands, not two');
+    assert.equal(await drawer.getByLabel(/^Amount in/).inputValue(), '58', 'what was typed before the route landed is kept');
+    ok(`Add opens on the tap from the kept pickers (focused in ${opened}ms with the route held 2.5s; slide done ${settled}ms later), and the route's arrival keeps the "58" typed`);
+    /* The kind switch: one Tab stop, the arrows move the choice and focus. */
+    const expense = kindRadio(page, 'Expense');
+    assert.equal(await expense.getAttribute('aria-checked'), 'true');
+    assert.equal(await kindRadio(page, 'Income').getAttribute('tabindex'), '-1', 'only the chosen kind is a Tab stop');
+    await expense.focus();
+    await page.keyboard.press('ArrowRight');
+    assert.equal(await kindRadio(page, 'Income').getAttribute('aria-checked'), 'true');
+    assert.ok(await kindRadio(page, 'Income').evaluate((e) => e === document.activeElement), 'focus follows to Income');
+    await page.keyboard.press('ArrowLeft');
+    await page.keyboard.press('ArrowLeft');
+    assert.equal(await kindRadio(page, 'Move').getAttribute('aria-checked'), 'true', 'ArrowLeft from Expense wraps to Move');
+    await page.keyboard.press('Home');
+    assert.equal(await expense.getAttribute('aria-checked'), 'true');
+    ok('the kind switch is a radio group: one Tab stop, arrows and Home move the choice and the focus');
+    // Put away, the address steps back to Home and the drawer goes with it.
+    await drawer.getByRole('button', { name: 'Close', exact: true }).first().click();
+    await page.waitForURL((u) => u.pathname === '/', { timeout: 10000 });
+    await page.locator('[data-add-drawer]').waitFor({ state: 'detached' });
+    /* Put away BEFORE the route answers: when it does, it is stepped back off at once — Home, no drawer. */
+    await page.locator('a[href="/add"]').first().click();
+    await page.locator('[data-add-drawer]').getByLabel(/^Amount in/).waitFor();
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(hold + 1500);
+    assert.equal(new URL(page.url()).pathname, '/', `closed before the route arrived, the address ends at Home (${page.url()})`);
+    assert.equal(await page.locator('[data-slot=drawer-content]').count(), 0, 'and no drawer is left open');
+    ok('closed before /add answered, the drawer stays shut and the address comes back to Home');
+    await ctx.close();
+  }
+  /* A phone that has never opened Add: the drawer still opens on the tap, holding the form's frame until the route
+     answers, then the form. */
+  {
+    const { ctx, page } = await context(pixel);
+    await page.route((u) => new URL(u).pathname === '/add', async (route) => {
+      if (route.request().headers()['rsc']) await new Promise((r) => setTimeout(r, 1500));
+      await route.continue();
+    });
+    await page.goto(`${BASE}/`);
+    await page.evaluate(() => localStorage.removeItem('ql.pickers.v1'));
+    await page.locator('a[href="/add"]').first().click();
+    await page.locator('[data-add-drawer] [data-frame]').waitFor({ timeout: 1000 });
+    await page.locator('[data-add-drawer]').getByLabel(/^Amount in/).waitFor({ timeout: 15000 });
+    assert.equal(await page.locator('[data-slot=drawer-content]').count(), 1);
+    ok('with nothing kept on the phone, the drawer opens on the tap with the form\'s frame, then the form');
+    await ctx.close();
+  }
+
   /* ── screenshots ─────────────────────────────────────────────────────── */
   if (SHOTS) {
     fs.mkdirSync(SHOTS, { recursive: true });
@@ -472,7 +682,7 @@ try {
         await page.waitForTimeout(300);
         await page.screenshot({ path: path.join(SHOTS, `${label}-${theme}-3-more.png`) });
         await page.goto(`${BASE}/add`);
-        await page.getByRole('tab', { name: 'Move' }).click();
+        await kindRadio(page, 'Move').click();
         await page.getByLabel(/^Amount in/).fill('15000');
         await page.getByLabel(/^Amount in/).blur();
         await page.screenshot({ path: path.join(SHOTS, `${label}-${theme}-4-move.png`) });
@@ -480,7 +690,7 @@ try {
         await page.waitForTimeout(500);
         await page.screenshot({ path: path.join(SHOTS, `${label}-${theme}-5-paypicker.png`) });
         await page.keyboard.press('Escape');
-        await page.getByRole('tab', { name: 'Income' }).click();
+        await kindRadio(page, 'Income').click();
         await page.getByRole('button', { name: /^When/ }).click();
         await page.waitForTimeout(500);
         await page.screenshot({ path: path.join(SHOTS, `${label}-${theme}-6-when.png`) });

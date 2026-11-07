@@ -7,6 +7,7 @@
  *
  * A route may carry taps to make before it is measured, so a drawer or a fold can be swept open:
  *   /add|tap=^When   — load /add, tap the first button whose accessible name matches /^When/, then measure.
+ *   /|link=^Add an entry$ — the same for a link (the tab bar's plus, which opens the Add drawer over Home).
  * Several |tap= steps run in order (no commas in them: --routes splits on commas).
  *
  * Env: SWEEP_BASE (default http://localhost:3000), SWEEP_STATE (Playwright
@@ -454,9 +455,9 @@ async function sweepEngine(args, engine, hasState) {
           } else {
             if (!(await settle(page))) found.push({ kind: 'load', reason: 'page did not settle within 8s (measured anyway)', where: route });
             for (const step of steps) {
-              const tap = /^tap=(.+)$/.exec(step);
+              const tap = /^(tap|link)=(.+)$/.exec(step);
               if (!tap) throw new Error(`unknown route step ${step}`);
-              await page.getByRole('button', { name: new RegExp(tap[1]) }).first().click({ timeout: 10000 });
+              await page.getByRole(tap[1] === 'link' ? 'link' : 'button', { name: new RegExp(tap[2]) }).first().click({ timeout: 10000 });
               await page.waitForTimeout(700);
               await settle(page);
             }

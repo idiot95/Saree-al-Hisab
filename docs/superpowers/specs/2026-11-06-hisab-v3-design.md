@@ -110,12 +110,12 @@ Each gets its own implementation plan, branch commits and verification. The orde
 When a figure changes, its digits roll to the new value instead of jumping. Groupings and the currency symbol slide sideways as the number's width changes. This is the premium touch.
 
 - **Library:** NumberFlow (`@number-flow/react`), a maintained component built for exactly this. It formats through `Intl.NumberFormat`, so Indian grouping (`₹1,47,000`), 0/2/3-digit currencies and `AED 1,250` work through the existing `money.ts` rules. No hand-written CSS.
-- **Where it rolls** (only where a person sees a figure change in front of them; never in long lists, where it would be noise and cost frames):
-  - Add entry: the amount as it is typed, and the Save label (`Save · ₹2,340 Groceries`).
-  - Home: *Left to spend* and the pace line after a save, a delete or an Undo.
+- **Where it rolls** (revised 7 Nov 2026, v3.1, by the owner: "the digits rotating should be on the main home screen, not when I'm making any data entries"). Only on read surfaces, after a change the person caused elsewhere; **never while typing**, and never in lists, where it would be noise and cost frames:
+  - Home: *Left to spend* and the month's figures after a save, a delete or an Undo.
   - Wealth: the net-worth headline and the class legend when switching Household / Me / member / Joint, and a holding's value after *Update balance* or a rate override.
-  - Plan: the month total and a budget row's figure while it is edited.
   - Loans: *Owed to you* after Money back.
+  - A balance an edit moves (an account's balance, a reconciliation's "In the books today", a person's or a tab's figure).
+- **Static during entry:** Add entry's amount, the echo line under it (removed) and the Save label (`Save · ₹2,340 Groceries`), and Plan's budget form (the month total and each row's figure as it is typed) are plain `format()` text. SMS draft rows, being a list, are static too.
 - **On first paint** the figure renders static, server-side and correct. It rolls only on a change, never on page load, so screens don't feel slow and the server and client renders match.
 - **Accessibility:** `prefers-reduced-motion` turns rolling off (the library respects it; the plan checks it). Screen readers get the final value once, not every intermediate digit.
 - **One wrapper:** `<Figure minor={…} currency={…} />` is the only way a rolling amount is drawn. It reads `useMoney()`, so the currency rules stay in one place. Server pages pass the value to it as a prop.

@@ -9,6 +9,7 @@ import { shares } from '../tab/splits';
 import { haptic } from '../haptics';
 import Bills, { type Staged } from './Bills';
 import { cn } from '@/lib/utils';
+import { choice } from '../choice';
 import type { Claim, Tab } from './AddEntry';
 
 /* Everything an entry CAN carry beyond amount, category, way and day: where, a remark, the bill, a tab and what it
@@ -33,7 +34,7 @@ export default function MoreFields({ kind, state, set, tabs, claims, minor, toda
   /** "Use ₹X": set the amount to exactly what the ticked claims are owed. */
   onUseOwed: (minor: number) => void;
 }) {
-  const { format, keysDisplay, typed, settle, fromKeys } = useMoney();
+  const { format, keysDisplay, typed, tidy, fromKeys } = useMoney();
   const tab = tabs.find((t) => t.id === state.tabId) ?? null;
   const mine = state.counts ?? tab?.last_counts ?? true;
 
@@ -133,8 +134,8 @@ export default function MoreFields({ kind, state, set, tabs, claims, minor, toda
               return (
                 <button key={t.id} type="button" aria-pressed={isOn}
                   onClick={() => { haptic('select'); set('tabId', isOn ? null : t.id); }}
-                  className={cn('flex min-h-11 max-w-full items-center gap-1.5 rounded-full border pr-3.5 pl-2.5 text-sm font-semibold',
-                    isOn ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-card text-foreground')}>
+                  style={choice(isOn)}
+                  className="flex min-h-11 max-w-full items-center gap-1.5 rounded-full pr-3.5 pl-2.5 text-sm font-semibold">
                   <Icon name="tab" size={16} />
                   <span className="truncate">{t.name}</span>
                 </button>
@@ -150,7 +151,7 @@ export default function MoreFields({ kind, state, set, tabs, claims, minor, toda
                 <input
                   value={state.coveredKeys === '' ? '' : keysDisplay(state.coveredKeys)}
                   onChange={(e) => set('coveredKeys', typed(e.target.value))}
-                  onBlur={() => set('coveredKeys', settle(state.coveredKeys))}
+                  onBlur={() => set('coveredKeys', tidy(state.coveredKeys))}
                   type="text" inputMode="decimal" autoComplete="off"
                   placeholder={minor > 0 ? `all of it — ${format(minor)}` : 'all of it'}
                   aria-label="How much of this comes back"
@@ -167,8 +168,8 @@ export default function MoreFields({ kind, state, set, tabs, claims, minor, toda
                 const isOn = mine === v;
                 return (
                   <button key={String(v)} type="button" aria-pressed={isOn} onClick={() => { haptic('select'); set('counts', v); }}
-                    className={cn('flex min-h-14 flex-1 items-center gap-2 rounded-xl border px-3 py-2 text-left',
-                      isOn ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-card text-foreground')}>
+                    style={choice(isOn)}
+                    className="flex min-h-14 flex-1 items-center gap-2 rounded-xl px-3 py-2 text-left">
                     <Icon name={icon} size={17} />
                     <span className="flex min-w-0 flex-col gap-px">
                       <span className="text-sm font-semibold">{label}</span>
@@ -203,7 +204,7 @@ export default function MoreFields({ kind, state, set, tabs, claims, minor, toda
         <Bills staged={state.bills} onChange={(b) => set('bills', b)} />
       </div>
 
-      <label className="flex min-h-11 items-center gap-3 border-t border-border pt-2">
+      <label className="flex min-h-11 items-center gap-3 border-t border-border pt-2 in-data-[platform=android]:min-h-12">
         <span className="flex-1 text-sm font-semibold">Shared with the household</span>
         <Switch checked={state.shared} onCheckedChange={(v) => { haptic('select'); set('shared', v); }}
           className="data-[size=default]:h-7 data-[size=default]:w-11 [&_[data-slot=switch-thumb]]:size-6" />

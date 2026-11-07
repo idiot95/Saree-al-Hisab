@@ -9,6 +9,7 @@ import NavTrail from './NavTrail';
 import RegisterSW from './RegisterSW';
 import SyncQueue from './SyncQueue';
 import PendingSkeleton from './PendingSkeleton';
+import InstantAdd from './add/InstantAdd';
 import { Inter } from 'next/font/google';
 import localFont from 'next/font/local';
 import './globals.css';
@@ -111,6 +112,8 @@ export default async function RootLayout({ children, modal }: { children: React.
           {children}
           {/* Add Entry as a drawer over the screen it was opened from (app/@modal). */}
           {modal}
+          {/* The same drawer, opened on the tab bar's tap before /add has arrived (add/instant.ts). */}
+          {actor?.household_id && <InstantAdd householdId={actor.household_id} />}
           <SyncQueue />
           <PendingSkeleton />
           {/* useSearchParams needs a boundary of its own, or the whole tree would wait on it. */}
