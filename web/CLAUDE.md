@@ -329,7 +329,9 @@ is no override. Each cleanup deletes only rows the run made, by id or by a run-u
   claim — each success's focus and announcement), `offline-taps.mjs` (the worker, /offline, a queued entry draining
   into one row), `drawers.check.mjs` (Wealth's drawers: Close, 86dvh, focus back), `nav-taps.mjs` (the tap frame, the dim and the
   press under real touches) and `prefetch-writes.check.mjs` (no write while prefetched screens load; it switches the
-  local cluster's statement logging on and back off). `nav-timing.mjs` times every navigation (see Motion). Run any as `node
+  local cluster's statement logging on and back off). `nav-timing.mjs` times every navigation (see Motion); `reveal.check.mjs` (P4) watches the arrival: a cold
+/worth through its streamed frame, a tab into Activity, and a Save in the Add drawer that must replay nothing on Home
+(`--shots dir` writes frame strips, a frame every 50ms). Run any as `node
   scripts/<name>.mjs` (most take `--state`, some `--shots dir`; add, plan, loans, activity, sms and offline take
   `--keep`, accounts and drawers.check do not). The sweep's summary line says how many screen-states it measured,
   per engine pass.
