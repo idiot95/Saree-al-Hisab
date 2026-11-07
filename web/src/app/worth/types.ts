@@ -32,7 +32,8 @@ export type WealthView = {
   unvalued: number;
 };
 
-/** "Rates 6 Nov", and one line per rate over a day old ("Gold rate from 5 Nov"), by its base (XAU, AED…). */
-export type RateNote = { asOf: string | null; stale: { base: string; line: string }[] };
+/** "Rates 6 Nov", and one line per rate over a day old, by its base (XAU, AED…): what it is ("Gold", "AED") and
+ *  the date of the rate in use ("5 Nov"). The screen says whether it is updating, updated or could not be. */
+export type RateNote = { asOf: string | null; stale: { base: string; label: string; from: string }[] };
 
 export type SeriesPoint = { month: string; held: number; holdings: number };

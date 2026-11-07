@@ -2,8 +2,7 @@ import { notFound, redirect } from 'next/navigation';
 import { EmptyLine } from '../../entries/parts';
 import { liRule } from '../../form-bits';
 import { actorOrNull, membersOf } from '@/db/queries';
-import { baseOf, holdingById, photosFor, snapshotsFor } from '@/db/holdings';
-import { ensureRates } from '@/db/prices';
+import { baseOf, dueRateBases, holdingById, photosFor, snapshotsFor } from '@/db/holdings';
 import { withHousehold } from '@/db/client';
 import { format, symbolOf, unitOf } from '@/lib/money';
 import { dayLabel, gramsLabel, purityLabel, rateLabel } from '@/lib/holding-input';
@@ -35,12 +34,12 @@ export default async function Holding({ params }: { params: Promise<{ id: string
 
   const found = await holdingById(hh, id);
   if (!found) notFound();
-  // The rate first, so the value read below is today's.
+  /* At the last stored rate, like Wealth (v3.1 P5 fix round 1, review M4): nothing is fetched or written here. If
+     this holding's rate is over a day old the line says so and the screen asks POST /api/rates (RateLine). */
   const base = baseOf(found);
-  const { stale } = found.archived_at ? { stale: [] as string[] } : await ensureRates(hh, [base], actor.currency);
-
-  const [h, snapshots, photos, members] = await withHousehold(hh, () => Promise.all([
+  const [h, snapshots, photos, members, dueBases] = await withHousehold(hh, () => Promise.all([
     holdingById(hh, id), snapshotsFor(hh, id), photosFor(hh, id), membersOf(hh),
+    found.archived_at ? Promise.resolve([] as string[]) : dueRateBases(hh, actor.currency),
   ]));
   if (!h) notFound();
 
@@ -58,9 +57,10 @@ export default async function Holding({ params }: { params: Promise<{ id: string
   const rate = h.rate
     ? `${fx ? `1 ${subject} = ` : `${subject} `}${symbolOf(actor.currency)}${rateLabel(h.rate)}${fx ? '' : '/g pure'} · ${dayLabel(h.rate_as_of)}${h.rate_source === 'override' ? ' · your rate' : ''}`
     : null;
-  const staleLine = stale.includes(base)
-    ? (h.rate_as_of && h.rate_source !== 'override' ? `Rate from ${dayLabel(h.rate_as_of)} — couldn’t update` : h.rate ? null : 'Couldn’t get a rate')
-    : null;
+  const due = dueBases.includes(base);
+  // A rate the household set itself is theirs to keep: refreshed behind it, never called out of date.
+  const from = h.rate_as_of && h.rate_source !== 'override' ? dayLabel(h.rate_as_of) : null;
+  const quiet = !!h.rate && h.rate_source === 'override';
 
   const forSnap = (sid: string) => photos.filter((p) => p.snapshot_id === sid);
   const own = photos.filter((p) => p.snapshot_id === null);
@@ -92,7 +92,7 @@ export default async function Holding({ params }: { params: Promise<{ id: string
             {value !== null && h.quantity && <span className="text-body text-hero-muted">{native(h.quantity)}{h.as_of ? ` on ${dayLabel(h.as_of)}` : ''}</span>}
           </section>
 
-          <RateLine base={base} subject={subject} rate={rate} stale={staleLine} canWrite={canWrite} fx={fx} />
+          <RateLine base={base} subject={subject} rate={rate} due={due} from={from} quiet={quiet} canWrite={canWrite} fx={fx} />
 
           {canWrite && (
             <div className="flex gap-2">

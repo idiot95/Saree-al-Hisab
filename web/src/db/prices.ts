@@ -89,18 +89,21 @@ export function priceableBases(bases: string[], quote: string): string[] {
     (b) => b !== quote && /^[A-Z]{3}$/.test(b) && (isCurrency(b) || isMetal(b)));
 }
 
-/* Fetches and stores what is due. Wealth no longer calls this while it renders (v3.1 P5): the page renders with the
-   last known rates and its screen asks POST /api/rates, which calls this, once it is on screen — so a render (a
-   prefetch included) makes no network call and writes nothing. The holding page still calls it as it renders. */
+/* Fetches and stores what is due. No render calls this (v3.1 P5 and its fix round 1): Wealth and a holding's page
+   render with the last known rates and their screens ask POST /api/rates, which calls this, once they are on screen
+   — so a render (a prefetch included) makes no network call and writes nothing. */
 export async function ensureRates(
   _householdId: string, // kept for the plan's signature; the pool is used, see above
   bases: string[], quote: string,
   fetchImpl: typeof fetch = fetch,
+  /** `due: true`: the caller has just read that every one of `bases` is due (holdings.ts `dueRateBases`), so the
+   *  freshness read is skipped. */
+  { due: known = false } = {},
 ): Promise<{ stale: string[]; refreshed: string[] }> {
   const wanted = priceableBases(bases, quote);
   if (wanted.length === 0) return { stale: [], refreshed: [] };
   try {
-    const fresh = await freshBases(quote, wanted);
+    const fresh = known ? new Set<string>() : await freshBases(quote, wanted);
     const due = wanted.filter((b) => !fresh.has(b));
     if (due.length === 0) return { stale: [], refreshed: [] };
 

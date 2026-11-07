@@ -13,6 +13,7 @@ import { PhotoField, withPhotos } from '../PhotoField';
 import { Field, Problem } from '../fields';
 import { keepFields } from '../../form-hooks';
 import { replacing } from '../../backStack';
+import { useRateRefresh } from '../rate-refresh';
 
 /* What can be done to one holding. Each drawer posts to its server action, says what went wrong in a
    sentence if it did, and on success closes and refreshes the page — so the value on the card rolls to its new
@@ -88,15 +89,27 @@ export function AddPhotos({ holdingId }: { holdingId: string }) {
 
 /* "1 USD = ₹84.00 · 6 Nov · Tap to override". A rate the household sets wins over the fetched one for that
    day and after, until a newer fetched one arrives. Viewers see the line without the tap. */
-export function RateLine({ base, subject, rate, stale, canWrite, fx }: {
-  base: string; subject: string; rate: string | null; stale: string | null; canWrite: boolean; fx: boolean;
+export function RateLine({ base, subject, rate, due, from, quiet, canWrite, fx }: {
+  base: string; subject: string; rate: string | null; canWrite: boolean; fx: boolean;
+  /** The fetched rate is over a day old (or there is none): asked for once the screen is up (rate-refresh). */
+  due: boolean;
+  /** The day of the fetched rate in use, or null (none, or the household's own). */
+  from: string | null;
+  /** The household's own rate is in use: refreshed behind it, but not called out of date. */
+  quiet: boolean;
 }) {
   const { symbol } = useMoney();
   const s = useSheet(setRateOverride);
+  const status = useRateRefresh(due ? [base] : [])(base);
+  const [shown] = useState(due && !quiet);  // the line keeps its room once shown (review M2)
+  const stale = !shown ? null
+    : status === 'updated' ? 'Rate updated'
+    : from ? `Rate from ${from} — ${status === 'failed' ? 'couldn’t update' : 'updating'}`
+    : status === 'failed' ? 'Couldn’t get a rate' : 'Getting today’s rate…';
   const body = (
     <span className="flex min-w-0 flex-1 flex-col items-start gap-0.5 text-left">
       <span className="text-body tabular-nums [overflow-wrap:anywhere]">{rate ?? 'No rate yet'}</span>
-      {stale && <span className="flex items-center gap-1 text-footnote text-attention-soft-foreground"><Icon name="sync_problem" size={15} />{stale}</span>}
+      {stale && <span role="status" data-rate-line={status} className={`flex items-center gap-1 text-footnote ${status === 'updated' ? 'text-muted-foreground' : 'text-attention-soft-foreground'}`}><Icon name={status === 'updated' ? 'check' : 'sync_problem'} size={15} />{stale}</span>}
       {canWrite && <span className="text-footnote text-muted-foreground">{rate ? 'Tap to override' : 'Tap to set one'}</span>}
     </span>
   );

@@ -87,14 +87,13 @@ export default async function Worth({ searchParams }: { searchParams: Promise<{ 
      called out of date. */
   const note = (rows: typeof holdings, label: (h: (typeof holdings)[number]) => string): RateNote => {
     const dates = rows.map((h) => h.rate_as_of).filter((d): d is string => !!d).sort();
-    const lines = new Map<string, string>();
+    const lines = new Map<string, { base: string; label: string; from: string }>();
     for (const h of rows) {
       const base = h.kind === 'fx_cash' ? h.currency! : h.metal === 'gold' ? 'XAU' : 'XAG';
       if (!stale.includes(base) || !h.rate_as_of || h.rate_source === 'override') continue;
-      lines.set(base, `${label(h)} rate from ${dayLabel(h.rate_as_of)}`);
+      lines.set(base, { base, label: label(h), from: dayLabel(h.rate_as_of) });
     }
-    return { asOf: dates.length ? dayLabel(dates[dates.length - 1]) : null,
-      stale: [...lines].map(([base, line]) => ({ base, line })) };
+    return { asOf: dates.length ? dayLabel(dates[dates.length - 1]) : null, stale: [...lines.values()] };
   };
   const potRates = note(fx, (h) => h.currency!);
   const metalRates = note(metal, (h) => (h.metal === 'gold' ? 'Gold' : 'Silver'));
