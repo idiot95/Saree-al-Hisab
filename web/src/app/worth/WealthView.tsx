@@ -2,7 +2,8 @@
 
 import { EmptyLine } from '../entries/parts';
 import { liRule } from '../form-bits';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { revealChildren, useArrival } from '../Reveal';
 import Link from '@/app/NavLink';
@@ -21,6 +22,31 @@ import type { HoldingItem, RateNote, SeriesPoint, WealthView as View } from './t
 /* Recharts is a large library and the chart is below the fold on one view only: it loads when it is drawn. */
 const WorthChart = dynamic(() => import('./WorthChart'), { ssr: false });
 
+/* The day's rates, refreshed once the screen is on the phone (v3.1 P5): the render drew the last known ones and
+   named those over a day old. POST /api/rates fetches them (never during a render, so Wealth can be prefetched);
+   if any came back the screen is redrawn with them, and those that did not are said to have failed. Once per
+   mount and per set of bases, abandoned if the screen goes. Returns the bases that could not be refreshed, or null
+   while asking. */
+function useRateRefresh(due: string[]) {
+  const router = useRouter();
+  const key = due.join(',');
+  const [failed, setFailed] = useState<{ key: string; bases: ReadonlySet<string> } | null>(null);
+  useEffect(() => {
+    if (!key) return;
+    const ask = new AbortController();
+    fetch('/api/rates', { method: 'POST', signal: ask.signal, credentials: 'same-origin' })
+      .then((r) => (r.ok ? r.json() : { refreshed: [], stale: key.split(',') }))
+      .then((r: { refreshed: string[]; stale: string[] }) => {
+        if (ask.signal.aborted) return;
+        setFailed({ key, bases: new Set(r.stale) });
+        if (r.refreshed.length) router.refresh();
+      })
+      .catch(() => { if (!ask.signal.aborted) setFailed({ key, bases: new Set(key.split(',')) }); });
+    return () => ask.abort();
+  }, [key, router]);
+  return failed && failed.key === key ? failed.bases : null;
+}
+
 const CLASSES = [
   { key: 'bank', word: 'Bank & cash', swatch: 'bg-hero-1' },
   { key: 'pots', word: 'Pots', swatch: 'bg-hero-2' },
@@ -28,9 +54,12 @@ const CLASSES = [
   { key: 'owed', word: 'Owed to you', swatch: 'bg-hero-4' },
 ] as const;
 
-export default function WealthView({ views, initial, items, potRates, metalRates, series }: {
+export default function WealthView({ views, initial, items, potRates, metalRates, series, due }: {
   views: View[]; initial: string; items: HoldingItem[]; potRates: RateNote; metalRates: RateNote; series: SeriesPoint[];
+  /** Bases whose rate is over a day old: refreshed once the screen is up (useRateRefresh). */
+  due: string[];
 }) {
+  const failed = useRateRefresh(due);
   const [key, setKey] = useState(initial);
   const v = views.find((x) => x.key === key) ?? views[0];
   const { format } = useMoney();
@@ -84,12 +113,12 @@ export default function WealthView({ views, initial, items, potRates, metalRates
       </section>
 
       {pots.length > 0 && (
-        <Section title="Pots in other currencies" rates={potRates}>
+        <Section title="Pots in other currencies" rates={potRates} failed={failed}>
           <ul>{pots.map((h) => <HoldingRow key={h.id} h={h} value={h.value === null ? null : format(h.value)} />)}</ul>
         </Section>
       )}
       {metals.length > 0 && (
-        <Section title="Gold & silver" rates={metalRates}>
+        <Section title="Gold & silver" rates={metalRates} failed={failed}>
           <ul>{metals.map((h) => <HoldingRow key={h.id} h={h} value={h.value === null ? null : format(h.value)} />)}</ul>
         </Section>
       )}
@@ -122,7 +151,9 @@ export default function WealthView({ views, initial, items, potRates, metalRates
   );
 }
 
-function Section({ title, rates, children }: { title: string; rates: RateNote; children: React.ReactNode }) {
+function Section({ title, rates, failed, children }: {
+  title: string; rates: RateNote; failed: ReadonlySet<string> | null; children: React.ReactNode;
+}) {
   return (
     <section aria-label={title} className="mx-[var(--gutter)] flex flex-col gap-1.5">
       <div className="flex items-baseline justify-between gap-3 px-0.5">
@@ -130,8 +161,8 @@ function Section({ title, rates, children }: { title: string; rates: RateNote; c
         {rates.asOf && <span className="text-footnote text-muted-foreground">Rates {rates.asOf}</span>}
       </div>
       {rates.stale.map((s) => (
-        <p key={s} className="flex items-center gap-1.5 px-0.5 text-footnote text-attention-soft-foreground">
-          <Icon name="sync_problem" size={15} />{s}
+        <p key={s.base} className="flex items-center gap-1.5 px-0.5 text-footnote text-attention-soft-foreground">
+          <Icon name="sync_problem" size={15} />{s.line} — {failed?.has(s.base) ? 'couldn’t update' : 'updating'}
         </p>
       ))}
       <div className="overflow-hidden rounded-[20px] bg-card shadow-card">{children}</div>

@@ -1,13 +1,11 @@
 import { allBalances, claimsFor, membersOf, peopleFor } from './queries';
-import { holdingBases, holdingsFor } from './holdings';
-import { ensureRates } from './prices';
+import { dueRateBases, holdingsFor } from './holdings';
 import { withHousehold } from './client';
 import { owedToYou } from '@/lib/worth';
 
 /* What netWorth() is worked out from, read the one way for every screen that shows it — Wealth, Accounts and
-   Home's net-worth row — so they can never disagree: rates refreshed first (a pair older than a day is fetched,
-   a failed provider leaves the last known rate and is named in `stale`), then the accounts, what is owed,
-   the members and the valued holdings.
+   Home's net-worth row — so they can never disagree: the accounts, what is owed, the members and the valued
+   holdings, at the last stored rates.
 
    What is owed comes from the same reads and the same function as Home's and Loans' "Owed to you"
    (claimsFor, peopleFor, owedToYou), so the label means one number everywhere: every open claim, a claim on an
@@ -15,21 +13,19 @@ import { owedToYou } from '@/lib/worth';
    money lent. The person accounts netWorth sees are the people peopleFor lists, so lent and borrowed are
    owedToYou's lentOut and youOwe exactly.
 
-   Only Wealth refreshes rates (the default). Home and Accounts pass { refreshRates: false }: they never wait on
-   a rate provider, and value holdings at the last stored rates — the ones Wealth fetched. Called inside a
-   caller's withHousehold, the reads share that transaction (a nested scope runs in the outer one). */
-export async function worthInput(householdId: string, quote: string, { refreshRates = true } = {}) {
-  let stale: string[] = [];
-  if (refreshRates) {
-    const bases = await holdingBases(householdId);
-    ({ stale } = await ensureRates(householdId, bases, quote));
-  }
-  const [balances, claims, people, members, holdings] = await withHousehold(householdId, () => Promise.all([
+   Nothing here fetches a rate or writes (v3.1 P5): every screen values holdings at the last stored rates, so a
+   render — a prefetch included — reads and nothing more. Wealth passes { due: true } and gets back, from the same
+   transaction, the bases whose rate is over a day old (`stale`); it shows them as older rates and its screen asks
+   POST /api/rates (src/app/api/rates/route.ts) to refresh them once it is on screen. Called inside a caller's
+   withHousehold, the reads share that transaction (a nested scope runs in the outer one). */
+export async function worthInput(householdId: string, quote: string, { due = false } = {}) {
+  const [balances, claims, people, members, holdings, stale] = await withHousehold(householdId, () => Promise.all([
     allBalances(householdId),
     claimsFor(householdId),
     peopleFor(householdId),
     membersOf(householdId),
     holdingsFor(householdId),
+    due ? dueRateBases(householdId, quote) : Promise.resolve([] as string[]),
   ]));
   const accounts = [
     ...balances.filter((a) => a.kind !== 'person'),

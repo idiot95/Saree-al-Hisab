@@ -13,7 +13,7 @@ export type HoldingItem = {
   /** "22k", "Sterling" for a metal; the currency code for a pot. */
   badge: string;
   value: number | null;
-  /** Its rate could not be refreshed today and an older fetched one is in use. */
+  /** Its rate is over a day old (an older fetched one is in use until the refresh lands). */
   stale: boolean;
 };
 
@@ -32,7 +32,7 @@ export type WealthView = {
   unvalued: number;
 };
 
-/** "Rates 6 Nov", and one line per rate that could not be refreshed. */
-export type RateNote = { asOf: string | null; stale: string[] };
+/** "Rates 6 Nov", and one line per rate over a day old ("Gold rate from 5 Nov"), by its base (XAU, AED…). */
+export type RateNote = { asOf: string | null; stale: { base: string; line: string }[] };
 
 export type SeriesPoint = { month: string; held: number; holdings: number };

@@ -29,11 +29,13 @@ export default async function Worth({ searchParams }: { searchParams: Promise<{ 
   if (!actor.household_id) redirect('/no-household');
   const hh = actor.household_id;
 
-  /* Rates first, then the inputs netWorth() reads — worthInput is the one path, shared with Home's row, so the
-     two figures cannot disagree. A provider that fails leaves the last known rate in place, named in `stale`. */
-  const { input, members, holdings, stale } = await worthInput(hh, actor.currency);
-  // After the rates, so the line's last point is valued at today's rates too.
-  const [allSeries, months] = await withHousehold(hh, () => Promise.all([worthSeries(hh, 6), monthlySeries(hh, 6)]));
+  /* The inputs netWorth() reads — worthInput is the one path, shared with Home's row, so the two figures cannot
+     disagree — and the line, in one transaction, at the last stored rates. Nothing is fetched or written here
+     (v3.1 P5), so this render is safe to prefetch: `stale` names the rates over a day old, drawn as older rates,
+     and the screen asks POST /api/rates to refresh them once it is on the phone (RefreshRates). */
+  const [{ input, members, holdings, stale }, allSeries, months] = await withHousehold(hh, () => Promise.all([
+    worthInput(hh, actor.currency, { due: true }), worthSeries(hh, 6), monthlySeries(hh, 6),
+  ]));
   const memberIds = input.members;
   const fx = holdings.filter((h) => h.kind === 'fx_cash');
   const metal = holdings.filter((h) => h.kind === 'metal');
@@ -80,17 +82,19 @@ export default async function Worth({ searchParams }: { searchParams: Promise<{ 
     };
   });
 
-  /* "Rates 6 Nov" is the newest rate a section's values use. A rate that could not be refreshed is said
-     with its date; one the household set itself is theirs to keep, and is not called out of date. */
+  /* "Rates 6 Nov" is the newest rate a section's values use. A rate over a day old is said with its date (the
+     screen adds whether it is updating or could not); one the household set itself is theirs to keep, and is not
+     called out of date. */
   const note = (rows: typeof holdings, label: (h: (typeof holdings)[number]) => string): RateNote => {
     const dates = rows.map((h) => h.rate_as_of).filter((d): d is string => !!d).sort();
     const lines = new Map<string, string>();
     for (const h of rows) {
       const base = h.kind === 'fx_cash' ? h.currency! : h.metal === 'gold' ? 'XAU' : 'XAG';
       if (!stale.includes(base) || !h.rate_as_of || h.rate_source === 'override') continue;
-      lines.set(base, `${label(h)} rate from ${dayLabel(h.rate_as_of)} — couldn’t update`);
+      lines.set(base, `${label(h)} rate from ${dayLabel(h.rate_as_of)}`);
     }
-    return { asOf: dates.length ? dayLabel(dates[dates.length - 1]) : null, stale: [...lines.values()] };
+    return { asOf: dates.length ? dayLabel(dates[dates.length - 1]) : null,
+      stale: [...lines].map(([base, line]) => ({ base, line })) };
   };
   const potRates = note(fx, (h) => h.currency!);
   const metalRates = note(metal, (h) => (h.metal === 'gold' ? 'Gold' : 'Silver'));
@@ -119,7 +123,7 @@ export default async function Worth({ searchParams }: { searchParams: Promise<{ 
           )}
         </header>
         <WealthView views={views} initial={initial} items={items} potRates={potRates} metalRates={metalRates}
-          series={series} />
+          series={series} due={stale} />
         <TabBar current="/worth" />
       </main>
     </Screen>

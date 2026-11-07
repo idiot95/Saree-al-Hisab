@@ -188,7 +188,7 @@ capture_token, sms_draft). Where an older section disagrees, this wins.
   after newer cycles — payments clear the oldest bills first, and a card in
   credit owes no bill. `billsDue` and `inboxCount` read it. Four invariants.
 - **Net worth has one definition**, `lib/worth.ts` `netWorth()`, fed by one read,
-  `db/worth.ts` `worthInput()` (rates first, then accounts, owed, members, holdings),
+  `db/worth.ts` `worthInput()` (accounts, owed, members, holdings, at the last stored rates; Wealth also asks which are due),
   used by Wealth and Home's dark net-worth row alike. (Home's old figure counted money lent twice.)
 - **Plan is one screen** (`/budget`, Task 25), pushed from Home's month card (back arrow to `/`). Top to bottom:
   the month's figures (`?m=`; Left to spend / Over budget by as a `Figure`, the pace tick and status from
@@ -1973,13 +1973,18 @@ so their tap needs no server render. `prefetch="auto"` (down to the loading fram
 frame committed first and React held the content for its 300ms reveal throttle. Whole prefetches are trusted 30s
 (`staleTimes.static`, the same as a visited screen) and every write empties them. **A prefetched render only
 reads**: Next sends a whole prefetch's data request without any prefetch header, so a render cannot tell it from a
-visit; anything that writes stays off prefetched screens. Wealth refreshes the day's rates as it renders (provider
-calls and a `price_quote` write, so the figures are fresh when opened) and is never prefetched; Activity's
+visit; anything that writes stays off prefetched screens. Wealth renders with the last stored rates and names those
+over a day old (read in its one transaction, `dueRateBases`); once on screen it POSTs `/api/rates`
+(`src/app/api/rates/route.ts`: currentActor, then `ensureRates`, the provider calls and the `price_quote` write) and
+redraws if anything came back, the older lines saying "updating" until then and "couldn't update" if a provider
+failed — so its render writes nothing and it is prefetched like the other tabs (v3.1 P5; it was not, while
+`ensureRates` ran in the render). The holding page (`/worth/[id]`, never prefetched) still refreshes its one rate as
+it renders. Activity's
 `purgeSmsBodies` runs only on From SMS, in `after()` (the message screen and the capture endpoint purge too).
 `scripts/prefetch-writes.check.mjs` logs every data-changing statement on the local cluster while Home, Loans, the
-household and Activity load with all their prefetches, and fails on any (with From SMS's purge as the control that
-the log sees writes). A Home view costs four whole prefetches (Activity, Loans, the household, Plan), about 90KB
-uncompressed.
+household and Activity load with all their prefetches (Wealth's among them, with every stored rate aged two days for
+the run so a render that refreshed would write), and fails on any (with From SMS's purge as the control that
+the log sees writes). A Home view costs five whole prefetches (Activity, Loans, Wealth, the household, Plan).
 
 **Undo instead of "Are you sure"** (`src/app/Snack.tsx`): delete and retire
 happen at once and can be taken back for fifteen minutes — `removeEntry` sets

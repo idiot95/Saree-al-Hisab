@@ -81,19 +81,28 @@ async function store(q: Omit<Quote, 'asOf'> & { asOf: string | null }) {
     on conflict (base, quote, as_of, source) do update set fetched_at = now()`;
 }
 
+/** The bases a quote currency can be priced in: real currencies and the two metals, never the quote itself. Empty
+ *  for a quote that is not a currency. Shared with the render's due check (holdings.ts `dueRateBases`). */
+export function priceableBases(bases: string[], quote: string): string[] {
+  if (!/^[A-Z]{3}$/.test(quote) || !isCurrency(quote)) return [];
+  return [...new Set(bases)].filter(
+    (b) => b !== quote && /^[A-Z]{3}$/.test(b) && (isCurrency(b) || isMetal(b)));
+}
+
+/* Fetches and stores what is due. Wealth no longer calls this while it renders (v3.1 P5): the page renders with the
+   last known rates and its screen asks POST /api/rates, which calls this, once it is on screen — so a render (a
+   prefetch included) makes no network call and writes nothing. The holding page still calls it as it renders. */
 export async function ensureRates(
   _householdId: string, // kept for the plan's signature; the pool is used, see above
   bases: string[], quote: string,
   fetchImpl: typeof fetch = fetch,
-): Promise<{ stale: string[] }> {
-  if (!/^[A-Z]{3}$/.test(quote) || !isCurrency(quote)) return { stale: [] };
-  const wanted = [...new Set(bases)].filter(
-    (b) => b !== quote && /^[A-Z]{3}$/.test(b) && (isCurrency(b) || isMetal(b)));
-  if (wanted.length === 0) return { stale: [] };
+): Promise<{ stale: string[]; refreshed: string[] }> {
+  const wanted = priceableBases(bases, quote);
+  if (wanted.length === 0) return { stale: [], refreshed: [] };
   try {
     const fresh = await freshBases(quote, wanted);
     const due = wanted.filter((b) => !fresh.has(b));
-    if (due.length === 0) return { stale: [] };
+    if (due.length === 0) return { stale: [], refreshed: [] };
 
     const signal = AbortSignal.timeout(BUDGET_MS);
     // One FX call per quote currency serves every currency base and the USD
@@ -121,9 +130,9 @@ export async function ensureRates(
         got.add(m);
       }));
     }
-    return { stale: due.filter((b) => !got.has(b)) };
+    return { stale: due.filter((b) => !got.has(b)), refreshed: [...got] };
   } catch (e) {
     console.error('rates: ensureRates failed', e instanceof Error ? e.name : 'Error');
-    return { stale: wanted };
+    return { stale: wanted, refreshed: [] };
   }
 }

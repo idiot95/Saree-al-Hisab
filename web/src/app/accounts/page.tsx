@@ -41,7 +41,7 @@ export default async function Accounts() {
     openCyclesFor(hh),
     /* Read the way Wealth and Home read it — worthInput, holdings included — without waiting on a rate provider:
        holdings are valued at the last stored rates, as on Home. */
-    worthInput(hh, actor.currency, { refreshRates: false }),
+    worthInput(hh, actor.currency),
   ]));
   const members = wi.members;
   /* The same figure Wealth and Home show, from the same inputs and the same helper. */

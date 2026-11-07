@@ -30,7 +30,7 @@ export default function HoldingRow({ h, value }: { h: HoldingItem; value: string
         {value !== null ? (
           <span className="flex flex-none items-center gap-1 text-body font-semibold tabular-nums">
             {/* The section above says which rate and from when; the row carries its own mark of it. */}
-            {h.stale && <Icon name="sync_problem" size={15} aria-label="Older rate, couldn’t update" className="text-attention-soft-foreground" />}
+            {h.stale && <Icon name="sync_problem" size={15} aria-label="Older rate" className="text-attention-soft-foreground" />}
             {value}
           </span>
         ) : (

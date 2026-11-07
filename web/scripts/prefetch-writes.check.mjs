@@ -1,7 +1,11 @@
 #!/usr/bin/env node
 /* A prefetch never writes (v3.1 P2 fix round 1): opening the screens whose links prefetch whole — Home, Loans, the
-   household — and letting every prefetch finish makes no INSERT, UPDATE or DELETE, and nothing prefetches Wealth
-   (whose render refreshes rates).
+   household — and letting every prefetch finish makes no INSERT, UPDATE or DELETE.
+
+   Wealth is prefetched again since v3.1 P5: its render no longer refreshes the day's rates (the screen asks
+   POST /api/rates once it is on the phone). To prove a prefetch of it cannot write even on the first open of the
+   day, every stored rate is made two days old for the run (fetched_at, put back afterwards whatever happens), so a
+   render that still refreshed would fetch and write price_quote — and the log would show it.
 
      node scripts/prefetch-writes.check.mjs [--log /var/tmp/pg5433/log] [--state file]
 
@@ -36,12 +40,16 @@ const sql = postgres(localOwnerUrl(ROOT), { ssl: 'require', max: 1, onnotice: ()
 const { defaultBrowserType, ...pixel } = devices['Pixel 7']; void defaultBrowserType;
 
 let failed = false;
+let aged = [];
 try {
   await sql`alter system set log_statement = 'mod'`;
   await sql`select pg_reload_conf()`;
   await new Promise((r) => setTimeout(r, 500));
   const [{ setting: on }] = await sql`select setting from pg_settings where name = 'log_statement'`;
   assert.equal(on, 'mod', 'statement logging is on');
+  /* Every rate due, so a Wealth render that refreshed would write. Put back in the finally. */
+  aged = await sql`select base, quote, as_of::text as as_of, source, fetched_at from price_quote`;
+  await sql`update price_quote set fetched_at = fetched_at - interval '2 days'`;
   const from = fs.statSync(LOG).size;
 
   const browser = await chromium.launch();
@@ -75,13 +83,18 @@ try {
   const prefetched = [...new Set(rsc)];
   console.log(`  prefetched: ${prefetched.join(', ') || 'nothing'}`);
   assert.ok(prefetched.some((p) => p.startsWith('/entries')), 'Activity was prefetched (the check means something)');
-  assert.ok(!prefetched.some((p) => p.startsWith('/worth')), 'nothing prefetched Wealth');
+  assert.ok(prefetched.some((p) => p.startsWith('/worth')), 'Wealth was prefetched (with every rate due)');
   assert.deepEqual(writes, [], `no data-changing statement while ${SCREENS.join(', ')} and their prefetches ran`);
-  console.log(`  ok   ${SCREENS.join(', ')} and ${prefetched.length} prefetch requests: no INSERT, UPDATE or DELETE logged; nothing prefetched /worth`);
+  console.log(`  ok   ${SCREENS.join(', ')} and ${prefetched.length} prefetch requests: no INSERT, UPDATE or DELETE logged, Wealth's among them with every rate due`);
 } catch (e) {
   failed = true;
   console.error(`  FAIL ${e.message}`);
 } finally {
+  for (const r of aged) {
+    await sql`update price_quote set fetched_at = ${r.fetched_at}
+      where base = ${r.base} and quote = ${r.quote} and as_of = ${r.as_of}::date and source = ${r.source}`;
+  }
+  if (aged.length) console.log(`  ${aged.length} rates put back to when they were fetched`);
   await sql`alter system reset log_statement`;
   await sql`select pg_reload_conf()`;
   await new Promise((r) => setTimeout(r, 300));

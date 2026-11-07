@@ -17,8 +17,9 @@ import { startPending, type Motion } from './pending';
    already on the phone. `prefetch="auto"` (only down to the loading frame) was measured and was worse here: the
    frame committed first and React then held the content for its 300ms reveal throttle (p2-report.md). Whole
    prefetches go stale after 30s like any visited screen (next.config `staleTimes`), and every write empties them.
-   A prefetched render must only read (scripts/prefetch-writes.check.mjs), so Wealth — whose render refreshes the
-   day's rates — is never prefetched. Rows never prefetch.
+   A prefetched render must only read (scripts/prefetch-writes.check.mjs). Wealth is prefetched like the other tabs
+   since v3.1 P5: its render no longer refreshes the day's rates (the screen asks POST /api/rates once it is up).
+   Rows never prefetch.
 
    `motion` is how the destination comes on (pending.ts): `push` deeper, `pop` back out, `fade` sideways from Home,
    `tab-left`/`tab-right` between tabs. It replaces the old `transitionTypes`, which started a view transition that

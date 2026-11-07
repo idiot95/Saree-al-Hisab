@@ -62,7 +62,7 @@ async function HomeScreen({ saved }: { saved?: string }) {
     entriesFor(hh, month),
     claimsFor(hh),
     peopleFor(hh),
-    worthInput(hh, actor.currency, { refreshRates: false }),
+    worthInput(hh, actor.currency),
   ]));
   const { owed } = owedToYou(claims, people);
   const householdWorth = netWorth(worth.input, { kind: 'household' }).worth;
