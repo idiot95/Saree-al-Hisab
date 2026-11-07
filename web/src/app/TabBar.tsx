@@ -13,7 +13,7 @@ import { openInstant } from './add/instant';
    Jakob's Law: every finance app people already use puts its navigation in a
    bar at the bottom, so this one does too.
 
-   Fitts's Law: the bar sits at the bottom edge, targets are 76px tall and a
+   Fitts's Law: the bar sits at the bottom edge, targets are 64px tall (80 on Android) and a
    fifth of the screen wide, and Add — the thing done most often — is centre,
    the only filled tile in the bar.
 

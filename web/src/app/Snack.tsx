@@ -34,7 +34,7 @@ export default function Snack({ snack, onClose, ttl = 6000 }: {
   return (
     <div role="status" aria-live="polite" className="snack" style={{
       position: 'fixed', left: 'var(--gutter)', right: 'var(--gutter)', zIndex: 45,
-      bottom: 'calc(84px + env(safe-area-inset-bottom, 0px))',
+      bottom: 'calc(var(--tab-bar) + 8px + env(safe-area-inset-bottom, 0px))',
       minHeight: 52, display: 'flex', alignItems: 'center', gap: 12,
       padding: '0 6px 0 16px', borderRadius: 14,
       background: err ? 'var(--destructive)' : 'var(--foreground)',
