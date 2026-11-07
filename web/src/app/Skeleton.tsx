@@ -32,17 +32,32 @@ import { ACTIVITY_CHIPS, KIND_SHORT, KIND_WORDS, Words, chip, chipOff, chipOn, c
 
 /* ---------- pieces ---------- */
 
-/* The shimmer (v3.1 P4, ux-audit C4.1): one band of light crossing the whole screen at once. `bg-fixed` anchors every
-   block's gradient to the viewport, so a wide bar and a narrow one are lit by the same band at the same moment,
-   instead of each sweeping on its own clock at a speed set by its own width. Linear over 1.6s; the keyframes are
-   globals.css `shim`. Reduced motion: a still block. `data-shim` marks a block for nav-timing ("no shimmer left").
-   (iOS Safari draws bg-fixed as bg-scroll: there each column of blocks sweeps together, at the same speed.) */
-const SHIM = 'bg-muted bg-[linear-gradient(100deg,transparent_35%,color-mix(in_oklab,var(--card)_70%,transparent)_50%,transparent_65%)] bg-[length:200vw_100%] bg-fixed bg-no-repeat animate-[shim_1.6s_linear_infinite] motion-reduce:animate-none motion-reduce:bg-none';
+/* The shimmer (v3.1 P4, ux-audit C4.1; fix round 1): one band of light crossing the whole screen at once, left to
+   right, so a wide bar and a narrow one are lit by the same band at the same moment instead of each sweeping on its
+   own clock. The blocks themselves are still (`GHOST`, `GHOST_HERO`); the band is `Shimmer`: a second, see-through
+   copy of the frame laid exactly over the first, in which only the blocks are painted (in the band's colour) and
+   which is masked by one moving band. One mask, on one element as wide as the screen, so it is one sweep on every
+   engine. (The first cut put the gradient on each block with `bg-fixed`; iOS Safari draws that as `bg-scroll`, so
+   each block lit from its own left edge.) Linear over 1.6s, the band entering wholly off the left edge and leaving
+   wholly past the right (globals.css `shim`). Reduced motion: the copy is not drawn, and the blocks are still.
+   `data-shim` marks a block ("hero" on the plum card), for the copy and for nav-timing ("no shimmer left"). */
+const GHOST = 'bg-muted';
 /* On the plum hero (C4.2): the block is the hero's own ink at a tenth and the band at 18%, never a pale slab. */
-const SHIM_HERO = 'bg-hero-foreground/10 bg-[linear-gradient(100deg,transparent_35%,color-mix(in_oklab,var(--hero-foreground)_18%,transparent)_50%,transparent_65%)] bg-[length:200vw_100%] bg-fixed bg-no-repeat animate-[shim_1.6s_linear_infinite] motion-reduce:animate-none motion-reduce:bg-none';
+const GHOST_HERO = 'bg-hero-foreground/10';
+const BAND = 'pointer-events-none select-none [grid-area:1/1] min-w-0 text-transparent [&_*]:!text-transparent [&_*]:!border-transparent [&_*]:!shadow-none [&_*]:!bg-transparent [&_*]:!bg-none [&_svg]:!hidden [&_[data-shim]]:!bg-[color-mix(in_oklab,var(--card)_70%,transparent)] [&_[data-shim=hero]]:!bg-[color-mix(in_oklab,var(--hero-foreground)_18%,transparent)] [mask-image:linear-gradient(100deg,transparent_35%,#000_50%,transparent_65%)] [mask-size:200vw_100%] [mask-repeat:no-repeat] animate-[shim_1.6s_linear_infinite] motion-reduce:hidden';
+
+/** A frame's body and its shimmer: the body, and over it the same markup again as the band (see above). */
+function Shimmer({ className, layer, children }: { className?: string; layer?: string; children: React.ReactNode }) {
+  return (
+    <div className={cn('grid', className)}>
+      <div className={cn('min-w-0 [grid-area:1/1]', layer)}>{children}</div>
+      <div aria-hidden data-shimmer="" className={cn(BAND, layer)}>{children}</div>
+    </div>
+  );
+}
 
 function S({ className = '', hero = false }: { className?: string; hero?: boolean }) {
-  return <span aria-hidden data-shim="" className={cn('block flex-none rounded-md', hero ? SHIM_HERO : SHIM, className)} />;
+  return <span aria-hidden data-shim={hero ? 'hero' : ''} className={cn('block flex-none rounded-md', hero ? GHOST_HERO : GHOST, className)} />;
 }
 
 /** A line of text not known yet: a sample in the real line's type, hidden, under a shimmer of `w`. */
@@ -58,7 +73,7 @@ function Ghost({ as: Tag = 'span', className = '', w = 'w-2/5', fig = false, tit
   return (
     <Tag aria-hidden data-frame={title ? 'title' : undefined} className={`relative block ${fig ? 'py-[.25em]' : ''} ${className}`}>
       <span className="invisible">{children}</span>
-      <span data-shim="" className={`${hero ? SHIM_HERO : SHIM} absolute left-0 rounded-md ${fig ? 'inset-y-[.38em]' : 'inset-y-[.18em]'} ${w}`} />
+      <span data-shim={hero ? 'hero' : ''} className={`${hero ? GHOST_HERO : GHOST} absolute left-0 rounded-md ${fig ? 'inset-y-[.38em]' : 'inset-y-[.18em]'} ${w}`} />
     </Tag>
   );
 }
@@ -226,7 +241,7 @@ function Frame({ name, current, space, skip, stillBar, children }: {
     <>
       <main aria-busy="true" data-frame={skip} className={cn('min-h-dvh bg-background text-foreground', stillBar && STREAMED)} style={{ paddingBottom: bottom }}>
         <span className="sr-only" aria-live="polite">Loading {name}</span>
-        {children}
+        <Shimmer>{children}</Shimmer>
       </main>
       {current && stillBar && <StillTabBar current={current} />}
     </>
@@ -426,6 +441,7 @@ export function AddFrame({ sheet = false, streamed = false }: { sheet?: boolean;
   return (
     <main aria-busy="true" data-frame="skip-label" className={cn('flex flex-col bg-background text-foreground', sheet ? 'min-h-0 flex-1 overflow-hidden' : 'min-h-dvh', streamed && STREAMED)}>
       <span className="sr-only" aria-live="polite">Loading a new entry</span>
+      <Shimmer className="min-h-0 flex-1 grid-rows-[1fr]" layer="flex min-h-0 flex-col">
       <header className="flex flex-none flex-col gap-1 px-[var(--gutter)] pt-2">
         <div className="flex items-center justify-between gap-2">
           <span className="-ml-2.5 flex size-11 items-center justify-center in-data-[platform=android]:size-12"><Icon name="close" size={24} /></span>
@@ -471,6 +487,7 @@ export function AddFrame({ sheet = false, streamed = false }: { sheet?: boolean;
       <div className="sticky bottom-0 z-10 flex-none border-t border-border bg-background px-[var(--gutter)] pb-[calc(10px+env(safe-area-inset-bottom))] pt-2.5">
         <span className="flex h-14 w-full items-center justify-center rounded-2xl bg-muted text-headline font-semibold text-muted-foreground">Save</span>
       </div>
+      </Shimmer>
     </main>
   );
 }
@@ -501,7 +518,7 @@ function Person({ stillBar }: Draw) {
         {/* PersonActions' two buttons: 160px each at least, so below 375px they stack. */}
         <div className="mx-[var(--gutter)] flex flex-wrap gap-2">
           {['Lend money', 'Got money back'].map((t) => (
-            <span key={t} data-shim="" className={cn('flex h-[54px] flex-1 basis-40 items-center justify-center gap-2 rounded-2xl border border-transparent px-4 text-body font-semibold', SHIM)}>
+            <span key={t} data-shim="" className={cn('flex h-[54px] flex-1 basis-40 items-center justify-center gap-2 rounded-2xl border border-transparent px-4 text-body font-semibold', GHOST)}>
               <span className="invisible size-[18px] flex-none" /><span className="invisible whitespace-nowrap">{t}</span>
             </span>
           ))}
