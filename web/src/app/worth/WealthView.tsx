@@ -1,7 +1,10 @@
 'use client';
 
 import { EmptyLine } from '../entries/parts';
+import { liRule } from '../form-bits';
 import { useState } from 'react';
+import { cn } from '@/lib/utils';
+import { revealChildren, useArrival } from '../Reveal';
 import Link from '@/app/NavLink';
 import { Figure } from '../Figure';
 import { Icon } from '../Icon';
@@ -40,8 +43,11 @@ export default function WealthView({ views, initial, items, potRates, metalRates
   const whole = parts.reduce((n, p) => n + p.value, 0);
   const inBar = parts.filter((p) => p.value > 0);
 
+  /* The chips, the net-worth card and the lists arrive in turn on a navigation here or a cold load (Reveal); a chip
+     only redraws, so it never replays them. */
+  const arrive = useArrival();
   return (
-    <div className="flex flex-col gap-4">
+    <div className={cn('flex flex-col gap-4', arrive && revealChildren)}>
       <OwnerChips chips={views} current={v.key} onPick={setKey} />
 
       <section aria-label={v.title} className="mx-[var(--gutter)] flex flex-col gap-3 rounded-[22px] bg-hero p-4 text-hero-foreground">
@@ -136,7 +142,7 @@ function Section({ title, rates, children }: { title: string; rates: RateNote; c
 function Row({ href, icon, word, value, lateral }: { href: string; icon: string; word: string; value: string; lateral?: boolean }) {
   return (
     <Link href={href} motion={lateral ? 'fade' : 'push'}
-      className="press flex min-h-14 items-center gap-3 border-b border-border px-3.5 last:border-b-0">
+      className={`press flex min-h-14 items-center gap-3 px-3.5 ${liRule} [--rule-x:48px]`}>
       <Icon name={icon} size={22} className="text-primary" />
       <span className="flex-1 text-body">{word}</span>
       <span className="text-body font-semibold tabular-nums">{value}</span>

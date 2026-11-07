@@ -9,8 +9,9 @@ import Snack, { type SnackState } from '../Snack';
 import { useMoney } from '@/app/currency';
 import { removeEntry, restoreEntry } from './actions';
 import { startPending } from '../pending';
+import { revealItem, useArrival } from '../Reveal';
 import { Chip, Icon } from '../Icon';
-import { KIND_SHORT, KIND_WORDS, Words, chip, chipQuiet, chipQuietOn, chipQuietRow, rowRule } from '../form-bits';
+import { KIND_SHORT, KIND_WORDS, Words, chip, chipQuiet, chipQuietOn, chipQuietRow, rowRule, rulePad, ruleSwipe } from '../form-bits';
 
 export type Row = {
   id: string; kind: string; amount: string; merchant: string | null;
@@ -63,6 +64,7 @@ export default function EntryList({ days, canEdit, tools = false, flat = false, 
   }, [days, q, filter, everyMonth, initialQ]);
   const { format } = useMoney();
   const router = useRouter();
+  const arrive = useArrival();
   const [gone, setGone] = useState<Set<string>>(() => new Set());
   const [snack, setSnack] = useState<SnackState>(null);
   const [, start] = useTransition();
@@ -130,11 +132,12 @@ export default function EntryList({ days, canEdit, tools = false, flat = false, 
           {q ? `Nothing ${everyMonth ? 'here' : 'this month'} matches “${q.trim()}”.` : `Nothing of that kind ${everyMonth ? 'here' : 'this month'}.`}
         </p>
       )}
-      {shown.map((d) => {
+      {shown.map((d, i) => {
         const rows = d.rows.filter((e) => !gone.has(e.id));
         if (rows.length === 0) return null;
         return (
-          <section key={d.on} aria-label={flat ? undefined : d.label} className={flat ? '' : 'mb-4 flex flex-col gap-1.5'}>
+          /* The first day groups arrive in turn on a navigation here or a cold load, never on a redraw (Reveal). */
+          <section key={d.on} aria-label={flat ? undefined : d.label} className={cn(flat ? '' : 'mb-4 flex flex-col gap-1.5', arrive && !flat && i < 4 && revealItem(i))}>
             {!flat && (
               <h2 className="mx-[var(--gutter)] px-0.5 text-subhead font-semibold text-muted-foreground">{d.label}</h2>
             )}
@@ -168,7 +171,7 @@ function Entry({ e, last, swipe }: { e: Row; last: boolean; swipe: boolean }) {
   /* Names wrap rather than trail off: "Came back from Imran Qureshi" is the whole point of the row. */
   return (
     <Link href={`/entries/${e.id}`} draggable={false}
-      className={`relative flex min-h-16 items-center gap-3 py-2.5 text-foreground no-underline ${last ? '' : `${rowRule} ${swipe ? 'after:-right-[calc(var(--pad)+28px)]' : 'after:-right-[var(--pad)]'}`}`}>
+      className={`relative flex min-h-16 items-center gap-3 py-2.5 text-foreground no-underline ${last ? '' : `${rowRule} ${swipe ? ruleSwipe : rulePad}`}`}>
       {move && !lent ? (
         <span className="grid size-10 flex-none place-items-center rounded-[12px] bg-muted text-muted-foreground">
           <Icon name="swap_horiz" size={20} />

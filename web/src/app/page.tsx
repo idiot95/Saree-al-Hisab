@@ -17,6 +17,7 @@ import { Figure } from './Figure';
 import TabBar from './TabBar';
 import { TAB_BAR_SPACE } from './tabs';
 import Screen from './Screen';
+import Reveal from './Reveal';
 import SavedSnack from './SavedSnack';
 import { Icon } from './Icon';
 
@@ -110,7 +111,8 @@ async function HomeScreen({ saved }: { saved?: string }) {
 
         {/* A breathing gap, so the last card is not flush against the tab bar — and, while "Entry saved" floats
             above the bar, room enough that the last line can scroll out from under it. */}
-        <div className={`flex flex-col gap-4 px-[var(--gutter)] pt-2 ${savedId ? 'pb-20' : 'pb-6'}`}>
+        {/* Each card arrives in turn on a navigation here or a cold load, never on a redraw (Reveal). */}
+        <Reveal className={`flex flex-col gap-4 px-[var(--gutter)] pt-2 ${savedId ? 'pb-20' : 'pb-6'}`}>
           {budget > 0
             ? <LeftToSpend month={month} budget={budget} spent={spent} />
             : <NoBudgetYet spent={spent} entries={progress.entries} />}
@@ -206,7 +208,7 @@ async function HomeScreen({ saved }: { saved?: string }) {
           <Link href="/guide" className="flex min-h-11 items-center self-center px-2 text-subhead text-muted-foreground underline-offset-4 hover:underline">
             How the app works
           </Link>
-        </div>
+        </Reveal>
         {savedId && <SavedSnack key={savedId} id={savedId} />}
         <TabBar current="/" />
       </main>
