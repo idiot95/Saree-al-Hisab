@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from 'react';
 import BottomDrawer from './BottomDrawer';
-import HijriCalendar, { opensCalendar } from './LazyCalendar';
+import HijriCalendar, { opensCalendar, useCalendarSoon } from './LazyCalendar';
 import { civil } from './calendar-dates';
 import { haptic } from './haptics';
 import { choice } from './choice';
@@ -33,6 +33,7 @@ export function DateChips({ value, onChange, today, from = today, dir, min, max,
 }) {
   const [open, setOpen] = useState(false);
   const close = useCallback(() => setOpen(false), []);
+  useCalendarSoon();  // "Another day…" opens a month: have it parsed before the tap
   const within = (iso: string) => (!min || iso >= min) && (!max || iso <= max);
   const run = quick
     ? quick.filter((q) => within(q.iso))

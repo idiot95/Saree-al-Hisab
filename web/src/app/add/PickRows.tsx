@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Icon, ACCOUNT_ICON } from '../Icon';
 import PayPicker, { WayTile, describe } from '../PayPicker';
 import { MonthGrid } from '../DatePick';
-import { opensCalendar } from '../LazyCalendar';
+import { opensCalendar, useCalendarSoon } from '../LazyCalendar';
 import BottomDrawer, { InDrawer } from '../BottomDrawer';
 import { findRef, payLabel, type Way } from '@/lib/pay';
 import { friendlyDay, shiftDay } from '@/lib/recur';
@@ -107,6 +107,7 @@ export function WhenRow({ value, onChange, today }: {
   value: string; onChange: (iso: string) => void; today: string;
 }) {
   const [open, setOpen] = useState(false);
+  useCalendarSoon();  // the Add drawer is open: the month under When is parsed before it is tapped
   const quick = [0, 1, 2, 3].map((i) => shiftDay(today, -i));
   const pick = (iso: string) => { haptic('select'); onChange(iso); setOpen(false); };
   return (

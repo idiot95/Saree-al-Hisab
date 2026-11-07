@@ -4,7 +4,7 @@ import Link from '@/app/NavLink';
 import { useCallback, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { Icon } from '../Icon';
 import BottomDrawer from '../BottomDrawer';
-import HijriCalendar, { opensCalendar } from '../LazyCalendar';
+import HijriCalendar, { opensCalendar, useCalendarSoon } from '../LazyCalendar';
 import { MONTHS, civil, hijriSpan, type DayMarks } from '../calendar-dates';
 import { cn } from '@/lib/utils';
 import { haptic } from '../haptics';
@@ -52,6 +52,7 @@ export default function Calendar({ schedules, canWrite, today }: {
   schedules: CalSchedule[]; canWrite: boolean; today: string;
 }) {
   const { format } = useMoney();
+  useCalendarSoon();  // the folded month opens on a tap: parsed before it
   const [{ y, m }, setYm] = useState(() => { const c = civil(today); return { y: c.y, m: c.m }; });
   const [sel, setSel] = useState<string | null>(null);
   const close = useCallback(() => setSel(null), []);
