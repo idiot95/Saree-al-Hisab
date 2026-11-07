@@ -11,6 +11,7 @@
         frames.check does), so the streamed frame is on screen: its sections arrive in turn (Reveal) once it lands.
      2. A tap on the Activity tab from Home: the day groups arrive in turn.
      3. A Save in the Add drawer over Home: Home comes back under /?saved=… and nothing in it plays its entrance.
+   In every case, no element inside a revealed section may be position: fixed (CLAUDE.md, "Content arrives").
    With --shots, each case is also a frame strip (a frame every 50ms from the screencast) in that folder. */
 import { createRequire } from 'node:module';
 import assert from 'node:assert/strict';
@@ -44,11 +45,16 @@ const tables = (await sql`select tablename from pg_tables where schemaname = 'pu
 /* In the page: every entrance that starts (tw-animate's `enter`) on live content, not on a tap's frame or a drawer. */
 function watch() {
   window.__enter = [];
+  window.__fixedIn = [];
   addEventListener('animationstart', (e) => {
     if (e.animationName !== 'enter') return;
     const t = e.target;
     if (!(t instanceof Element) || t.closest('[data-pending-frame], [role=dialog], [data-slot=drawer-overlay]') || !t.closest('main')) return;
     window.__enter.push({ t: performance.now(), path: location.pathname + location.search, what: t.getAttribute('aria-label') || t.tagName.toLowerCase() });
+    /* The entrance sets a transform and a filter, so a fixed child of a revealed section would be carried off its place. */
+    for (const el of t.querySelectorAll('*')) {
+      if (getComputedStyle(el).position === 'fixed') window.__fixedIn.push(`${t.getAttribute('aria-label') || t.tagName.toLowerCase()} > ${el.tagName.toLowerCase()}.${String(el.className).slice(0, 40)}`);
+    }
   }, true);
 }
 
@@ -118,7 +124,8 @@ try {
     await film.stop();
     const seen = await page.evaluate(() => window.__enter);
     assert.ok(seen.length >= 3, `the Wealth sections arrive in turn on a cold load (${seen.length} entrances)`);
-    ok(`cold /worth (${theme}): the streamed frame, then ${seen.length} sections arriving in turn`);
+    assert.deepEqual(await page.evaluate(() => window.__fixedIn), [], 'nothing fixed inside a revealed section on Wealth');
+    ok(`cold /worth (${theme}): the streamed frame, then ${seen.length} sections arriving in turn, none holding anything fixed`);
     await strip(frames, t0, 1900, `cold-worth-${theme}.png`);
     await ctx.close();
   }
@@ -143,7 +150,8 @@ try {
     await film.stop();
     const seen = await page.evaluate(() => window.__enter.filter((e) => e.path.startsWith('/entries')));
     assert.ok(seen.length >= 1, 'Activity\'s day groups arrive after the tab');
-    ok(`tab Home → Activity: ${seen.length} day group(s) arriving in turn`);
+    assert.deepEqual(await page.evaluate(() => window.__fixedIn), [], 'nothing fixed inside a revealed section on Activity');
+    ok(`tab Home → Activity: ${seen.length} day group(s) arriving in turn, none holding anything fixed`);
     await strip(frames, t0, 1400, 'tap-home-activity.png');
     await ctx.close();
   }

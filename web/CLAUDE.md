@@ -247,10 +247,13 @@ capture_token, sms_draft). Where an older section disagrees, this wins.
   Words the frame does know are drawn as words (Wealth's legend, the Lend / Got money back buttons' widths, hidden),
   and a row in a swipe row keeps the grip's 28px, so lines wrap at 360 where the real ones do; where a row's wrap
   depends on data (a due's name, an account's), the samples are a household's ordinary ones, and no row has a
-  fixed height per width. **Premium, v3.1 P4 (ux-audit C4):** one shimmer for the whole screen — `SHIM`, a band
-  `bg-fixed` to the viewport so every block is lit by the same band at the same moment, linear over 1.6s (globals.css
-  keeps only `@keyframes shim`; `.shim` is gone, and `data-shim` marks a block); on the plum hero the block is the
-  hero's ink at 10% and the band at 18% (`SHIM_HERO`, Ghost/S `hero`), never a pale slab. A frame the **server
+  fixed height per width. **Premium, v3.1 P4 (ux-audit C4):** one shimmer for the whole screen, left to right, the
+  band entering wholly off the left edge and leaving wholly past the right, linear over 1.6s. The blocks are still
+  (`GHOST`, `bg-muted`; `data-shim` marks one); the band is `Shimmer` — a see-through copy of the frame over itself,
+  in which only the blocks are painted, masked by one moving gradient as wide as the screen, so it is one sweep on
+  every engine (fix round 1: `bg-fixed` on each block drew as `bg-scroll` on iOS Safari). globals.css keeps only
+  `@keyframes shim` (`mask-position`); `.shim` is gone. On the plum hero the block is the hero's ink at 10% and the
+  band at 18% (`GHOST_HERO`, `data-shim="hero"`, Ghost/S `hero`), never a pale slab. A frame the **server
   streams** (loading.tsx, Home's and Activity's Suspense fallback; `stillBar` on) fades in from `@starting-style`
   after `--dur-1` over `--dur-2`, so a load quicker than that shows none; its still bar sits outside it and never
   fades. The frame a **tap** draws (PendingSkeleton, `stillBar` off) is the tap's answer and keeps P2's motion
@@ -1915,7 +1918,10 @@ first four day groups (`revealItem(i)`). `--dur-2` each, `--stagger` (40ms, ql.c
 `fill-mode-backwards`, so nothing is held after. **Never on a redraw:** `Landed` notes the path each `<Screen>`
 mounted at, and a screen mounting where the last one did (Home under `/?saved=…` after the Add drawer's Save, the
 saved snack's replace, an Undo, a chip, the month pill, `router.refresh`) is not arriving. The server never notes
-(effects do not run there), so SSR and hydration agree. Reduced motion: none of it.
+(effects do not run there), so SSR and hydration agree. Reduced motion: none of it. **Nothing fixed inside a
+revealed section**: the entrance sets a transform and a filter for up to `--dur-4`, which would carry a fixed child
+off its place; a fixed thing (a snack, a bar) is portalled or sits outside the section, and `reveal.check` fails on
+one that is revealed in place.
 
 **A tap draws the destination's frame at once** (`PendingSkeleton` in the root layout, `pending.ts`). `NavLink`,
 `goBack` and every `router.push` that navigates (swipe actions, Add Entry after Save, the saved snack) call
