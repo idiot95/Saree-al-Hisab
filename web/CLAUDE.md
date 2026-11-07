@@ -114,7 +114,11 @@ capture_token, sms_draft). Where an older section disagrees, this wins.
   only, stepping to `text-amount-2` 42, then 34 and 28). Nothing is under 11px, no arbitrary `text-[Npx]` and no
   Tailwind `text-xs/sm/lg/xl` remain; inline styles read `var(--text-*)`. Fields stay 16px (`text-base`, `--field`).
   `cn()`'s tailwind-merge knows the names as font sizes. Titles are Inter bold with `tracking-tight`; Instrument Serif
-  is gone (spec §3.2). There is no `font-display` utility.
+  is gone (spec §3.2). There is no `font-display` utility. **Inter is self-hosted as one file**
+  (`src/app/fonts/inter.woff2`, ~59KB, `next/font/local`, preloaded; v3.1 P5): Google's own Inter cut to its `latin`
+  subset plus ₹, → and every other currency sign `lib/money.ts` writes, by `npm run fonts:inter`
+  (`scripts/inter-font.mjs`). ₹ is outside Google's `latin`, so it used to draw in the fallback face and then pull the
+  83KB latin-ext file late and reflow every figure. A new character the screens draw goes into the script's `EXTRA`.
 
 **Navigation.**
 - **Five slots, Add among them**: Home · Activity · **+** · Loans · Wealth (`TABS` in tabs.ts). Add is the middle

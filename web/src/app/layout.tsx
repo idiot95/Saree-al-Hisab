@@ -10,7 +10,6 @@ import RegisterSW from './RegisterSW';
 import SyncQueue from './SyncQueue';
 import PendingSkeleton from './PendingSkeleton';
 import InstantAdd from './add/InstantAdd';
-import { Inter } from 'next/font/google';
 import localFont from 'next/font/local';
 import './globals.css';
 
@@ -26,8 +25,13 @@ import './globals.css';
    sizes this app actually uses. It is variable, so weight carries hierarchy
    without loading six files, and its optical size axis handles the jump from a
    11px label to a 38px balance. */
-const inter = Inter({
-  subsets: ['latin'],
+const inter = localFont({
+  /* Google's Inter, cut to the `latin` subset plus ₹ and → (scripts/inter-font.mjs, npm run fonts:inter): the one
+     text file preloaded with the page. ₹ is outside Google's `latin`, so with next/font/google's subsets every
+     amount drew its sign in the fallback face, then fetched the 83KB latin-ext file late and laid the figures out
+     again (perf-findings §3, row 7). It carries every currency sign lib/money.ts writes that Inter has, too. */
+  src: './fonts/inter.woff2',
+  weight: '100 900',
   variable: '--font-ui-loaded',
   display: 'swap',
   /* No `axes: ['opsz']`. The optical-size axis is a genuinely nice thing to
@@ -37,7 +41,6 @@ const inter = Inter({
      version of most of what opsz was doing, so the axis was being paid for
      twice. */
 });
-
 /* One face: v3 dropped Instrument Serif (spec §3.2). Titles are Inter bold, like everything else. */
 
 /* The icon font: Material Symbols Rounded, subset to the glyphs the app names
