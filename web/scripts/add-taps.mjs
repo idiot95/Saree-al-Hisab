@@ -823,6 +823,7 @@ try {
     {
       const { ctx, page } = await context(ios);
       await warm(page);
+      const [{ t: caseStart }] = await sql`select now() as t`;
       const g = await held(page);
       await plus(page);
       await ahead(page);
@@ -840,14 +841,80 @@ try {
       const ref = queued[0].clientRef;
       assert.match(ref, /^[0-9a-f-]{36}$/);
       ok(`Save with /add still on its way: after ${(waited / 1000).toFixed(1)}s the entry is kept on the phone (clientRef ${ref.slice(0, 8)}…)`);
+      /* From the release on, every snack and alert the page shows is noted: only the queue's own "is in the books" may
+         appear — no "Entry saved." from the save that waited, no refusal. */
+      await page.evaluate(() => {
+        window.__said = [];
+        const look = () => {
+          for (const el of document.querySelectorAll('[role=status], [role=alert]')) {
+            const t = el.textContent.trim();
+            if (t && !window.__said.includes(t)) window.__said.push(t);
+          }
+          if (document.body.innerText.includes('Entry saved.') && !window.__said.includes('Entry saved.')) window.__said.push('Entry saved.');
+        };
+        new MutationObserver(look).observe(document.body, { childList: true, subtree: true, characterData: true });
+      });
       g.open();
       await page.waitForFunction(() => JSON.parse(localStorage.getItem('ql.queue.v1') ?? '[]').length === 0, null, { timeout: 30000 });
-      await page.waitForTimeout(1000);
-      const rows = await sql`select id, amount::bigint as amount from txn where household_id = ${HH} and client_ref = ${ref}`;
+      await page.waitForTimeout(2000);
+      // Every row of that amount this person made since the case began: exactly one, whatever its client_ref.
+      const rows = await sql`select id, client_ref from txn where household_id = ${HH} and created_by = ${user.id}
+        and created_at >= ${caseStart} and amount = 44300`;
       rows.forEach((r) => wrote.add(r.id));
-      assert.equal(rows.length, 1, `exactly one row for that client_ref (${rows.length})`);
-      assert.equal(Number(rows[0].amount), 44300);
-      ok('let go, the save that waited and the kept copy land as exactly one row (₹443) by client_ref');
+      assert.equal(rows.length, 1, `exactly one ₹443 row made during the case (${rows.length})`);
+      assert.equal(rows[0].client_ref, ref, 'and it carries the kept clientRef');
+      const said = await page.evaluate(() => window.__said);
+      const extra = said.filter((t) => !/kept on this phone is in the books\.|kept on this phone\. It goes into the books/.test(t));
+      assert.deepEqual(extra, [], `after the release nothing but the queue's own line was said (${JSON.stringify(said)})`);
+      assert.ok(said.some((t) => /is in the books/.test(t)), `the queue said it is in the books (${JSON.stringify(said)})`);
+      ok('let go: exactly one ₹443 row was made during the case (the kept clientRef), and the only line after it is the queue\'s "is in the books"');
+      await ctx.close();
+    }
+
+    // Closed before a slow /add landed (12s): when it does land, it is stepped back off — no drawer, back on Home.
+    {
+      const { ctx, page } = await context(ios);
+      await warm(page);
+      const g = await held(page);
+      await plus(page);
+      await ahead(page);
+      await page.keyboard.press('Escape');
+      await page.locator('[data-add-drawer]').waitFor({ state: 'detached' });
+      await page.waitForTimeout(12000);
+      const landed = page.waitForURL((u) => u.pathname === '/add', { timeout: 15000 }).then(() => true, () => false);
+      g.open();
+      const reached = await landed;
+      await page.waitForURL((u) => u.pathname === '/', { timeout: 15000 });
+      await page.waitForTimeout(1500);
+      assert.equal(new URL(page.url()).pathname, '/', `back on Home (${page.url()})`);
+      await noDrawer(page);
+      ok(`closed before /add answered and it answered 12s later${reached ? ' (it landed, and was stepped back off)' : ''}: the drawer stays shut, Home is where it was`);
+      await ctx.close();
+    }
+
+    // Closed before landing, then the person asks for /add again on the same screen (Activity's empty state): it opens.
+    {
+      const { ctx, page } = await context(ios);
+      await openDrawer(page);
+      await page.keyboard.press('Escape');
+      await page.waitForURL((u) => u.pathname === '/');
+      const empty = `${BASE}/entries?m=2001-01`;
+      await page.goto(empty);
+      const again = page.getByRole('link', { name: 'Add an entry' });
+      await again.waitFor();
+      const g = await held(page);
+      await plus(page);
+      await ahead(page);
+      await page.keyboard.press('Escape');
+      await page.locator('[data-add-drawer]').waitFor({ state: 'detached' });
+      await again.click();
+      g.open();
+      await page.waitForURL((u) => u.pathname === '/add', { timeout: 15000 });
+      await page.locator('[data-slot=drawer-content]').getByLabel(/^Amount in/).waitFor({ timeout: 10000 });
+      await page.waitForTimeout(1500);
+      assert.equal(new URL(page.url()).pathname, '/add', `the asked-for /add stays (${page.url()})`);
+      assert.equal(await page.locator('[data-slot=drawer-content]').count(), 1, 'its drawer is open');
+      ok('closed before landing, then Activity\'s "Add an entry" on the same screen: that /add opens and stays');
       await ctx.close();
     }
   }

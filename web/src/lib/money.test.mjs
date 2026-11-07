@@ -101,6 +101,8 @@ assert.equal(typed('Rs.2340'), '2340');
 assert.equal(typed('INR 2,340.50'), '2340.50');
 assert.equal(typed('₹2,340.50'), '2340.50');
 assert.equal(typed('₹.5'), '0.5');                    // a bare point before the digits is still one
+assert.equal(typed('Rs. .5'), '0.5');                 // "Rs."'s point goes, the one before the 5 stays
+assert.equal(typed('.5'), '0.5');
 assert.equal(fromKeys(typed('Rs. 2,340.50')), 234050);
 assert.equal(typed('2340.555'), '2340.55');           // two paise digits at most
 assert.equal(typed('23.4.5'), '23.45');               // one point

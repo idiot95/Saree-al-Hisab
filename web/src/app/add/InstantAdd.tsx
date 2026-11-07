@@ -27,6 +27,19 @@ export default function InstantAdd({ householdId }: { householdId: string }) {
   const here = query ? `${path}?${query}` : path;
   const router = useRouter();
 
+  /* A link to /add clicked while a close-before-landing is held is the person asking again: Next drops the cancelled
+     navigation for this one, which must open, not be stepped back off. Capture phase, so it runs before the link's
+     own handler (the plus clears the mark itself, by opening). */
+  useEffect(() => {
+    const look = (e: MouseEvent) => {
+      const a = (e.target as Element | null)?.closest?.('a[href]');
+      if (!(a instanceof HTMLAnchorElement)) return;
+      if (a.origin === location.origin && a.pathname === '/add') forgetCancel();
+    };
+    document.addEventListener('click', look, true);
+    return () => document.removeEventListener('click', look, true);
+  }, []);
+
   /* The address reached /add, and later left it — Save went Home or to a tab, Back, the browser's back: the drawer
      goes with it. Moved anywhere else before /add landed — Back, another tab, a redirect to /signin — the navigation
      to /add was dropped, and the drawer is abandoned where it is. A close-before-landing is forgotten the same way. */

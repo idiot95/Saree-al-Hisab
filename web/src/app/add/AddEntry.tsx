@@ -254,13 +254,16 @@ export default function AddEntry({
     start(async () => {
       let r;
       /* A Server Action waits in the router's queue behind a navigation still on its way — the /add this drawer was
-         opened ahead of, on a connection that has gone quiet. So the save gets SAVE_PATIENCE_MS; after that the
-         entry is kept on the phone and SyncQueue sends it when it can. The reference makes the two deliveries (this
+         opened ahead of, on a connection that has gone quiet. So a save with no bills gets SAVE_PATIENCE_MS; after
+         that the entry is kept on the phone and SyncQueue sends it when it can. The reference makes the two deliveries (this
          one, if it does go through, and the queue's) a single row. */
       const sending = saveEntry(d);
       sending.catch(() => { /* answered by the race below, or too late to matter */ });
       try {
-        r = await Promise.race([sending, new Promise<'slow'>((res) => setTimeout(() => res('slow'), SAVE_PATIENCE_MS))]);
+        /* With bills attached there is no race: the phone's queue cannot hold them, so the real answer is waited
+           for and the bills go with the entry. */
+        r = d.attachments?.length ? await sending
+          : await Promise.race([sending, new Promise<'slow'>((res) => setTimeout(() => res('slow'), SAVE_PATIENCE_MS))]);
       } catch { keep(); return; }  // the request itself failed: no signal, or it dropped mid-way
       if (r === 'slow') { keep(); dispatchEvent(new Event(DRAIN_EVENT)); return; }
       if (r.ok) {

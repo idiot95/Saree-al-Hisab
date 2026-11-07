@@ -15,8 +15,10 @@
 
    A navigation to /add can also never land: Back, another tab or a redirect to /signin starts a new navigation and
    Next drops the pending one. So the drawer is abandoned the moment the address moves anywhere but /add before
-   landing, and a close-before-landing is honoured only by a plain /add arriving within CANCEL_MS on the same screen;
-   any other move forgets it. A card's Pay or a tab's Add cost (always with a query) is never mistaken for it. */
+   landing. A close-before-landing is held until the /add it was for arrives (and is stepped back off), however late:
+   it is forgotten only when the address moves off the screen it was opened over, when the plus opens again, or when
+   the person starts another /add themselves — any click on a link to /add (InstantAdd listens), since Next then
+   drops the one that was cancelled. A card's Pay or a tab's Add cost (always with a query) is never mistaken for it. */
 
 import type { ComponentProps } from 'react';
 import type AddEntry from './AddEntry';
@@ -35,26 +37,23 @@ type State = {
   landed: boolean;
   /** Put away before the route arrived: when it does, it is stepped back off at once. */
   cancelled: boolean;
-  /** When it was put away (Date.now()), so a cancel can never outlive CANCEL_MS. */
-  cancelledAt: number;
   /** The address (path and query) the drawer was opened over, noted by InstantAdd on its first look. */
   origin: string | null;
 };
 
-const CANCEL_MS = 10_000;
-let state: State = { open: false, session: 0, fed: null, landed: false, cancelled: false, cancelledAt: 0, origin: null };
+let state: State = { open: false, session: 0, fed: null, landed: false, cancelled: false, origin: null };
 const listeners = new Set<() => void>();
 const set = (next: Partial<State>) => { state = { ...state, ...next }; listeners.forEach((l) => l()); };
 
 export const subscribeInstant = (l: () => void) => { listeners.add(l); return () => { listeners.delete(l); }; };
 export const instantState = () => state;
-const CLOSED: State = { open: false, session: 0, fed: null, landed: false, cancelled: false, cancelledAt: 0, origin: null };
+const CLOSED: State = { open: false, session: 0, fed: null, landed: false, cancelled: false, origin: null };
 export const serverInstant = () => CLOSED;
 
 /** The tab bar's plus: open now. */
 export function openInstant() {
   if (state.open) return;
-  set({ open: true, session: state.session + 1, fed: null, landed: false, cancelled: false, cancelledAt: 0, origin: null });
+  set({ open: true, session: state.session + 1, fed: null, landed: false, cancelled: false, origin: null });
 }
 
 /** Where the drawer was opened over, once (InstantAdd's first look after the tap). */
@@ -83,17 +82,17 @@ export function closeInstant(): boolean {
   if (!state.open) return false;
   const landed = state.landed;
   // `fed` stays, so the drawer slides away showing what it showed; the next open clears it.
-  set({ open: false, landed: false, cancelled: !landed, cancelledAt: landed ? 0 : Date.now() });
+  set({ open: false, landed: false, cancelled: !landed });
   return landed;
 }
 
 /** Whether a plain /add arriving now is the one put away before it landed. */
-export function isCancelled(s: State, plain: boolean, now = Date.now()) {
-  return s.cancelled && plain && now - s.cancelledAt < CANCEL_MS;
+export function isCancelled(s: State, plain: boolean) {
+  return s.cancelled && plain;
 }
 
 /** The route arrived after the drawer was put away: true once, for the page to step back. Anything else arriving
- *  (a query, or too late) clears the mark instead. */
+ *  (an /add with a query) clears the mark instead. */
 export function takeCancelled(plain: boolean) {
   if (!state.cancelled) return false;
   const ours = isCancelled(state, plain);
@@ -101,7 +100,8 @@ export function takeCancelled(plain: boolean) {
   return ours;
 }
 
-/** The address moved on after a close-before-landing: that /add will never come. */
+/** The address moved on, or the person started another /add, after a close-before-landing: that /add will never
+ *  come. */
 export function forgetCancel() {
   if (state.cancelled) set({ cancelled: false });
 }
