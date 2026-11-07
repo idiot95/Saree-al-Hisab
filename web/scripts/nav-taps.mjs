@@ -54,7 +54,7 @@ async function touch(page, cdp, p, hold = 60) {
 }
 /* Every frame from now: the frame overlay (live or leaving, its opacity and translate), the dim, presses, the URL. */
 const sample = (page) => page.evaluate(() => {
-  window.__s = []; const t0 = performance.now();
+  window.__s = []; const t0 = performance.now(); window.__t0 = t0;
   const f = () => {
     const fr = document.querySelector('[data-pending-frame]');
     const cs = fr && getComputedStyle(fr);
@@ -92,9 +92,8 @@ try {
     await touch(page, cdp, home);
     await page.waitForTimeout(1500);
     const s = await samples(page);
-    const { clicks, t0 } = await page.evaluate(() => ({ clicks: window.__clicks, t0: performance.now() }));
-    const start = t0 - s.at(-1).t;                       // the sampler's own zero, near enough
-    const second = clicks.at(-1) - start;                // the Home tab's click, on the sampler's clock
+    const { clicks, t0 } = await page.evaluate(() => ({ clicks: window.__clicks, t0: window.__t0 }));
+    const second = clicks.at(-1) - t0;                   // the Home tab's click, on the sampler's own clock
     assert.equal(clicks.length, 2, 'both taps clicked');
     /* Superseded at the click: the frame turns to leaving at once, and is out of the tree within one leave (--dur-1
        and a frame or two; a throttled phone's timers are late, so 400ms). */
