@@ -42,7 +42,7 @@ export default function Swipeable({ actions, commit = true, grip = true, childre
   const rows: SwipeAction[] = actions.map((a) => ({
     label: a.label,
     tone: a.tone,
-    icon: <Icon name={a.icon} size={20} strokeWidth={2} />,
+    icon: <Icon name={a.icon} size={20} />,
     act: () => {
       if (a.href) { startPending(a.href); router.push(a.href, { transitionTypes: ['nav-forward'] }); return; }
       if (!a.act) return;

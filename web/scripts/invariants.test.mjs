@@ -4,12 +4,24 @@
    the constraints that make that impossible, so they are worth a test each.
 
    Run: node scripts/invariants.test.mjs                                      */
-import { readFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import postgres from 'postgres';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
+/* The invitation code is run as written, not restated: src/lib/invite-accept.ts
+   takes its database handle as an argument, so the same compile the lib tests
+   use lets it run here against the real schema. */
+execFileSync('npx', ['tsc', '-p', 'tsconfig.lib.json'], { cwd: root, stdio: 'inherit' });
+writeFileSync(join(root, '.libbuild/package.json'), '{"type":"module"}\n');
+const { createFromInviteGoogleIn } = await import(pathToFileURL(join(root, '.libbuild/invite-accept.js')).href);
+const { hashLinkToken, newLinkToken } = await import(pathToFileURL(join(root, '.libbuild/link-token.js')).href);
+/* What becomes of a forwarded bank message — accepted, dismissed, undone, its text purged — run as written. */
+const { acceptDraftIn, dismissDraftIn, restoreDraftIn, purgeSmsBodiesIn } = await import(pathToFileURL(join(root, '.libbuild/sms-draft.js')).href);
+/* What removeMember and changeRole run (the member row and the person's capture keys, together), run as written. */
+const { removeMemberIn, changeRoleIn } = await import(pathToFileURL(join(root, '.libbuild/member-change.js')).href);
 /* The same database the app runs against, as its OWNER: the app connects as
    `saree_app` (APP_DATABASE_URL), which cannot bypass row security, and a
    script that saw only one household would be no use to anyone. */
@@ -21,12 +33,22 @@ const url = process.env.DATABASE_URL
 const sql = postgres(url, { ssl: 'require', max: 1, onnotice: () => {} });
 
 let pass = 0, fail = 0;
-const ok = (cond, what) => { cond ? pass++ : fail++; console.log(`  ${cond ? 'ok  ' : 'FAIL'} ${what}`); };
+const ok = (cond, what) => { if (cond) pass++; else fail++; console.log(`  ${cond ? 'ok  ' : 'FAIL'} ${what}`); };
 
 /** Expect a write to be refused. Passes only if it throws. */
 async function refuses(what, fn) {
   try { await fn(); ok(false, `${what} — was ALLOWED, should have been refused`); }
   catch { ok(true, what); }
+}
+/** Expect a write to be refused BY THE NAMED RULE: a missing table or a typo
+ *  also throws, and would pass `refuses` for the wrong reason. `why` is
+ *  matched against the constraint name and the message. */
+async function refusesWith(what, why, fn) {
+  try { await fn(); ok(false, `${what} — was ALLOWED, should have been refused`); }
+  catch (e) {
+    const hit = why.test(`${e.constraint_name ?? ''} ${e.message}`);
+    ok(hit, hit ? what : `${what} — refused, but not by ${why}: ${e.message.slice(0, 90)}`);
+  }
 }
 async function allows(what, fn) {
   try { await fn(); ok(true, what); }
@@ -36,9 +58,11 @@ async function allows(what, fn) {
 // ── a household to work in ─────────────────────────────────────────────────
 // Clear anything a previous run left behind, so this is repeatable even after
 // a crash. Everything below is namespaced to a test household and two phones.
-const PHONES = ['+910000000001', '+910000000002', '+910000000003'];
+const PHONES = ['+910000000001', '+910000000002', '+910000000003', '+910000000004'];
 const EMAILS = ['invited@invariant.test', 'someone.else@invariant.test',
-                'passing@invariant.test', 'negative@invariant.test'];
+                'passing@invariant.test', 'negative@invariant.test',
+                'google.a@invariant.test', 'google.b@invariant.test',
+                'google.invited@invariant.test', 'google.late@invariant.test'];
 await sql`delete from household where name = 'Invariant test'`;
 // A crashed run can leave reset links behind; they hold their user in place.
 await sql`delete from password_reset where user_id in
@@ -722,6 +746,82 @@ await sql`delete from app_user where id = ${passer.id}`;
 const orphanResets = (await sql`select count(*)::int as n from password_reset where user_id = ${passer.id}`)[0].n;
 ok(orphanResets === 0, 'deleting an account with no entries takes its reset links with it');
 
+console.log('\nGOOGLE IDENTITY — a Google account is keyed on its sub, one per person');
+{
+  const [a] = await sql`insert into app_user ${sql({ email: 'google.a@invariant.test', name: 'Google A' })} returning id`;
+  const [b] = await sql`insert into app_user ${sql({ email: 'google.b@invariant.test', name: 'Google B' })} returning id`;
+  const link = (user_id, subject) => sql`insert into auth_identity ${sql({ user_id, provider: 'google', subject, email_at_link: 'x@invariant.test' })}`;
+  await link(a.id, 'sub-1');
+  await refuses('one Google account cannot belong to two people', () => link(b.id, 'sub-1'));
+  await refuses('one person cannot link two Google accounts', () => link(a.id, 'sub-2'));
+  await refuses('only Google is a provider',
+    () => sql`insert into auth_identity ${sql({ user_id: b.id, provider: 'github', subject: 'sub-3', email_at_link: 'x@invariant.test' })}`);
+  await sql`delete from app_user where id in (${a.id}, ${b.id})`;
+  const left = (await sql`select count(*)::int as n from auth_identity where subject = 'sub-1'`)[0].n;
+  ok(left === 0, 'deleting a person takes their linked Google account with it');
+}
+
+console.log('\nINVITED WITH GOOGLE — one transaction, one use, one place');
+{
+  const address = 'google.invited@invariant.test';
+  const mk = async (email, extra = {}) => {
+    const { token, hash } = newLinkToken();
+    await sql`insert into invite ${sql({ household_id: hh.id, email, role: 'viewer', invited_by: user.id,
+      token_hash: hash, expires_at: new Date(Date.now() + 7 * 864e5), ...extra })}`;
+    return token;
+  };
+  const token = await mk(address);
+
+  ok(await createFromInviteGoogleIn(sql, token, 'inv-sub-1', 'someone.else@invariant.test', 'X') === null,
+    'a Google account for a different address cannot spend the invitation');
+  const made = await createFromInviteGoogleIn(sql, token, 'inv-sub-1', address, 'Invited by Google');
+  ok(!!made?.userId, 'the invited address, vouched for by Google, gets an account');
+  const [m] = await sql`select count(*)::int as n, min(role::text) as role from member
+    where user_id = ${made?.userId ?? null}`;
+  ok(m.n === 1 && m.role === 'viewer', 'with exactly one membership, in the role the invitation named');
+  const [ident] = await sql`select count(*)::int as n from auth_identity
+    where user_id = ${made?.userId ?? null} and provider = 'google' and subject = 'inv-sub-1'`;
+  ok(ident.n === 1, 'and their Google account linked in the same stroke');
+  /* Staleness, as contextFor and the jwt callback judge it: in whole
+     seconds, since that is all a token carries. The expression below is
+     staleAgainst's (src/db/identity.ts), which both use. The cookie-refresh
+     side of revocation is scripts/revocation.check.mjs, against a server. A token minted in the second the account was made is
+     honoured; one from an earlier second than a revocation is refused. */
+  const stale = async (id, iat) => (await sql`
+    select extract(epoch from date_trunc('second', u.sessions_valid_from)) > ${iat} as stale
+    from app_user u where u.id = ${id}`)[0].stale;
+  const [{ born }] = await sql`select floor(extract(epoch from sessions_valid_from))::bigint::int as born
+    from app_user where id = ${made?.userId ?? null}`;
+  const [{ recent }] = await sql`select sessions_valid_from > now() - interval '1 minute' as recent
+    from app_user where id = ${made?.userId ?? null}`;
+  ok(recent === true, 'the new account starts its session epoch at now(), like every other');
+  ok(await stale(made?.userId, born) === false,
+    'a session minted in the same second the account was made is honoured, not signed out on arrival');
+  await sql`update app_user set sessions_valid_from = now() where id = ${made?.userId ?? null}`;
+  const [{ revoked }] = await sql`select floor(extract(epoch from sessions_valid_from))::bigint::int as revoked
+    from app_user where id = ${made?.userId ?? null}`;
+  ok(await stale(made?.userId, revoked - 1) === true,
+    'a session from an earlier second than a revocation is refused');
+  ok(await stale(made?.userId, revoked) === false,
+    'and one minted in the revocation\'s own second, after it, is honoured');
+  const [spent] = await sql`select status from invite where token_hash = ${hashLinkToken(token)}`;
+  ok(spent.status === 'accepted', 'and the invitation spent');
+  ok(await createFromInviteGoogleIn(sql, token, 'inv-sub-2', address, 'Again') === null,
+    'a second use of the same invitation is refused');
+  const [people] = await sql`select count(*)::int as n from app_user where email = ${address}`;
+  ok(people.n === 1, 'and made nobody');
+
+  const late = await mk('google.late@invariant.test', { expires_at: new Date(Date.now() - 864e5) });
+  ok(await createFromInviteGoogleIn(sql, late, 'inv-sub-3', 'google.late@invariant.test', 'Late') === null,
+    'an expired invitation admits nobody');
+  const withdrawn = await mk('google.late@invariant.test', { status: 'revoked' });
+  ok(await createFromInviteGoogleIn(sql, withdrawn, 'inv-sub-3', 'google.late@invariant.test', 'Late') === null,
+    'nor does a withdrawn one');
+  const [none] = await sql`select count(*)::int as n from app_user where email = 'google.late@invariant.test'`;
+  ok(none.n === 0, 'and neither leaves an account behind');
+  await sql`delete from invite where household_id = ${hh.id} and email in ${sql([address, 'google.late@invariant.test'])}`;
+}
+
 console.log('\nROW SECURITY — Postgres itself refuses another household\'s rows');
 /* The catalogue first: every table keyed by a household is under a policy,
    every view runs as its caller, and the set left open is exactly the
@@ -742,7 +842,8 @@ console.log('\nROW SECURITY — Postgres itself refuses another household\'s row
   ok(unguarded.length === 0,
     `every table keyed by a household, and every child of one, is under a forced policy${unguarded.length ? ': not ' + unguarded.map((r) => r.name).join(', ') : ''}`);
   const open = tables.filter((r) => !covered(r)).map((r) => r.name).sort().join(' ');
-  ok(open === '_migration app_user device password_reset rate_limit',
+  // price_quote is a market price, the same for everyone: no household, no policy.
+  ok(open === '_migration app_user auth_identity device password_reset price_quote rate_limit',
     `the tables left open are exactly the ones keyed by a person or a token (${open})`);
   const blind = views.filter((v) => !v.invoker).map((v) => v.name);
   ok(views.length >= 13 && blind.length === 0,
@@ -806,6 +907,571 @@ if (appUser === 'saree_app') {
   await app.end();
   const seen = (await sql`select count(*)::int as n from txn where household_id = ${other.id}`)[0].n;
   ok(seen === 1, 'the owner, running this test, still sees everything');
+}
+
+console.log('\nWEALTH — owners, pots and metals, valued once, in SQL, half-even');
+/* Holdings are snapshots, never entries: no view the budget or a balance
+   reads may mention them. Prices: `price_quote` is global and real
+   households read it, so every quote written here is for XTS — the ISO code
+   reserved for testing, which no household holds — and is deleted after.
+   The valuation figures use household overrides, which go with the
+   household. */
+await sql`delete from price_quote where base = 'XTS'`.catch(() => {});
+try {
+  const [{ today, yesterday, tomorrow }] = await sql`select current_date::text as today,
+    (current_date - 1)::text as yesterday, (current_date + 1)::text as tomorrow`;
+  const [stranger] = await sql`insert into app_user ${sql({ phone: '+910000000003', name: 'Not a member' })} returning id`;
+
+  // Ownership: NULL is joint; an owner must be in the household; a person account has none.
+  await allows('an account can belong to a member', () => sql`update account set owner_user_id = ${user.id} where id = ${cash}`);
+  await refusesWith('an owner who is not a member is refused', /member/i,
+    () => sql`update account set owner_user_id = ${stranger.id} where id = ${spend}`);
+  await refusesWith('an owner on a person account is refused', /person_has_no_owner/,
+    () => sql`insert into account ${sql({ household_id: hh.id, name: 'Ahmed', kind: 'person', owner_user_id: user.id })}`);
+  await sql`update account set owner_user_id = null where id = ${cash}`;
+  const [bal] = await sql`select owner_user_id from account_balance where id = ${cash}`;
+  ok(bal && 'owner_user_id' in bal, 'account_balance carries the owner');
+
+  const pot = async (o) => (await sql`insert into holding ${sql({ household_id: hh.id, kind: 'fx_cash', name: 'Pot', ...o })} returning id`)[0].id;
+  const snap = (holding, quantity, as_of = today) =>
+    sql`insert into holding_snapshot ${sql({ holding_id: holding, household_id: hh.id, as_of, quantity, created_by: user.id })}`;
+  const override = (base, rate, as_of = today) =>
+    sql`insert into price_override ${sql({ household_id: hh.id, base, quote: 'INR', as_of, rate, set_by: user.id })}`;
+  const valued = async (id) => (await sql`select quantity::bigint as q, as_of::text as as_of, rate::text as rate, rate_as_of::text as rate_as_of,
+    rate_source, value_minor from holding_value where id = ${id}`)[0];
+
+  await refusesWith('an INR pot in an INR household is refused, naming the code', /Use an account for INR/,
+    () => pot({ currency: 'INR' }));
+  await refusesWith('a pot owned by someone outside the household is refused', /member/i,
+    () => pot({ currency: 'USD', owner_user_id: stranger.id }));
+  await refusesWith('a pot cannot carry a metal', /holding_shape/,
+    () => pot({ currency: 'USD', metal: 'gold', purity_permille: 916 }));
+  await refusesWith('a metal needs a purity between 1 and 1000', /holding_shape/,
+    () => sql`insert into holding ${sql({ household_id: hh.id, kind: 'metal', name: 'Bar', metal: 'gold', purity_permille: 1001 })}`);
+
+  const kwd = await pot({ currency: 'KWD', name: 'Kuwait cash', owner_user_id: user.id });
+  ok(Number((await sql`select count(*)::int as n from holding_value where id = ${kwd}`)[0].n) === 1, 'a new pot is in holding_value');
+  const before = await valued(kwd);
+  ok(before.q === null && before.value_minor === null, 'with no snapshot, value_minor is NULL — not zero');
+  await refusesWith('a negative snapshot is refused', /quantity_not_negative/, () => snap(kwd, -1));
+  await snap(kwd, 1500);
+  await refusesWith('two snapshots on one day for one holding are refused', /one_a_day/, () => snap(kwd, 1600));
+  const [elsewhere] = await sql`insert into household ${sql({ name: 'Invariant test' })} returning id`;
+  await refusesWith('a snapshot filed under another household than its holding is refused', /same_household/,
+    () => sql`insert into holding_snapshot ${sql({ holding_id: kwd, household_id: elsewhere.id, as_of: yesterday, quantity: 1 })}`);
+
+  /* Asked of XTS, which no real quote names: a real KWD rate cached in price_quote by the app
+     must not decide this. */
+  const unrated = await pot({ currency: 'XTS', name: 'No rate' });
+  await snap(unrated, 1500);
+  ok((await valued(unrated)).value_minor === null, 'with a snapshot but no rate, value_minor is NULL');
+  await sql`delete from holding where id = ${unrated}`;
+  await snap(kwd, 9999, tomorrow);
+  const fut = await valued(kwd);
+  ok(Number(fut.q) === 1500 && fut.as_of === today,
+    `a snapshot dated tomorrow does not stand in for today's (${fut.q} on ${fut.as_of})`);
+  await refusesWith('a rate of zero is refused on an override', /rate_positive/, () => override('KWD', 0));
+  await refusesWith('an absurd rate is refused on an override, before it can overflow a value', /rate_bounded/,
+    () => override('KWD', '1000000000'));
+  await refusesWith('and on a quote', /rate_bounded/,
+    () => sql`insert into price_quote ${sql({ base: 'XTS', quote: 'INR', as_of: today, rate: '1000000000', source: 'test' })}`);
+  await refusesWith('a negative rate is refused on a quote', /rate_positive/,
+    () => sql`insert into price_quote ${sql({ base: 'XTS', quote: 'INR', as_of: today, rate: -1, source: 'test' })}`);
+  await override('KWD', '271.5');
+  const k = await valued(kwd);
+  ok(String(k.value_minor) === '40725' && Number(k.q) === 1500,
+    `KD 1.500 at 271.5 is ₹407.25 — 40725 paise, from today's snapshot not tomorrow's (${k.q} → ${k.value_minor})`);
+
+  const jpy = await pot({ currency: 'JPY', name: 'Yen' });
+  await snap(jpy, 500); await override('JPY', '0.55');
+  ok(String((await valued(jpy)).value_minor) === '27500', `¥500 at 0.55 is 27500 paise (${(await valued(jpy)).value_minor})`);
+
+  const [gold] = await sql`insert into holding ${sql({ household_id: hh.id, kind: 'metal', name: 'Bangles',
+    metal: 'gold', purity_permille: 916 })} returning id`;
+  await snap(gold.id, 50000); await override('XAU', '8000');
+  ok(String((await valued(gold.id)).value_minor) === '36640000',
+    `50 g of 22k gold at ₹8,000/g pure is 36640000 paise (${(await valued(gold.id)).value_minor})`);
+
+  // A quote alone is used; an override newer than the latest quote beats it.
+  const xts0 = await pot({ currency: 'XTS', name: 'Quote only' });
+  await snap(xts0, 100);
+  await sql`insert into price_quote ${sql({ base: 'XTS', quote: 'INR', as_of: yesterday, rate: '5', source: 'invariant-test' })}`;
+  let x0 = await valued(xts0);
+  ok(x0.rate_source === 'invariant-test' && Number(x0.rate) === 5 && x0.rate_as_of === yesterday && String(x0.value_minor) === '500',
+    `with only a quote and no override, the quote is used (${x0.rate_source} ${x0.rate} → ${x0.value_minor})`);
+  await override('XTS', '6', today);
+  x0 = await valued(xts0);
+  ok(x0.rate_source === 'override' && Number(x0.rate) === 6 && x0.rate_as_of === today && String(x0.value_minor) === '600',
+    `an override dated today beats a quote dated yesterday (${x0.rate_source} ${x0.rate} → ${x0.value_minor})`);
+  await sql`delete from price_override where household_id = ${hh.id} and base = 'XTS'`;
+  await sql`delete from price_quote where base = 'XTS'`;
+  await sql`delete from holding where id = ${xts0}`;
+
+  // Which rate applies: newest of override and quote, the override winning a tie; nothing after today.
+  const xts = await pot({ currency: 'XTS', name: 'Test pot' });
+  await snap(xts, 100);
+  await sql`insert into price_quote ${sql({ base: 'XTS', quote: 'INR', as_of: today, rate: '2', source: 'invariant-test' })}`;
+  await sql`insert into price_quote ${sql({ base: 'XTS', quote: 'INR', as_of: tomorrow, rate: '9', source: 'invariant-test' })}`;
+  await override('XTS', '4', yesterday);
+  let x = await valued(xts);
+  ok(x.rate_source === 'invariant-test' && Number(x.rate) === 2 && x.rate_as_of === today && String(x.value_minor) === '200',
+    `a quote dated today beats an override dated yesterday, and tomorrow's quote is not used (${x.rate_source} ${x.rate} → ${x.value_minor})`);
+  await override('XTS', '3', today);
+  x = await valued(xts);
+  ok(x.rate_source === 'override' && Number(x.rate) === 3 && String(x.value_minor) === '300',
+    `an override dated today beats a quote dated today (${x.rate_source} ${x.rate} → ${x.value_minor})`);
+
+  // Banker's rounding, once, at the end.
+  const r = (await sql`select round_half_even(0.5) a, round_half_even(1.5) b, round_half_even(2.5) c,
+    round_half_even(-0.5) d, round_half_even(-1.5) e, round_half_even(2.4999999999) f, round_half_even(2.5000000001) g`)[0];
+  ok([r.a, r.b, r.c, r.d, r.e, r.f, r.g].map(String).join(' ') === '0 2 2 0 -2 2 3',
+    `round_half_even: 0.5→0 1.5→2 2.5→2 -0.5→0 -1.5→-2, and only an exact half is a tie (${[r.a, r.b, r.c, r.d, r.e, r.f, r.g].join(' ')})`);
+  const half = await pot({ currency: 'KWD', name: 'Half' });
+  await snap(half, 5); // 0.005 KD × 271.5 = ₹1.3575 → 135.75 paise → 136
+  ok(String((await valued(half)).value_minor) === '136', 'a value is rounded to the nearest paisa');
+  await sql`update holding_snapshot set quantity = 1 where holding_id = ${half}`; // 27.15 → 27
+  ok(String((await valued(half)).value_minor) === '27', 'and down when nearer down');
+  const [silver] = await sql`insert into holding ${sql({ household_id: hh.id, kind: 'metal', name: 'Coin',
+    metal: 'silver', purity_permille: 1000 })} returning id`;
+  await override('XAG', '25');
+  await snap(silver.id, 1); // 1 mg pure × ₹25/g = 2.5 paise, an exact tie
+  ok(String((await valued(silver.id)).value_minor) === '2', 'an exact half paisa goes to the even one: 2.5 → 2');
+  await sql`update holding_snapshot set quantity = 3 where holding_id = ${silver.id}`; // 7.5 → 8
+  ok(String((await valued(silver.id)).value_minor) === '8', 'and 7.5 → 8');
+
+  // What updateSnapshot writes: one figure a day, and a second save that day replaces it.
+  const upsert = (holding, quantity, as_of = today) => sql`
+    insert into holding_snapshot (holding_id, household_id, as_of, quantity, created_by)
+    values (${holding}, ${hh.id}, ${as_of}, ${quantity}, ${user.id})
+    on conflict (holding_id, as_of) do update set quantity = excluded.quantity, created_by = excluded.created_by`;
+  await upsert(kwd, 2000);
+  const nKwd = (await sql`select count(*)::int as n from holding_snapshot where holding_id = ${kwd} and as_of = ${today}`)[0].n;
+  ok(nKwd === 1 && Number((await valued(kwd)).q) === 2000 && String((await valued(kwd)).value_minor) === '54300',
+    `a second save on the same day replaces the figure (${nKwd} row, KD 2.000 at 271.5 → ${(await valued(kwd)).value_minor})`);
+  await upsert(kwd, 1500);
+  await upsert(kwd, 1700, yesterday);
+  ok((await sql`select count(*)::int as n from holding_snapshot where holding_id = ${kwd}`)[0].n === 3,
+    'a different day adds a figure instead (today, yesterday, and the one dated tomorrow)');
+  // An override saved twice on one day is one row: the later save wins (setRateOverride's upsert).
+  const setOverride = (base, rate, as_of = today) => sql`
+    insert into price_override (household_id, base, quote, as_of, rate, set_by) values (${hh.id}, ${base}, 'INR', ${as_of}, ${rate}, ${user.id})
+    on conflict (household_id, base, quote, as_of) do update set rate = excluded.rate, set_by = excluded.set_by, set_at = now()`;
+  await setOverride('KWD', '280.25'); await setOverride('KWD', '271.5');
+  ok((await sql`select count(*)::int as n from price_override where household_id = ${hh.id} and base = 'KWD' and as_of = ${today}`)[0].n === 1
+     && String((await valued(kwd)).value_minor) === '40725', 'an override set twice on one day is one row, the later one');
+  await refusesWith('a rate of zero through the same upsert is refused by the CHECK', /rate_positive/, () => setOverride('KWD', '0'));
+  await refusesWith('a rate of ten decimals plus a billion is refused by the CHECK', /rate_bounded/, () => setOverride('KWD', '1000000000.5'));
+
+  // holding_value_at is holding_value for any date; for today they agree on every holding.
+  const mism = await sql`select v.id, f.id as fid from holding_value v
+    full join holding_value_at(${hh.id}, current_date) f on f.id = v.id
+    where coalesce(v.household_id, ${hh.id}) = ${hh.id}
+      and (v.id is null or f.id is null or v.value_minor is distinct from f.value_minor)`;
+  const total = (await sql`select count(*)::int as n from holding_value where household_id = ${hh.id}`)[0].n;
+  const totalAt = (await sql`select count(*)::int as n from holding_value_at(${hh.id}, current_date)`)[0].n;
+  ok(total >= 6 && totalAt === total && mism.length === 0,
+    `holding_value_at(today) equals holding_value for all ${total} holdings, ties, quotes, overrides and nulls included`);
+  const at = async (id, d) => (await sql`select value_minor::text as v from holding_value_at(${hh.id}, ${d}::date) where id = ${id}`)[0]?.v ?? 'missing';
+  await upsert(xts, 100, yesterday);
+  ok(await at(xts, yesterday) === '400', 'on yesterday, the override dated yesterday is the rate: 100 × 4 = 400 (today\'s quote is not yet known)');
+  ok(await at(xts, today) === '300', 'on today, the override dated today beats the quote dated today');
+  ok((await sql`select value_minor from holding_value_at(${hh.id}, ${yesterday}::date) where id = ${kwd}`)[0].value_minor === null,
+    'a holding with a figure but no rate yet that day is valued NULL, not zero');
+  ok((await sql`select value_minor from holding_value_at(${hh.id}, '2000-01-01'::date) where id = ${gold.id}`)[0].value_minor === null,
+    'before its first snapshot a holding has no value');
+  ok((await sql`select count(*)::int as n from holding_value_at(${elsewhere.id}, current_date)`)[0].n === 0,
+    'a household with no holdings gets no rows');
+  const keyed = await sql`select count(*)::int as n from holding_value_at(${elsewhere.id}, current_date) f join holding h on h.id = f.id where h.household_id = ${hh.id}`;
+  ok(keyed[0].n === 0, 'and asking for another household returns none of this one\'s');
+
+  // The expression worthSeries uses: the current month's point is today's figure, and last month's is its own month-end.
+  const point = async (month) => (await sql`
+    select coalesce((select sum(v.value_minor) from holding_value_at(${hh.id},
+             least((${month}::date + interval '1 month - 1 day')::date, current_date)) v
+           where v.archived_at is null or v.archived_at >= (${month}::date + interval '1 month')::date), 0)::text as holdings`)[0].holdings;
+  const nowSum = (await sql`select coalesce(sum(value_minor), 0)::text as s from holding_value where household_id = ${hh.id} and archived_at is null`)[0].s;
+  ok(await point((await sql`select date_trunc('month', current_date)::date::text as m`)[0].m) === nowSum,
+    `worthSeries' holdings point for this month is today's holdings total (${nowSum})`);
+  ok(await point('2000-01-01') === '0', 'and a month before any snapshot is 0');
+
+  // A past date against a hand-computed set: snapshots 200 (5 days ago) and 300 (2 days ago), rates 2 (5 days ago) and 3 (yesterday).
+  const d = async (n) => (await sql`select (current_date - ${n}::int)::text as d`)[0].d;
+  const hist = await pot({ currency: 'XTS', name: 'History' });
+  await upsert(hist, 200, await d(5)); await upsert(hist, 300, await d(2));
+  await setOverride('XTS', '2', await d(5)); await setOverride('XTS', '3', await d(1));
+  const want = [[6, 'null'], [5, '400'], [3, '400'], [2, '600'], [1, '900'], [0, '900']];
+  const got = [];
+  for (const [n] of want) got.push([n, String((await sql`select value_minor::text as v from holding_value_at(${hh.id}, ${await d(n)}::date) where id = ${hist}`)[0].v)]);
+  ok(JSON.stringify(got) === JSON.stringify(want), `a past date's value is the hand-computed one: ${got.map((g) => g.join('→')).join(' ')}`);
+  ok(String((await valued(hist)).value_minor) === '900', 'and today agrees with holding_value');
+
+  // Archiving never rewrites history: a holding live last month stays in last month's point and leaves this month's.
+  const lm = (await sql`select (date_trunc('month', current_date) - interval '1 month')::date::text as m, date_trunc('month', current_date)::date::text as c`)[0];
+  const old = await pot({ currency: 'XTS', name: 'Archived later' });
+  await upsert(old, 1000, lm.m); await setOverride('XTS', '2', lm.m);
+  await sql`delete from price_override where household_id = ${hh.id} and base = 'XTS' and as_of in (${await d(5)}, ${await d(1)})`;
+  const lastBefore = await point(lm.m), thisBefore = await point(lm.c);
+  await sql`update holding set archived_at = now() where id = ${old}`;
+  const lastAfter = await point(lm.m), thisAfter = await point(lm.c);
+  ok(Number(lastBefore) >= 2000 && lastAfter === lastBefore, `archiving leaves last month's point unchanged (${lastBefore} → ${lastAfter})`);
+  const oldNow = Number((await valued(old)).value_minor);
+  ok(oldNow > 0 && Number(thisBefore) - Number(thisAfter) === oldNow,
+    `and today's point drops it (${thisBefore} → ${thisAfter})`);
+
+  // Digits come from the same list as money.ts.
+  const digits = await sql`select code, currency_digits(code) as d from unnest(
+    array['INR','KWD','BHD','OMR','JOD','IQD','TND','JPY','KRW','VND','UGX','USD','IDR']) as code`;
+  ok(digits.map((d) => `${d.code}${d.d}`).join(' ') === 'INR2 KWD3 BHD3 OMR3 JOD3 IQD3 TND3 JPY0 KRW0 VND0 UGX0 USD2 IDR2',
+    `currency_digits agrees with lib/money.ts (${digits.map((d) => `${d.code}${d.d}`).join(' ')})`);
+
+  // No float near the money.
+  const floats = await sql`select a.attname from pg_attribute a join pg_class c on c.oid = a.attrelid
+    where c.relname in ('holding','holding_snapshot','price_quote','price_override','holding_value')
+      and a.attnum > 0 and a.atttypid in ('float4'::regtype, 'float8'::regtype)`;
+  ok(floats.length === 0, 'no float column in holdings, prices or their valuation');
+  const [vm] = await sql`select format_type(atttypid, atttypmod) t from pg_attribute
+    where attrelid = 'holding_value'::regclass and attname = 'value_minor'`;
+  ok(vm?.t === 'bigint', `value_minor is a bigint of minor units (${vm?.t})`);
+
+  // Snapshots, never entries: nothing the budget or a balance reads mentions them.
+  const named = await sql`select viewname from pg_views where schemaname = 'public'
+    and viewname in ('spend_txn','income_txn','account_balance') and definition !~ '(holding|price_)'`;
+  ok(named.length === 3, 'spend_txn, income_txn and account_balance do not read holdings or prices');
+  const readers = await sql`select viewname from pg_views where schemaname = 'public'
+    and viewname <> 'holding_value' and definition ~ '(holding|price_)'`;
+  ok(readers.length === 0, `no other view reads them either${readers.length ? ': ' + readers.map((v) => v.viewname).join(', ') : ''}`);
+
+  // A household's base cannot become the currency of a pot it holds.
+  const [aed] = await sql`insert into household ${sql({ name: 'Invariant test', base_currency: 'AED' })} returning id`;
+  await sql`insert into holding ${sql({ household_id: aed.id, kind: 'fx_cash', name: 'Dollars', currency: 'USD' })}`;
+  await refusesWith('a household cannot move its books into the currency of one of its pots', /Use an account for USD: a pot already holds it/,
+    () => sql`update household set base_currency = 'USD' where id = ${aed.id}`);
+
+  console.log('\nHOLDING PHOTOS — a valuation slip, the jewellery on the scale');
+  const JPEG = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0, 0x10, 0x4a, 0x46]);
+  const photo = (o = {}) => sql`insert into holding_attachment ${sql({
+    household_id: hh.id, holding_id: kwd, name: 'slip.jpg', mime: 'image/jpeg', bytes: JPEG.length, data: JPEG,
+    created_by: user.id, ...o })} returning id`;
+  const [kwdSnap] = await sql`select id from holding_snapshot where holding_id = ${kwd} limit 1`;
+  const [goldSnap] = await sql`select id from holding_snapshot where holding_id = ${gold.id} limit 1`;
+  ok(!!kwdSnap && !!goldSnap, 'two holdings, each with a snapshot, to hang photos on');
+  await allows('a photo can belong to the holding itself (snapshot NULL)', () => photo());
+  await allows('or be evidence for one of its own snapshots', () => photo({ snapshot_id: kwdSnap.id }));
+  for (const mime of ['image/png', 'image/webp', 'application/pdf']) {
+    await allows(`${mime} is kept`, () => photo({ mime }));
+  }
+  await allows('exactly 2 MB is kept', () => photo({ bytes: 2097152, data: Buffer.alloc(2097152, 1) }));
+  await refusesWith('a photo over 2 MB is refused', /holding_attachment_size/,
+    () => photo({ bytes: 2097153, data: Buffer.alloc(2097153, 1) }));
+  await refusesWith('an empty photo is refused', /holding_attachment_size/, () => photo({ bytes: 0, data: Buffer.alloc(0) }));
+  for (const mime of ['image/gif', 'text/html', 'image/svg+xml', 'IMAGE/JPEG']) {
+    await refusesWith(`${mime} is refused`, /holding_attachment_mime/, () => photo({ mime }));
+  }
+  await refusesWith('a snapshot of ANOTHER holding is refused', /holding_attachment_snapshot_same_holding/,
+    () => photo({ snapshot_id: goldSnap.id }));
+  await refusesWith('a holding of another household is refused (composite key)', /holding_attachment_same_household/,
+    () => photo({ household_id: elsewhere.id }));
+  await refusesWith('a photo needs a holding', /null value|holding_id/, () => photo({ holding_id: null }));
+  ok(Number((await sql`select count(*)::int as n from holding_attachment where holding_id = ${kwd}`)[0].n) === 6,
+    'only the six valid photos were stored');
+  const swept = await sql`select count(*)::int as n from pg_policies where tablename = 'holding_attachment'`;
+  ok(swept[0].n === 1, 'holding_attachment is under a household policy');
+  // Replacing a day's figure keeps the snapshot row, so its photos stay attached.
+  await sql`insert into holding_snapshot (holding_id, household_id, as_of, quantity, created_by)
+    select holding_id, household_id, as_of, quantity + 1, created_by from holding_snapshot where id = ${kwdSnap.id}
+    on conflict (holding_id, as_of) do update set quantity = excluded.quantity`;
+  ok(Number((await sql`select count(*)::int as n from holding_attachment where snapshot_id = ${kwdSnap.id}`)[0].n) === 1,
+    'saving the day\'s figure again leaves its photo attached');
+  const [{ id: gonePhoto }] = await photo({ holding_id: gold.id, snapshot_id: goldSnap.id });
+  await sql`delete from holding where id = ${gold.id}`;
+  ok(Number((await sql`select count(*)::int as n from holding_attachment where id = ${gonePhoto}`)[0].n) === 0,
+    'deleting a holding takes its photos (archiving, which the app uses, keeps them)');
+
+  // Row security, as the app.
+  if (appUser === 'saree_app') {
+    const app = postgres(appUrl, { ssl: 'require', max: 1, onnotice: () => {} });
+    const scoped = (id, fn) => app.begin(async (tx) => {
+      await tx`select set_config('app.household_id', ${id}, true)`;
+      return fn(tx);
+    });
+    const n = (q) => q.then((rows) => rows[0].n);
+    ok(await scoped(hh.id, (tx) => n(tx`select count(*)::int as n from holding where id = ${kwd}`)) === 1,
+      'named, the household sees its own pot');
+    ok(await scoped(elsewhere.id, (tx) => n(tx`select count(*)::int as n from holding where id = ${kwd}`)) === 0,
+      'another household cannot read the holding, asked for by id');
+    ok(await scoped(elsewhere.id, (tx) => n(tx`select count(*)::int as n from holding_snapshot where holding_id = ${kwd}`)) === 0,
+      'nor its snapshots');
+    ok(await scoped(hh.id, (tx) => n(tx`select count(*)::int as n from holding_attachment where holding_id = ${kwd}`)) === 6,
+      'named, the household sees its own photos');
+    ok(await scoped(elsewhere.id, (tx) => n(tx`select count(*)::int as n from holding_attachment where holding_id = ${kwd}`)) === 0,
+      'another household cannot read its photos, asked for by holding');
+    ok(await scoped(elsewhere.id, (tx) => n(tx`select count(*)::int as n from holding_attachment`)) === 0,
+      'nor list any photo at all');
+    await refusesWith('another household cannot write a photo onto it', /row-level security|same_household/,
+      () => scoped(elsewhere.id, (tx) => tx`insert into holding_attachment ${sql({ household_id: hh.id, holding_id: kwd,
+        name: 'x', mime: 'image/png', bytes: 1, data: Buffer.from([1]) })}`));
+    await refusesWith('nor write one under its own id onto this holding', /same_household/,
+      () => scoped(elsewhere.id, (tx) => tx`insert into holding_attachment ${sql({ household_id: elsewhere.id, holding_id: kwd,
+        name: 'x', mime: 'image/png', bytes: 1, data: Buffer.from([1]) })}`));
+    ok(await scoped(elsewhere.id, (tx) => n(tx`select count(*)::int as n from price_override where household_id = ${hh.id}`)) === 0,
+      'nor its overrides');
+    ok(await scoped(elsewhere.id, (tx) => n(tx`select count(*)::int as n from holding_value where household_id = ${hh.id}`)) === 0,
+      'nor through holding_value');
+    ok(await n(app`select count(*)::int as n from holding`) === 0, 'unscoped, there are no holdings at all');
+    ok(await scoped(elsewhere.id, (tx) => n(tx`select count(*)::int as n from holding_value_at(${hh.id}, current_date)`)) === 0,
+      'holding_value_at, as the app, shows another household none of these holdings');
+    ok(await scoped(hh.id, (tx) => n(tx`select count(*)::int as n from holding_value_at(${hh.id}, current_date)`)) === (await sql`select count(*)::int as n from holding where household_id = ${hh.id}`)[0].n,
+      'and its own household all of them');
+    await refusesWith('an override written into another household is refused', /row-level security/,
+      () => scoped(elsewhere.id, (tx) => tx`insert into price_override ${sql({ household_id: hh.id, base: 'XTS', quote: 'INR',
+        as_of: tomorrow, rate: '5' })}`));
+    ok(await scoped(elsewhere.id, (tx) => n(tx`select count(*)::int as n from price_quote where base = 'XTS'`)) >= 2,
+      'a quote is a market price: every household reads it');
+    await refusesWith('the app cannot rewrite a quote\'s rate', /permission denied/,
+      () => app`update price_quote set rate = 1 where base = 'XTS'`);
+    await allows('the app may refresh a quote\'s fetched_at (and only that)',
+      () => app`update price_quote set fetched_at = now() where base = 'XTS'`);
+    await allows('the app may record a fetched quote',
+      () => scoped(elsewhere.id, (tx) => tx`insert into price_quote ${sql({ base: 'XTS', quote: 'INR', as_of: yesterday,
+        rate: '1', source: 'invariant-test' })}`));
+    await refusesWith('but never rewrite one', /permission denied/,
+      () => scoped(elsewhere.id, (tx) => tx`update price_quote set rate = 1000 where base = 'XTS'`));
+    await refusesWith('or delete one', /permission denied/,
+      () => scoped(elsewhere.id, (tx) => tx`delete from price_quote where base = 'XTS'`));
+    await app.end();
+  }
+} catch (e) {
+  ok(false, `the wealth section could not run: ${e.message.slice(0, 120)}`);
+}
+await sql`delete from price_quote where base = 'XTS'`.catch(() => {});
+
+// ── the last way to pay is a preference, not a reference ──────────────────
+/* Add Entry opens on the way this person last paid with. It is stored as the text reference the form sends, and
+   must never be a foreign key: the rail can be archived, or belong to the other books this person keeps, and a
+   stale preference must not be able to stop an entry (or an archive) from happening. */
+{
+  const [col] = await sql`select data_type, is_nullable from information_schema.columns
+    where table_name = 'app_user' and column_name = 'last_paid_with'`;
+  ok(col?.data_type === 'text' && col?.is_nullable === 'YES', 'app_user.last_paid_with is nullable text');
+  const [{ n: fks }] = await sql`
+    select count(*)::int as n from pg_constraint c
+    join pg_attribute a on a.attrelid = c.conrelid and a.attnum = any(c.conkey)
+    where c.conrelid = 'app_user'::regclass and c.contype = 'f' and a.attname = 'last_paid_with'`;
+  ok(fks === 0, 'and no foreign key: a stale reference cannot hold a rail or an account in place');
+  await allows('a reference that names nothing is stored as it is (resolved on read, never trusted)',
+    () => sql`update app_user set last_paid_with = 'm:00000000-0000-4000-8000-000000000000' where id = ${user.id}`);
+}
+
+// ── SMS capture — a forwarded bank message is a draft, never an entry ──────
+/* capture_token stores only the SHA-256 of a 256-bit token. sms_draft is one row per distinct
+   message per household; it is never an entry on its own, and a draft cannot be marked accepted
+   without the entry it became. */
+console.log('\nSMS CAPTURE — drafts and tokens');
+try {
+  const HEX = (c) => c.repeat(64);
+  const [h2] = await sql`insert into household ${sql({ name: 'Invariant test' })} returning id`;
+  const [a1] = await sql`insert into account ${sql({ household_id: hh.id, name: 'Sms acct', kind: 'cash' })} returning id`;
+  const [a2] = await sql`insert into account ${sql({ household_id: h2.id, name: 'Sms acct 2', kind: 'cash' })} returning id`;
+  const mkTxn = async (household_id, account_id) => (await sql`insert into txn ${sql({ household_id, created_by: user.id,
+    occurred_on: '2026-09-01', amount: 1000, currency: 'INR', kind: 'expense', account_id })} returning id`)[0];
+  const t1 = await mkTxn(hh.id, a1.id), t2 = await mkTxn(h2.id, a2.id);
+  const draft = (o = {}) => sql`insert into sms_draft ${sql({ household_id: hh.id, user_id: user.id, sender: 'HDFCBK',
+    body: 'Rs 250 debited', body_hash: HEX('a'), ...o })} returning id`;
+  const token = (o = {}) => sql`insert into capture_token ${sql({ user_id: user.id, household_id: hh.id,
+    token_hash: HEX('b'), label: 'My phone', ...o })} returning id`;
+
+  await allows('a draft with only what was found is stored', () => draft());
+  await refusesWith('the same message twice in one household is one draft', /sms_draft_household_body/,
+    () => draft());
+  await allows('the same message in another household is a separate draft', () => draft({ household_id: h2.id, user_id: null }));
+  await refusesWith('a draft marked accepted with no entry is refused', /sms_draft_accepted_has_txn/,
+    () => draft({ body_hash: HEX('c'), status: 'accepted' }));
+  await allows('accepted with its entry is allowed', () => draft({ body_hash: HEX('c'), status: 'accepted', txn_id: t1.id }));
+  await refusesWith('an entry of another household cannot be a draft\'s entry', /sms_draft_txn_same_household|foreign key/,
+    () => draft({ body_hash: HEX('d'), txn_id: t2.id }));
+  await refusesWith('a body hash that is not 64 hex is refused', /sms_draft_body_hash_hex/, () => draft({ body_hash: 'abc' }));
+  await refusesWith('an upper-case body hash is refused', /sms_draft_body_hash_hex/, () => draft({ body_hash: HEX('A') }));
+  await refusesWith('a body over 2000 characters is refused', /sms_draft_body_len/, () => draft({ body_hash: HEX('e'), body: 'x'.repeat(2001) }));
+  await refusesWith('a sender over 64 characters is refused', /sms_draft_sender_len/, () => draft({ body_hash: HEX('f'), sender: 'x'.repeat(65) }));
+  await allows('a purged body (NULL) is allowed', () => draft({ body_hash: HEX('1'), body: null, sender: null }));
+  /* ON DELETE SET NULL on txn_id is overtaken by the accepted check for an accepted draft: the entry it
+     became cannot be hard-deleted from under it (the app soft-deletes entries). A draft that merely names an
+     entry loses the link. */
+  await refusesWith('an entry an accepted draft became cannot be hard-deleted from under it', /sms_draft_accepted_has_txn/,
+    () => sql`delete from txn where id = ${t1.id}`);
+  const [t3] = [await mkTxn(hh.id, a1.id)];
+  await draft({ body_hash: HEX('3'), txn_id: t3.id });
+  await sql`delete from txn where id = ${t3.id}`;
+  const [{ txn_id: cleared, household_id: still }] = await sql`select txn_id, household_id from sms_draft where body_hash = ${HEX('3')} and household_id = ${hh.id}`;
+  ok(cleared === null && still === hh.id, 'deleting an entry a non-accepted draft names clears only the link, not the household');
+
+  await allows('a token is stored by its hash', () => token());
+  await refusesWith('two tokens cannot share a hash', /capture_token_token_hash_unique/, () => token());
+  await refusesWith('a token hash that is not 64 hex is refused', /capture_token_hash_hex/, () => token({ token_hash: 'plaintext-token' }));
+  await refusesWith('an empty label is refused', /capture_token_label_len/, () => token({ token_hash: HEX('2'), label: '' }));
+  await refusesWith('a label over 40 characters is refused', /capture_token_label_len/, () => token({ token_hash: HEX('2'), label: 'x'.repeat(41) }));
+  const [{ n: tokCols }] = await sql`select count(*)::int as n from information_schema.columns
+    where table_name = 'capture_token' and column_name in ('token', 'secret', 'plaintext')`;
+  ok(tokCols === 0, 'capture_token has no column that could hold a usable token');
+
+  if (appUser === 'saree_app') {
+    const app = postgres(appUrl, { ssl: 'require', max: 1, onnotice: () => {} });
+    const scoped = (id, fn) => app.begin(async (tx) => { await tx`select set_config('app.household_id', ${id}, true)`; return fn(tx); });
+    const n = (q) => q.then((r) => r[0].n);
+    ok(await n(app`select count(*)::int as n from capture_token`) === 0,
+      'with no household named, no token can be listed');
+    await refuses('nor inserted', () => app`insert into capture_token ${sql({ user_id: user.id, household_id: hh.id, token_hash: HEX('7'), label: 'x' })}`);
+    ok((await app`update capture_token set revoked_at = null where token_hash = ${HEX('b')} returning id`).length === 0,
+      'nor updated (a revoked token cannot be revived)');
+    ok((await app`delete from capture_token where token_hash = ${HEX('b')} returning id`).length === 0, 'nor deleted');
+    const live = await app`select * from capture_lookup(${HEX('b')})`;
+    ok(live.length === 1 && live[0].household_id === hh.id && live[0].user_id === user.id && Object.keys(live[0]).sort().join() === 'household_id,id,user_id',
+      'capture_lookup(hash) returns the one row (id, user, household) for a live token');
+    ok((await app`select * from capture_lookup(${HEX('9')})`).length === 0, 'and none for an unknown hash');
+    await sql`update capture_token set revoked_at = now() where token_hash = ${HEX('b')}`;
+    ok((await app`select * from capture_lookup(${HEX('b')})`).length === 0, 'and none for a revoked token');
+    await sql`update capture_token set revoked_at = null where token_hash = ${HEX('b')}`;
+    /* Membership is part of the lookup (0113), so every refusal about who is asking is one query. */
+    const [ph] = await sql`insert into app_user ${sql({ phone: '+910000000004', name: 'Phone owner' })} returning id`;
+    await sql`insert into member ${sql({ household_id: hh.id, user_id: ph.id, role: 'viewer' })}`;
+    await sql`insert into capture_token ${sql({ user_id: ph.id, household_id: hh.id, token_hash: HEX('5'), label: 'Viewer phone' })}`;
+    ok((await app`select * from capture_lookup(${HEX('5')})`).length === 0, "and none for a viewer's token");
+    await sql`update member set role = 'adult' where household_id = ${hh.id} and user_id = ${ph.id}`;
+    ok((await app`select * from capture_lookup(${HEX('5')})`).length === 1, 'the same token answers once its person may write');
+    await sql`delete from member where household_id = ${hh.id} and user_id = ${ph.id}`;
+    ok((await app`select * from capture_lookup(${HEX('5')})`).length === 0,
+      'and none for a token whose person was removed from the household');
+    await sql`delete from capture_token where token_hash = ${HEX('5')}`;
+    await sql`delete from app_user where id = ${ph.id}`;
+    ok((await app`select count(*)::int as n from pg_proc p join pg_roles r on r.oid = p.proowner
+      where p.proname = 'capture_lookup' and p.prosecdef and r.rolname <> current_user`)[0].n === 1,
+      'capture_lookup is a security-definer function owned by the owner, not the app role');
+    /* It can find a token across households only because its owner bypasses row security: FORCE applies to the
+       owner too otherwise, and every phone would get a 401 with nothing said. A role attribute, not inherited. */
+    const [lookupOwner] = await sql`select r.rolname, r.rolbypassrls, r.rolsuper from pg_proc p
+      join pg_roles r on r.oid = p.proowner where p.proname = 'capture_lookup'`;
+    ok(lookupOwner?.rolbypassrls === true,
+      `capture_lookup's owner (${lookupOwner?.rolname}) has BYPASSRLS, so it can find a token in any household${lookupOwner?.rolsuper ? ' (a superuser here)' : ''}`);
+    ok((await sql`select rolbypassrls from pg_roles where rolname = current_user`)[0].rolbypassrls === true,
+      'the owner role the migrations run as has BYPASSRLS');
+    ok((await sql`select has_function_privilege('public', 'capture_lookup(text)', 'execute') as x`)[0].x === false,
+      'PUBLIC cannot execute capture_lookup');
+    ok((await sql`select has_function_privilege('saree_app', 'capture_lookup(text)', 'execute') as x`)[0].x === true,
+      'the app role can');
+
+    /* A key does not outlive its holder's place: removeMember and changeRole (to viewer) revoke it in the same
+       transaction, so re-inviting the person, or raising them back, does not revive an old phone's key. */
+    const [sara] = await sql`insert into app_user ${sql({ phone: '+910000000005', name: 'Sara' })} returning id`;
+    await sql`insert into member ${sql({ household_id: hh.id, user_id: sara.id, role: 'adult' })}`;
+    await sql`insert into capture_token ${sql({ user_id: sara.id, household_id: hh.id, token_hash: HEX('6'), label: 'Sara phone' })}`;
+    ok((await app`select * from capture_lookup(${HEX('6')})`).length === 1, "a contributing member's key answers");
+    await scoped(hh.id, (tx) => removeMemberIn(tx, hh.id, sara.id));
+    ok((await app`select * from capture_lookup(${HEX('6')})`).length === 0, 'removed, it does not');
+    await sql`insert into member ${sql({ household_id: hh.id, user_id: sara.id, role: 'adult' })}`;
+    ok((await app`select * from capture_lookup(${HEX('6')})`).length === 0,
+      're-invited as a contributing member, her old key still does not answer (it was revoked as she left)');
+    await sql`insert into capture_token ${sql({ user_id: sara.id, household_id: hh.id, token_hash: HEX('e'), label: 'Sara new' })}`;
+    ok((await app`select * from capture_lookup(${HEX('e')})`).length === 1, 'a key issued after she came back answers');
+    await scoped(hh.id, (tx) => changeRoleIn(tx, hh.id, sara.id, 'viewer'));
+    await scoped(hh.id, (tx) => changeRoleIn(tx, hh.id, sara.id, 'adult'));
+    ok((await app`select * from capture_lookup(${HEX('e')})`).length === 0,
+      'dropped to viewer and raised back, that key does not answer either');
+    await scoped(hh.id, (tx) => changeRoleIn(tx, hh.id, sara.id, 'owner'));
+    ok((await sql`select count(*)::int as n from capture_token where user_id = ${sara.id} and revoked_at is null`)[0].n === 0
+      && (await sql`select count(*)::int as n from capture_token where user_id = ${sara.id}`)[0].n === 2,
+      'both keys are revoked, not deleted; a role change that is not to viewer revokes nothing');
+    await sql`delete from member where household_id = ${hh.id} and user_id = ${sara.id}`;
+    await sql`delete from capture_token where user_id = ${sara.id}`;
+    await sql`delete from app_user where id = ${sara.id}`;
+    ok(await n(app`select count(*)::int as n from sms_draft`) === 0, 'with no household named, no draft can be read');
+    ok(await scoped(hh.id, (tx) => n(tx`select count(*)::int as n from sms_draft where household_id = ${hh.id}`)) === 4,
+      'named, the household sees its own drafts');
+    ok(await scoped(h2.id, (tx) => n(tx`select count(*)::int as n from sms_draft where household_id = ${hh.id}`)) === 0,
+      'another household cannot read the drafts, asked for by household');
+    ok(await scoped(h2.id, (tx) => n(tx`select count(*)::int as n from sms_draft where body_hash = ${HEX('c')}`)) === 0,
+      'nor by body hash');
+    ok(await scoped(h2.id, (tx) => n(tx`select count(*)::int as n from capture_token`)) === 0,
+      'another household cannot read the tokens once one is named');
+    ok(await scoped(hh.id, (tx) => n(tx`select count(*)::int as n from capture_token`)) === 1,
+      'named, the household sees its own token');
+    await refuses('scoped to another household, a draft cannot be written into this one',
+      () => scoped(h2.id, (tx) => tx`insert into sms_draft ${sql({ household_id: hh.id, body_hash: HEX('9') })}`));
+    await refuses('nor a token',
+      () => scoped(h2.id, (tx) => tx`insert into capture_token ${sql({ user_id: user.id, household_id: hh.id, token_hash: HEX('8'), label: 'x' })}`));
+
+    // ── a draft's life: accepted once, dismissed and undone, its text purged ──
+    const sd = (o) => sql`insert into sms_draft ${sql({ household_id: hh.id, user_id: user.id, sender: 'HDFCBK',
+      body: 'Rs 99 debited', ...o })} returning id`.then((r) => r[0].id);
+    const body = async (id) => (await sql`select body, status, txn_id from sms_draft where id = ${id}`)[0];
+    const d1 = await sd({ body_hash: HEX('4') });
+    /* saveEntry's write, as the app role inside the household: the entry under client_ref = the draft's id,
+       on conflict nothing, and the draft accepted in the same transaction. A double tap is two of these. */
+    const save = (ref) => scoped(hh.id, async (tx) => {
+      const [e] = await tx`insert into txn ${sql({ household_id: hh.id, created_by: user.id, occurred_on: '2026-11-01',
+        amount: 9900, currency: 'INR', kind: 'expense', account_id: a1.id, client_ref: ref })}
+        on conflict (household_id, client_ref) where client_ref is not null do nothing returning id`;
+      if (e) await acceptDraftIn(tx, hh.id, ref, e.id);
+      return e?.id ?? null;
+    });
+    const first = await save(d1), second = await save(d1);
+    ok(first !== null && second === null, 'accepting a draft twice under the same client_ref writes the entry once');
+    ok((await sql`select count(*)::int as n from txn where household_id = ${hh.id} and client_ref = ${d1}`)[0].n === 1,
+      'and there is exactly one entry carrying that reference');
+    const after = await body(d1);
+    ok(after.status === 'accepted' && after.txn_id === first, 'the draft is accepted, pointing at that entry');
+    ok(after.body === null, 'and its text is gone the moment it is accepted');
+    ok(await scoped(hh.id, (tx) => acceptDraftIn(tx, hh.id, d1, first)) === false, 'an accepted draft cannot be accepted again');
+    // Correcting a misread figure is the commonest edit: an entry for another amount still accepts the draft.
+    const priced = await sd({ body_hash: HEX('5'), parsed: sql.json({ amountMinor: 45000, direction: 'debit' }) });
+    const edited = await mkTxn(hh.id, a1.id);   // ₹10, not the ₹450 the message read
+    ok(await scoped(hh.id, (tx) => acceptDraftIn(tx, hh.id, priced, edited.id)) === true,
+      'an entry whose amount was edited from the one read still accepts the draft');
+    ok((await body(priced)).status === 'accepted' && (await body(priced)).txn_id === edited.id,
+      'and the draft points at that entry');
+
+    const d2 = await sd({ body_hash: HEX('6') });
+    const [{ id: foreignTxn }] = [await mkTxn(h2.id, a2.id)];
+    ok(await scoped(h2.id, (tx) => dismissDraftIn(tx, hh.id, d2)) === false,
+      'another household cannot dismiss a draft, even naming its household');
+    ok(await scoped(h2.id, (tx) => dismissDraftIn(tx, h2.id, d2)) === false, 'nor under its own');
+    ok(await scoped(h2.id, (tx) => acceptDraftIn(tx, hh.id, d2, foreignTxn)) === false, 'nor accept it');
+    await refuses('nor accept it by naming one of its own entries from this household\'s scope',
+      () => scoped(hh.id, (tx) => acceptDraftIn(tx, hh.id, d2, foreignTxn)));
+    ok((await body(d2)).status === 'open' && (await body(d2)).body !== null, 'and the draft is untouched, text and all');
+
+    ok(await scoped(hh.id, (tx) => dismissDraftIn(tx, hh.id, d2)) === true, 'the household can dismiss its own draft');
+    ok((await body(d2)).status === 'dismissed' && (await body(d2)).body === null, 'which deletes its text at once');
+    ok(await scoped(hh.id, (tx) => dismissDraftIn(tx, hh.id, d2)) === false, 'a dismissed draft cannot be dismissed twice');
+    ok(await scoped(h2.id, (tx) => restoreDraftIn(tx, hh.id, d2)) === false, 'another household cannot undo the dismissal');
+    ok(await scoped(hh.id, (tx) => restoreDraftIn(tx, hh.id, d2)) === true, 'Undo brings a fresh dismissal back to open');
+    await scoped(hh.id, (tx) => dismissDraftIn(tx, hh.id, d2));
+    await sql`update sms_draft set decided_at = now() - interval '16 minutes' where id = ${d2}`;
+    ok(await scoped(hh.id, (tx) => restoreDraftIn(tx, hh.id, d2)) === false, 'but not once fifteen minutes have passed');
+
+    // The thirty-day rule. Bodies are put back by hand so the purge has something to find.
+    const keep = await sd({ body_hash: HEX('7') });
+    const old = await sd({ body_hash: HEX('8'), created_at: sql`now() - interval '31 days'` });
+    const gone = await sd({ body_hash: HEX('9'), status: 'dismissed' });
+    await sql`update sms_draft set body = 'Rs 99 debited' where id in (${d1}, ${d2})`;
+    const [other] = await sql`insert into sms_draft ${sql({ household_id: h2.id, body_hash: HEX('8'), body: 'theirs',
+      status: 'dismissed' })} returning id`;
+    // Due by the rule, counted independently (the section's earlier accepted draft is among them).
+    const [{ n: due }] = await sql`select count(*)::int as n from sms_draft where household_id = ${hh.id}
+      and body is not null and (status <> 'open' or created_at < now() - interval '30 days')`;
+    const purged = await scoped(hh.id, (tx) => purgeSmsBodiesIn(tx, hh.id));
+    ok(due >= 4 && purged === due, `the purge clears exactly the drafts that are due (${purged} of ${due})`);
+    ok(await scoped(hh.id, (tx) => purgeSmsBodiesIn(tx, hh.id)) === 0, 'and a second purge finds nothing left to clear');
+    ok((await body(d1)).body === null, 'an accepted draft keeps no text');
+    ok((await body(d2)).body === null && (await body(gone)).body === null, 'nor does a dismissed one');
+    ok((await body(old)).body === null && (await body(old)).status === 'open', 'an open draft older than 30 days loses its text, and stays open');
+    ok((await body(keep)).body !== null, 'an open draft from this month keeps its text');
+    ok((await body(other.id)).body === 'theirs', 'another household\'s drafts are not touched by this one\'s purge');
+    ok(await scoped(h2.id, (tx) => purgeSmsBodiesIn(tx, hh.id)) === 0, 'and a purge scoped elsewhere reaches none of this household\'s');
+    await app.end();
+  }
+  await sql`delete from household where id = ${h2.id}`;
+} catch (e) {
+  ok(false, `the SMS capture section could not run: ${e.message.slice(0, 120)}`);
 }
 
 await sql`delete from household where name = 'Invariant test'`;

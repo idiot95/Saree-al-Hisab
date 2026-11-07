@@ -6,6 +6,8 @@ import { currentActor, possibleDuplicate } from '@/db/queries';
 import { resolvePayment } from '@/db/payment';
 import { shares } from '../tab/splits';
 import { fits, misfit } from '@/lib/scope';
+import { BILL_MAX_FILES, billFromBase64 } from '@/lib/bills';
+import { acceptDraftIn } from '@/lib/sms-draft';
 
 /* A Server Action is reachable by direct POST, not only through the UI, so
    every value the client sends is treated as untrusted: the household and the
@@ -14,11 +16,8 @@ import { fits, misfit } from '@/lib/scope';
    anyway, but it would not stop one household writing into another's. */
 
 /* Five bills to an entry and two megabytes each, the same ceiling the table's
-   own CHECK enforces. Both are stated here so a refusal is a sentence rather
-   than a constraint violation, and there so no writer can get around it. */
-const MAX_FILES = 5;
-const MAX_BYTES = 2 * 1024 * 1024;
-const ALLOWED_MIME = new Set(['image/jpeg', 'image/png', 'image/webp', 'application/pdf']);
+   own CHECK enforces. The rule is src/lib/bills.ts, shared with addBills and
+   the holdings forms. */
 
 export type Draft = {
   kind: 'expense' | 'income' | 'transfer';
@@ -60,6 +59,11 @@ export type Draft = {
      a second delivery of the same entry harmless; the household id lets the
      server refuse an entry typed under one sign-in and sent under another. */
   clientRef?: string;
+  /** The forwarded bank message this entry is made from. It is marked accepted
+      in the same transaction as the entry, whatever amount was saved. Add entry
+      also sends the draft's id as clientRef, so a second tap on Save finds the
+      first entry rather than making another. */
+  draftId?: string;
   householdId?: string;
 };
 
@@ -102,6 +106,10 @@ export async function saveEntry(d: Draft): Promise<SaveResult> {
     if (d.clientRef !== undefined && !UUID.test(d.clientRef)) {
       return { ok: false, error: 'That entry could not be read.' };
     }
+    if (d.draftId !== undefined && !UUID.test(d.draftId)) {
+      return { ok: false, error: 'That bank message could not be read.' };
+    }
+    const draftId = d.draftId ?? null;
     if (d.householdId !== undefined && d.householdId !== household_id) {
       return { ok: false, error: 'This entry was recorded under a different sign-in.' };
     }
@@ -214,6 +222,7 @@ export async function saveEntry(d: Draft): Promise<SaveResult> {
       counter = acc.id;
     }
 
+    let accepted = false;
     try {
       const row = await sql.begin(async (tx) => {
         if (settles.length) {
@@ -248,6 +257,7 @@ export async function saveEntry(d: Draft): Promise<SaveResult> {
             })} returning id`;
             first ??= r.id as string;
           }
+          if (first && draftId) accepted = await acceptDraftIn(tx, household_id, draftId, first);
           return first ? { id: first } : null;
         }
         const [entry] = await tx`insert into txn ${sql({
@@ -269,6 +279,10 @@ export async function saveEntry(d: Draft): Promise<SaveResult> {
           counts_as_spend: counts,
         })} on conflict (household_id, client_ref) where client_ref is not null do nothing
            returning id`;
+        /* A draft from a bank message becomes this entry, or neither happens,
+           whatever amount was saved. A draft id naming no open draft of this
+           household changes nothing. */
+        if (entry && draftId) accepted = await acceptDraftIn(tx, household_id, draftId, entry.id);
         /* The entry and the shares land together or not at all: a cost on a tab
            with nobody down as owing for it would be a split that never happened.
            A share of zero paise is nothing owed and is not written. */
@@ -293,21 +307,33 @@ export async function saveEntry(d: Draft): Promise<SaveResult> {
         /* The bills, in the same transaction as the entry: an attachment that
            outlived a failed save would be evidence for nothing. */
         if (entry && d.attachments?.length) {
-          for (const a of d.attachments.slice(0, MAX_FILES)) {
-            if (!ALLOWED_MIME.has(a.mime)) continue;
-            const buf = Buffer.from(a.data, 'base64');
-            if (buf.length === 0 || buf.length > MAX_BYTES) continue;
+          for (const a of d.attachments.slice(0, BILL_MAX_FILES)) {
+            const bill = billFromBase64(a);
+            if (!bill) continue;
             await tx`
               insert into attachment (household_id, txn_id, name, mime, bytes, data, created_by)
-              values (${household_id}, ${entry.id}, ${String(a.name).slice(0, 120) || 'Bill'},
-                      ${a.mime}, ${buf.length}, ${buf}, ${user_id})`;
+              values (${household_id}, ${entry.id}, ${bill.name},
+                      ${bill.mime}, ${bill.buf.length}, ${bill.buf}, ${user_id})`;
           }
         }
         return entry;
       });
+      /* Remember how this person paid, so the next Add Entry opens on it. Only
+         for spending: money coming in lands in the bank and a move leaves the
+         savings account, and neither is how the next coffee is paid for. A
+         preference, written after the entry and in its own savepoint, so a
+         failure here can never take the entry with it. The reference has just
+         resolved above; a later read that finds it stale falls back to the
+         first way. */
+      if (row && d.kind === 'expense' && typeof d.paidWith === 'string') {
+        const ref = d.paidWith;
+        await sql.begin((tx) => tx`update app_user set last_paid_with = ${ref} where id = ${user_id}`)
+          .catch(() => { console.error('saveEntry: last_paid_with not kept'); });
+      }
       if (tab) { revalidatePath(`/tab/${tab.id}`); revalidatePath('/people'); revalidatePath('/worth'); }
       if (settles.length) { revalidatePath('/people'); revalidatePath('/worth'); revalidatePath('/entries'); }
       revalidatePath('/');
+      if (accepted) revalidatePath('/entries');
       if (row) return { ok: true, id: row.id };
       /* Lost the race with our own retry: the other delivery landed between
          the check above and this insert. The unique index kept it to one row;

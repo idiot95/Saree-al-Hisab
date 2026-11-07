@@ -1,49 +1,51 @@
 'use client';
 
 import { useState, useTransition, useEffect, useRef } from 'react';
-import { Icon, tintOf } from '../Icon';
-import { defaultRef, findRef, payLabel, pickWay, type Way } from '@/lib/pay';
-import PayPicker, { CHIP, CHIP_TEXT, TILE_GRID, WayTile, describe } from '../PayPicker';
-import Link from '@/app/NavLink';
 import { useRouter } from 'next/navigation';
-import { DateChips } from '../DatePick';
+import { Icon } from '../Icon';
+import { Figure } from '../Figure';
+import { defaultRef, findRef, flatWays, pickWay, type Way } from '@/lib/pay';
+import Link from '@/app/NavLink';
 import { friendlyDay } from '@/lib/recur';
 import { useMoney } from '@/app/currency';
-import { saveEntry, checkDuplicate } from './actions';
+import { saveEntry, checkDuplicate, type Draft } from './actions';
 import { startPending } from '../pending';
 import { haptic } from '../haptics';
 import { enqueue, writePickers, type Queued } from './queue';
-import { shares } from '../tab/splits';
 import { type Category } from '../CategoryFinder';
-import CategoryGrid from './CategoryGrid';
-import Bills, { type Staged } from './Bills';
+import { type Staged } from './Bills';
 import { fits } from '@/lib/scope';
-import { OFF, on, choice } from '../choice';
+import { cn } from '@/lib/utils';
+import TopCategories from './TopCategories';
+import MoreFields, { type MoreState } from './MoreFields';
+import { InDrawer, PayRow, Row, ToRow, WhenRow } from './PickRows';
+import { useKeyboardInset } from './keyboard';
 
-/* Add Entry — the screen the whole product rests on.
-   With no bank feed and no SMS, this is how nearly everything gets in, so it
-   is built for the fewest decisions per page: two pages, each asking only
-   what it must.
+/* Add Entry — the screen the whole product rests on, and now one screen.
 
-   Page one is the money: how much, paid with what, and which day. The
-   amount is a plain field that takes the phone's own keyboard — the drawn-in
-   keypad is gone — and it formats itself as you type, in the household's
-   currency, so ₹2,340.50 is what you see and not 2340.5. Page two is what it
-   was for: the category and, within it, the sub-category, then the small
-   questions — where, whether it went on a tab, whether it clears something
-   owed. A transfer has nothing to be "for", so it is one page.
+   With no bank feed and no SMS, this is how nearly everything gets in, so the
+   common entry is three taps: type the amount, tap one of the eight tiles,
+   tap Save. Everything else already has an answer. How it was paid opens on
+   the way this person last paid with; the day is Today; the rest — where, a
+   remark, the bill, a tab, what money coming in clears, shared — sits folded
+   under one row and opens itself when it starts to matter.
 
-   Every choice on both pages is grey until it is the answer, and only the
-   answer wears colour. That is the whole of the selection language: no
-   confirmation text beside a section name, no chips in eight competing
-   tints. The next thing to do is always the one button at the bottom. */
+   The amount is a plain field that takes the phone's own keyboard and formats
+   itself as it is typed, in the household's currency. Save sits pinned under
+   the thumb and says what it will do — "Save · ₹2,340 Groceries" — and stays
+   above the keyboard on an iPhone as well as on Android.
+
+   A Move (a transfer between your own accounts) has nothing to be "for", so
+   its tiles are replaced by From and To. The Draft sent to saveEntry is the
+   same shape it always was, so entries queued on a phone by the old two-step
+   screen still save. */
 
 type Kind = 'expense' | 'income' | 'transfer';
 
 const KINDS: { id: Kind; label: string }[] = [
   { id: 'expense', label: 'Expense' },
   { id: 'income', label: 'Income' },
-  { id: 'transfer', label: 'Transfer' },
+  { id: 'transfer', label: 'Move' },
 ];
 
 export type { Category };
@@ -57,7 +59,7 @@ export type Claim = {
 
 export default function AddEntry({
   categories, ways, tabs = [], claims = [], today, householdId, draft, offline = false, onQueued, children, sheet = false,
-  canScan = false,
+  canScan = false, top, paidWith: paidDefault, lastPaid = null, fromSms = null,
 }: {
   categories: Category[];
   /** Every real account, each with the rails that draw on it. See src/lib/pay.ts. */
@@ -68,12 +70,22 @@ export default function AddEntry({
   sheet?: boolean;
   /** The household has a scanning key and this person may add: show the camera. */
   canScan?: boolean;
+  /** The tiles, most used first (topCategories). Absent offline, where the phone's counts stand in. */
+  top?: { expense: string[]; income: string[] };
+  /** The way to open on: the last one used if it still resolves, else the first way. */
+  paidWith?: string;
+  /** Set when paidWith IS the remembered last-used way, so the row can say so. */
+  lastPaid?: string | null;
+  /** Opened from a forwarded bank message: its id is the entry's client reference, so saving accepts it once. */
+  fromSms?: { clientRef: string; sender: string | null } | null;
   draft?: {
     amountMinor: number | null; occurredOn: string | null; merchant: string | null;
     kind: Kind | null; categoryId: string | null; tabId?: string | null;
     tabCoveredMinor?: number | null; countsAsSpend?: boolean | null;
     /** A transfer arriving with its ends already known — a card bill, an account. */
     toAccountId?: string | null; fromAccountId?: string | null;
+    /** How it was paid, already decided (money in from a bank message lands on the account itself). */
+    paidWith?: string | null;
   };
   /* On the offline screen nothing is sent from here at all: every save goes
      to the phone's queue, and the layout sends the queue when signal is back. */
@@ -86,87 +98,83 @@ export default function AddEntry({
   const router = useRouter();
   const [pending, start] = useTransition();
   const [kept, setKept] = useState<string | null>(null);
+  /* The bank message this entry is made from, until it has been saved or kept once: a second entry typed on the
+     same screen afterwards is a different entry, and must not be mistaken for a retry of the first. */
+  const smsRef = useRef(fromSms?.clientRef ?? null);
 
-  /* Opened with signal, so remember what the pickers hold. This is what lets
-     the offline screen offer the same categories and ways of paying — names
-     only, no amounts, no entries — and it is replaced on every visit. */
+  /* Opened with signal, so remember what the pickers hold — names only, no
+     amounts — for the offline screen to offer the same choices. */
   useEffect(() => {
     if (offline) return;
-    writePickers({ householdId, categories, ways, tabs, savedAt: new Date().toISOString() });
-  }, [offline, householdId, categories, ways, tabs]);
+    writePickers({ householdId, categories, ways, tabs, top, paidWith: paidDefault, savedAt: new Date().toISOString() });
+  }, [offline, householdId, categories, ways, tabs, top, paidDefault]);
 
-  const [step, setStep] = useState<1 | 2>(1);
-  /* A scan hands its draft over here rather than saving anything itself. The
-     field is seeded with the amount so it stays the same control, correctable
-     the same way — a scanned figure is a suggestion, not a fact. */
   const [kind, setKind] = useState<Kind>(draft?.kind ?? 'expense');
+  /* A scan's draft seeds the field rather than saving anything: a scanned
+     figure is a suggestion, correctable the same way as a typed one. */
   const [keys, setKeys] = useState(() => (draft?.amountMinor ? settle(toKeys(draft.amountMinor)) : ''));
   const amountBox = useRef<HTMLInputElement>(null);
+  const [typing, setTyping] = useState(false);
   const [categoryId, setCategoryId] = useState<string | null>(draft?.categoryId ?? null);
-  /* Only the categories that take this kind of entry: income under Salary,
-     not under Groceries. The server refuses the other way round, so a tile
-     that would be refused is not offered. A category picked for one kind
-     and then the kind changed is simply let go of. */
-  const offered = categories.filter((c) => fits(c.scope, kind ?? 'expense'));
+  /* Only the categories that take this kind of entry. A category picked for
+     one kind and then the kind changed is simply let go of. */
+  const offered = kind === 'transfer' ? [] : categories.filter((c) => fits(c.scope, kind));
   const chosen = offered.find((c) => c.id === categoryId);
-  const [tabId, setTabId] = useState<string | null>(draft?.tabId ?? null);
-  /* Blank means all of it comes back, which is the ordinary case. A figure
-     here is the part that does, leaving the rest owed by nobody. */
-  const [coveredKeys, setCoveredKeys] = useState('');
-  /* Asked of every cost on a tab. Null is "not answered yet", which follows
-     whatever the last cost on that tab said — petrol on the office tab is
-     petrol every week — and is your own spending on a tab with no history. */
-  const [counts, setCounts] = useState<boolean | null>(draft?.countsAsSpend ?? null);
-  /* What this money clears, when it is money coming back. The claims are
-     never on the offline screen — they are amounts, and the phone keeps only
-     names — so a settlement waits for signal. */
-  const [settleIds, setSettleIds] = useState<Set<string>>(() => new Set());
-  /* How it was paid, as one reference: an account, or a rail on one. A draft
-     that names the account it leaves — a swipe on the accounts screen —
-     lands on that account's usual rail. */
+
+  /* How it was paid, as one reference. A draft naming the account it leaves
+     (a swipe on Money) lands on that account's usual rail; otherwise the last
+     way used, resolved on the server; otherwise the first way. */
   const [paid, setPaid] = useState(() => {
+    if (draft?.paidWith && findRef(ways, draft.paidWith)) return draft.paidWith;
     const from = ways.find((w) => w.id === draft?.fromAccountId);
-    return from ? pickWay(from) : defaultRef(ways);
+    if (from) return pickWay(from);
+    /* The remembered way is how this person PAYS, so it opens an expense only.
+       Money coming in and a move start where they always did: the first way. */
+    let ref = (draft?.kind ?? 'expense') === 'expense' && paidDefault && findRef(ways, paidDefault)
+      ? paidDefault : defaultRef(ways);
+    /* A move arriving with its destination (a card's Pay, an account's Move)
+       can never start from that same account, or To would not resolve and
+       Save would never light. Take the first way that leaves another. */
+    const into = draft?.toAccountId;
+    if (into && findRef(ways, ref)?.way.id === into) {
+      ref = flatWays(ways).find((o) => o.way.id !== into)?.ref ?? ref;
+    }
+    return ref;
   });
   const [counterId, setCounterId] = useState<string | null>(draft?.toAccountId ?? null);
-  const [shared, setShared] = useState(true);
   const [occurredOn, setOccurredOn] = useState(draft?.occurredOn ?? today);
-  const [merchant, setMerchant] = useState(draft?.merchant ?? '');
-  const [note, setNote] = useState('');
-  const [bills, setBills] = useState<Staged[]>([]);
+  const [more, setMoreState] = useState<MoreState>(() => ({
+    merchant: draft?.merchant ?? '', note: '', bills: [] as Staged[], tabId: draft?.tabId ?? null, coveredKeys: '',
+    counts: draft?.countsAsSpend ?? null, settleIds: new Set<string>(), shared: true,
+  }));
+  const setMore = <K extends keyof MoreState>(k: K, v: MoreState[K]) => setMoreState((s) => ({ ...s, [k]: v }));
   const [error, setError] = useState<string | null>(null);
-  /* Kept with the amount and date it was asked about, so a stale answer is
-     never shown against a figure that has since changed. */
   const [dupe, setDupe] = useState<{
     minor: number; on: string; hit: Awaited<ReturnType<typeof checkDuplicate>>;
   } | null>(null);
 
   const minor = fromKeys(keys);
   const paying = findRef(ways, paid);
-  const way = paying?.way ?? ways[0];
-  const tab = tabs.find((t) => t.id === tabId) ?? null;
-  const mine = counts ?? tab?.last_counts ?? true;
-  /* Money coming back usually arrives as the exact figure that went out, so
-     the amount itself is the strongest clue about which loan it clears. Any
-     open claim whose outstanding equals what was typed is marked and floated
-     to the top of the list; if nothing has been ticked yet, the matches are
-     offered outright, because ticking the one that matches to the rupee is
-     what the person was about to do by hand. */
-  const exactIds = new Set(
-    minor > 0 ? claims.filter((c) => c.outstanding === minor).map((c) => c.id) : [],
-  );
-  const ordered = kind === 'income'
-    ? [...claims].sort((a, b) => Number(exactIds.has(b.id)) - Number(exactIds.has(a.id)))
-    : claims;
-  const settling = kind === 'income' ? claims.filter((c) => settleIds.has(c.id)) : [];
+  const fromWay = paying?.way;
+  const tab = kind === 'transfer' ? null : tabs.find((t) => t.id === more.tabId) ?? null;
+  const mine = more.counts ?? tab?.last_counts ?? true;
+  const exact = kind === 'income' && minor > 0 && claims.some((c) => c.outstanding === minor);
+  const settling = kind === 'income' ? claims.filter((c) => more.settleIds.has(c.id)) : [];
   const owedBack = settling.reduce((n, c) => n + c.outstanding, 0);
   /* All of it is money back, so none of it needs a category. */
   const allBack = settling.length > 0 && minor > 0 && minor <= owedBack;
 
+  /* "More" opens by itself when one of its questions starts to matter: a tab
+     on an expense (what it means for the budget), or money arriving that is
+     exactly what somebody owes. Opened on the change, not held open, so it
+     can still be folded away again. */
+  const wantMore = (kind === 'expense' && tab !== null) || exact;
+  const [moreOpen, setMoreOpen] = useState(wantMore);
+  const [wanted, setWanted] = useState(wantMore);
+  if (wantMore !== wanted) { setWanted(wantMore); if (wantMore) setMoreOpen(true); }
+
   /* Prevention beats detection: ask what is already recorded while they are
-     still typing, so the warning arrives at the moment of the decision rather
-     than as cleanup in the Inbox later. Debounced, because every keypress
-     would otherwise be a round trip. */
+     still typing, so the warning arrives at the moment of the decision. */
   useEffect(() => {
     if (minor <= 0 || offline) return;
     const t = setTimeout(() => {
@@ -178,588 +186,241 @@ export default function AddEntry({
   }, [minor, occurredOn, offline]);
   const shownDupe = dupe && dupe.minor === minor && dupe.on === occurredOn ? dupe.hit : null;
 
-  // A transfer moves money and can never wear a category — the same rule the
-  // database enforces, applied here so the page simply is not offered.
-  const wantsCategory = kind !== 'transfer';
-  const canNext = minor > 0;
-  const canSave = minor > 0 && (!wantsCategory || chosen !== undefined || allBack)
-    && (kind !== 'transfer' || counterId !== null) && !pending;
+  const to = kind === 'transfer' ? ways.find((w) => w.id === counterId && w.id !== fromWay?.id) : undefined;
+  const canSave = minor > 0 && !pending && paying !== null && (
+    kind === 'transfer' ? to !== undefined : chosen !== undefined || allBack);
 
-  const go = (to: 1 | 2) => {
-    haptic('select');
-    setStep(to);
-    window.scrollTo({ top: 0 });
-  };
   const chooseKind = (k: Kind) => {
+    haptic('select');
     setKind(k);
-    if (k === 'transfer') { setCategoryId(null); setStep(1); }
+    if (k === 'transfer') setCategoryId(null);
   };
 
   function save() {
+    if (!canSave) return;
     setError(null);
     setKept(null);
-    const draft = {
+    const d: Draft = {
       kind, amountMinor: minor, categoryId: chosen?.id ?? null, paidWith: paid,
-      counterAccountId: counterId, merchant, note, occurredOn, isShared: shared,
-      attachments: bills.map((b) => ({ name: b.name, mime: b.mime, data: b.data })),
-      tabId: kind === 'transfer' ? null : tabId,
-      tabCoveredMinor: kind === 'expense' && tabId && coveredKeys ? fromKeys(coveredKeys) : null,
-      countsAsSpend: kind === 'expense' && tabId ? mine : null,
+      counterAccountId: kind === 'transfer' ? to?.id ?? null : null,
+      merchant: more.merchant, note: more.note, occurredOn, isShared: more.shared,
+      attachments: more.bills.map((b) => ({ name: b.name, mime: b.mime, data: b.data })),
+      tabId: kind === 'transfer' ? null : more.tabId,
+      tabCoveredMinor: kind === 'expense' && more.tabId && more.coveredKeys ? fromKeys(more.coveredKeys) : null,
+      countsAsSpend: kind === 'expense' && more.tabId ? mine : null,
       settles: settling.map((c) => c.id),
+      ...(smsRef.current ? { clientRef: smsRef.current, draftId: smsRef.current } : {}),
     };
     const clear = () => {
-      setKeys(''); setCategoryId(null); setMerchant(''); setNote(''); setBills([]);
-      setDupe(null); setStep(1);
+      setKeys(''); setCategoryId(null); setDupe(null);
+      setMoreState((s) => ({ ...s, merchant: '', note: '', bills: [], settleIds: new Set() }));
     };
-    /* Kept on the phone: the same tick as a save, because from where the
-       thumb is it IS a save — the entry exists and will not be lost. The
-       words underneath say where it is.
-
-       Bills do not go in the queue. A photograph is a megabyte even after it
-       has been shrunk, and localStorage is a few megabytes in total for the
-       whole origin — filling it with one receipt would lose the queue itself,
-       which is the one thing here that must not be lost. So the entry is kept
-       and the bill is not, and the message says so rather than letting a
-       person believe a photograph is on its way. */
+    /* Kept on the phone: from where the thumb is it IS a save — the entry
+       exists and will not be lost. Bills do not go in the queue (a photo is a
+       megabyte, and localStorage is a few for the whole origin), and the
+       message says so rather than letting anyone believe one is on its way. */
     const keep = () => {
-      const q = enqueue({ ...draft, attachments: null }, householdId);
+      const q = enqueue({ ...d, attachments: null }, householdId);
+      smsRef.current = null;
       haptic('success');
-      const dropped = bills.length > 0;
+      const n = more.bills.length;
       clear();
-      setKept(dropped
-        ? `${format(q.amountMinor)} kept on this phone — but not the ${bills.length === 1 ? 'bill' : 'bills'}. Attach ${bills.length === 1 ? 'it' : 'them'} from the entry once there is signal.`
+      setKept(n > 0
+        ? `${format(q.amountMinor)} kept on this phone — but not the ${n === 1 ? 'bill' : 'bills'}. Attach ${n === 1 ? 'it' : 'them'} from the entry once there is signal.`
         : `${format(q.amountMinor)} kept on this phone. It goes into the books the moment there is signal.`);
       onQueued?.(q);
     };
     if (offline || !navigator.onLine) { keep(); return; }
     start(async () => {
       let r;
-      try { r = await saveEntry(draft); }
+      try { r = await saveEntry(d); }
       catch { keep(); return; }  // the request itself failed: no signal, or it dropped mid-way
       if (r.ok) {
-        haptic('success'); clear();
-        /* A cost put on a tab lands on that tab — the place it now shows — and
-           when no bill came with it, the tab opens on "Attach the bill?" for
-           this entry, because the paper is in hand right now and not later. */
-        if (draft.tabId) {
-          const bill = draft.kind === 'expense' && draft.attachments.length === 0 ? `?saved=${r.id}` : '';
-          startPending(`/tab/${draft.tabId}`);
-          router.push(`/tab/${draft.tabId}${bill}`, { transitionTypes: ['nav-forward'] });
+        haptic('success'); clear(); smsRef.current = null;
+        /* A cost put on a tab lands on that tab, opening "Attach the bill?"
+           when none came with it, because the paper is in hand right now. */
+        if (d.tabId) {
+          const bill = d.kind === 'expense' && (d.attachments?.length ?? 0) === 0 ? `?saved=${r.id}` : '';
+          startPending(`/tab/${d.tabId}`);
+          router.push(`/tab/${d.tabId}${bill}`, { transitionTypes: ['nav-forward'] });
         } else { startPending('/'); router.push(`/?saved=${r.id}`); }
       }
       else { haptic('warn'); setError(r.error); }
     });
   }
 
-  const kindLabel = KINDS.find((k) => k.id === kind)?.label ?? '';
-  const summary = [
-    format(minor, { paise: true }),
-    kindLabel,
-    paying ? payLabel(paying.way, paying.rail) : null,
-    friendlyDay(occurredOn, today),
+  /* The keyboard covers the bottom of the page on an iPhone; the drawer is
+     resized for it by vaul, so only the full page needs lifting. */
+  const kb = useKeyboardInset(!sheet);
+
+  const what = kind === 'transfer'
+    ? (to ? `to ${to.name}` : '')
+    : allBack ? 'money back' : chosen?.name ?? '';
+  const moreSummary = [
+    tab?.name, settling.length ? `clears ${settling.length}` : null, more.merchant || null,
+    more.note ? 'remark' : null, more.bills.length ? `${more.bills.length} bill${more.bills.length > 1 ? 's' : ''}` : null,
+    more.shared ? null : 'not shared',
   ].filter(Boolean).join(' · ');
+  const moreLabel = kind === 'income' && claims.length > 0 ? 'What it clears, note, bill, tab…' : 'Note, bill, tab, shared…';
 
   return (
-    <main style={{ minHeight: sheet ? undefined : '100dvh', display: 'flex', flexDirection: 'column', background: 'var(--background)' }}>
-      <header
-        style={{
-          flex: 'none', background: 'var(--background)', color: 'var(--foreground)',
-          padding: '8px var(--gutter) 14px', borderBottom: '1px solid var(--border)',
-          display: 'flex', flexDirection: 'column', gap: 10, position: 'relative', zIndex: 1,
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-          {step === 1 ? (
-            <button aria-label="Close" style={iconBtn}
-              onClick={() => { haptic('select'); if (sheet) router.back(); else router.push('/', { transitionTypes: ['nav-back'] }); }}>
-              <Glyph d="M6 6l12 12M18 6L6 18" />
-            </button>
-          ) : (
-            <button aria-label="Back to the amount" style={iconBtn} onClick={() => go(1)}>
-              <Glyph d="M15 5l-7 7 7 7" />
-            </button>
-          )}
-          <h1 className="font-display" style={{ margin: 0, fontSize: 26, fontWeight: 400, lineHeight: 1.1 }}>
-            {step === 1 ? 'New entry' : kind === 'income' ? 'What for' : 'Category'}
-          </h1>
-          {step === 1 && !offline && canScan ? (
-            <Link href="/scan" transitionTypes={['nav-forward']} aria-label="Scan or upload a receipt" style={{
-              width: 44, height: 44, borderRadius: 999, display: 'flex',
-              alignItems: 'center', justifyContent: 'center', color: 'var(--foreground)',
-            }}>
-              <svg width={21} height={21} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                <path d="M4.5 8.5 6 6h4l1-1.5h2L14 6h4l1.5 2.5v9a1.5 1.5 0 0 1-1.5 1.5H6a1.5 1.5 0 0 1-1.5-1.5z" />
-                <circle cx="12" cy="12.5" r="3.4" />
-              </svg>
+    <InDrawer.Provider value={sheet}>
+    <main className={cn('flex flex-col bg-background text-foreground', !sheet && 'min-h-dvh')}>
+      <header className="flex flex-none flex-col gap-1 px-[var(--gutter)] pt-2">
+        <div className="flex items-center justify-between gap-2">
+          <button type="button" aria-label="Close"
+            className="-ml-2.5 flex size-11 items-center justify-center rounded-full in-data-[platform=android]:size-12"
+            onClick={() => { haptic('select'); if (sheet) router.back(); else router.push('/', { transitionTypes: ['nav-back'] }); }}>
+            <Icon name="close" size={24} />
+          </button>
+          <div role="tablist" aria-label="Kind of entry" className="flex rounded-xl bg-muted p-[3px]">
+            {KINDS.map((k) => {
+              const isOn = k.id === kind;
+              return (
+                <button key={k.id} type="button" role="tab" aria-selected={isOn} onClick={() => chooseKind(k.id)}
+                  className={cn('min-h-11 rounded-[10px] px-3.5 text-sm transition-colors',
+                    isOn ? 'bg-raised font-semibold text-foreground shadow-sm' : 'font-medium text-muted-foreground')}>
+                  {k.label}
+                </button>
+              );
+            })}
+          </div>
+          {!offline && canScan ? (
+            <Link href="/scan" transitionTypes={['nav-forward']} aria-label="Scan or upload a receipt"
+              className="-mr-2.5 flex size-11 items-center justify-center rounded-full text-foreground in-data-[platform=android]:size-12">
+              <Icon name="photo_camera" size={22} />
             </Link>
           ) : (
-            <span aria-hidden style={{ width: 44, height: 44 }} />
+            <span aria-hidden className="-mr-2.5 size-11 in-data-[platform=android]:size-12" />
           )}
         </div>
 
-        {step === 1 ? (
-          <>
-            <div role="tablist" aria-label="Kind of entry" style={{ display: 'flex', gap: 3, padding: 4, background: 'var(--muted)', borderRadius: 14 }}>
-              {KINDS.map((k) => {
-                const isOn = k.id === kind;
-                return (
-                  <button
-                    key={k.id}
-                    role="tab"
-                    aria-selected={isOn}
-                    onClick={() => { haptic('select'); chooseKind(k.id); }}
-                    style={{
-                      flex: 1, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      borderRadius: 11, fontSize: 'var(--step--1)', fontWeight: 600,
-                      background: isOn ? 'var(--raised)' : 'transparent',
-                      color: isOn ? 'var(--foreground)' : 'var(--muted-foreground)',
-                      boxShadow: isOn ? '0 1px 3px rgba(29,42,46,.12)' : 'none',
-                    }}
-                  >
-                    {k.label}
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* The amount, as a plain field the phone's keyboard fills. What it
-                shows is the accounting form — grouped, in the household's
-                currency, the minor digits completed when the field is left —
-                and what it holds is only ever the digits typed. */}
-            <label style={{ display: 'flex', alignItems: 'baseline', gap: 8, minWidth: 0 }}>
-              <span className="n" aria-hidden style={{ fontSize: 'var(--step-3)', fontWeight: 500, color: 'var(--muted-foreground)', flex: 'none' }}>
-                {symbol.trim()}
-              </span>
-              <input
-                ref={amountBox}
-                className="n"
-                type="text" inputMode="decimal" autoComplete="off" enterKeyHint={wantsCategory ? 'next' : 'done'}
-                autoFocus={!draft?.amountMinor}
-                value={keys === '' ? '' : keysDisplay(keys)}
-                onChange={(e) => setKeys(typed(e.target.value))}
-                onBlur={() => setKeys((k) => settle(k))}
-                onKeyDown={(e) => {
-                  if (e.key !== 'Enter') return;
-                  e.preventDefault();
-                  amountBox.current?.blur();
-                  if (wantsCategory && canNext) go(2);
-                }}
-                placeholder={digits ? `0.${'0'.repeat(digits)}` : '0'}
-                aria-label={`Amount in ${currency}`}
-                style={{
-                  flex: 1, minWidth: 0, width: '100%', background: 'transparent', border: 0, padding: 0,
-                  color: 'var(--foreground)', caretColor: 'var(--primary)', fontSize: 'var(--step-4)', fontWeight: 600,
-                  letterSpacing: '-.036em', lineHeight: 1.15, outline: 'none',
-                }}
-              />
-              {/* The code, for a symbol that does not spell it: ₹ says INR to
-                  one household and nothing to a guest. AED already says AED. */}
-              {symbol.trim() !== currency && (
-                <span className="n" style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--muted-foreground)', flex: 'none' }}>
-                  {currency}
-                </span>
-              )}
-            </label>
-          </>
-        ) : (
-          <button type="button" onClick={() => go(1)} style={{
-            display: 'flex', alignItems: 'center', gap: 10, minHeight: 44, padding: '8px 12px',
-            borderRadius: 12, background: 'var(--card)', color: 'var(--foreground)', border: '1px solid var(--border)',
-            fontSize: 'var(--step--1)', fontWeight: 600, minWidth: 0, lineHeight: 1.35,
-          }}>
-            <span style={{ flex: 1, minWidth: 0 }}>{summary}</span>
-            <span style={{ flex: 'none', color: 'var(--primary)', fontWeight: 600, fontSize: 'var(--step--2)' }}>Change</span>
-          </button>
+        {fromSms && (
+          <p className="flex min-h-8 items-center justify-center gap-1.5 text-sm text-muted-foreground">
+            <Icon name="sms" size={16} /> From a bank message{fromSms.sender ? ` · ${fromSms.sender}` : ''}
+          </p>
         )}
+
+        {/* The amount, as a plain field the phone's keyboard fills. What it
+            shows is grouped in the household's currency; what it holds is
+            only ever the digits typed. */}
+        <label className="flex min-w-0 items-baseline justify-center gap-1.5 py-2">
+          <span aria-hidden className="tabular-nums flex-none text-[28px] font-medium text-muted-foreground">{symbol.trim()}</span>
+          <input
+            ref={amountBox}
+            size={Math.max(4, (keys === '' ? (digits ? digits + 2 : 1) : keysDisplay(keys).length) + 1)}
+            className="tabular-nums w-auto max-w-[78%] min-w-0 flex-initial [field-sizing:content] bg-transparent p-0 text-[52px] leading-tight font-bold tracking-tight text-foreground caret-primary outline-none placeholder:text-muted-foreground/50"
+            type="text" inputMode="decimal" autoComplete="off" enterKeyHint="done"
+            autoFocus={!draft?.amountMinor}
+            value={keys === '' ? '' : keysDisplay(keys)}
+            onChange={(e) => { setKept(null); setKeys(typed(e.target.value)); }}
+            onFocus={() => setTyping(true)}
+            onBlur={() => { setTyping(false); setKeys((k) => settle(k)); }}
+            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); amountBox.current?.blur(); } }}
+            placeholder={digits ? `0.${'0'.repeat(digits)}` : '0'}
+            aria-label={`Amount in ${currency}`}
+          />
+          {/* The code, for a symbol that does not spell it: ₹ says INR to one
+              household and nothing to a guest. AED already says AED. */}
+          {symbol.trim() !== currency && (
+            <span className="tabular-nums flex-none text-sm font-semibold text-muted-foreground">{currency}</span>
+          )}
+        </label>
+        {/* The amount as the ledger will write it, digits rolling as they are
+            typed — only while it is being typed, since a settled field already
+            says exactly this. Decoration only: the field is the control. */}
+        <p aria-hidden data-figure-echo className="-mt-1 mb-1 min-h-5 text-center text-sm text-muted-foreground">
+          {minor > 0 && (typing || keys !== settle(keys)) && <Figure minor={minor} paise="auto" className="tabular-nums" />}
+        </p>
       </header>
 
-      <div style={{
-        flex: 1, display: 'flex', flexDirection: 'column', gap: 20,
-        padding: '18px var(--gutter) 16px',
-      }}>
-
-      {step === 1 && (
-        <>
-          {/* One question, asked the way a person would: every concrete way
-              to pay as a tile, and one tap settles both the account and the
-              rail. */}
-          <section aria-labelledby="add-paid" style={SECTION}>
-            <Eyebrow id="add-paid">
-              {kind === 'transfer' ? 'From which account' : kind === 'income' ? 'How did it come in' : 'How did you pay'}
-            </Eyebrow>
-            <PayPicker ways={ways} value={paid} onChange={setPaid} />
-          </section>
-
-          {/* Where a transfer lands, on the same terms: every account visible. */}
-          {kind === 'transfer' && (
-            <section aria-labelledby="add-into" style={SECTION}>
-              <Eyebrow id="add-into">To which account</Eyebrow>
-              <div role="radiogroup" aria-label="To which account" style={TILE_GRID}>
-                {ways.filter((a) => a.id !== way?.id).map((a) => {
-                  const d = describe({ ref: '', way: a, rail: null });
-                  return (
-                    <WayTile key={a.id} {...d} on={a.id === counterId}
-                      onClick={() => { haptic('select'); setCounterId(a.id); }} />
-                  );
-                })}
-              </div>
-            </section>
-          )}
-
-          {/* Which day: today, yesterday, and any other day one tap further,
-              on a grid. Never a day ahead. */}
-          <section aria-labelledby="add-when" style={SECTION}>
-            <Eyebrow id="add-when">When</Eyebrow>
-            <DateChips value={occurredOn} onChange={setOccurredOn} today={today} dir="past" max={today}
-              count={2} label="Which day was it" />
-          </section>
-        </>
-      )}
-
-      {step === 2 && (
-        <>
-          {kind === 'income' && claims.length > 0 && (
-            <section aria-labelledby="add-claims" style={SECTION}>
-              <Eyebrow id="add-claims">Clears what is owed</Eyebrow>
-              {exactIds.size > 0 && settleIds.size === 0 && (
-                <button type="button" onClick={() => { haptic('success'); setSettleIds(new Set(exactIds)); }}
-                  style={{
-                    minHeight: 52, padding: '9px 13px', borderRadius: 13, display: 'flex',
-                    alignItems: 'center', gap: 10, textAlign: 'left',
-                    background: 'var(--accent)', border: '1px solid var(--primary)', color: 'var(--foreground)',
-                  }}>
-                  <Icon name="receivable" size={18} strokeWidth={1.9} />
-                  <span style={{ flex: 1, minWidth: 0, fontSize: 'var(--step--1)', lineHeight: 1.35 }}>
-                    {exactIds.size === 1
-                      ? <>This is exactly what one open loan is owed. <b>Tick it?</b></>
-                      : <>{exactIds.size} open loans are owed exactly this. <b>Tick them?</b></>}
-                  </span>
-                </button>
-              )}
-              <div role="group" aria-label="Which entries this money clears" style={{
-                display: 'flex', flexDirection: 'column', borderRadius: 14,
-                background: 'var(--card)', border: '1px solid var(--border)', overflow: 'hidden',
-              }}>
-                {ordered.map((c, i) => {
-                  const isOn = settleIds.has(c.id);
-                  const [bg, ink] = tintOf(c.tint);
-                  return (
-                    <button key={c.id} type="button" aria-pressed={isOn}
-                      onClick={() => {
-                        haptic('select');
-                        setSettleIds((s) => { const n = new Set(s); if (isOn) n.delete(c.id); else n.add(c.id); return n; });
-                      }}
-                      style={{
-                        minHeight: 54, padding: '6px 12px', display: 'flex', alignItems: 'center', gap: 11,
-                        textAlign: 'left', background: isOn ? 'var(--accent)' : 'transparent',
-                        color: isOn ? 'var(--foreground)' : 'var(--muted-foreground)',
-                        borderTop: i === 0 ? undefined : '1px solid var(--border)',
-                      }}>
-                      <span aria-hidden style={{
-                        width: 22, height: 22, flex: 'none', borderRadius: 7, display: 'flex',
-                        alignItems: 'center', justifyContent: 'center',
-                        background: isOn ? 'var(--primary)' : 'var(--muted)',
-                        border: `1px solid ${isOn ? 'var(--primary)' : 'var(--border)'}`,
-                        color: 'var(--primary-foreground)',
-                      }}>
-                        {isOn && <Icon name="check" size={15} strokeWidth={2.6} />}
-                      </span>
-                      <span style={{
-                        width: 30, height: 30, flex: 'none', borderRadius: 999, display: 'flex',
-                        alignItems: 'center', justifyContent: 'center', fontSize: 'var(--step--2)',
-                        fontWeight: 700, background: isOn ? bg : 'var(--muted)', color: isOn ? ink : 'var(--muted-foreground)',
-                      }}>{c.person.slice(0, 2).toUpperCase()}</span>
-                      <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1 }}>
-                        <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, ...CHIP_TEXT }}>{c.person} · {c.what}</span>
-                        <span style={{ fontSize: 'var(--step--2)', color: 'var(--muted-foreground)' }}>
-                          {friendlyDay(c.on, today)}{c.tab ? ` · ${c.tab}` : ''}
-                        </span>
-                      </span>
-                      <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}>
-                        <span className="t" style={{ fontSize: 'var(--step--1)', color: isOn ? 'var(--money-in)' : 'var(--muted-foreground)' }}>
-                          {format(c.outstanding)}
-                        </span>
-                        {exactIds.has(c.id) && (
-                          <span style={{
-                            fontSize: 9, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase',
-                            color: 'var(--primary)', whiteSpace: 'nowrap',
-                          }}>Exact match</span>
-                        )}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-              {settling.length > 0 && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <p style={{ flex: 1, margin: 0, fontSize: 'var(--step--2)', lineHeight: 1.45, color: 'var(--muted-foreground)' }}>
-                    {minor <= owedBack
-                      ? `All ${format(minor)} is money back${minor < owedBack ? `, oldest first — ${format(owedBack - minor)} stays owed` : ''}. No category needed.`
-                      : `${format(owedBack)} is money back · ${format(minor - owedBack)} is income and needs a category.`}
-                  </p>
-                  {minor !== owedBack && (
-                    <button type="button" className="cta"
-                      onClick={() => { haptic('select'); setKeys(settle(toKeys(owedBack))); }}
-                      style={{
-                        minHeight: 40, padding: '0 12px', borderRadius: 999, flex: 'none',
-                        fontSize: 'var(--step--2)', fontWeight: 600, ...on('var(--primary)'),
-                      }}>Use {format(owedBack)}</button>
-                  )}
-                </div>
-              )}
-            </section>
-          )}
-
-          {!allBack && (
-            <section aria-labelledby="add-category" style={SECTION}>
-              <Eyebrow id="add-category">{kind === 'income' ? 'What for' : 'Category'}</Eyebrow>
-              <CategoryGrid categories={offered} value={categoryId} onChange={setCategoryId}
-                label={kind === 'income' ? 'What the money was for' : 'Which category'} />
-            </section>
-          )}
-
-          <section style={SECTION}>
-            <Eyebrow id="add-where">{kind === 'income' ? 'From whom' : 'Where'}</Eyebrow>
-            <input
-              value={merchant} onChange={(e) => setMerchant(e.target.value.slice(0, 60))}
-              aria-labelledby="add-where" autoComplete="off"
-              placeholder={kind === 'income' ? 'Who paid it (optional)' : 'The shop or place (optional)'} maxLength={60}
-              style={{
-                width: '100%', minHeight: 48, borderRadius: 13, padding: '0 14px',
-                border: '1px solid var(--border)', background: 'var(--card)',
-                color: 'var(--foreground)', fontSize: 'var(--field)',
-              }}
-            />
-          </section>
-
-          {/* Remarks. The entry page has always shown this and let it be edited
-              there; asking at the time of the entry is when a person actually
-              remembers what the sentence was. */}
-          <section style={SECTION}>
-            <Eyebrow id="add-note">Remarks</Eyebrow>
-            <textarea
-              value={note} onChange={(e) => setNote(e.target.value.slice(0, 200))}
-              aria-labelledby="add-note" rows={2} maxLength={200}
-              placeholder="Anything worth remembering about this (optional)"
-              style={{
-                width: '100%', minHeight: 62, borderRadius: 13, padding: '11px 14px',
-                border: '1px solid var(--border)', background: 'var(--card)',
-                color: 'var(--foreground)', fontSize: 'var(--field)', lineHeight: 1.4,
-                fontFamily: 'inherit', resize: 'none',
-              }}
-            />
-            <Bills staged={bills} onChange={setBills} />
-          </section>
-
-          {/* Asked on every expense, not only once a tab has been attached.
-              Whether a cost was really yours is the question that decides
-              whether it shows in the budget and the charts at all, and it was
-              invisible to anyone who had not already discovered tabs — the
-              section did not render until a tab existed to put it on. */}
-          {(kind === 'expense' || kind === 'income') && (
-            <section aria-labelledby="add-tab" style={SECTION}>
-              <Eyebrow id="add-tab">
-                {kind === 'income' ? 'On a tab' : 'Is someone paying this back?'}
-              </Eyebrow>
-              {tabs.length === 0 && (
-                <p style={{ margin: 0, fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--muted-foreground)' }}>
-                  {kind === 'income' ? 'Money that comes in against a trip, a person or the office rides on a tab. '
-                    : 'Money someone owes you back rides on a tab — a cousin, the office, a trip. '}
-                  <Link href="/people" transitionTypes={['nav-forward']}
-                    style={{ color: 'var(--primary)', fontWeight: 600 }}>Open one in the Loan centre</Link>
-                  {' '}and it will be offered here.
-                </p>
-              )}
-              <div role="group" aria-label="Which tab" style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                {tabs.map((t) => {
-                  const isOn = t.id === tabId;
-                  return (
-                    <button
-                      key={t.id} type="button" aria-pressed={isOn}
-                      onClick={() => { haptic('select'); setTabId(isOn ? null : t.id); }}
-                      style={{ ...CHIP, ...choice(isOn, 'var(--cat-purple-ink)') }}
-                    >
-                      <Icon name="tab" size={16} strokeWidth={1.9} />
-                      <span style={CHIP_TEXT}>{t.name}</span>
-                    </button>
-                  );
-                })}
-              </div>
-              {tab && kind === 'expense' && (
-                <>
-                  {tab.people > 0 && (
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-                    <span style={{ fontSize: 'var(--step--2)', fontWeight: 600, color: 'var(--muted-foreground)' }}>
-                      Comes back
-                    </span>
-                    <input
-                      value={coveredKeys === '' ? '' : keysDisplay(coveredKeys)}
-                      onChange={(e) => setCoveredKeys(typed(e.target.value))}
-                      onBlur={() => setCoveredKeys((k) => settle(k))}
-                      type="text" inputMode="decimal" autoComplete="off"
-                      placeholder={minor > 0 ? `all of it — ${format(minor)}` : 'all of it'}
-                      aria-label="How much of this comes back"
-                      className="n"
-                      style={{
-                        flex: 1, minWidth: 0, minHeight: 40, padding: '0 12px', borderRadius: 11,
-                        background: 'var(--card)', border: '1px solid var(--border)',
-                        color: 'var(--foreground)', fontSize: 'var(--field)',
-                      }}
-                    />
-                  </label>
-                  )}
-                  {/* Two answers, both on screen, because a tab carries both
-                      kinds: the petrol you burned and are paid back for, and
-                      the ticket you fronted that was never yours. */}
-                  <div role="group" aria-label="Was this your spending?" style={{ display: 'flex', gap: 8 }}>
-                    {([
-                      [true, 'receivable', 'Yes, mine', 'Counts in the budget, even if paid back'],
-                      [false, 'person', 'No, I covered it', 'Owed back, never counted as spending'],
-                    ] as const).map(([v, icon, label, what]) => {
-                      const isOn = mine === v;
-                      return (
-                        <button key={String(v)} type="button" aria-pressed={isOn}
-                          onClick={() => { haptic('select'); setCounts(v); }}
-                          style={{
-                            flex: 1, minHeight: 56, padding: '8px 12px', borderRadius: 13, textAlign: 'left',
-                            display: 'flex', alignItems: 'center', gap: 9,
-                            ...choice(isOn, 'var(--cat-purple-ink)'),
-                          }}>
-                          <Icon name={icon} size={17} strokeWidth={1.9} />
-                          <span style={{ display: 'flex', flexDirection: 'column', gap: 1, minWidth: 0 }}>
-                            <span style={{ fontSize: 'var(--step--1)', fontWeight: 600 }}>{label}</span>
-                            <span style={{ fontSize: 'var(--step--2)', opacity: isOn ? 0.82 : 0.8, lineHeight: 1.3 }}>{what}</span>
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                  <p style={{ margin: 0, fontSize: 'var(--step--2)', lineHeight: 1.45, color: 'var(--muted-foreground)' }}>
-                    {tabNote(tab, minor, coveredKeys ? fromKeys(coveredKeys) : minor, mine, format)}
-                  </p>
-                </>
-              )}
-            </section>
-          )}
-
-          {/* A quiet row, not a card: it is the one question with a right
-              answer nearly every time, so it should never outrank the ones
-              above it. */}
-          <button
-            type="button" role="switch" aria-checked={shared}
-            onClick={() => { haptic('select'); setShared((s) => !s); }}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 12, minHeight: 44, padding: '0 2px',
-              borderTop: '1px solid var(--border)', color: 'var(--foreground)',
-            }}
-          >
-            <span style={{ flex: 1, fontSize: 'var(--step--1)', fontWeight: 600 }}>Shared with the household</span>
-            <span aria-hidden style={{
-              width: 42, height: 26, borderRadius: 999, flex: 'none', padding: 3, display: 'flex',
-              justifyContent: shared ? 'flex-end' : 'flex-start',
-              background: shared ? 'var(--chart-1)' : 'var(--muted-foreground)', transition: 'background .15s',
-            }}>
-              <span style={{ width: 20, height: 20, borderRadius: 999, background: '#fff' }} />
+      <div className="flex flex-1 flex-col gap-4 px-[var(--gutter)] pt-2 pb-4">
+        {kind !== 'transfer' && (
+          <section aria-labelledby="add-category" className="flex flex-col gap-2">
+            <span id="add-category" className="text-xs font-semibold text-muted-foreground">
+              {kind === 'income' ? 'What for · your most used' : 'Category · your most used'}
+              {allBack && ' · not needed, all of it is money back'}
             </span>
-          </button>
-        </>
-      )}
+            <TopCategories categories={offered} top={top?.[kind]} value={categoryId}
+              onChange={setCategoryId} label={kind === 'income' ? 'What the money was for' : 'Which category'} />
+          </section>
+        )}
 
-      {shownDupe && (
-        <div style={{
-          display: 'flex', alignItems: 'flex-start', gap: 10,
-          padding: '13px 15px', borderRadius: 14, background: 'var(--attention-soft)', color: 'var(--attention-soft-foreground)',
-        }}>
-          <Glyph d="M12 7.5v5.5 M12 16.6v.1 M20.5 12a8.5 8.5 0 1 1-17 0 8.5 8.5 0 0 1 17 0" size={17} w={1.9} />
-          <span style={{ flex: 1, fontSize: 'var(--step--1)', lineHeight: 1.45 }}>
-            <b>{shownDupe.who}</b> already recorded {format(shownDupe.amountMinor)}
-            {shownDupe.merchant ? ` at ${shownDupe.merchant}` : ''} {onDay(shownDupe.on, today)}, from {shownDupe.account}.
-            Is this the same thing?
-          </span>
+        <div className="flex flex-col divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card">
+          <PayRow ways={ways} value={paid} onChange={(ref) => {
+            setPaid(ref);
+            if (findRef(ways, ref)?.way.id === counterId) setCounterId(null);
+          }}
+            caption={kind === 'transfer' ? 'From' : kind === 'income' ? 'Came into' : 'Paid with'}
+            title={kind === 'transfer' ? 'From which account' : kind === 'income' ? 'How did it come in' : 'How did you pay'}
+            tag={kind === 'expense' && lastPaid && paid === lastPaid ? 'last used' : undefined} />
+          {kind === 'transfer' && (
+            <ToRow ways={ways} from={fromWay?.id} value={to?.id ?? null} onChange={setCounterId} />
+          )}
+          <WhenRow value={occurredOn} onChange={setOccurredOn} today={today} />
+          {kind !== 'transfer' && (
+            <Row id="add-more" icon={<Icon name="tune" size={22} />} muted={!moreSummary}
+              value={moreSummary || moreLabel} expanded={moreOpen} controls="add-more-fields"
+              onClick={() => setMoreOpen((o) => !o)} />
+          )}
         </div>
-      )}
 
-      {kept && (
-        <div role="status" style={{
-          display: 'flex', alignItems: 'center', gap: 10,
-          padding: '13px 15px', borderRadius: 14, background: 'var(--accent)', color: 'var(--foreground)',
-          fontSize: 'var(--step--1)', fontWeight: 600, lineHeight: 1.4,
-        }}>
-          <Glyph d="M12 3a9 9 0 1 0 9 9 M12 8v4l3 2" size={17} w={2} />
-          {kept}
-        </div>
-      )}
+        {kind !== 'transfer' && moreOpen && (
+          <div id="add-more-fields" role="region" aria-labelledby="add-more">
+            <MoreFields kind={kind} state={more} set={setMore} tabs={tabs} claims={claims} minor={minor}
+              today={today} canScan={canScan} offline={offline}
+              onUseOwed={(n) => setKeys(settle(toKeys(n)))} />
+          </div>
+        )}
 
-      {error && (
-        <div role="alert" style={{
-          display: 'flex', alignItems: 'center', gap: 10,
-          padding: '13px 15px', borderRadius: 14, background: 'color-mix(in srgb, var(--destructive) 12%, transparent)', color: 'var(--destructive)',
-          fontSize: 'var(--step--1)', fontWeight: 600,
-        }}>
-          <Glyph d="M12 7.5v5.5 M12 16.6v.1 M20.5 12a8.5 8.5 0 1 1-17 0 8.5 8.5 0 0 1 17 0" size={17} w={2} />
-          {error}
-        </div>
-      )}
-
-      {children && <div style={{ margin: '0 calc(-1 * var(--gutter))' }}>{children}</div>}
+        {children && <div className="-mx-[var(--gutter)]">{children}</div>}
       </div>
 
-      {/* The one thing to do next, pinned to the bottom: on to the category,
-          or Save. It rides above the phone's keyboard where the phone allows
-          (the viewport asks for that) and is a tap away otherwise. */}
-      <div style={{
-        position: 'sticky', bottom: 0, zIndex: 2, flex: 'none',
-        padding: '10px var(--gutter) calc(10px + env(safe-area-inset-bottom))', background: 'var(--background)',
-        borderTop: '1px solid var(--border)', display: 'flex', gap: 10,
-      }}>
-        {step === 2 && (
-          <button type="button" className="cta" onClick={() => go(1)} style={{
-            ...BAR, flex: 'none', padding: '0 18px', ...OFF, color: 'var(--foreground)',
-          }}>
-            <Glyph d="M15 5l-7 7 7 7" size={20} w={2.2} />
-            Back
-          </button>
+      {/* Save, pinned under the thumb and saying what it will do, with what
+          was kept, a refusal and the duplicate line above it, so none of them
+          can be scrolled out of sight. On an iPhone it is lifted by however much of
+          the page the keyboard covers. */}
+      <div style={{ '--kb': `${kb}px` } as React.CSSProperties}
+        className="sticky bottom-[var(--kb)] z-10 flex-none border-t border-border bg-background px-[var(--gutter)] pt-2.5 pb-[calc(10px+env(safe-area-inset-bottom))]">
+        {kept && (
+          <p role="status" className="m-0 mb-2 flex items-center gap-2.5 rounded-xl bg-accent px-3.5 py-3 text-sm leading-snug font-semibold text-accent-foreground">
+            <Icon name="schedule" size={18} />{kept}
+          </p>
         )}
-        {step === 1 && wantsCategory ? (
-          <button type="button" className="cta el2" onClick={() => go(2)} disabled={!canNext}
-            style={{ ...BAR, ...PRIMARY, opacity: canNext ? 1 : 0.45 }}>
-            Next
-            <Glyph d="M9 5l7 7-7 7" size={20} w={2.2} />
-          </button>
-        ) : (
-          <button type="button" className="cta el2" onClick={save} disabled={!canSave}
-            style={{ ...BAR, ...PRIMARY, opacity: canSave ? 1 : 0.45 }}>
-            <Glyph d="M5 12.5 10 17.5 19 7" size={22} w={2.2} />
-            {pending ? 'Saving…' : minor > 0 ? `Save ${format(minor, { paise: true })}` : 'Save'}
-          </button>
+
+        {error && (
+          <p role="alert" className="m-0 mb-2 flex items-center gap-2.5 rounded-xl bg-destructive/10 px-3.5 py-3 text-sm font-semibold text-destructive">
+            <Icon name="error" size={18} />{error}
+          </p>
         )}
+        {/* What a household member already recorded that this might be: one quiet line at the moment of the
+            decision, right above the button that makes it. */}
+        {shownDupe && (
+          <p role="status" data-duplicate className="m-0 mb-2 flex items-start gap-2 rounded-xl bg-attention-soft px-3 py-2.5 text-sm leading-snug text-attention-soft-foreground">
+            <Icon name="info" size={18} />
+            <span className="flex-1">
+              <b>{shownDupe.who}</b> already recorded {format(shownDupe.amountMinor)}
+              {shownDupe.merchant ? ` at ${shownDupe.merchant}` : ''} {onDay(shownDupe.on, today)}, from {shownDupe.account}.
+              {' '}Same purchase?
+            </span>
+          </p>
+        )}
+        <button type="button" onClick={save} disabled={!canSave} data-save
+          className="flex h-14 w-full min-w-0 items-center justify-center gap-1.5 rounded-2xl bg-primary px-4 text-base font-semibold text-primary-foreground transition-opacity disabled:opacity-45">
+          {pending ? 'Saving…' : (
+            <>
+              <span className="flex-none">Save</span>
+              {minor > 0 && <>
+                {' '}<span aria-hidden className="flex-none">·</span>{' '}
+                <Figure minor={minor} paise="auto" className="tabular-nums flex-none" />
+                {what && <>{' '}<span className="min-w-0 truncate">{what}</span></>}
+              </>}
+            </>
+          )}
+        </button>
       </div>
     </main>
-  );
-}
-
-const iconBtn: React.CSSProperties = {
-  width: 44, height: 44, marginLeft: -10, borderRadius: 999,
-  display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--foreground)',
-};
-const SECTION: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: 9 };
-const BAR: React.CSSProperties = {
-  flex: 1, minHeight: 52, borderRadius: 14, fontSize: 'var(--step-0)', fontWeight: 600,
-};
-const PRIMARY: React.CSSProperties = {
-  color: 'var(--primary-foreground)', background: 'var(--primary)',
-  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-};
-
-/** The name of a question, in small capitals. Nothing else on the line: the
- *  answer is the one coloured thing in the section beneath it. */
-function Eyebrow({ id, children }: { id: string; children: React.ReactNode }) {
-  return (
-    <span id={id} style={{
-      fontSize: 'var(--step--2)', fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase',
-      color: 'var(--muted-foreground)',
-    }}>{children}</span>
+    </InDrawer.Provider>
   );
 }
 
@@ -767,38 +428,4 @@ function Eyebrow({ id, children }: { id: string; children: React.ReactNode }) {
 function onDay(iso: string, today: string) {
   const d = friendlyDay(iso, today);
   return d === 'Today' || d === 'Yesterday' ? d.toLowerCase() : `on ${d}`;
-}
-
-function Glyph({ d, size = 21, w = 2, colour }: { d: string; size?: number; w?: number; colour?: string }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={colour ?? 'currentColor'}
-      strokeWidth={w} strokeLinecap="round" strokeLinejoin="round" style={{ flex: 'none' }} aria-hidden>
-      {d.split(' M').map((seg, i) => <path key={i} d={i === 0 ? seg : 'M' + seg} />)}
-    </svg>
-  );
-}
-
-/** What putting this amount on the tab will do, in one line, before Save. */
-function tabNote(tab: Tab, minor: number, covered: number, counts: boolean, format: (n: number) => string): string {
-  const who = `${tab.people} ${tab.people === 1 ? 'person' : 'people'}`;
-  const mine = counts ? 'Counts as your spending' : 'Not your spending';
-  /* Nobody on the tab: it keeps a running total and claims nothing, because a
-     claim needs somebody to owe it. Saying "0 people owe ₹0 each" — which is
-     what the arithmetic below produces — would be worse than saying nothing. */
-  if (tab.people === 0) {
-    return `${mine} · goes on ${tab.name}, and nobody is down as owing for it.`;
-  }
-  if (minor <= 0) {
-    return tab.people === 1
-      ? `${mine} · they owe all of it back.`
-      : `${mine} · owed back, divided equally among ${who}.`;
-  }
-  if (covered > minor) return 'That is more than the amount itself.';
-  const each = shares(covered, tab.people);
-  const top = each.length ? Math.max(...each) : 0;
-  const owes = tab.people === 1 ? `they owe ${format(top)}` : `${who} owe ${format(top)} each`;
-  const rest = minor - covered;
-  return rest > 0
-    ? `${mine} · ${owes} · ${format(rest)} comes back from nobody`
-    : `${mine} · ${owes}`;
 }

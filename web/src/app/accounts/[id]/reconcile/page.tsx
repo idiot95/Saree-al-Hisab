@@ -6,6 +6,7 @@ import PageHead from '../../../PageHead';
 import Screen from '../../../Screen';
 import { BACK_SPACE } from '../../../tabs';
 import Reconcile, { UndoLatest } from './Reconcile';
+import { Figure } from '../../../Figure';
 
 export const metadata = { title: 'Reconcile · Saree al-Hisab' };
 export const dynamic = 'force-dynamic';
@@ -38,76 +39,76 @@ export default async function ReconcileAccount({ params, searchParams }: {
   const last = history[0] ?? null;
   const justDone = done && last && last.id === done ? last : null;
 
+  const bal = Number(account.balance);
   return (
     <Screen>
-      <main style={{ minHeight: '100dvh', background: 'var(--background)', paddingBottom: BACK_SPACE }}>
+      <main className="min-h-dvh bg-background text-foreground" style={{ paddingBottom: BACK_SPACE }}>
         <PageHead back="/accounts/reconcile" eyebrow="Reconcile"
           title={<>{account.name}{account.last4 ? ` · ${account.last4}` : ''}</>}
-          sub={<>
-            {last
-              ? `Last matched to the ${day(last.on, true)} statement`
-              : 'Never matched. The first match starts from the balance this account was opened with.'}
-            {` · ${format(Math.abs(Number(account.balance)))} ${credit ? (Number(account.balance) < 0 ? 'owed' : 'in credit') : 'in the books today'}`}
-          </>} />
+          sub={last
+            ? `Last matched to the ${day(last.on, true)} statement`
+            : 'Never matched. The first match starts from the balance this account was opened with.'} />
 
-        {justDone && (
-          <p role="status" style={{
-            margin: '18px var(--gutter) 0', padding: '12px 14px', borderRadius: 14, display: 'flex', gap: 10,
-            alignItems: 'center', background: 'var(--accent)', color: 'var(--primary)',
-            fontSize: 'var(--step--1)', fontWeight: 600, lineHeight: 1.45,
-          }}>
-            <Icon name="check" size={18} strokeWidth={2.4} className="check-draw" />
-            <span style={{ flex: 1 }}>
-              Matched to the {day(justDone.on, true)} statement — {justDone.entries} {justDone.entries === 1 ? 'entry' : 'entries'} ticked off
-              {justDone.adjustment ? `, and a ${format(Math.abs(Number(justDone.adjustment)))} adjustment recorded` : ''}.
+        <div className="flex flex-col gap-5 pb-8">
+          {/* What the books say today: a Figure, so it rolls when a match records an adjustment or an Undo takes
+              one away. */}
+          <section aria-label="In the books today" className="mx-[var(--gutter)] flex flex-col gap-1.5 rounded-[22px] bg-card p-[18px]">
+            <span className="text-[13px] text-muted-foreground">
+              {credit ? (bal < 0 ? 'Owed on the card today' : 'In credit today') : bal < 0 ? 'Overdrawn today' : 'In the books today'}
             </span>
-          </p>
-        )}
+            <Figure minor={Math.abs(bal)} className="text-[34px] font-bold leading-none tracking-tight tabular-nums" />
+          </section>
 
-        {canWrite ? (
-          <Reconcile
-            accountId={account.id} credit={credit} today={today} lastOn={last?.on ?? null}
-            cleared={Number(account.cleared)}
-            entries={entries.map((e) => ({ id: e.id, on: e.on, what: e.what, via: e.via, signed: Number(e.signed) }))}
-          />
-        ) : (
-          <p style={{ margin: '20px var(--gutter)', fontSize: 'var(--step--1)', color: 'var(--muted-foreground)' }}>
-            Only owners and contributing members can reconcile accounts.
-          </p>
-        )}
+          {justDone && (
+            <p role="status" className="mx-[var(--gutter)] flex items-start gap-2 rounded-xl bg-accent px-3.5 py-3 text-sm font-semibold leading-normal text-accent-foreground">
+              <Icon name="check_circle" size={18} className="mt-px" />
+              <span className="min-w-0 flex-1">
+                Matched to the {day(justDone.on, true)} statement — {justDone.entries} {justDone.entries === 1 ? 'entry' : 'entries'} ticked off
+                {justDone.adjustment ? `, and a ${format(Math.abs(Number(justDone.adjustment)))} adjustment recorded` : ''}.
+              </span>
+            </p>
+          )}
 
-        {history.length > 0 && (
-          <>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '22px var(--gutter) 11px' }}>
-              <h2 style={{ margin: 0, fontSize: 'var(--step-1)', fontWeight: 600, letterSpacing: '-.012em' }}>Statements matched</h2>
-              <span style={{ flex: 1, height: 1, background: 'var(--border)' }} />
-            </div>
-            <section className="border border-border" style={{
-              margin: '0 var(--gutter)', background: 'var(--card)', borderRadius: 18, padding: '0 var(--pad)',
-            }}>
-              {history.map((r, i) => (
-                <div key={r.id} style={{
-                  display: 'flex', alignItems: 'center', gap: 12, minHeight: 64,
-                  borderBottom: i === history.length - 1 ? undefined : '1px solid var(--border)',
-                }}>
-                  <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>{day(r.on, true)}</span>
-                    <span style={{ fontSize: 'var(--step--2)', color: 'var(--muted-foreground)' }}>
-                      {r.entries} {r.entries === 1 ? 'entry' : 'entries'}
-                      {r.adjustment ? ` · adjusted ${Number(r.adjustment) > 0 ? '+' : '−'}${format(Math.abs(Number(r.adjustment)))}` : ''}
-                      {r.who ? ` · ${r.who}` : ''}
+          {canWrite ? (
+            /* Keyed by the latest match, so a Finish (or an Undo) redraws the form from scratch: the statement, the ticks
+             and the DOM start again together instead of carrying the last statement's figure. */
+            <Reconcile key={last?.id ?? 'none'}
+              accountId={account.id} credit={credit} today={today} lastOn={last?.on ?? null}
+              cleared={Number(account.cleared)}
+              entries={entries.map((e) => ({ id: e.id, on: e.on, what: e.what, via: e.via, signed: Number(e.signed) }))}
+            />
+          ) : (
+            <p className="mx-[var(--gutter)] flex items-start gap-1.5 text-sm text-muted-foreground">
+              <Icon name="lock" size={16} className="mt-px" />
+              Only owners and contributing members can reconcile accounts.
+            </p>
+          )}
+
+          {history.length > 0 && (
+            <section aria-labelledby="sec-matched" className="flex flex-col gap-1.5 px-[var(--gutter)]">
+              <h2 id="sec-matched" className="px-0.5 text-[13px] font-semibold text-muted-foreground">Statements matched</h2>
+              <ul className="overflow-hidden rounded-[18px] bg-card">
+                {history.map((r, i) => (
+                  <li key={r.id} className="flex min-h-16 items-center gap-3 border-b border-border px-[var(--pad)] py-2.5 last:border-b-0">
+                    <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                      <span className="text-[15px] font-semibold">{day(r.on, true)}</span>
+                      <span className="text-[13px] leading-snug text-muted-foreground [overflow-wrap:anywhere]">
+                        {r.entries} {r.entries === 1 ? 'entry' : 'entries'}
+                        {r.adjustment ? ` · adjusted ${Number(r.adjustment) > 0 ? '+' : '−'}${format(Math.abs(Number(r.adjustment)))}` : ''}
+                        {r.who ? ` · ${r.who}` : ''}
+                      </span>
                     </span>
-                  </span>
-                  <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}>
-                    <span className="t" style={{ fontSize: 'var(--step-0)' }}>{format(Math.abs(Number(r.balance)))}</span>
-                    {credit && <span style={{ fontSize: 'var(--step--2)', color: 'var(--muted-foreground)' }}>{Number(r.balance) < 0 ? 'owed' : 'in credit'}</span>}
-                  </span>
-                  {canWrite && i === 0 && <UndoLatest id={r.id} />}
-                </div>
-              ))}
+                    <span className="flex flex-none flex-col items-end gap-0.5">
+                      <span className="text-[15px] font-semibold tabular-nums">{format(Math.abs(Number(r.balance)))}</span>
+                      {credit && <span className="text-xs text-muted-foreground">{Number(r.balance) < 0 ? 'owed' : 'in credit'}</span>}
+                    </span>
+                    {canWrite && i === 0 && <UndoLatest id={r.id} />}
+                  </li>
+                ))}
+              </ul>
             </section>
-          </>
-        )}
+          )}
+        </div>
       </main>
     </Screen>
   );

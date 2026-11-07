@@ -24,17 +24,19 @@ const SECURITY_HEADERS = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
-  /* Rewrites `import { IconHome2 } from '@tabler/icons-react'` into a deep
-     import, so a set of five thousand icons costs only the thirty-five that
-     are actually used. */
   experimental: {
-    optimizePackageImports: ['@tabler/icons-react'],
     /* Keep a page the phone has just shown for 30 seconds, so going back to
        it — the Loan centre after a tab, Home after an entry — is instant
        instead of another round trip. Every write goes through a Server Action
        that calls revalidatePath, which empties this cache, so a figure you
        just changed is never served stale. */
     staleTimes: { dynamic: 30 },
+    /* The largest honest body: an entry's five bills of 2 MB each travel as
+       base64 (about 13.4 MB with the other fields); a holding's five photos go
+       as files and are smaller. The default is 1 MB, which refused a single
+       large bill. Only signed-in members reach an action, and each one
+       validates what it reads. */
+    serverActions: { bodySizeLimit: '14mb' },
   },
   async headers() {
     return [{ source: '/:path*', headers: SECURITY_HEADERS }];

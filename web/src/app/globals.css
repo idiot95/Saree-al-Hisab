@@ -4,58 +4,21 @@
 @import "./ql.css";
 
 @theme inline {
-  --color-ink: var(--c-ink);
-  --color-meta: var(--c-meta);
-  --color-faint: var(--c-faint);
-  --color-card: var(--c-card);
-  --color-ground: var(--c-bg);
-  --color-rule: var(--c-rule);
-  --color-sunk: var(--c-sunk);
-  --color-seagrass: var(--c-seagrass);
-  --color-pollen: var(--c-pollen);
-  --color-olive: var(--c-olive);
-  --color-pumpkin: var(--c-pumpkin);
-  --color-ok: var(--c-ok);
-  --color-warn: var(--c-warn);
-  --color-danger: var(--c-danger);
   --font-sans: var(--font-ui-loaded), var(--font-ui);
 }
 
-/* ── depth ───────────────────────────────────────────────────────────────
-   Gradients, kept to two ideas so they read as light rather than decoration.
-   A sheen is a soft light from the top-left laid over a filled control; an
-   edge is a hairline of that same light along the top of a raised surface.
-   Both are overlays on the palette, never colours of their own, so they
-   follow the theme without being redefined for it. The generated tokens
-   file is not touched: these live here because they are composition, not
-   palette. */
+/* Composition, not palette: the curves, the legacy contrast pairs, the card face. The generated tokens file is
+   not touched; these live here. */
 :root {
   /* UIKit's navigation and sheet curve, and a spring that overshoots a touch
      for the small things that should feel alive — a tab icon, a check. */
   --ease-ios: cubic-bezier(.32, .72, 0, 1);
   --ease-spring: linear(0, .18 6%, .62 17%, .92 27%, 1.06 37%, 1.09 45%, 1.05 58%, .99 73%, 1);
-  --sheen: radial-gradient(120% 100% at 25% 0%, rgba(255,255,255,.24) 0%, rgba(255,255,255,0) 60%);
-  --shade: linear-gradient(180deg, rgba(23,43,55,0) 55%, rgba(23,43,55,.06) 100%);
-  --edge: rgba(255,255,255,.7);
-  /* The one filled button, lit. Darker than the brand green looks on the
-     canvas, and deliberately: with the generated dark ink on it the old ramp
-     measured 3.56:1, so the ground went down and the label went white. The
-     sheen is weaker here than elsewhere for the same reason — a highlight
-     that lifts the ground also eats the contrast under it. */
-  --g-lift: radial-gradient(120% 100% at 25% 0%, rgba(255,255,255,.10) 0%, rgba(255,255,255,0) 62%);
-  /* Named ends, so the contrast test can measure the ramp rather than trust it. */
+  /* The ends of the old filled-button ramps, kept only because scripts/contrast.test.mjs still measures them. */
   --c-primary-lo: #35705F;
   --c-primary-hi: #2A5C4E;
-  --g-primary: var(--g-lift), linear-gradient(150deg, var(--c-primary-lo) 0%, var(--c-primary-hi) 100%);
-  /* The attention colour, for the raised Add button and anything pumpkin. It
-     keeps the brand orange exactly — darkening it enough for a white glyph
-     turned it brown, and Pumpkin Spice IS the add button. The glyph went dark
-     instead, which measures 7:1 rather than the 2.97:1 white managed. */
   --c-pumpkin-lo: #FE8C42;
   --c-pumpkin-hi: #E86A1A;
-  --g-pumpkin: var(--g-lift), linear-gradient(150deg, var(--c-pumpkin-lo) 0%, var(--c-pumpkin-hi) 100%);
-  /* Progress fills: the same tint, lit from the top so a bar has a surface. */
-  --g-fill: linear-gradient(180deg, rgba(255,255,255,.28) 0%, rgba(255,255,255,0) 100%);
 
   /* Money has a direction, and a figure should say so before its sign does.
      Deliberately NOT the status triad: over-budget is an alarm and an ordinary
@@ -89,17 +52,11 @@
      which card this is, the network is a footnote. Inverted in the dark theme
      so a navy wordmark does not vanish into the panel. */
   --brand-grey: grayscale(1) opacity(.55);
-  /* The hero's ground: the card, warmed towards the brand teal so the one
-     figure that matters is not sitting on the same white as everything else. */
-  --g-hero: linear-gradient(152deg, var(--c-card) 8%, var(--c-teal-l) 104%);
   --c-on-warn: #233D4D;
   --c-on-danger: #3B120E;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --sheen: radial-gradient(120% 100% at 25% 0%, rgba(255,255,255,.16) 0%, rgba(255,255,255,0) 60%);
-    --shade: linear-gradient(180deg, rgba(0,0,0,0) 55%, rgba(0,0,0,.18) 100%);
-    --edge: rgba(255,255,255,.07);
     --c-out: #F58F7E;
     --c-in: #5FCB93;
     --c-on-warn: #FDF1D5;
@@ -110,13 +67,9 @@
     --card-logo-bg: #FFFFFF;
     --card-logo-edge: rgba(255, 255, 255, .16);
     --brand-grey: grayscale(1) invert(1) opacity(.62);
-    --g-hero: linear-gradient(152deg, var(--c-card) 8%, var(--c-teal-l) 104%);
   }
 }
 :root[data-theme="dark"] {
-  --sheen: radial-gradient(120% 100% at 25% 0%, rgba(255,255,255,.16) 0%, rgba(255,255,255,0) 60%);
-  --shade: linear-gradient(180deg, rgba(0,0,0,0) 55%, rgba(0,0,0,.18) 100%);
-  --edge: rgba(255,255,255,.07);
   --c-out: #F58F7E;
   --c-in: #5FCB93;
   --c-on-warn: #FDF1D5;
@@ -127,7 +80,6 @@
   --card-logo-bg: #FFFFFF;
   --card-logo-edge: rgba(255, 255, 255, .16);
   --brand-grey: grayscale(1) invert(1) opacity(.62);
-  --g-hero: linear-gradient(152deg, var(--c-card) 8%, var(--c-teal-l) 104%);
 }
 
 /* Amiri, for the one line of Arabic this app carries.
@@ -171,10 +123,6 @@
     --step--2: clamp(0.688rem, 0.66rem + 0.12vw, 0.75rem);   /* 11–12  labels  */
     --step--1: clamp(0.781rem, 0.75rem + 0.16vw, 0.875rem);  /* 12.5–14 meta   */
     --step-0:  clamp(0.875rem, 0.84rem + 0.18vw, 0.969rem);  /* 14–15.5 body   */
-    --step-1:  clamp(0.969rem, 0.92rem + 0.25vw, 1.094rem);  /* 15.5–17.5 row  */
-    --step-2:  clamp(1.063rem, 0.99rem + 0.36vw, 1.25rem);   /* 17–20 heading  */
-    --step-3:  clamp(1.375rem, 1.24rem + 0.68vw, 1.75rem);   /* 22–28 title    */
-    --step-4:  clamp(1.75rem, 1.5rem + 1.25vw, 2.375rem);    /* 28–38 figure   */
 
     --lh-tight: 1.1;
     --lh-snug: 1.3;
@@ -256,46 +204,6 @@
     cursor: pointer; text-align: left;
   }
 
-  /* A call to action: a label centred in a pill. The reset above aligns a
-     button's text left, which is right for a row you tap (the label sits
-     beside its glyph) and wrong for Save, where a word hugging the left
-     edge of a wide green button reads as a mistake — which is exactly what
-     was reported. Any button that IS its label wears this. */
-  .cta {
-    display: flex; align-items: center; justify-content: center; gap: 8px;
-    text-align: center;
-  }
-
-  /* ── figures ─────────────────────────────────────────────────────────────
-     Every number in this app is money or a count, and both are read in
-     columns. Tabular figures make each digit the same width so those columns
-     line up; the slashed zero keeps 0 from reading as O at 12px. This is the
-     single most important rule in the file.                                */
-  /* `.t` marks a figure that carries weight on the screen — a balance, a
-     total, the number a row is about. It was a display serif, whose
-     proportional old-style digits were never going to line up in a ledger; it
-     is now the same family, heavier and optically tightened. */
-  .t {
-    font-weight: 620;
-    letter-spacing: -0.018em;
-    font-variant-numeric: tabular-nums slashed-zero lining-nums;
-  }
-
-  /* Kept for the few places that ask explicitly. Same rule as the default. */
-  .n { font-variant-numeric: tabular-nums slashed-zero lining-nums; }
-
-  /* An amount in a LIST — the last cell of a row. Right-anchored so every
-     figure in the column shares one edge: with tabular figures, ₹450 and
-     ₹45,000 then line up digit under digit, which is the whole reason a
-     column of money can be read down rather than one row at a time.
-     flex:none so a long merchant name never squeezes a figure onto two lines. */
-  .amt {
-    margin-left: auto;
-    text-align: right;
-    flex: none;
-    white-space: nowrap;
-    font-variant-numeric: tabular-nums slashed-zero lining-nums;
-  }
 
   /* ── Motion ────────────────────────────────────────────────────────────
      Route changes are animated with the browser's View Transitions API, so
@@ -402,26 +310,12 @@
   }
   @keyframes shim { from { background-position: 100% 50% } to { background-position: 0 50% } }
 
-  /* Visible to a screen reader, not to the eye. */
-  .sr-only {
-    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
-    overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0;
-  }
 
   @media (prefers-reduced-motion: reduce) {
     .shim { animation: none; background: var(--muted); }
   }
 
-  .el  { box-shadow: inset 0 1px 0 var(--edge), var(--el); }
-  .el2 { box-shadow: inset 0 1px 0 var(--edge), var(--el2); }
-
-  /* Quiet Ledger draws its surfaces with Tailwind (bg-card, border-border); the old .hero and .card face are gone.
-     .quiet stays for supporting material: recessed rather than raised, so it sits behind the rest. */
-  .quiet {
-    background: var(--background);
-    border: 1px solid var(--border);
-    box-shadow: none;
-  }
+  /* Quiet Ledger draws its surfaces with Tailwind (bg-card, border-border); the old .hero, .card and .quiet faces are gone. */
 
   /* Anything pressable gives a little under the thumb. The phone's own
      buttons do this and a control that does not feels painted on. Short on
@@ -437,99 +331,17 @@
 
   /* The undo bar rises from the bottom edge — from where the tab bar is,
      which is where the thumb already is. */
-  /* The card wallet: one card to a screen with the next peeking, and no
-     scrollbar drawn across the faces. The peek is the affordance — a strip of
-     the next card at the edge says there is another without a hint to read —
-     and the dots under it do the same job for a finger that never swipes. */
-  .deck { scrollbar-width: none; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; }
-  .deck::-webkit-scrollbar { display: none; }
-  /* Every card in a deck is the height of the tallest, because three cards of
-     three different heights make the shorter ones look like they are missing
-     something. The slide stretches and whatever is inside it fills the slide —
-     which has to be a rule rather than an inline style, since the card inside
-     is written by whoever uses the deck. */
-  .deck { align-items: stretch; }
-  .deck-slide { display: flex; }
-  .deck-slide > * { flex: 1; min-width: 0; }
 
-}
-:root {
-  /* The three grounds of the home deck. The month is the brand's own teal
-     wash; net worth takes the cyan it wears on its own screen; loans take the
-     indigo that Lending wears everywhere else.
-
-     The colour has to land INSIDE the card. The first pass put its stop at
-     168%, copying the hero's proportions, which meant the only part on screen
-     was --c-card interpolating towards --c-sunk2 — #FFFFFF to #F3F6F5, a
-     gradient nobody can see. The tint now arrives by the bottom corner.
-
-     Still pale washes over --c-card rather than colours in their own right,
-     because the red and green inside them are semantic: an over-budget bar
-     and a figure in the ink of money have to keep their contrast, and they
-     are measured against these grounds in contrast.test.mjs. */
-  --g-deck-worth: linear-gradient(152deg, var(--c-card) 8%, var(--cat-cyan) 104%);
-  --g-deck-loan: linear-gradient(152deg, var(--c-card) 8%, var(--cat-indigo) 104%);
 }
 @layer components {
 
   .snack { animation: snack-in .22s cubic-bezier(.2,.8,.2,1); }
   @keyframes snack-in { from { opacity: 0; translate: 0 14px } to { opacity: 1; translate: 0 } }
 
-  /* ── the plus button's ghost options ──────────────────────────────────
-     The choices behind the plus float over the screen with the screen
-     blurred beneath them, rather than a drawer sliding up to cover it: what
-     you were looking at stays where it was, only softened, and the choices
-     sit within the thumb's reach of the button that summoned them. The veil
-     stops below the tab bar, so the plus stays sharp and turns into the
-     cross that puts everything back.
-
-     Where the browser cannot blur, the veil goes nearly solid instead — a
-     half-transparent veil with nothing softened under it is only a screen
-     made harder to read. */
-  .veil {
-    position: fixed; inset: 0; z-index: 35;
-    background: color-mix(in srgb, var(--c-bg) 62%, transparent);
-    -webkit-backdrop-filter: blur(18px) saturate(.8);
-    backdrop-filter: blur(18px) saturate(.8);
-    animation: veil-in .18s ease-out both;
-  }
-  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-    .veil { background: color-mix(in srgb, var(--c-bg) 94%, transparent); }
-  }
-  @keyframes veil-in { from { opacity: 0 } to { opacity: 1 } }
-
-  /* One option: a see-through pill that rises from the plus, each a beat
-     after the one below it, so the three arrive as a fan rather than a wall. */
-  .ghost {
-    background: color-mix(in srgb, var(--c-card) 78%, transparent);
-    border: 1px solid color-mix(in srgb, var(--c-ink) 10%, transparent);
-    -webkit-backdrop-filter: blur(12px);
-    backdrop-filter: blur(12px);
-    box-shadow: inset 0 1px 0 var(--edge), var(--el);
-    animation: ghost-in .26s cubic-bezier(.2,.8,.2,1) both;
-    animation-delay: calc(var(--i, 0) * 45ms);
-  }
-  @keyframes ghost-in {
-    from { opacity: 0; translate: 0 18px; scale: .94 }
-    to   { opacity: 1; translate: 0; scale: 1 }
-  }
-
-  /* A drawer rises from the bottom edge over the veil: the day you tapped
-     is still there above it, softened, and the drawer's handle says it can
-     be pushed back down. */
-  .sheet { animation: sheet-in .5s var(--ease-ios) both; }
-  @keyframes sheet-in { from { translate: 0 100% } to { translate: 0 0 } }
-  /* And back down the way it came, a little quicker than it rose, with the
-     veil clearing behind it. Drag the handle and it follows the finger. */
-  .sheet[data-leaving] { animation: sheet-out .3s cubic-bezier(.4, 0, 1, 1) both; }
-  @keyframes sheet-out { from { translate: 0 0 } to { translate: 0 100% } }
-  .veil[data-leaving] { animation: veil-out .3s ease both; }
-  @keyframes veil-out { from { opacity: 1 } to { opacity: 0 } }
-
   /* A tab's icon gives a small bounce when its screen arrives — the same
      acknowledgement an iPhone tab bar gives — and only on the live bar, never
      the still copy a loading skeleton draws. */
-  .tab-here svg { animation: tab-pop .5s var(--ease-spring) both; transform-origin: 50% 60%; }
+  .tab-here { animation: tab-pop .5s var(--ease-spring) both; transform-origin: 50% 60%; }
   @keyframes tab-pop { 0% { scale: .72 } 100% { scale: 1 } }
 
   /* The check on a success line draws itself in. */

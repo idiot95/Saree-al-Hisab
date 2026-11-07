@@ -2,9 +2,12 @@
 
 import { useActionState, useEffect, useRef, useState } from 'react';
 import { moveDue } from './actions';
+import { keepFields } from '../form-hooks';
 import { describeRule, friendlyDate, friendlyDay, inWords, rewriteRuleTo, shiftDay, type Calendar } from '@/lib/recur';
 import { DateChips } from '../DatePick';
 import { formatHijri, toHijri } from '@/lib/hijri';
+import { fieldLabel, ghost, solid } from '../form-bits';
+import { ErrorNote } from '../auth-ui';
 
 /* "Not the 5th this month — the 10th." One date, one question underneath it:
    is that the day from now on? The answer to the question is shown before it
@@ -36,32 +39,31 @@ export default function MoveDue({ scheduleId, name, dueOn, on, rule, cal, today,
   const yearly = /FREQ=YEARLY/.test(rule);
 
   return (
-    <form action={act} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+    /* JS-only: the move opens from a swipe, so it submits through keepFields and React never resets the box. */
+    <form onSubmit={keepFields(act)} aria-label={`Move ${name}`} className="flex flex-col gap-2.5 pb-1">
       <input type="hidden" name="scheduleId" value={scheduleId} />
       <input type="hidden" name="dueOn" value={dueOn} />
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
-        <span style={{ fontSize: 'var(--step--2)', fontWeight: 600, color: 'var(--muted-foreground)' }}>
-          Move {name} to
-        </span>
+      <div className="flex flex-col gap-2">
+        <span className={fieldLabel}>Move {name} to</span>
         {/* The days after it, then any other; a move is a nudge, so the grid
             stops a month before and three after, as the server does. */}
         <DateChips value={to} onChange={setTo} today={today} from={on > today ? on : today} dir="future"
           min={shiftDay(dueOn, -30)} max={shiftDay(dueOn, 90)} label={`Move ${name} to`} />
         <input type="hidden" name="to" value={to} />
-        <span style={{ fontSize: 'var(--step--1)', color: 'var(--muted-foreground)' }}>
+        <span className="text-sm text-muted-foreground">
           {valid ? `${friendlyDay(to, today)} · ${hijri} · ${inWords(today, to)}` : 'Pick a day.'}
         </span>
       </div>
 
-      <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, minHeight: 44, cursor: 'pointer' }}>
+      <label className="flex min-h-11 cursor-pointer items-start gap-2.5">
         <input type="checkbox" name="permanent" value="yes" checked={permanent} disabled={!next}
           onChange={(e) => setPermanent(e.target.checked)}
-          style={{ width: 22, height: 22, marginTop: 2, flex: 'none', accentColor: 'var(--chart-1)' }} />
-        <span style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <span style={{ fontSize: 'var(--step--1)', fontWeight: 600 }}>
+          className="mt-0.5 size-[22px] flex-none accent-primary" />
+        <span className="flex flex-col gap-0.5">
+          <span className="text-sm font-semibold">
             Make this the day, every {yearly ? 'year' : cal === 'hijri' ? 'Hijri month' : 'month'}
           </span>
-          <span style={{ fontSize: 'var(--step--2)', lineHeight: 1.45, color: 'var(--muted-foreground)' }}>
+          <span className="text-[13px] leading-snug text-muted-foreground">
             {!valid ? ''
               : next
                 ? permanent
@@ -72,19 +74,12 @@ export default function MoveDue({ scheduleId, name, dueOn, on, rule, cal, today,
         </span>
       </label>
 
-      {state && !state.ok && (
-        <span role="alert" style={{ fontSize: 'var(--step--1)', color: 'var(--destructive)' }}>{state.error}</span>
-      )}
-      <div style={{ display: 'flex', gap: 8 }}>
-        <button className="cta" type="button" onClick={onCancel} style={{
-          minHeight: 46, padding: '0 14px', borderRadius: 11, fontSize: 'var(--step--1)',
-          fontWeight: 600, background: 'var(--muted)', color: 'var(--muted-foreground)',
-        }}>Cancel</button>
-        <button className="cta" type="submit" disabled={pending || !valid} style={{
-          flex: 1, minHeight: 46, borderRadius: 11, fontSize: 'var(--step-0)', fontWeight: 600,
-          background: 'var(--primary)', color: 'var(--primary-foreground)',
-          opacity: pending || !valid ? 0.6 : 1,
-        }}>{pending ? 'Moving…' : permanent ? 'Move it, from now on' : 'Move it, this once'}</button>
+      {state && !state.ok && <ErrorNote>{state.error}</ErrorNote>}
+      <div className="flex gap-2">
+        <button type="button" onClick={onCancel} className={ghost}>Cancel</button>
+        <button type="submit" disabled={pending || !valid} className={solid}>
+          {pending ? 'Moving…' : permanent ? 'Move it, from now on' : 'Move it, this once'}
+        </button>
       </div>
     </form>
   );

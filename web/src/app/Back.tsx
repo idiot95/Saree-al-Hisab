@@ -76,6 +76,9 @@ export default function Back({ to }: { to: string }) {
     const end = (e: TouchEvent) => {
       if (!live) return;
       live = false;
+      // Android's own back gesture already pops history; ours would double it.
+      // Read here, not in render, so server and client markup never differ.
+      if (document.documentElement.dataset.platform === 'android') return;
       const t = e.changedTouches[0];
       const dx = t.clientX - sx;
       const dy = Math.abs(t.clientY - sy);

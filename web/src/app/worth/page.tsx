@@ -1,256 +1,127 @@
-import { Chip, ACCOUNT_ICON, ACCOUNT_TINT } from '../Icon';
 import { redirect } from 'next/navigation';
-import { actorOrNull, allBalances, monthlySeries, owedByPerson, tabHeldOwed, worthSeries } from '@/db/queries';
+import { actorOrNull, monthlySeries, worthSeries } from '@/db/queries';
+import { worthInput } from '@/db/worth';
 import { withHousehold } from '@/db/client';
-import { netWorth } from '@/lib/worth';
-import { format } from '@/lib/money';
+import { netWorth, type Owner } from '@/lib/worth';
+import { format, unitOf } from '@/lib/money';
+import { dayLabel, gramsLabel, purityLabel } from '@/lib/holding-input';
 import TabBar from '../TabBar';
 import { TAB_BAR_SPACE } from '../tabs';
 import Screen from '../Screen';
-import PageHead, { Label } from '../PageHead';
-import MoneyNav from '../accounts/MoneyNav';
+import WealthView from './WealthView';
+import AddHolding from './AddHolding';
+import type { HoldingItem, RateNote, SeriesPoint, WealthView as View } from './types';
 
-export const metadata = { title: 'Net worth · Saree al-Hisab' };
+export const metadata = { title: 'Wealth · Saree al-Hisab' };
 export const dynamic = 'force-dynamic';
 
-const GROUP = {
-  spending: 'Bank', cash: 'Cash', savings: 'Savings', credit: 'Cards', person: 'People',
-} as Record<string, string>;
+const first = (name: string) => name.trim().split(/\s+/)[0] || name;
 
-export default async function Worth() {
+/* Wealth: whose net worth (the owner chips), the figure and what it is made of, then each kind of thing held.
+
+   Every choice of owner is worked out here, on the server, from the one definition (netWorth), and handed down
+   whole: switching a chip is then a client-side change of which set is drawn, so the figures roll from one to
+   the next instead of the screen reloading. The chips are still links (?o=), so without script they work as
+   plain navigation and the server draws the chosen set first. */
+export default async function Worth({ searchParams }: { searchParams: Promise<{ o?: string }> }) {
   const actor = await actorOrNull();
   if (!actor) redirect('/signin');
   if (!actor.household_id) redirect('/no-household');
-
   const hh = actor.household_id;
-  const [accounts, owed, allSeries, held, months] = await withHousehold(hh, () => Promise.all([
-    allBalances(hh),
-    owedByPerson(hh),
-    worthSeries(hh, 6),
-    tabHeldOwed(hh),
-    monthlySeries(hh, 6),
-  ]));
+
+  /* Rates first, then the inputs netWorth() reads — worthInput is the one path, shared with Home's row, so the
+     two figures cannot disagree. A provider that fails leaves the last known rate in place, named in `stale`. */
+  const { input, members, holdings, stale } = await worthInput(hh, actor.currency);
+  // After the rates, so the line's last point is valued at today's rates too.
+  const [allSeries, months] = await withHousehold(hh, () => Promise.all([worthSeries(hh, 6), monthlySeries(hh, 6)]));
+  const memberIds = input.members;
+  const fx = holdings.filter((h) => h.kind === 'fx_cash');
+  const metal = holdings.filter((h) => h.kind === 'metal');
+
+  /* Household · Me · each other member · Joint. A member is a current member: an owner who has left counts
+     as joint, which is what netWorth does too. */
+  const me = members.find((m) => m.id === actor.user_id);
+  const others = members.filter((m) => m.id !== actor.user_id);
+  const choices: { key: string; chip: string; title: string; owner: Owner }[] = [
+    { key: 'household', chip: 'Household', title: 'Household net worth', owner: { kind: 'household' } },
+    ...(me ? [{ key: me.id, chip: 'Me', title: 'Your net worth', owner: { kind: 'member', userId: me.id } as Owner }] : []),
+    ...others.map((m) => ({ key: m.id, chip: first(m.name), title: `${first(m.name)}’s net worth`, owner: { kind: 'member', userId: m.id } as Owner })),
+    { key: 'joint', chip: 'Joint', title: 'Joint net worth', owner: { kind: 'joint' } },
+  ];
+  const views: View[] = choices.map(({ key, chip, title, owner }) => {
+    const w = netWorth(input, owner);
+    const pots = netWorth({ ...input, holdings: fx }, owner).holdingTotal;
+    const metals = netWorth({ ...input, holdings: metal }, owner).holdingTotal;
+    const ownNet = w.own.reduce((n, a) => n + Number(a.balance), 0);
+    return {
+      key, chip, title, worth: w.worth, bank: w.accountAssetTotal, pots, metals, owed: w.receivable,
+      debt: w.debtTotal, accounts: ownNet, counted: owner.kind !== 'member', unvalued: w.unvalued.length,
+    };
+  });
+  const { o } = await searchParams;
+  const initial = views.some((v) => v.key === o) ? o! : 'household';
+
+  const nameOf = (id: string | null) => {
+    const m = id ? members.find((x) => x.id === id) : undefined;
+    return m ? first(m.name) : 'Joint';
+  };
+  const items: HoldingItem[] = holdings.map((h) => {
+    const owner = h.owner_user_id && memberIds.includes(h.owner_user_id) ? h.owner_user_id : null;
+    const q = Number(h.quantity ?? 0);
+    const native = h.kind === 'fx_cash'
+      ? format(q, h.currency!, { paise: q % unitOf(h.currency!) !== 0 })
+      : `${gramsLabel(q)} g`;
+    return {
+      id: h.id, kind: h.kind, name: h.name, owner, ownerName: nameOf(owner), native,
+      badge: h.kind === 'fx_cash' ? h.currency! : purityLabel(h.metal, h.purity_permille),
+      value: h.value_minor === null ? null : Number(h.value_minor),
+      stale: !!h.rate_as_of && h.rate_source !== 'override'
+        && stale.includes(h.kind === 'fx_cash' ? h.currency! : h.metal === 'gold' ? 'XAU' : 'XAG'),
+    };
+  });
+
+  /* "Rates 6 Nov" is the newest rate a section's values use. A rate that could not be refreshed is said
+     with its date; one the household set itself is theirs to keep, and is not called out of date. */
+  const note = (rows: typeof holdings, label: (h: (typeof holdings)[number]) => string): RateNote => {
+    const dates = rows.map((h) => h.rate_as_of).filter((d): d is string => !!d).sort();
+    const lines = new Map<string, string>();
+    for (const h of rows) {
+      const base = h.kind === 'fx_cash' ? h.currency! : h.metal === 'gold' ? 'XAU' : 'XAG';
+      if (!stale.includes(base) || !h.rate_as_of || h.rate_source === 'override') continue;
+      lines.set(base, `${label(h)} rate from ${dayLabel(h.rate_as_of)} — couldn’t update`);
+    }
+    return { asOf: dates.length ? dayLabel(dates[dates.length - 1]) : null, stale: [...lines.values()] };
+  };
+  const potRates = note(fx, (h) => h.currency!);
+  const metalRates = note(metal, (h) => (h.metal === 'gold' ? 'Gold' : 'Silver'));
+
   /* The line starts at the first month anything was recorded: before that the figure is only the opening
-     balances, and "more than six months ago" would be measuring against months the books were not kept. */
+     balances, and a line measured against months the books were not kept says nothing. */
   const startAt = Math.max(0, months.findIndex((m) => m.entries > 0));
-  const series = allSeries.slice(startAt);
+  const series: SeriesPoint[] = allSeries.slice(startAt).map((p) => ({
+    month: new Date(p.month).toLocaleDateString('en-IN', { month: 'short', timeZone: 'UTC' }),
+    held: Number(p.held), holdings: Number(p.holdings),
+  }));
 
-  /* Three figures, and the headline is their sum.
-
-     Held: every account that is yours — bank, cash, savings — less the cards,
-     which are money already spent. Owed to you: loans handed to people, and
-     shares of costs you covered that are still outstanding. Both are yours;
-     one of them is simply in someone else's pocket for now, and a household
-     that has lent a lot should see that as a line, not have it folded in
-     silently. */
-  // Plus what the tabs are owed with nobody named — no person's row carries it.
-  const { worth, assets, debts, assetTotal, debtTotal, receivable, claims, savings, lent } =
-    netWorth(accounts, owed.reduce((n, o) => n + Number(o.claimed), 0), Number(held));
-
-  const points = series.map((p) => Number(p.held));
-  const lo = Math.min(...points, 0), hi = Math.max(...points, 1);
-  const first = points[0], last = points[points.length - 1];
-  const since = series.length ? new Date(series[0].month).toLocaleDateString('en-IN', { month: 'long' }) : 'the start';
+  const canWrite = actor.role === 'owner' || actor.role === 'adult';
 
   return (
     <Screen>
       <main className="min-h-dvh bg-background text-foreground" style={{ paddingBottom: TAB_BAR_SPACE }}>
-        <PageHead title="Money" sub={actor.household_name}>
-          <MoneyNav current="worth" />
-        </PageHead>
-
-        <section aria-label="Net worth" className="mx-[var(--gutter)] flex flex-col gap-3 rounded-[22px] border border-border bg-card p-4">
-          <span className="text-xs text-muted-foreground">Net worth</span>
-          <span className="font-display text-[40px] leading-none tabular-nums" style={worth < 0 ? { color: 'var(--destructive)' } : undefined}>
-            {format(worth)}
-          </span>
-          <p className="text-sm text-muted-foreground">What you hold, plus what people owe you, less what you owe.</p>
-          <dl className="grid grid-cols-3 gap-2 border-t border-border pt-3">
-            <Figure label="Held" value={assetTotal} />
-            <Figure label="Owed to you" value={receivable} />
-            <Figure label="You owe" value={debtTotal} negative />
-          </dl>
-        </section>
-
-        <div style={{ paddingTop: 20, display: 'flex', flexDirection: 'column', gap: 20 }}>
-          {savings !== 0 && (
-            <section className="border border-border" style={{
-              margin: '0 var(--gutter)', background: 'var(--card)', borderRadius: 18, padding: 16,
-              display: 'flex', alignItems: 'center', gap: 14,
-            }}>
-              <Chip icon={ACCOUNT_ICON.savings} tint={ACCOUNT_TINT.savings} size={44} radius={12} />
-              <span style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 3 }}>
-                <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>In savings</span>
-                <span style={{ fontSize: 'var(--step--1)', lineHeight: 1.45, color: 'var(--muted-foreground)' }}>
-                  Outside the monthly budget. Moving money here is not spending it.
-                </span>
-              </span>
-              <span className="t" style={{ fontSize: 'var(--step-2)' }}>{format(savings)}</span>
-            </section>
+        <header className="flex items-end justify-between gap-3 px-[var(--gutter)] pb-3 pt-4">
+          <div className="min-w-0">
+            <p className="text-sm text-muted-foreground">{actor.household_name}</p>
+            <h1 className="text-[32px] font-bold leading-tight tracking-tight">Wealth</h1>
+          </div>
+          {canWrite && (
+            <AddHolding base={actor.currency}
+              members={members.map((m) => ({ id: m.id, name: m.id === actor.user_id ? `${first(m.name)} (you)` : first(m.name) }))} />
           )}
-
-          <Section title="Held in accounts, month by month">
-            <Sparkline points={points} lo={lo} hi={hi} months={series.map((p) => p.month)} />
-            <p style={{
-              margin: '12px 0 0', fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--muted-foreground)',
-            }}>
-              {first === last
-                ? `Level since ${since}.`
-                : last > first
-                  ? `${format(last - first)} more than in ${since}.`
-                  : `${format(first - last)} less than in ${since}.`}
-              {receivable !== 0 && ' Your own accounts only — what people owe you is in the figure above but not in this line.'}
-            </p>
-          </Section>
-
-          <Section title="What you have">
-            <Rows rows={[
-              ...assets.map((a) => ({
-                key: a.id,
-                label: a.name,
-                note: GROUP[a.kind] ?? a.kind,
-                value: Number(a.balance),
-                icon: ACCOUNT_ICON[a.kind] ?? 'tag',
-                tint: ACCOUNT_TINT[a.kind] ?? 'neutral',
-              })),
-            ]} total={assetTotal} />
-          </Section>
-
-          {receivable !== 0 && (
-            <Section title="Owed to you">
-              <Rows rows={[
-                ...lent.map((a) => ({
-                  key: a.id, label: a.name, note: 'Lent', value: Number(a.balance),
-                  icon: 'person', tint: 'indigo',
-                })),
-                ...(claims > 0 ? [{
-                  key: 'claims', label: 'Shares of costs you covered', note: 'Tabs and shared costs',
-                  value: claims, icon: 'receivable', tint: 'purple',
-                }] : []),
-              ]} total={receivable} />
-              <p style={{
-                margin: '12px 0 0', fontSize: 'var(--step--2)', lineHeight: 1.5, color: 'var(--muted-foreground)',
-              }}>
-                Counted in your net worth: it is your money, in someone else&apos;s pocket for now.
-                Settle up in the Loan centre.
-              </p>
-            </Section>
-          )}
-
-          {debts.length > 0 && (
-            <Section title="What you owe">
-              <Rows rows={debts.map((a) => ({
-                key: a.id,
-                label: a.name + (a.last4 ? ` · ${a.last4}` : ''),
-                note: GROUP[a.kind] ?? a.kind,
-                value: Number(a.balance),
-                icon: ACCOUNT_ICON[a.kind] ?? 'card',
-                tint: ACCOUNT_TINT[a.kind] ?? 'orange',
-              }))} total={debtTotal} negative />
-            </Section>
-          )}
-        </div>
+        </header>
+        <WealthView views={views} initial={initial} items={items} potRates={potRates} metalRates={metalRates}
+          series={series} />
         <TabBar current="/worth" />
       </main>
     </Screen>
-  );
-}
-
-/* One of the three figures under the headline, as a small stat with its own
-   label so a glance separates cash in hand from cash in a cousin's pocket. */
-function Figure({ label, value, negative }: { label: string; value: number; negative?: boolean }) {
-  return (
-    <div className="flex min-w-0 flex-col gap-0.5">
-      <dt className="truncate text-[11px] text-muted-foreground">{label}</dt>
-      <dd className="truncate text-sm font-semibold tabular-nums" style={negative && value !== 0 ? { color: 'var(--destructive)' } : undefined}>
-        {format(Math.abs(value))}
-      </dd>
-    </div>
-  );
-}
-
-/* A single line, drawn from the numbers rather than a library, with the figures
-   written underneath it. The shape is the quick read; the words are the record. */
-function Sparkline({ points, lo, hi, months }: {
-  points: number[]; lo: number; hi: number; months: string[];
-}) {
-  const W = 320, H = 90, PAD = 6;
-  const span = hi - lo || 1;
-  const x = (i: number) => PAD + (i * (W - PAD * 2)) / Math.max(1, points.length - 1);
-  const y = (v: number) => H - PAD - ((v - lo) / span) * (H - PAD * 2);
-  const d = points.map((v, i) => `${i === 0 ? 'M' : 'L'} ${x(i).toFixed(1)} ${y(v).toFixed(1)}`).join(' ');
-  const zero = lo < 0 && hi > 0 ? y(0) : null;
-
-  return (
-    <figure style={{ margin: 0 }}>
-      <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} role="img"
-        aria-label={`Held in accounts. ${months.map((m, i) =>
-          `${new Date(m).toLocaleDateString('en-IN', { month: 'short' })} ${format(points[i])}`).join(', ')}`}
-        style={{ display: 'block', overflow: 'visible' }}>
-        {zero !== null && (
-          <line x1={0} x2={W} y1={zero} y2={zero} stroke="var(--input)"
-            strokeWidth={1} strokeDasharray="3 3" />
-        )}
-        <path d={d} fill="none" stroke="var(--chart-1)" strokeWidth={2.4}
-          strokeLinecap="round" strokeLinejoin="round" />
-        {points.map((v, i) => (
-          <circle key={i} cx={x(i)} cy={y(v)} r={i === points.length - 1 ? 4 : 2.5}
-            fill={i === points.length - 1 ? 'var(--chart-1)' : 'var(--card)'}
-            stroke="var(--chart-1)" strokeWidth={1.6} />
-        ))}
-      </svg>
-      <ul style={{
-        display: 'flex', justifyContent: 'space-between', margin: '8px 0 0', padding: 0,
-        listStyle: 'none', fontSize: 'var(--step--2)', color: 'var(--muted-foreground)',
-      }}>
-        {months.map((m) => (
-          <li key={m}>{new Date(m).toLocaleDateString('en-IN', { month: 'short' })}</li>
-        ))}
-      </ul>
-    </figure>
-  );
-}
-
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <section className="mx-[var(--gutter)] flex flex-col gap-2">
-      <Label>{title}</Label>
-      <div className="rounded-2xl border border-border bg-card p-4">{children}</div>
-    </section>
-  );
-}
-
-function Rows({ rows, total, negative }: {
-  rows: { key: string; label: string; note: string; value: number;
-          icon: string; tint: string }[];
-  total: number; negative?: boolean;
-}) {
-  return (
-    <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column' }}>
-      {rows.map((r, i) => (
-        <li key={r.key} style={{
-          display: 'flex', alignItems: 'center', gap: 12, minHeight: 54,
-          borderBottom: i === rows.length - 1 ? undefined : '1px solid var(--border)',
-        }}>
-          <Chip icon={r.icon} tint={r.tint} size={34} radius={9} iconSize={17} />
-          <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>{r.label}</span>
-            <span style={{ fontSize: 'var(--step--2)', color: 'var(--muted-foreground)' }}>{r.note}</span>
-          </span>
-          <span className="t amt" style={{
-            fontSize: 'var(--step-0)', color: negative ? 'var(--destructive)' : 'var(--foreground)',
-          }}>{format(Math.abs(r.value))}</span>
-        </li>
-      ))}
-      <li style={{
-        display: 'flex', alignItems: 'center', gap: 12, minHeight: 50,
-        borderTop: '1px solid var(--border)', marginTop: 6, paddingTop: 6,
-      }}>
-        <span style={{ flex: 1, fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--muted-foreground)' }}>Total</span>
-        <span className="t" style={{
-          fontSize: 'var(--step-2)', color: negative ? 'var(--destructive)' : 'var(--foreground)',
-        }}>{format(Math.abs(total))}</span>
-      </li>
-    </ul>
   );
 }

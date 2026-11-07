@@ -1,4 +1,5 @@
 import Link from '@/app/NavLink';
+import { Icon } from './Icon';
 
 /* Onboarding is a strip, not a screen.
 
@@ -15,8 +16,10 @@ type Step = {
   optional?: boolean;
 };
 
-export default function GettingStarted({ progress }: {
+export default function GettingStarted({ progress, budgetAskedAbove = false }: {
   progress: { accounts: number; methods: number; entries: number; members: number; budget: number };
+  /** Home's own card already asks for the budget: the strip counts the step but does not ask twice. */
+  budgetAskedAbove?: boolean;
 }) {
   const steps: Step[] = [
     {
@@ -51,41 +54,35 @@ export default function GettingStarted({ progress }: {
   /* Finished means every step that actually has to happen. The optional one
      is offered while there is other setup left and then stops asking. */
   const remaining = steps.filter((s) => !s.done && !s.optional);
-  if (remaining.length === 0) return null;
-  const next = remaining[0];
+  const ask = budgetAskedAbove ? remaining.filter((s) => s.href !== '/budget') : remaining;
+  if (ask.length === 0) return null;
+  const next = ask[0];
 
   return (
-    <Link href={next.href} className="border border-border" style={{
-      display: 'flex', alignItems: 'center', gap: 12, minHeight: 62, padding: '0 var(--pad)',
-      borderRadius: 15, textDecoration: 'none', background: 'var(--card)',
-      border: '1px solid var(--border)', color: 'var(--foreground)',
-    }}>
-      {/* A ring rather than a bar: it takes a quarter of the width and reads
-          as progress at a glance. */}
-      <span style={{ position: 'relative', width: 36, height: 36, flex: 'none' }}>
-        <svg width={36} height={36} viewBox="0 0 36 36" aria-hidden>
-          <circle cx="18" cy="18" r="15" fill="none" stroke="var(--muted)" strokeWidth="3.5" />
-          <circle cx="18" cy="18" r="15" fill="none" stroke="var(--chart-1)" strokeWidth="3.5"
+    <Link href={next.href} transitionTypes={['nav-forward']}
+      className="press flex min-h-[62px] items-center gap-3 rounded-[18px] bg-card px-3.5 py-3 text-foreground">
+      {/* A ring rather than a bar: it takes a quarter of the width and reads as progress at a glance. */}
+      <span className="relative size-9 flex-none">
+        <svg width={36} height={36} viewBox="0 0 36 36" aria-hidden className="text-muted">
+          <circle cx="18" cy="18" r="15" fill="none" stroke="currentColor" strokeWidth="3.5" />
+          <circle cx="18" cy="18" r="15" fill="none" stroke="var(--primary)" strokeWidth="3.5"
             strokeLinecap="round" transform="rotate(-90 18 18)"
             strokeDasharray={`${(done / steps.length) * 94.2} 94.2`} />
         </svg>
-        <span className="n" style={{
-          position: 'absolute', inset: 0, display: 'flex', alignItems: 'center',
-          justifyContent: 'center', fontSize: 'var(--step--2)', fontWeight: 700,
-          color: 'var(--muted-foreground)',
-        }}>{done}/{steps.length}</span>
+        <span className="absolute inset-0 grid place-items-center text-[10px] font-bold tabular-nums text-muted-foreground">
+          {done}/{steps.length}
+        </span>
       </span>
 
-      <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
-        <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>{next.title}</span>
-        <span style={{
-          fontSize: 'var(--step--1)', color: 'var(--muted-foreground)',
-          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-        }}>{next.blurb} Setting up · {done} of {steps.length} done</span>
+      {/* The line wraps to a second rather than cutting off ("Setting u…" was the audit's §6.3). */}
+      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <span className="text-[15px] font-semibold">{next.title}</span>
+        <span className="line-clamp-2 text-xs text-muted-foreground">
+          {next.blurb} Setting up · {done} of {steps.length} done
+        </span>
       </span>
 
-      <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="var(--muted-foreground)"
-        strokeWidth={2} strokeLinecap="round" aria-hidden><path d="M9 5l7 7-7 7" /></svg>
+      <Icon name="chevron_right" size={20} className="text-muted-foreground" />
     </Link>
   );
 }

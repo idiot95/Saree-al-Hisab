@@ -46,11 +46,9 @@ export function describe(opt: Flat): { icon: string; ink: string; title: string;
   return { icon: ACCOUNT_ICON[way.kind] ?? 'bank', ink, title: way.name, sub };
 }
 
-/** A name gets two lines before it is cut — "ICICI Amazon Pay" on a narrow
- *  phone is two words a person needs both of. */
-const TWO_LINES: React.CSSProperties = {
-  display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', overflowWrap: 'anywhere',
-};
+/** A name wraps and is never cut — "ICICI Amazon Pay" on a narrow phone is two words a person needs both of,
+ *  and "HDFC Recurring Deposit" in the schedule form's narrower tiles needs three lines. */
+const TWO_LINES: React.CSSProperties = { overflowWrap: 'anywhere' };
 
 export const TILE: React.CSSProperties = {
   minHeight: 56, padding: '8px 10px', borderRadius: 14, display: 'flex', alignItems: 'center', gap: 10,
@@ -69,7 +67,7 @@ export function WayTile({ icon, ink, title, sub, on, onClick, disabled }: {
         justifyContent: 'center', background: on ? 'color-mix(in srgb, currentColor 16%, transparent)' : 'var(--card)',
         color: on ? 'inherit' : 'var(--muted-foreground)',
       }}>
-        <Icon name={icon} size={18} strokeWidth={1.9} />
+        <Icon name={icon} size={18} />
       </span>
       <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1 }}>
         <span style={{ fontSize: 'var(--step--1)', fontWeight: 700, lineHeight: 1.2, ...TWO_LINES }}>{title}</span>

@@ -5,6 +5,7 @@ import TabBar from '../TabBar';
 import { TAB_BAR_SPACE } from '../tabs';
 import PageHead from '../PageHead';
 import Screen from '../Screen';
+import { Icon } from '../Icon';
 
 export const metadata = { title: 'How it works · Saree al-Hisab' };
 export const dynamic = 'force-dynamic';
@@ -16,7 +17,7 @@ export const dynamic = 'force-dynamic';
 const SECTIONS = [
   {
     title: 'Accounts hold your money',
-    href: '/accounts', link: 'Money › Accounts',
+    href: '/accounts', link: 'Wealth › Accounts',
     lines: [
       'A bank account, cash, savings and credit cards each get an entry here.',
       'Balances are worked out from what you record. You never edit a balance directly.',
@@ -25,7 +26,7 @@ const SECTIONS = [
   },
   {
     title: 'Say how you paid, and the right balance moves',
-    href: '/accounts', link: 'Money › Accounts',
+    href: '/accounts', link: 'Wealth › Accounts',
     lines: [
       'GPay, PhonePe, net banking and a debit card are each linked to the one bank account they take money from. Cash and a credit card are ways to pay on their own.',
       'When you record an expense you pick one tile — "GPay", "Cash", the card, or the bank directly — and the money comes off the account behind it.',
@@ -34,7 +35,7 @@ const SECTIONS = [
   },
   {
     title: 'Credit cards file themselves',
-    href: '/accounts', link: 'Money › Accounts',
+    href: '/accounts', link: 'Wealth › Accounts',
     lines: [
       'Give a card its statement day and due day when you add it.',
       'Every purchase then lands in the right billing cycle on its own.',
@@ -82,7 +83,7 @@ const SECTIONS = [
   },
   {
     title: 'What it all adds up to',
-    href: '/worth', link: 'Money › Net worth',
+    href: '/worth', link: 'Wealth',
     lines: [
       'Everything you hold, less everything you owe, in one figure.',
       'Money you have lent counts as yours, because it is — and money you owe someone counts against you.',
@@ -92,7 +93,7 @@ const SECTIONS = [
   },
   {
     title: 'Things that come round every month',
-    href: '/schedules', link: 'Activity › Upcoming',
+    href: '/entries?f=upcoming', link: 'Activity › Upcoming',
     lines: [
       'Rent, school fees, an EMI — set the amount, the day and how it is paid, once.',
       'Nothing is recorded until you say so. A schedule is a reminder with the details already filled in, not a standing instruction writing entries behind your back.',
@@ -102,7 +103,7 @@ const SECTIONS = [
   },
   {
     title: 'To review catches what slips',
-    href: '/inbox', link: 'Activity › To review',
+    href: '/entries?f=review', link: 'Activity › To review',
     lines: [
       'If the same purchase looks like it was recorded twice, both entries are shown side by side and you decide.',
       'Two people in a household often record one purchase differently — he paid by card, she assumed cash — so that check deliberately ignores which account it was on.',
@@ -112,10 +113,10 @@ const SECTIONS = [
   },
   {
     title: 'Seeing the shape of it',
-    href: '/trends', link: 'Plan › Trends',
+    href: '/budget#trends', link: 'Plan › Trends',
     lines: [
-      'Six months of spending as bars, with the budget marked on each one.',
-      'This month broken down by category, with the amounts written out beside it.',
+      'Six months of spending as a line, with the budget as a dashed line beside it.',
+      'This month by category, largest first, with the amounts written out beside each bar.',
       'The biggest changes on last month, so a jump is visible before the statement arrives.',
       'Tap any category to see the entries behind the number.',
     ],
@@ -160,32 +161,34 @@ export default async function Guide() {
 
   return (
     <Screen>
-      <main style={{ minHeight: '100dvh', background: 'var(--background)', paddingBottom: TAB_BAR_SPACE }}>
+      <main className="min-h-dvh bg-background text-foreground" style={{ paddingBottom: TAB_BAR_SPACE }}>
         <PageHead back="/" title="How it works" sub={`${SECTIONS.length} things worth knowing. Tap one to open it.`} />
 
         {/* One list, each topic shut until tapped: the questions come back one at a time, weeks apart, and fourteen
-            open cards were a 5,000px scroll to find one of them. Native <details>, so it opens with no script. */}
-        <ol className="mx-[var(--gutter)] overflow-hidden rounded-2xl border border-border bg-card">
-          {SECTIONS.map((s, i) => (
-            <li key={s.title} className={i === 0 ? '' : 'border-t border-border'}>
-              <details className="group">
-                <summary className="flex min-h-14 cursor-pointer list-none items-center gap-3 px-4 py-2">
-                  <span className="grid size-7 flex-none place-items-center rounded-full bg-accent text-xs font-bold text-accent-foreground">{i + 1}</span>
-                  <span className="flex-1 text-[15px] font-semibold">{s.title}</span>
-                  <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden
-                    className="flex-none text-muted-foreground transition-transform group-open:rotate-180"
-                    strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round"><path d="M6 9l6 6 6-6" /></svg>
-                </summary>
-                <div className="flex flex-col gap-2.5 pb-4 pl-14 pr-4">
-                  {s.lines.map((l) => <p key={l} className="text-sm leading-relaxed text-muted-foreground">{l}</p>)}
-                  <Link href={s.href} transitionTypes={['nav-forward']} className="flex min-h-11 items-center self-start text-sm font-semibold text-primary">
-                    {s.link} →
-                  </Link>
-                </div>
-              </details>
-            </li>
-          ))}
-        </ol>
+            open cards were a 5,000px scroll to find one of them. Native <details>, so it opens with no script.
+            pb-8 is the breathing gap, so the last topic, open, never ends flush under the tab bar. */}
+        <div className="px-[var(--gutter)] pb-8">
+          <ol className="overflow-hidden rounded-[18px] bg-card">
+            {SECTIONS.map((s, i) => (
+              <li key={s.title} className={i === 0 ? '' : 'border-t border-border'}>
+                <details className="group">
+                  <summary className="flex min-h-14 cursor-pointer list-none items-center gap-3 px-[var(--pad)] py-2.5 [&::-webkit-details-marker]:hidden">
+                    <span className="grid size-7 flex-none place-items-center rounded-full bg-accent text-xs font-bold text-accent-foreground tabular-nums">{i + 1}</span>
+                    <span className="flex-1 text-[15px] font-semibold leading-snug">{s.title}</span>
+                    <Icon name="expand_more" size={20} className="flex-none text-muted-foreground transition-transform group-open:rotate-180" />
+                  </summary>
+                  <div className="flex flex-col gap-2.5 pr-[var(--pad)] pb-4 pl-[calc(var(--pad)+40px)]">
+                    {s.lines.map((l) => <p key={l} className="text-[15px] leading-relaxed text-foreground">{l}</p>)}
+                    <Link href={s.href} transitionTypes={['nav-forward']}
+                      className="flex min-h-11 items-center gap-1 self-start text-sm font-semibold text-primary">
+                      {s.link}<Icon name="chevron_right" size={18} />
+                    </Link>
+                  </div>
+                </details>
+              </li>
+            ))}
+          </ol>
+        </div>
         <TabBar current="/guide" />
       </main>
     </Screen>

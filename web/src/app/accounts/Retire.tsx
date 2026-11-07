@@ -1,7 +1,13 @@
 'use client';
 
 import { useActionState, useState } from 'react';
+import { Icon } from '../Icon';
+import { ErrorNote } from '../auth-ui';
 import { archiveMethod, makeDefaultMethod } from './actions';
+
+/* Under a way to pay: Default (a word with a check, the one this household reaches for first) or Make default,
+   and Archive behind a second tap. Each a 44px target, in the row's quiet ink. */
+const link = 'press flex min-h-11 items-center gap-1.5 rounded-lg px-2 text-sm font-semibold disabled:opacity-60';
 
 export function MethodControls({ id, isDefault }: { id: string; isDefault: boolean }) {
   const [retireState, retire, retiring] = useActionState(archiveMethod, null);
@@ -9,40 +15,30 @@ export function MethodControls({ id, isDefault }: { id: string; isDefault: boole
   const [sure, setSure] = useState(false);
 
   return (
-    <span style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-start', marginLeft: -8 }}>
-      <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+    <div className="-ml-2 flex flex-col items-start gap-1.5">
+      <div className="flex flex-wrap items-center gap-1">
         {isDefault ? (
-          <span style={{
-            fontSize: 'var(--step--2)', fontWeight: 700, padding: '5px 9px', borderRadius: 7,
-            background: 'var(--accent)', color: 'var(--accent-foreground)', letterSpacing: '.03em', marginLeft: 8,
-          }}>Default</span>
+          <span className="ml-2 flex items-center gap-1 rounded-md bg-accent px-2 py-1 text-xs font-bold text-accent-foreground">
+            <Icon name="check" size={14} />Default
+          </span>
         ) : (
           <form action={setDefault}>
             <input type="hidden" name="id" value={id} />
-            <button type="submit" style={link}>Make default</button>
+            <button type="submit" className={`${link} text-muted-foreground`}>Make default</button>
           </form>
         )}
         {sure ? (
           <form action={retire}>
             <input type="hidden" name="id" value={id} />
-            <button type="submit" disabled={retiring} style={{ ...link, color: 'var(--destructive)' }}>
-              {retiring ? 'Archiving…' : 'Confirm'}
+            <button type="submit" disabled={retiring} className={`${link} text-destructive`}>
+              <Icon name="archive" size={16} />{retiring ? 'Archiving…' : 'Confirm'}
             </button>
           </form>
         ) : (
-          <button type="button" onClick={() => setSure(true)} style={link}>Archive</button>
+          <button type="button" onClick={() => setSure(true)} className={`${link} text-muted-foreground`}>Archive</button>
         )}
-      </span>
-      {retireState && !retireState.ok && (
-        <span role="alert" style={{ fontSize: 'var(--step--2)', color: 'var(--destructive)', maxWidth: 260, paddingLeft: 8 }}>
-          {retireState.error}
-        </span>
-      )}
-    </span>
+      </div>
+      {retireState && !retireState.ok && <div className="pl-2"><ErrorNote>{retireState.error}</ErrorNote></div>}
+    </div>
   );
 }
-
-const link: React.CSSProperties = {
-  minHeight: 44, padding: '0 8px', fontSize: 'var(--step--1)', fontWeight: 600,
-  color: 'var(--muted-foreground)', background: 'transparent',
-};

@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import Sheet from './Sheet';
+import BottomDrawer from './BottomDrawer';
 import { Chip } from './Icon';
 import { haptic } from './haptics';
 import type { Scope } from '@/lib/scope';
@@ -71,7 +71,7 @@ export default function CategoryFinder({ open, onClose, categories, selected, on
   };
 
   return (
-    <Sheet open={open} onClose={onClose} label="Find a category" focus={box}>
+    <BottomDrawer open={open} onClose={onClose} label="Find a category" focus={box}>
       <input ref={box} type="search" value={q} onChange={(e) => setQ(e.target.value)}
         placeholder="Find a category" aria-label="Find a category" autoComplete="off"
         enterKeyHint="search"
@@ -91,6 +91,6 @@ export default function CategoryFinder({ open, onClose, categories, selected, on
           {f.kids.map((k) => row(k, true))}
         </div>
       ))}
-    </Sheet>
+    </BottomDrawer>
   );
 }

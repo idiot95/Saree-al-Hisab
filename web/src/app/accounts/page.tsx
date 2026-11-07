@@ -1,14 +1,14 @@
 import Link from '@/app/NavLink';
+import { EmptyLine } from '../entries/parts';
 import { redirect } from 'next/navigation';
 import { Chip, RAIL_ICON, RAIL_TINT, ACCOUNT_ICON, ACCOUNT_TINT } from '../Icon';
 import {
-  actorOrNull, accountsWithBalances, allBalances, methodsWithFunding, openCyclesFor, owedByPerson, tabHeldOwed,
+  actorOrNull, accountsWithBalances, methodsWithFunding, openCyclesFor,
 } from '@/db/queries';
-import { IconChevronRight, IconChecks } from '@tabler/icons-react';
+import { worthInput } from '@/db/worth';
 import { netWorth } from '@/lib/worth';
-import MoneyNav from './MoneyNav';
+import PageHead from '../PageHead';
 import { withHousehold } from '@/db/client';
-import { format } from '@/lib/money';
 import TabBar from '../TabBar';
 import { TAB_BAR_SPACE } from '../tabs';
 import AddAccount from './AddAccount';
@@ -17,6 +17,8 @@ import EditAccount, { type Editable } from './EditAccount';
 import { MethodControls } from './Retire';
 import CardDeck, { type CardInfo } from './CardDeck';
 import Screen from '../Screen';
+import { Icon } from '../Icon';
+import { Figure } from '../Figure';
 
 export const metadata = { title: 'Accounts · Saree al-Hisab' };
 export const dynamic = 'force-dynamic';
@@ -32,16 +34,17 @@ export default async function Accounts() {
 
   const name = actor.household_name;
   const hh = actor.household_id;
-  const [accounts, methods, cycles, balances, owedTo, held] = await withHousehold(hh, () => Promise.all([
+  const [accounts, methods, cycles, wi] = await withHousehold(hh, () => Promise.all([
     accountsWithBalances(hh),
     methodsWithFunding(hh),
     openCyclesFor(hh),
-    allBalances(hh),
-    owedByPerson(hh),
-    tabHeldOwed(hh),
+    /* Read the way Wealth and Home read it — worthInput, holdings included — without waiting on a rate provider:
+       holdings are valued at the last stored rates, as on Home. */
+    worthInput(hh, actor.currency, { refreshRates: false }),
   ]));
-  /* The same figure the Net worth screen shows, from the same helper. */
-  const { worth, receivable, assetTotal, debtTotal } = netWorth(balances, owedTo.reduce((n, o) => n + Number(o.claimed), 0), Number(held));
+  const members = wi.members;
+  /* The same figure Wealth and Home show, from the same inputs and the same helper. */
+  const { worth, receivable, assetTotal, debtTotal } = netWorth(wi.input);
 
   const canWrite = actor.role !== 'viewer';
   const holdings = accounts.filter((a) => a.kind !== 'credit');
@@ -64,188 +67,197 @@ export default async function Accounts() {
      account but no way to pay from it. */
   const needsAccounts = accounts.length <= 1;
   const needsMethods = accounts.length > 1 && methods.length <= 1;
+  const owners = members.map((m) => ({ id: m.id, name: m.id === actor.user_id ? `${m.name} (you)` : m.name }));
   const editable = (a: (typeof accounts)[number]): Editable => ({
     id: a.id, name: a.name, kind: a.kind, last4: a.last4,
     bank_key: a.bank_key, card_network: a.card_network,
     opening: Number(a.opening_balance), limit: a.credit_limit ? Number(a.credit_limit) : null,
     statement_day: a.statement_day, due_day: a.due_day, methods: a.methods,
+    owner: a.owner_user_id,
+    owners,
   });
 
   return (
     <Screen>
       <main className="min-h-dvh bg-background text-foreground" style={{ paddingBottom: TAB_BAR_SPACE }}>
-        <header className="flex flex-col gap-3 px-[var(--gutter)] pb-4 pt-4">
-          <div className="min-w-0">
-            <h1 className="font-display text-[30px] leading-tight">Money</h1>
-            <p className="truncate text-sm text-muted-foreground">{name}</p>
-          </div>
-          <MoneyNav current="accounts" />
-        </header>
+        <PageHead back="/worth" title="Accounts" sub={name} />
 
-        <div className="flex flex-col gap-5 px-[var(--gutter)]">
-          <Link href="/worth" transitionTypes={['nav-lateral']}
-            className="flex flex-col gap-3 rounded-[22px] border border-border bg-card p-4">
-            <span className="flex items-center justify-between">
-              <span className="text-xs text-muted-foreground">Net worth</span>
-              <IconChevronRight size={17} className="text-muted-foreground" aria-hidden />
-            </span>
-            <span className="font-display text-[40px] leading-none tabular-nums" style={worth < 0 ? { color: 'var(--destructive)' } : undefined}>
-              {format(worth)}
-            </span>
-            <dl className="grid grid-cols-3 gap-2 border-t border-border pt-3">
-              {/* The three parts of the headline, so they add up to it: held, plus owed to you, less what you owe. */}
-              <Mini term="Held" value={format(assetTotal)} />
-              <Mini term="Owed to you" value={format(receivable)} />
-              <Mini term="You owe" value={format(Math.abs(debtTotal))} />
-            </dl>
-          </Link>
+        <div className="flex flex-col gap-6 pb-8">
+          <div className="flex flex-col gap-6 px-[var(--gutter)]">
+            {/* The same figure Wealth shows, from the same helper; a tap goes there. */}
+            <Link href="/worth" transitionTypes={['nav-lateral']} aria-label="Net worth, open Wealth"
+              className="press flex flex-col gap-3 rounded-[22px] bg-card p-[18px] text-foreground no-underline">
+              <span className="flex items-center justify-between">
+                <span className="text-[13px] text-muted-foreground">Net worth</span>
+                <Icon name="chevron_right" size={20} className="text-muted-foreground" />
+              </span>
+              <Figure minor={worth}
+                className={`text-[38px] font-bold leading-none tracking-tight tabular-nums ${worth < 0 ? 'text-destructive' : ''}`} />
+              <dl className="grid grid-cols-3 gap-2 border-t border-border pt-3">
+                {/* The three parts of the headline, so they add up to it: held, plus owed to you, less what you owe. */}
+                <Mini term="Held" value={assetTotal} />
+                <Mini term="Owed to you" value={receivable} />
+                <Mini term="You owe" value={Math.abs(debtTotal)} />
+              </dl>
+            </Link>
 
-          <Section title="Bank and cash">
-            <List>
-              {everyday.map((a, i) => (
-                <EditAccount key={a.id} account={editable(a)} canWrite={canWrite} last={i === everyday.length - 1}>
-                  <AccountLine a={a} rails={railsOn(a.id)} />
-                </EditAccount>
-              ))}
-              {everyday.length === 0 && <Empty>No accounts yet.</Empty>}
-            </List>
-          </Section>
-
-          {saved.length > 0 && (
-            <Section title="Savings" note="Outside the monthly budget: money moved here is not spending.">
+            <Section title="Bank and cash">
               <List>
-                {saved.map((a, i) => (
-                  <EditAccount key={a.id} account={editable(a)} canWrite={canWrite} last={i === saved.length - 1}>
+                {everyday.map((a, i) => (
+                  <EditAccount key={a.id} account={editable(a)} canWrite={canWrite} last={i === everyday.length - 1}>
                     <AccountLine a={a} rails={railsOn(a.id)} />
                   </EditAccount>
                 ))}
+                {everyday.length === 0 && <Empty icon="account_balance">No bank account or cash yet.{canWrite && ' Add one below.'}</Empty>}
               </List>
             </Section>
-          )}
-        </div>
 
-        {cards.length > 0 && (
-          <section aria-label="Credit cards" className="mt-5 flex flex-col gap-2">
-            <h2 className="px-[calc(var(--gutter)+4px)] text-xs font-semibold uppercase tracking-wider text-muted-foreground">Credit cards</h2>
-            <CardDeck canWrite={canWrite} cards={cards.map((a): CardInfo => {
-              const cyc = cycleFor(a.id);
-              return {
-                edit: editable(a),
-                /* A card goes negative as it is spent on; a positive balance was overpaid and owes nothing. */
-                owed: Math.max(0, -Number(a.balance)),
-                limit: a.credit_limit ? Number(a.credit_limit) : null,
-                cycle: cyc
-                  ? { charged: Number(cyc.charged), entries: cyc.entries,
-                      dueOn: new Date(cyc.due_on).toISOString().slice(0, 10) }
-                  : null,
-              };
-            })} />
-          </section>
-        )}
+            {saved.length > 0 && (
+              <Section title="Savings" note="Outside the monthly budget: money moved here is not spending.">
+                <List>
+                  {saved.map((a, i) => (
+                    <EditAccount key={a.id} account={editable(a)} canWrite={canWrite} last={i === saved.length - 1}>
+                      <AccountLine a={a} rails={railsOn(a.id)} />
+                    </EditAccount>
+                  ))}
+                </List>
+              </Section>
+            )}
+          </div>
 
-        <div className="mt-5 flex flex-col gap-3 px-[var(--gutter)]">
-          {canWrite && accounts.length > 0 && (
-            <Link href="/accounts/reconcile" transitionTypes={['nav-forward']}
-              className="flex min-h-14 items-center gap-3 rounded-2xl border border-border bg-card px-4">
-              <IconChecks size={20} className="text-primary" aria-hidden />
-              <span className="flex min-w-0 flex-1 flex-col">
-                <span className="text-[15px] font-semibold">Reconcile with a statement</span>
-                <span className="text-xs text-muted-foreground">Match an account or card to what its statement says</span>
-              </span>
-              <IconChevronRight size={17} className="text-muted-foreground" aria-hidden />
-            </Link>
+          {cards.length > 0 && (
+            <section aria-labelledby="sec-cards" className="flex flex-col gap-1.5">
+              <h2 id="sec-cards" className="px-[calc(var(--gutter)+2px)] text-[13px] font-semibold text-muted-foreground">Credit cards</h2>
+              <CardDeck canWrite={canWrite} cards={cards.map((a): CardInfo => {
+                const cyc = cycleFor(a.id);
+                return {
+                  edit: editable(a),
+                  /* A card goes negative as it is spent on; a positive balance was overpaid and owes nothing. */
+                  owed: Math.max(0, -Number(a.balance)),
+                  limit: a.credit_limit ? Number(a.credit_limit) : null,
+                  cycle: cyc
+                    ? { charged: Number(cyc.charged), entries: cyc.entries,
+                        dueOn: new Date(cyc.due_on).toISOString().slice(0, 10) }
+                    : null,
+                };
+              })} />
+            </section>
           )}
-          {canWrite && (
-            <p className="px-1 text-xs leading-relaxed text-muted-foreground">
-              Tap an account to rename it, correct its starting balance, or archive it. Swipe it to move money or reconcile.
+
+          <div className="flex flex-col gap-3 px-[var(--gutter)]">
+            {canWrite && accounts.length > 0 && (
+              <Link href="/accounts/reconcile" transitionTypes={['nav-forward']}
+                className="press flex min-h-16 items-center gap-3 rounded-[18px] bg-card px-[var(--pad)] py-3 text-foreground no-underline">
+                <span className="grid size-[38px] flex-none place-items-center rounded-full bg-accent text-accent-foreground">
+                  <Icon name="done_all" size={20} />
+                </span>
+                <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                  <span className="text-[15px] font-semibold">Reconcile with a statement</span>
+                  <span className="text-[13px] leading-snug text-muted-foreground">Match an account or card to what its statement says</span>
+                </span>
+                <Icon name="chevron_right" size={20} className="flex-none text-muted-foreground" />
+              </Link>
+            )}
+            {canWrite && <AddAccount startOpen={needsAccounts} />}
+            {canWrite && (
+              <p className="px-0.5 text-[13px] leading-snug text-muted-foreground">
+                Tap an account to rename it, correct its starting balance, or archive it. Swipe it to move money or reconcile.
+              </p>
+            )}
+          </div>
+
+          <div className="flex flex-col gap-3 px-[var(--gutter)]">
+            <Section title="Ways to pay"
+              note="GPay, PhonePe, net banking, a debit card — each is linked to the account it takes money from, so what you spend through it comes off the right balance. Cash and credit cards are ways to pay on their own.">
+              <List>
+                {methods.map((m, i) => (
+                  <div key={m.id} className={`flex min-h-[68px] items-start gap-3 py-3 ${i === methods.length - 1 ? '' : 'border-b border-border'}`}>
+                    <Chip icon={RAIL_ICON[m.kind] ?? 'tag'} tint={RAIL_TINT[m.kind] ?? 'neutral'} size={38} radius={999} />
+                    <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                      <span className="text-[15px] font-semibold leading-snug [overflow-wrap:anywhere]">{m.name}</span>
+                      {/* Which balance it spends, in as few words as the row has space for. */}
+                      <span className="text-[13px] leading-snug text-muted-foreground [overflow-wrap:anywhere]">
+                        {(m.kind === 'card' && m.funds_kind === 'credit') || (m.kind === 'cash' && m.funds_kind === 'cash')
+                          ? `The ${m.kind === 'card' ? 'card' : 'cash'} itself`
+                          : `From ${m.funds}`}
+                        {m.handle && ` · ${m.handle}`}
+                      </span>
+                      {canWrite && <div className="mt-0.5"><MethodControls id={m.id} isDefault={m.is_default} /></div>}
+                    </div>
+                  </div>
+                ))}
+                {methods.length === 0 && <Empty icon="qr_code_2">No apps or cards linked yet.</Empty>}
+              </List>
+            </Section>
+            {canWrite && <AddMethod startOpen={needsMethods}
+              accounts={accounts.map((a) => ({ id: a.id, name: a.name, kind: a.kind }))} />}
+          </div>
+
+          {!canWrite && (
+            <p className="mx-[var(--gutter)] flex items-start justify-center gap-1.5 text-center text-sm text-muted-foreground">
+              <Icon name="lock" size={16} className="mt-px" />
+              Only owners and contributing members can change accounts.
             </p>
           )}
         </div>
-        {canWrite && <div className="mt-1"><AddAccount startOpen={needsAccounts} /></div>}
-
-        <div className="mt-5 flex flex-col gap-2 px-[var(--gutter)]">
-          <Section title="Ways to pay"
-            note="GPay, PhonePe, net banking, a debit card — each is linked to the account it takes money from, so what you spend through it comes off the right balance. Cash and credit cards are ways to pay on their own.">
-            <List>
-              {methods.map((m, i) => (
-                <div key={m.id} className={`flex min-h-[68px] items-start gap-3 py-3 ${i === methods.length - 1 ? '' : 'border-b border-border'}`}>
-                  <Chip icon={RAIL_ICON[m.kind] ?? 'tag'} tint={RAIL_TINT[m.kind] ?? 'neutral'} size={36} radius={10} />
-                  <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-                    <span className="text-[15px] font-semibold">{m.name}</span>
-                    {/* Which balance it spends, in as few words as the row has space for. */}
-                    <span className="text-xs text-muted-foreground">
-                      {(m.kind === 'card' && m.funds_kind === 'credit') || (m.kind === 'cash' && m.funds_kind === 'cash')
-                        ? `The ${m.kind === 'card' ? 'card' : 'cash'} itself`
-                        : `From ${m.funds}`}
-                      {m.handle && ` · ${m.handle}`}
-                    </span>
-                    {canWrite && <span className="mt-0.5"><MethodControls id={m.id} isDefault={m.is_default} /></span>}
-                  </span>
-                </div>
-              ))}
-              {methods.length === 0 && <Empty>No apps or cards linked yet.</Empty>}
-            </List>
-          </Section>
-        </div>
-
-        {canWrite && <div className="mt-1"><AddMethod startOpen={needsMethods}
-          accounts={accounts.map((a) => ({ id: a.id, name: a.name, kind: a.kind }))} /></div>}
-
-        {!canWrite && (
-          <p className="mx-[var(--gutter)] mt-4 text-center text-sm text-muted-foreground">
-            Only owners and contributing members can change accounts.
-          </p>
-        )}
         <TabBar current="/accounts" />
       </main>
     </Screen>
   );
 }
 
-function Mini({ term, value }: { term: string; value: string }) {
+function Mini({ term, value }: { term: string; value: number }) {
   return (
     <div className="flex min-w-0 flex-col gap-0.5">
-      <dt className="text-[11px] text-muted-foreground">{term}</dt>
-      <dd className="truncate text-sm font-semibold tabular-nums">{value}</dd>
+      <dt className="text-xs text-muted-foreground">{term}</dt>
+      <dd className="text-sm font-semibold tabular-nums [overflow-wrap:anywhere]"><Figure minor={value} /></dd>
     </div>
   );
 }
 
+/* A section's label over its card, as on Wealth, Loans and Household: named by its heading. */
 function Section({ title, note, children }: { title: string; note?: string; children: React.ReactNode }) {
+  const id = `sec-${title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
   return (
-    <section aria-label={title} className="flex flex-col gap-2">
-      <h2 className="px-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">{title}</h2>
-      {note && <p className="px-1 text-xs leading-relaxed text-muted-foreground">{note}</p>}
+    <section aria-labelledby={id} className="flex flex-col gap-1.5">
+      <h2 id={id} className="px-0.5 text-[13px] font-semibold text-muted-foreground">{title}</h2>
+      {note && <p className="px-0.5 pb-0.5 text-[13px] leading-snug text-muted-foreground">{note}</p>}
       {children}
     </section>
   );
 }
 
+/* One list card. px-[var(--pad)] and overflow-hidden: a swipe row's negative margin is --pad, so its actions stop
+   at the rounded edge and the card never scrolls sideways. */
 function List({ children }: { children: React.ReactNode }) {
-  return <div className="overflow-hidden rounded-2xl border border-border bg-card px-4">{children}</div>;
+  return <div className="overflow-hidden rounded-[18px] bg-card px-[var(--pad)]">{children}</div>;
 }
 
 type AccountRow = Awaited<ReturnType<typeof accountsWithBalances>>[number];
 
+/* The account's chip, its name and what it is, and its balance as a Figure (it rolls when an edit or a
+   reconciliation moves it). Names and rails wrap to a second line rather than being cut off. */
 function AccountLine({ a, rails }: { a: AccountRow; rails: string[] }) {
+  const bal = Number(a.balance);
   return (
     <>
-      <Chip icon={ACCOUNT_ICON[a.kind]} tint={ACCOUNT_TINT[a.kind]} size={36} radius={10} />
+      <Chip icon={ACCOUNT_ICON[a.kind]} tint={ACCOUNT_TINT[a.kind]} size={38} radius={999} />
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <span className="truncate text-[15px] font-semibold">{a.name}</span>
-        <span className="text-xs text-muted-foreground">
+        <span className="text-[15px] font-semibold leading-snug [overflow-wrap:anywhere]">{a.name}</span>
+        <span className="text-[13px] leading-snug text-muted-foreground">
           {KIND_LABEL[a.kind]}{a.last4 && ` · ends ${a.last4}`}
-          {a.reconciled_on && ` · matched ${new Date(`${a.reconciled_on}T00:00:00`).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}`}
+          {a.reconciled_on && <> · <Icon name="check" size={13} className="align-[-2px]" /> matched {new Date(`${a.reconciled_on}T00:00:00`).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</>}
         </span>
-        {rails.length > 0 && <span className="truncate text-xs text-muted-foreground">Paid through {rails.join(', ')}</span>}
+        {rails.length > 0 && <span className="text-[13px] leading-snug text-muted-foreground [overflow-wrap:anywhere]">Paid through {rails.join(', ')}</span>}
       </span>
-      <span className="text-[17px] font-semibold tabular-nums" style={Number(a.balance) < 0 ? { color: 'var(--destructive)' } : undefined}>
-        {format(Number(a.balance))}
+      <span className="flex flex-none flex-col items-end gap-0.5">
+        <Figure minor={bal} className={`text-[16px] font-semibold tabular-nums ${bal < 0 ? 'text-destructive' : ''}`} />
+        {bal < 0 && <span className="flex items-center gap-0.5 text-xs font-medium text-destructive"><Icon name="warning" size={13} />Overdrawn</span>}
       </span>
     </>
   );
 }
 
-function Empty({ children }: { children: React.ReactNode }) {
-  return <p className="py-5 text-center text-sm text-muted-foreground">{children}</p>;
+function Empty({ icon, children }: { icon: string; children: React.ReactNode }) {
+  return <EmptyLine icon={icon} className="">{children}</EmptyLine>;
 }

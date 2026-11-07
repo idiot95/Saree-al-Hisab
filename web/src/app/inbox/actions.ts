@@ -1,9 +1,11 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
 import { sql, withHousehold } from '@/db/client';
 import { currentActor } from '@/db/queries';
 import { rethrowControlFlow } from '@/lib/rethrow';
+import { dismissDraftIn, restoreDraftIn } from '@/lib/sms-draft';
 
 export type Result = { ok: true; message?: string } | { ok: false; error: string };
 
@@ -42,7 +44,8 @@ export async function notDuplicate(_prev: Result | null, fd: FormData): Promise<
       insert into duplicate_dismissed (low_id, high_id, dismissed_by)
       values (${a}, ${b}, ${actor.user_id}) on conflict do nothing`;
 
-    revalidatePath('/inbox');
+    revalidatePath('/entries');
+    revalidatePath('/');
     return { ok: true, message: 'Kept both.' };
   });
 }
@@ -62,9 +65,48 @@ export async function dropDuplicate(_prev: Result | null, fd: FormData): Promise
       returning id`;
     if (!done.length) return { ok: false, error: 'That entry is not one of yours.' };
 
-    revalidatePath('/inbox');
     revalidatePath('/entries');
     revalidatePath('/');
     return { ok: true, message: 'Removed the copy.' };
+  });
+}
+
+/* ── bank messages ──────────────────────────────────────────────────────── */
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** "This was nothing." The draft leaves To review and its text is deleted at
+ *  once; the figures it was read as stay for fifteen minutes of Undo. */
+export async function dismissDraft(_prev: Result | null, fd: FormData): Promise<Result> {
+  let actor;
+  try { actor = await mustWrite(); }
+  catch (e) { rethrowControlFlow(e); return { ok: false, error: (e as Error).message }; }
+  const id = String(fd.get('id') ?? '');
+  if (!UUID.test(id)) return { ok: false, error: 'That message could not be read.' };
+  return withHousehold(actor.household_id, async () => {
+    if (!(await dismissDraftIn(sql, actor.household_id, id))) {
+      return { ok: false, error: 'That message is not waiting here any more.' };
+    }
+    revalidatePath('/entries');
+    revalidatePath('/');
+    // From the message's own screen, back to the list it left (with the Undo): that screen has nothing left to do.
+    if (fd.get('then') === 'inbox') redirect(`/entries?f=sms&dismissed=${id}`);
+    return { ok: true, message: 'Dismissed.' };
+  });
+}
+
+/** Undo a dismissal, inside fifteen minutes. */
+export async function restoreDraft(id: unknown): Promise<Result> {
+  let actor;
+  try { actor = await mustWrite(); }
+  catch (e) { rethrowControlFlow(e); return { ok: false, error: (e as Error).message }; }
+  if (typeof id !== 'string' || !UUID.test(id)) return { ok: false, error: 'That message could not be read.' };
+  return withHousehold(actor.household_id, async () => {
+    if (!(await restoreDraftIn(sql, actor.household_id, id))) {
+      return { ok: false, error: 'That message could not be brought back.' };
+    }
+    revalidatePath('/entries');
+    revalidatePath('/');
+    return { ok: true };
   });
 }

@@ -1,4 +1,5 @@
 import Link from '@/app/NavLink';
+import { Empty } from '../entries/parts';
 import { redirect } from 'next/navigation';
 import { actorOrNull, claimsFor, peopleFor, receiptsByMonth, tabList, type TabRow } from '@/db/queries';
 import { withHousehold } from '@/db/client';
@@ -8,10 +9,11 @@ import { TAB_BAR_SPACE } from '../tabs';
 import NewTab from '../tab/NewTab';
 import { Chip, Icon } from '../Icon';
 import Screen from '../Screen';
-import PageHead, { Label } from '../PageHead';
+import PageHead from '../PageHead';
+import { Figure } from '../Figure';
 import { owedToYou } from '@/lib/worth';
 import Swipeable from '../Swipeable';
-import { Face, Faces, tabTint } from '../tab/look';
+import { Face, tabTint } from '../tab/look';
 
 export const metadata = { title: 'Loans · Saree al-Hisab' };
 export const dynamic = 'force-dynamic';
@@ -56,106 +58,85 @@ export default async function LoanCentre() {
   return (
     <Screen>
       <main className="min-h-dvh bg-background text-foreground" style={{ paddingBottom: TAB_BAR_SPACE }}>
-        <PageHead title="Loans" sub="What you put down for others, and what comes back" />
+        <PageHead title="Loans" right={canWrite ? <NewTab /> : undefined} />
 
-        <section aria-label="What is owed" className="mx-[var(--gutter)] mb-5 flex flex-col gap-3 rounded-[22px] border border-border bg-card p-4">
-          <dl className="grid grid-cols-2 gap-3">
-            <div className="flex min-w-0 flex-col gap-0.5">
-              <dt className="text-xs text-muted-foreground">Owed to you</dt>
-              <dd className="truncate font-display text-[34px] leading-none tabular-nums">{format(owed)}</dd>
-            </div>
+        <div className="flex flex-col gap-5 px-[var(--gutter)] pb-6">
+          {/* "Owed to you" is Home's figure exactly (owedToYou().owed, gross): money arriving, so money-in with a +.
+              What you owe others is never netted against it; it is its own line, in plain ink, with the words. */}
+          <section aria-label="Owed to you" className="flex flex-col gap-2 rounded-[22px] bg-card p-[18px]">
+            <span className="text-[13px] text-muted-foreground">Owed to you</span>
+            <Figure minor={owed} sign={owed > 0}
+              className={`text-[38px] font-bold leading-none tracking-tight tabular-nums ${owed > 0 ? 'text-money-in' : ''}`} />
             {youOwe > 0 && (
-              <div className="flex min-w-0 flex-col gap-0.5">
-                <dt className="text-xs text-muted-foreground">You owe</dt>
-                <dd className="truncate font-display text-[34px] leading-none tabular-nums">{format(youOwe)}</dd>
-              </div>
+              <span className="text-[15px] font-medium">
+                You owe <Figure minor={youOwe} className="font-semibold tabular-nums" />
+              </span>
             )}
-          </dl>
-          <p className="border-t border-border pt-3 text-sm text-muted-foreground">
-            {tabs.length === 0
-              ? 'A tab keeps what you put down for others (a trip, the office, a cousin) and what comes back.'
-              : [
-                  `Across ${open.length} open ${open.length === 1 ? 'tab' : 'tabs'}`,
-                  backThisMonth > 0 ? `${format(backThisMonth)} came back in ${month}` : null,
-                ].filter(Boolean).join(' · ')}
-          </p>
-        </section>
+            <span className="text-[13px] leading-snug text-muted-foreground">
+              {tabs.length === 0 && lent.length === 0
+                ? 'A tab keeps what you put down for others (a trip, the office, a cousin) and what comes back.'
+                : [
+                    `Across ${open.length} open ${open.length === 1 ? 'tab' : 'tabs'}`,
+                    backThisMonth > 0 ? `${format(backThisMonth)} came back in ${month}` : null,
+                  ].filter(Boolean).join(' · ')}
+            </span>
+          </section>
 
-        <div>
-          {open.length > 0 && (
-            <>
-              <Head>Open tabs</Head>
-              <section className="border border-border" style={{
-                margin: '0 var(--gutter) 14px', background: 'var(--card)', borderRadius: 18,
-                padding: '0 var(--pad)', overflow: 'hidden',
-              }}>
-                {open.map((t, i) => (
-                  <TabItem key={t.id} t={t} last={i === open.length - 1} canWrite={canWrite} />
-                ))}
-              </section>
-            </>
+          {tabs.length === 0 && lent.length === 0 && (
+            /* Nothing to list yet: what would be here, and where to start (New tab, in the header). */
+            <Empty icon="group" inset={false} text={canWrite ? 'No tabs yet. New tab, above, starts one.' : 'No tabs yet.'} />
           )}
 
-          {canWrite && <NewTab />}
+          {open.length > 0 && (
+            <section aria-label="Open tabs" className="flex flex-col gap-1.5">
+              <h2 className="px-0.5 text-[13px] font-semibold text-muted-foreground">Open tabs</h2>
+              {/* px-[var(--pad)] and overflow-hidden: the swipe row's negative margin is --pad, so its actions stop
+                  at the card's rounded edge and the card never scrolls sideways. */}
+              <div className="overflow-hidden rounded-[18px] bg-card px-[var(--pad)]">
+                {open.map((t, i) => <TabItem key={t.id} t={t} last={i === open.length - 1} canWrite={canWrite} />)}
+              </div>
+            </section>
+          )}
 
           {done.length > 0 && (
-            <details className="border border-border" style={{
-              margin: '0 var(--gutter) 22px', background: 'var(--card)', borderRadius: 18,
-              padding: '0 var(--pad)', overflow: 'hidden',
-            }}>
-              <summary style={{
-                listStyle: 'none', display: 'flex', alignItems: 'center', gap: 12, minHeight: 60,
-                cursor: 'pointer', color: 'var(--muted-foreground)',
-              }}>
-                <span style={{
-                  width: 40, height: 40, flex: 'none', borderRadius: 11, display: 'flex',
-                  alignItems: 'center', justifyContent: 'center', background: 'var(--muted)', color: 'var(--muted-foreground)',
-                }}><Icon name="check" size={19} strokeWidth={2.2} /></span>
-                <span style={{ flex: 1, fontSize: 'var(--step-0)', fontWeight: 500 }}>
-                  {done.length} settled or closed {done.length === 1 ? 'tab' : 'tabs'}
-                </span>
-                <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                  strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M6 9l6 6 6-6" /></svg>
+            <details className="group overflow-hidden rounded-[18px] bg-card px-[var(--pad)]">
+              <summary className="flex min-h-14 cursor-pointer list-none items-center gap-3 text-[15px] font-medium text-muted-foreground [&::-webkit-details-marker]:hidden">
+                <Icon name="check_circle" size={22} />
+                <span className="flex-1">{done.length} settled or closed {done.length === 1 ? 'tab' : 'tabs'}</span>
+                <Icon name="expand_more" size={20} className="transition-transform group-open:rotate-180" />
               </summary>
-              <div style={{ borderTop: '1px solid var(--border)' }}>
-                {done.map((t, i) => (
-                  <TabItem key={t.id} t={t} last={i === done.length - 1} canWrite={false} quiet />
-                ))}
+              <div className="border-t border-border">
+                {done.map((t, i) => <TabItem key={t.id} t={t} last={i === done.length - 1} canWrite={false} quiet />)}
               </div>
             </details>
           )}
 
-          {/* Money handed to someone outside any tab — the older khata. Only
-              shown when there is some, so it never asks to be managed. */}
+          {/* Money handed to someone outside any tab — the older khata. Only shown when there is some, so it never
+              asks to be managed. */}
           {lent.length > 0 && (
-            <>
-              <Head>Lent outside a tab</Head>
-              <section className="border border-border" style={{
-                margin: '0 var(--gutter) 22px', background: 'var(--card)', borderRadius: 18, padding: '0 var(--pad)',
-              }}>
-                {lent.map((p, i) => {
+            <section aria-label="Lent outside a tab" className="flex flex-col gap-1.5">
+              <h2 className="px-0.5 text-[13px] font-semibold text-muted-foreground">Lent outside a tab</h2>
+              <ul className="overflow-hidden rounded-[18px] bg-card">
+                {lent.map((p) => {
                   const bal = Number(p.balance);
                   return (
-                    <Link key={p.id} href={`/people/${p.id}`} transitionTypes={['nav-forward']} style={{
-                      display: 'flex', alignItems: 'center', gap: 12, minHeight: 66,
-                      textDecoration: 'none', color: 'var(--foreground)',
-                      borderBottom: i === lent.length - 1 ? undefined : '1px solid var(--border)',
-                    }}>
-                      <Face name={p.name} tint={p.tint} />
-                      <span style={{ flex: 1, minWidth: 0, fontSize: 'var(--step-0)', fontWeight: 600 }}>{p.name}</span>
-                      <span style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', gap: 2 }}>
-                        <span className="t" style={{ fontSize: 'var(--step-1)', color: bal < 0 ? 'var(--money-out)' : 'var(--foreground)' }}>
-                          {format(Math.abs(bal))}
+                    <li key={p.id} className="border-b border-border last:border-b-0">
+                      <Link href={`/people/${p.id}`} transitionTypes={['nav-forward']}
+                        className="press flex min-h-16 items-center gap-3 px-3.5">
+                        <Face name={p.name} tint={p.tint} size={36} />
+                        <span className="min-w-0 flex-1 text-[15px] font-medium leading-snug [overflow-wrap:anywhere]">{p.name}</span>
+                        <span className="flex flex-col items-end gap-0.5">
+                          <Figure minor={Math.abs(bal)} sign={bal > 0}
+                            className={`text-[15px] font-semibold tabular-nums ${bal > 0 ? 'text-money-in' : ''}`} />
+                          <span className="text-xs text-muted-foreground">{bal > 0 ? 'owes you' : 'you owe'}</span>
                         </span>
-                        <span style={{ fontSize: 'var(--step--2)', color: 'var(--muted-foreground)' }}>
-                          {bal > 0 ? 'owes you' : 'you owe'}
-                        </span>
-                      </span>
-                    </Link>
+                        <Icon name="chevron_right" size={18} className="text-muted-foreground" />
+                      </Link>
+                    </li>
                   );
                 })}
-              </section>
-            </>
+              </ul>
+            </section>
           )}
         </div>
         <TabBar current="/people" />
@@ -164,68 +145,40 @@ export default async function LoanCentre() {
   );
 }
 
-/* One tab: its colour, who is on it, what is still owed and how much of it has
-   come back. Swipe for Remind and Add cost — both also a tap away inside. */
-function TabItem({ t, last, canWrite, quiet = false }: {
-  t: TabRow; last: boolean; canWrite: boolean; quiet?: boolean;
-}) {
+const day = (d: Date | string) => new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+
+/* One tab, as the list row the mock draws: its folder in the tab's own tint, the name, the count
+   of costs and the last day anything happened (who is on it and what came back are on the tab itself), and what is still to come back. Swipe for Remind and Add cost —
+   both also a tap away inside. */
+function TabItem({ t, last, canWrite, quiet = false }: { t: TabRow; last: boolean; canWrite: boolean; quiet?: boolean }) {
   const outstanding = Number(t.outstanding);
-  const inAll = Number(t.owed_in_all);
-  const back = Number(t.back);
-  const pct = inAll > 0 ? Math.min(100, Math.round((back / inAll) * 100)) : 0;
   const actions = canWrite && !t.closed_at ? [
     ...(outstanding > 0 ? [{ label: 'Remind', icon: 'bell', tone: 'neutral' as const, href: `/tab/${t.id}?remind=all` }] : []),
     { label: 'Add cost', icon: 'plus', tone: 'primary' as const, href: `/add?tab=${t.id}` },
   ] : [];
+  const sub = [
+    t.costs === 0 ? 'Nothing on it yet' : `${t.costs} ${t.costs === 1 ? 'cost' : 'costs'}`,
+    t.last_on ? `last cost ${day(t.last_on)}` : null,
+    t.closed_at ? 'closed' : null,
+  ].filter(Boolean).join(' · ');
 
   return (
     <Swipeable actions={actions} commit={false}>
-      <Link href={`/tab/${t.id}`} transitionTypes={['nav-forward']} draggable={false} style={{
-        display: 'flex', flexDirection: 'column', gap: 10, padding: '14px 0 13px',
-        textDecoration: 'none', color: 'var(--foreground)', opacity: quiet ? 0.72 : 1,
-        borderBottom: last ? undefined : '1px solid var(--border)',
-      }}>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <Chip icon="folder" tint={tabTint(t.id)} />
-          <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 5 }}>
-            <span style={{
-              fontSize: 'var(--step-0)', fontWeight: 600, overflow: 'hidden',
-              textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-            }}>{t.name}</span>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 'var(--step--2)', color: 'var(--muted-foreground)' }}>
-              <Faces people={t.members} />
-              <span>
-                {t.members.length === 0 ? '· ' : ''}
-                {t.costs === 0 ? 'nothing on it yet' : `${t.costs} ${t.costs === 1 ? 'cost' : 'costs'}`}
-                {t.closed_at ? ' · closed' : ''}
-              </span>
-            </span>
-          </span>
-          <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2, flex: 'none' }}>
-            <span className="t" style={{
-              fontSize: 'var(--step-1)', color: outstanding === 0 ? 'var(--muted-foreground)' : 'var(--foreground)',
-            }}>{outstanding === 0 ? (t.costs > 0 ? 'settled' : '—') : format(outstanding)}</span>
-            {inAll > 0 && (
-              <span style={{ fontSize: 'var(--step--2)', color: 'var(--muted-foreground)' }}>
-                {back > 0 ? `${format(back)} back` : 'none back yet'}
-              </span>
-            )}
-          </span>
+      <Link href={`/tab/${t.id}`} transitionTypes={['nav-forward']} draggable={false}
+        className={`relative flex min-h-16 items-center gap-3 py-3 ${last ? '' : 'after:absolute after:right-0 after:bottom-0 after:left-12 after:h-px after:bg-border'} ${quiet ? 'opacity-75' : ''}`}>
+        <Chip icon="folder" tint={tabTint(t.id)} size={36} radius={999} />
+        <span className="flex min-w-0 flex-1 flex-col gap-1">
+          <span className="text-[15px] font-medium leading-snug [overflow-wrap:anywhere]">{t.name}</span>
+          <span className="text-xs leading-snug text-muted-foreground">{sub}</span>
         </span>
-        {inAll > 0 && outstanding > 0 && (
-          <span role="img" aria-label={`${pct}% come back`} style={{
-            marginLeft: 52, height: 4, borderRadius: 999, background: 'var(--muted)', overflow: 'hidden', display: 'block',
-          }}>
-            <span style={{
-              display: 'block', width: `${pct}%`, height: 4, borderRadius: 999, background: 'var(--chart-1)',
-            }} />
+        {outstanding > 0 ? (
+          <Figure minor={outstanding} className="flex-none text-[15px] font-semibold tabular-nums" />
+        ) : (
+          <span className="flex flex-none items-center gap-1 text-[13px] font-medium text-muted-foreground">
+            {t.costs > 0 ? <><Icon name="check" size={16} />Settled</> : 'Empty'}
           </span>
         )}
       </Link>
     </Swipeable>
   );
-}
-
-function Head({ children }: { children: React.ReactNode }) {
-  return <div className="mx-[var(--gutter)] mb-2"><Label>{children}</Label></div>;
 }

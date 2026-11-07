@@ -64,6 +64,12 @@ assert.equal(format(1500, 'KWD'), 'KD\u00a02');                        // 1.500 
 assert.equal(format(1500, 'KWD', { paise: true }), 'KD\u00a01.500');
 assert.equal(format(234050, 'INR', { paise: true }), '₹2,340.50');   // the accounting form
 assert.equal(format(21560000, 'INR', { paise: true }), '₹2,15,600.00');
+// 'auto': the minor units only when there are some — what Add Entry's Save says.
+assert.equal(format(234000, 'INR', { paise: 'auto' }), '₹2,340');
+assert.equal(format(234050, 'INR', { paise: 'auto' }), '₹2,340.50');
+assert.equal(format(1500, 'KWD', { paise: 'auto' }), 'KD\u00a01.500');
+assert.equal(format(2000, 'KWD', { paise: 'auto' }), 'KD\u00a02');
+assert.equal(format(1250, 'JPY', { paise: 'auto' }), '¥1,250');
 assert.equal(format(1250, 'JPY'), '¥1,250');
 assert.equal(format(1250, 'JPY', { paise: true }), '¥1,250');
 assert.equal(format(123456, 'SAR', { paise: true }), '\u20C11,234.56');  // the 2025 riyal sign
@@ -121,3 +127,32 @@ for (const x of CURRENCIES) {
 }
 assert.equal(new Set(CURRENCIES.map((x) => x.code)).size, CURRENCIES.length);
 console.log(`money: ${CURRENCIES.length} currencies, 52 more assertions passed`);
+
+// Figure: the rolling digits draw the same text format() writes.
+{
+  const { toMajor, figureParts } = await import(`${process.env.LIB}/money.js`);
+  assert.equal(toMajor(234000, 'INR'), 2340);
+  assert.equal(toMajor(1500, 'KWD'), 1.5);
+  assert.equal(toMajor(500, 'JPY'), 500);
+  const drawn = (minor, ccy, opts) => {
+    const p = figureParts(minor, ccy, opts);
+    return p.prefix + new Intl.NumberFormat(p.locale, p.format).format(p.value);
+  };
+  for (const [m, ccy] of [[234000, 'INR'], [12345678, 'INR'], [123456700, 'AED'], [1500, 'KWD'], [500, 'JPY'], [0, 'INR'], [-234000, 'INR']]) {
+    assert.equal(drawn(m, ccy), format(m, ccy), `${m} ${ccy}`);
+  }
+  assert.equal(drawn(12000000, 'INR', { sign: true }), format(12000000, 'INR', { sign: true }));
+  assert.equal(drawn(-50, 'USD', { sign: true }), format(-50, 'USD', { sign: true }));
+  assert.equal(drawn(12345678, 'INR', { paise: true }), format(12345678, 'INR', { paise: true }));
+  assert.equal(drawn(234050, 'INR', { paise: true }), '₹2,340.50');
+  assert.equal(drawn(234000, 'INR', { paise: 'auto' }), '₹2,340');
+  assert.equal(drawn(234050, 'INR', { paise: 'auto' }), '₹2,340.50');
+  assert.equal(drawn(-1500, 'KWD', { paise: 'auto' }), format(-1500, 'KWD', { paise: 'auto' }));
+  assert.equal(drawn(234050, 'INR', { paise: true }), format(234050, 'INR', { paise: true }));
+  assert.equal(drawn(1500, 'KWD', { paise: true }), format(1500, 'KWD', { paise: true }));
+  assert.equal(drawn(1234567, 'KWD', { paise: true }), 'KD\u00a01,234.567');
+  assert.equal(drawn(500, 'JPY', { paise: true }), '¥500');
+  // NumberFlow draws the sign itself, so the value stays positive and the minus is in the prefix.
+  assert.ok(figureParts(-234000, 'INR').value >= 0);
+  console.log('money: Figure parts match format()');
+}

@@ -6,6 +6,9 @@ import { subscribe, snapshotPickers, snapshotQueue, nothing, none, dequeue, type
 import { useMoney } from '@/app/currency';
 import { haptic } from '../haptics';
 import { forcedTheme, THEME_COOKIE } from '@/lib/theme';
+import { Icon } from '../Icon';
+import { quietBtn } from '../auth-ui';
+import { cn } from '@/lib/utils';
 
 /* What the app is when there is no signal.
 
@@ -46,7 +49,7 @@ export default function OfflineScreen() {
   return (
     <AddEntry offline
       categories={pickers.categories} ways={ways}
-      tabs={pickers.tabs ?? []}
+      tabs={pickers.tabs ?? []} top={pickers.top} paidWith={pickers.paidWith}
       householdId={pickers.householdId} today={localToday()}
       onQueued={() => { /* the store's own event re-renders the list below */ }}
     >
@@ -58,13 +61,9 @@ export default function OfflineScreen() {
 
 function Banner() {
   return (
-    <div style={{
-      display: 'flex', alignItems: 'center', gap: 10, margin: '0 var(--gutter) 12px',
-      padding: '12px 15px', borderRadius: 14, background: 'var(--background)', color: 'var(--muted-foreground)',
-      fontSize: 'var(--step--1)', fontWeight: 600, lineHeight: 1.4,
-    }}>
-      <NoSignal size={18} />
-      <span style={{ flex: 1 }}>
+    <div className="mx-[var(--gutter)] mb-3 flex items-center gap-2.5 rounded-[14px] bg-attention-soft py-2 pr-1.5 pl-3.5 text-sm font-semibold leading-snug text-attention-soft-foreground">
+      <Icon name="wifi_off" size={20} />
+      <span className="flex-1">
         No connection. Entries saved here stay on this phone and go into the books when signal
         is back.
       </span>
@@ -72,10 +71,7 @@ function Banner() {
           answers it from the network if there is one, and with this page
           again if there is not. A <Link> would only fetch a payload. */}
       {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
-      <a href="/" style={{
-        minHeight: 44, padding: '0 10px', display: 'flex', alignItems: 'center', flex: 'none',
-        textDecoration: 'none', color: 'var(--primary)', fontWeight: 700,
-      }}>Retry</a>
+      <a href="/" className="flex min-h-11 flex-none items-center px-2.5 font-bold underline underline-offset-[3px]">Retry</a>
     </div>
   );
 }
@@ -84,40 +80,31 @@ function Pending({ queue }: { queue: Queued[] }) {
   const { format } = useMoney();
   if (queue.length === 0) return null;
   return (
-    <section aria-label="Waiting to be sent" className="border border-border" style={{
-      margin: '0 var(--gutter) 12px', background: 'var(--card)', borderRadius: 16, padding: '0 16px',
-    }}>
-      <p style={{
-        margin: 0, padding: '12px 0 4px', fontSize: 'var(--step--2)', fontWeight: 700,
-        letterSpacing: '.04em', color: 'var(--muted-foreground)',
-      }}>
-        WAITING FOR SIGNAL · {queue.length}
-      </p>
-      {queue.map((q, i) => (
-        <div key={q.clientRef} style={{
-          display: 'flex', alignItems: 'center', gap: 10, minHeight: 52,
-          borderBottom: i === queue.length - 1 ? undefined : '1px solid var(--border)',
-        }}>
-          <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {q.kind === 'income' ? 'Income' : q.kind === 'transfer' ? 'Transfer' : (q.merchant || 'Expense')}
-              <span style={{ color: 'var(--muted-foreground)', fontWeight: 500 }}> · {q.occurredOn}</span>
+    <section aria-label="Waiting to be sent" className="mx-[var(--gutter)] mb-3 flex flex-col gap-1.5">
+      <h2 className="px-0.5 text-[13px] font-semibold text-muted-foreground">Waiting for signal · {queue.length}</h2>
+      <ul className="overflow-hidden rounded-[18px] bg-card">
+        {queue.map((q) => (
+          <li key={q.clientRef} className="flex min-h-[52px] items-center gap-2.5 border-b border-border pl-[var(--pad)] last:border-b-0">
+            <span className="flex min-w-0 flex-1 flex-col gap-0.5 py-2">
+              <span className="text-sm font-semibold [overflow-wrap:anywhere]">
+                {q.kind === 'income' ? 'Income' : q.kind === 'transfer' ? 'Move' : (q.merchant || 'Expense')}
+                <span className="font-medium text-muted-foreground"> · {q.occurredOn}</span>
+              </span>
+              {q.stuck && (
+                <span className="inline-flex items-start gap-1 text-xs text-destructive">
+                  <Icon name="error" size={14} className="mt-px" />Not accepted: {q.stuck}
+                </span>
+              )}
             </span>
-            {q.stuck && (
-              <span style={{ fontSize: 'var(--step--2)', color: 'var(--destructive)' }}>Not accepted: {q.stuck}</span>
-            )}
-          </span>
-          <span className="t n" style={{ fontSize: 'var(--step-0)' }}>{format(q.amountMinor)}</span>
-          <button type="button" aria-label={`Discard ${format(q.amountMinor)}`}
-            onClick={() => { haptic('select'); dequeue(q.clientRef); }} style={{
-              width: 44, height: 44, marginRight: -10, borderRadius: 999, display: 'flex',
-              alignItems: 'center', justifyContent: 'center', color: 'var(--muted-foreground)',
-            }}>
-            <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-              strokeWidth={2} strokeLinecap="round" aria-hidden><path d="M6 6l12 12M18 6L6 18" /></svg>
-          </button>
-        </div>
-      ))}
+            <span className="flex-none text-[15px] font-semibold tabular-nums">{format(q.amountMinor)}</span>
+            <button type="button" aria-label={`Discard ${format(q.amountMinor)}`}
+              onClick={() => { haptic('select'); dequeue(q.clientRef); }}
+              className="press grid size-11 flex-none place-items-center rounded-full text-muted-foreground in-data-[platform=android]:size-12">
+              <Icon name="close" size={20} />
+            </button>
+          </li>
+        ))}
+      </ul>
     </section>
   );
 }
@@ -126,50 +113,25 @@ function Pending({ queue }: { queue: Queued[] }) {
    would have no categories to offer. Say what would make it work next time. */
 function Bare({ queue }: { queue: Queued[] }) {
   return (
-    <main style={{
-      minHeight: '100dvh', display: 'flex', flexDirection: 'column', alignItems: 'center',
-      justifyContent: 'center', gap: 15, padding: '40px 32px', textAlign: 'center',
-      background: 'var(--background)', color: 'var(--foreground)',
-    }}>
-      <span style={{
-        width: 70, height: 70, borderRadius: 999, display: 'flex', alignItems: 'center',
-        justifyContent: 'center', background: 'var(--muted)', color: 'var(--muted-foreground)',
-      }}>
-        <NoSignal size={32} />
-      </span>
-      <h1 className="t" style={{ margin: 0, fontSize: 'var(--step-3)', letterSpacing: '-.016em' }}>
-        No connection
-      </h1>
-      <p style={{
-        margin: 0, fontSize: 'var(--step-0)', lineHeight: 1.55, color: 'var(--muted-foreground)', maxWidth: '31ch',
-      }}>
-        Your books live on the server, so they need a signal to open. Nothing has been lost.
-        Open Add Entry once while online, and from then on entries can be written here
-        without a signal and sent when it returns.
-      </p>
-      {queue.length > 0 && (
-        <p style={{ margin: 0, fontSize: 'var(--step--1)', color: 'var(--muted-foreground)' }}>
-          {queue.length === 1 ? 'One entry is' : `${queue.length} entries are`} waiting on this phone to be sent.
+    <main className="flex min-h-dvh flex-col items-center justify-center bg-background px-[var(--gutter)] py-10 text-foreground">
+      <div className="flex w-full max-w-[440px] flex-col items-center gap-3.5 rounded-[22px] bg-card px-5 py-8 text-center">
+        <span className="grid size-16 place-items-center rounded-full bg-muted text-muted-foreground">
+          <Icon name="wifi_off" size={30} />
+        </span>
+        <h1 className="text-[30px] font-bold tracking-tight leading-tight">No connection</h1>
+        <p className="max-w-[34ch] text-base leading-normal text-muted-foreground">
+          Your books live on the server, so they need a signal to open. Nothing has been lost.
+          Open Add Entry once while online, and from then on entries can be written here
+          without a signal and sent when it returns.
         </p>
-      )}
-      {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
-      <a href="/" style={{
-        minHeight: 50, padding: '0 22px', display: 'flex', alignItems: 'center',
-        borderRadius: 14, textDecoration: 'none', fontSize: 'var(--step-0)', fontWeight: 600,
-        background: 'var(--card)', border: '1px solid var(--border)', color: 'var(--foreground)',
-      }}>Try again</a>
+        {queue.length > 0 && (
+          <p className="text-sm text-muted-foreground">
+            {queue.length === 1 ? 'One entry is' : `${queue.length} entries are`} waiting on this phone to be sent.
+          </p>
+        )}
+        {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+        <a href="/" className={cn(quietBtn, 'mt-2')}>Try again</a>
+      </div>
     </main>
-  );
-}
-
-function NoSignal({ size }: { size: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-      strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" aria-hidden style={{ flex: 'none' }}>
-      <path d="M3 3l18 18" /><path d="M8.8 15.2a4.5 4.5 0 0 1 6.4 0" />
-      <path d="M5.5 11.8a9 9 0 0 1 3.2-2.1M18.5 11.8a9 9 0 0 0-4.8-2.4" />
-      <path d="M2.5 8.4A14 14 0 0 1 7 5.7M21.5 8.4a14 14 0 0 0-8.6-3.6" />
-      <path d="M12 19.5v.01" />
-    </svg>
   );
 }

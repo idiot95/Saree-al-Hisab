@@ -3,12 +3,14 @@
 import Link from '@/app/NavLink';
 import { useCallback, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { Icon } from '../Icon';
-import Sheet from '../Sheet';
+import BottomDrawer from '../BottomDrawer';
+import HijriCalendar, { MONTHS, civil, hijriSpan, type DayMarks } from '../HijriCalendar';
+import { cn } from '@/lib/utils';
 import { haptic } from '../haptics';
 import DueRow from './DueRow';
 import { useMoney } from '@/app/currency';
 import { datesInMonth, describeRule, type Calendar as Cal } from '@/lib/recur';
-import { formatHijri, toHijri, HIJRI_MONTHS_SHORT } from '@/lib/hijri';
+import { formatHijri, toHijri } from '@/lib/hijri';
 
 /* The month as a grid, with each day carrying a dot for everything that
    falls on it, and a drawer for the day you tap. Every date is worked out
@@ -42,10 +44,6 @@ type Item = {
 };
 
 const pad = (n: number) => String(n).padStart(2, '0');
-const civil = (iso: string) => { const [y, m, d] = iso.split('-').map(Number); return { y, m, d }; };
-const DOW = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
-const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June',
-                'July', 'August', 'September', 'October', 'November', 'December'];
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
 export default function Calendar({ schedules, canWrite, today }: {
@@ -70,9 +68,6 @@ export default function Calendar({ schedules, canWrite, today }: {
   const swiped = useRef(false);   // a page-turn's finger lifted on a day; that is not a tap on it
 
   const key = `${y}-${pad(m)}-`;
-  const first = new Date(y, m - 1, 1);
-  const days = new Date(y, m, 0).getDate();
-  const lead = (first.getDay() + 6) % 7; // Monday first
 
   /* Everything that lands in this month, keyed by the day it lands on. A
      rule's date that was moved shows where it went; one moved in from the
@@ -101,13 +96,6 @@ export default function Calendar({ schedules, canWrite, today }: {
     return out;
   }, [schedules, y, m, key, today]);
 
-  const hijriSpan = (() => {
-    const a = toHijri({ y, m, d: 1 }), b = toHijri({ y, m, d: days });
-    const A = `${HIJRI_MONTHS_SHORT[a.m - 1]}`, B = `${HIJRI_MONTHS_SHORT[b.m - 1]}`;
-    if (a.m === b.m && a.y === b.y) return `${A} ${a.y}`;
-    return a.y === b.y ? `${A} – ${B} ${a.y}` : `${A} ${a.y} – ${B} ${b.y}`;
-  })();
-
   const isNow = today.startsWith(key);
   const step = (n: number) => {
     const x = new Date(y, m - 1 + n, 1);
@@ -127,135 +115,89 @@ export default function Calendar({ schedules, canWrite, today }: {
     : [`${all.length} scheduled`, outSum > 0 ? `${format(outSum)} out` : null,
        inSum > 0 ? `${format(inSum)} in` : null].filter(Boolean).join(' · ');
 
-  const arrow = (d: 'M15 5l-7 7 7 7' | 'M9 5l7 7-7 7') => (
-    <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-      strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d={d} /></svg>
-  );
+  const marksFor = useCallback((iso: string): DayMarks | undefined => {
+    const items = byDay.get(iso);
+    if (!items?.length) return { marks: null };
+    return {
+      busy: true,
+      label: `${items.length} scheduled`,
+      marks: items.slice(0, 3).map((it, j) => <Dot key={j} status={it.status} kind={it.s.kind} />),
+    };
+  }, [byDay]);
 
   return (
-    <section className="border border-border" style={{
-      margin: '0 var(--gutter) 22px', background: 'var(--card)', borderRadius: 18,
-      padding: '6px var(--pad)', display: 'flex', flexDirection: 'column', gap: 8,
-    }}>
-      <button type="button" onClick={toggle} aria-expanded={open} aria-controls="cal-grid" style={{
-        display: 'flex', alignItems: 'center', gap: 12, minHeight: 60, width: '100%',
-        color: 'var(--foreground)', background: 'transparent',
-      }}>
-        <span style={{
-          width: 40, height: 40, flex: 'none', borderRadius: 11, display: 'flex',
-          alignItems: 'center', justifyContent: 'center',
-          background: overdue ? 'color-mix(in srgb, var(--destructive) 12%, transparent)' : 'var(--muted)',
-          color: overdue ? 'var(--destructive)' : 'var(--primary)',
-        }}>
-          <Icon name="autodebit" size={19} strokeWidth={1.9} />
+    <section className="mx-[var(--gutter)] flex flex-col gap-2 rounded-[18px] bg-card px-[var(--pad)] py-1.5">
+      <button type="button" onClick={toggle} aria-expanded={open} aria-controls="cal-grid"
+        className="flex min-h-15 w-full items-center gap-3 bg-transparent text-left text-foreground">
+        <span className={cn('grid size-10 flex-none place-items-center rounded-full',
+          overdue ? 'bg-destructive/12 text-destructive' : 'bg-muted text-primary')}>
+          <Icon name="autodebit" size={19} />
         </span>
-        <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>
+        <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+          <span className="text-base font-semibold">
             {MONTHS[m - 1]} {y}
-            <span style={{ fontWeight: 400, color: 'var(--muted-foreground)' }}> · {hijriSpan}</span>
+            <span className="font-normal text-muted-foreground"> · {hijriSpan(y, m)}</span>
           </span>
-          <span style={{ fontSize: 'var(--step--1)', color: overdue ? 'var(--destructive)' : 'var(--muted-foreground)' }}>
+          <span className={cn('text-sm', overdue ? 'text-destructive' : 'text-muted-foreground')}>
             {overdue ? `${overdue} overdue · ` : ''}{summary}
           </span>
         </span>
-        <span aria-hidden style={{
-          width: 28, height: 28, flex: 'none', borderRadius: 999, display: 'flex',
-          alignItems: 'center', justifyContent: 'center', color: 'var(--muted-foreground)',
-          background: 'var(--muted)', transition: 'transform .2s',
-          transform: open ? 'rotate(180deg)' : 'none',
-        }}>
-          <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-            strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round"><path d="M6 9l6 6 6-6" /></svg>
+        <span aria-hidden className={cn('grid size-7 flex-none place-items-center rounded-full bg-muted text-muted-foreground transition-transform',
+          open && 'rotate-180')}>
+          <Icon name="expand_more" size={18} />
         </span>
       </button>
 
-      <div id="cal-grid" hidden={!open} style={{ display: open ? 'flex' : undefined, flexDirection: 'column', gap: 8, paddingBottom: 6 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-        <button type="button" onClick={() => step(-1)} aria-label="Previous month" style={nav}>{arrow('M15 5l-7 7 7 7')}</button>
-        <span style={{ flex: 1, minWidth: 0, textAlign: 'center', fontSize: 'var(--step--1)', color: 'var(--muted-foreground)' }}>
-          {isNow ? 'This month' : (
-            <button type="button" onClick={() => { const c = civil(today); setYm({ y: c.y, m: c.m }); }}
-              style={{ ...nav, width: 'auto', padding: '0 12px', fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--primary)', margin: '0 auto' }}>
-              Back to today
-            </button>
-          )}
-        </span>
-        <button type="button" onClick={() => step(1)} aria-label="Next month" style={nav}>{arrow('M9 5l7 7-7 7')}</button>
+      <div id="cal-grid" hidden={!open} className={cn('flex-col gap-2 pb-1.5', open && 'flex')}>
+        {/* A swipe across the grid pages the month; anything else is left to the page to scroll. */}
+        <div className="touch-pan-y"
+          onPointerDown={(e) => { swipe.current = { x: e.clientX, y: e.clientY }; }}
+          onPointerUp={(e) => {
+            const from = swipe.current; swipe.current = null;
+            if (!from) return;
+            const dx = e.clientX - from.x, dy = e.clientY - from.y;
+            if (Math.abs(dx) > 48 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+              swiped.current = true; haptic('tap'); step(dx < 0 ? 1 : -1);
+              setTimeout(() => { swiped.current = false; }, 400);
+            }
+          }}
+          onPointerCancel={() => { swipe.current = null; }}
+          onClickCapture={(e) => { if (swiped.current) { e.stopPropagation(); e.preventDefault(); } }}>
+          <HijriCalendar month={new Date(y, m - 1, 1)} onMonthChange={(d) => setYm({ y: d.getFullYear(), m: d.getMonth() + 1 })}
+            today={today} onPick={setSel} marksFor={marksFor}
+            className="-mx-[calc(var(--pad)-2px)] w-[calc(100%+2*var(--pad)-4px)]" />
+        </div>
+
+        {!isNow && (
+          <button type="button" onClick={() => { const c = civil(today); setYm({ y: c.y, m: c.m }); }}
+            className="mx-auto flex min-h-11 items-center rounded-full px-3 text-sm font-semibold text-primary">
+            Back to today
+          </button>
+        )}
+
+        <p className="mt-0.5 flex flex-wrap gap-x-3 gap-y-1 text-xs leading-snug text-muted-foreground">
+          <Key status="coming" kind="expense">goes out</Key>
+          <Key status="coming" kind="income">comes in</Key>
+          <Key status="overdue" kind="expense">overdue</Key>
+          <Key status="paid" kind="expense">done</Key>
+          <span className="basis-full">Hijri days begin at maghrib the evening before; the grid shows the daytime date. Swipe across the days for another month.</span>
+        </p>
       </div>
 
-      <div role="grid" aria-label={`${MONTHS[m - 1]} ${y}`}
-        onPointerDown={(e) => { swipe.current = { x: e.clientX, y: e.clientY }; }}
-        onPointerUp={(e) => {
-          const from = swipe.current; swipe.current = null;
-          if (!from) return;
-          const dx = e.clientX - from.x, dy = e.clientY - from.y;
-          if (Math.abs(dx) > 48 && Math.abs(dx) > Math.abs(dy) * 1.5) {
-            swiped.current = true; haptic('tap'); step(dx < 0 ? 1 : -1);
-            setTimeout(() => { swiped.current = false; }, 400);
-          }
-        }}
-        onPointerCancel={() => { swipe.current = null; }}
-        onClickCapture={(e) => { if (swiped.current) { e.stopPropagation(); e.preventDefault(); } }}
-        style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 2, touchAction: 'pan-y' }}>
-        {DOW.map((d) => (
-          <span key={d} role="columnheader" style={{
-            textAlign: 'center', fontSize: 'var(--step--2)', fontWeight: 600, color: 'var(--muted-foreground)',
-            letterSpacing: '.02em', paddingBottom: 2,
-          }}>{d}</span>
-        ))}
-        {Array.from({ length: lead }, (_, i) => <span key={`b${i}`} aria-hidden />)}
-        {Array.from({ length: days }, (_, i) => {
-          const d = i + 1;
-          const iso = `${key}${pad(d)}`;
-          const items = byDay.get(iso) ?? [];
-          const h = toHijri({ y, m, d });
-          const isToday = iso === today;
-          const label = `${d} ${MONTHS[m - 1]}, ${formatHijri(h, true)}${items.length ? `, ${items.length} scheduled` : ''}`;
-          return (
-            <button key={iso} type="button" role="gridcell" aria-label={label} onClick={() => setSel(iso)} style={{
-              minHeight: 54, borderRadius: 10, padding: '5px 0 4px',
-              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
-              background: items.length ? 'var(--muted)' : 'transparent',
-              boxShadow: isToday ? 'inset 0 0 0 2px var(--chart-1)' : undefined,
-              color: 'var(--foreground)',
-            }}>
-              <span className="t" style={{ fontSize: 'var(--step-0)', lineHeight: 1, fontWeight: isToday ? 700 : 500 }}>{d}</span>
-              <span style={{ fontSize: '0.62rem', lineHeight: 1, color: h.d === 1 ? 'var(--primary)' : 'var(--muted-foreground)', fontWeight: h.d === 1 ? 700 : 500 }}>
-                {h.d === 1 ? HIJRI_MONTHS_SHORT[h.m - 1] : h.d}
-              </span>
-              <span style={{ display: 'flex', gap: 3, minHeight: 6, alignItems: 'center' }}>
-                {items.slice(0, 3).map((it, j) => <Dot key={j} status={it.status} kind={it.s.kind} />)}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-
-      <p style={{ margin: '2px 0 0', fontSize: 'var(--step--2)', lineHeight: 1.45, color: 'var(--muted-foreground)', display: 'flex', flexWrap: 'wrap', gap: '4px 12px' }}>
-        <Key status="coming" kind="expense">goes out</Key>
-        <Key status="coming" kind="income">comes in</Key>
-        <Key status="overdue" kind="expense">overdue</Key>
-        <Key status="paid" kind="expense">done</Key>
-        <span style={{ flexBasis: '100%' }}>Hijri days begin at maghrib the evening before; the grid shows the daytime date. Swipe across the days for another month.</span>
-      </p>
-      </div>
-
-      <Sheet open={sel !== null} onClose={close} label={sel ? `Scheduled on ${sel}` : 'Scheduled'}>
+      <BottomDrawer open={sel !== null} onClose={close} label={sel ? `Scheduled on ${sel}` : 'Scheduled'}>
         {selCivil && sel && (
           <>
-            <header style={{ display: 'flex', flexDirection: 'column', gap: 2, padding: '2px 0 8px' }}>
-              <h3 style={{ margin: 0, fontSize: 'var(--step-1)', fontWeight: 600 }}>
+            <header className="flex flex-col gap-0.5 pt-0.5 pb-2">
+              <h3 className="text-lg font-semibold">
                 {DAYS[new Date(selCivil.y, selCivil.m - 1, selCivil.d).getDay()]} {selCivil.d} {MONTHS[selCivil.m - 1]}
               </h3>
-              <span style={{ fontSize: 'var(--step--1)', color: 'var(--muted-foreground)' }}>
+              <span className="text-sm text-muted-foreground">
                 {formatHijri(toHijri(selCivil))}{sel === today ? ' · today' : ''}
               </span>
             </header>
 
             {selected.length === 0 ? (
-              <p style={{ margin: '0 0 12px', fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--muted-foreground)' }}>
-                Nothing is scheduled for this day.
-              </p>
+              <p className="mb-3 text-sm leading-normal text-muted-foreground">Nothing is scheduled for this day.</p>
             ) : selected.map((it) => {
               const daysAway = Math.round((Date.parse(it.on) - Date.parse(today)) / 86400000);
               const settled = it.status === 'paid' || it.status === 'skipped';
@@ -263,43 +205,37 @@ export default function Calendar({ schedules, canWrite, today }: {
                 return (
                   <DueRow key={`${it.s.id}:${it.dueOn}`} scheduleId={it.s.id} name={it.s.name} kind={it.s.kind}
                     dueOn={it.dueOn} on={it.on} movedFrom={it.movedFrom} daysAway={daysAway}
-                    amount={it.s.amount} category={it.s.category} icon={it.s.icon} tint={it.s.tint}
+                    amount={it.s.amount} category={it.s.category} icon={it.s.icon}
                     rule={it.s.rule} cal={it.s.cal} today={today} canRecord={daysAway <= 14} />
                 );
               }
               const income = it.s.kind === 'income';
               return (
-                <div key={`${it.s.id}:${it.dueOn}`} style={{
-                  display: 'flex', alignItems: 'center', gap: 12, minHeight: 66, padding: '10px 0',
-                  borderBottom: '1px solid var(--border)',
-                }}>
-                  <span style={{
-                    width: 40, height: 40, flex: 'none', borderRadius: 11, display: 'flex',
-                    alignItems: 'center', justifyContent: 'center',
-                    background: settled ? 'var(--muted)' : 'var(--attention-soft)',
-                    color: settled ? 'var(--muted-foreground)' : 'var(--attention-soft-foreground)',
-                  }}>
-                    <Icon name={it.s.icon ?? 'autodebit'} size={19} strokeWidth={1.9} />
+                <div key={`${it.s.id}:${it.dueOn}`} className="flex min-h-16 items-center gap-3 border-b border-border py-2.5">
+                  <span className={cn('grid size-10 flex-none place-items-center rounded-full',
+                    settled ? 'bg-muted text-muted-foreground' : 'bg-attention-soft text-attention-soft-foreground')}>
+                    <Icon name={it.s.icon ?? 'autodebit'} size={19} />
                   </span>
-                  <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
-                    <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>{it.s.name}</span>
-                    <span style={{ fontSize: 'var(--step--1)', color: 'var(--muted-foreground)' }}>
+                  <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                    <span className="text-base font-semibold [overflow-wrap:anywhere]">{it.s.name}</span>
+                    <span className="text-sm text-muted-foreground">
                       {cap(describeRule(it.s.rule, it.s.cal))}
                       {it.movedFrom && ` · moved from the ${civil(it.movedFrom).d}${suffix(civil(it.movedFrom).d)}`}
                     </span>
-                    <span style={{ fontSize: 'var(--step--1)', display: 'flex', alignItems: 'center', gap: 5,
-                      color: it.status === 'paid' ? 'var(--money-in)' : it.status === 'overdue' ? 'var(--destructive)' : 'var(--muted-foreground)' }}>
-                      <Icon name={it.status === 'paid' ? 'check' : it.status === 'skipped' ? 'skip' : 'autodebit'} size={14} strokeWidth={2.2} />
+                    <span className={cn('flex flex-wrap items-center gap-1.5 text-sm',
+                      it.status === 'paid' ? 'text-money-in' : it.status === 'overdue' ? 'text-destructive' : 'text-muted-foreground')}>
+                      <Icon name={it.status === 'paid' ? 'check' : it.status === 'skipped' ? 'skip' : 'autodebit'} size={14} />
                       {it.status === 'paid' ? (income ? 'Came in' : 'Paid') : it.status === 'skipped' ? 'Skipped'
                         : it.status === 'overdue' ? 'Overdue' : it.status === 'today' ? 'Due today' : 'Coming'}
                       {it.status === 'paid' && it.txn && (
-                        <Link href={`/entries/${it.txn}`} transitionTypes={['nav-forward']} style={{ color: 'var(--primary)', fontWeight: 600, minHeight: 44, display: 'inline-flex', alignItems: 'center', marginLeft: 6 }}>
+                        <Link href={`/entries/${it.txn}?from=${encodeURIComponent('/entries?f=upcoming')}`} transitionTypes={['nav-forward']}
+                          className="ml-1.5 inline-flex min-h-11 items-center font-semibold text-primary">
                           See the entry
                         </Link>
                       )}
                     </span>
                   </span>
-                  <span className="t" style={{ fontSize: 'var(--step-1)', color: income ? 'var(--money-in)' : 'var(--money-out)', opacity: settled ? 0.7 : 1 }}>
+                  <span className={cn('flex-none text-lg font-semibold tabular-nums', income ? 'text-money-in' : 'text-money-out', settled && 'opacity-70')}>
                     {income ? '+' : ''}{format(it.s.amount)}
                   </span>
                 </div>
@@ -307,7 +243,7 @@ export default function Calendar({ schedules, canWrite, today }: {
             })}
           </>
         )}
-      </Sheet>
+      </BottomDrawer>
     </section>
   );
 }
@@ -318,19 +254,14 @@ function statusOf(s: 'pending' | 'paid' | 'skipped' | undefined, on: string, tod
   return on < today ? 'overdue' : on === today ? 'today' : 'coming';
 }
 
-/* One mark per thing on the day. Out and in in the ledger's two colours; a
-   settled one fades; an overdue one is a ring — hollow, still open. */
+/* One mark per thing on the day. Out and in in the ledger's two colours; a settled one fades; an overdue one is a
+   ring — hollow, still open — so the shape says it as well as the colour. The day's label carries the count. */
 function Dot({ status, kind }: { status: Status; kind: 'expense' | 'income' }) {
   const settled = status === 'paid' || status === 'skipped';
-  const colour = status === 'overdue' ? 'var(--destructive)'
-    : settled ? 'var(--muted-foreground)' : kind === 'income' ? 'var(--money-in)' : 'var(--money-out)';
   return (
-    <span aria-hidden style={{
-      width: 7, height: 7, borderRadius: 999, boxSizing: 'border-box',
-      background: status === 'overdue' ? 'transparent' : colour,
-      border: status === 'overdue' ? `2px solid ${colour}` : undefined,
-      opacity: settled ? 0.45 : 1,
-    }} />
+    <span aria-hidden className={cn('box-border size-[7px] rounded-full',
+      status === 'overdue' ? 'border-2 border-destructive bg-transparent'
+        : settled ? 'bg-muted-foreground opacity-45' : kind === 'income' ? 'bg-money-in' : 'bg-money-out')} />
   );
 }
 
@@ -342,14 +273,9 @@ function suffix(n: number) {
 
 function Key({ status, kind, children }: { status: Status; kind: 'expense' | 'income'; children: React.ReactNode }) {
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+    <span className="inline-flex items-center gap-1.5">
       <Dot status={status} kind={kind} />
       {children}
     </span>
   );
 }
-
-const nav: React.CSSProperties = {
-  width: 44, height: 44, flex: 'none', borderRadius: 999, display: 'flex',
-  alignItems: 'center', justifyContent: 'center', background: 'transparent', color: 'var(--foreground)',
-};

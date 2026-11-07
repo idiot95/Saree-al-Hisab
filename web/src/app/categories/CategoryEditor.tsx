@@ -1,8 +1,9 @@
 'use client';
 
-import { useActionState, useCallback, useRef, useState, useTransition } from 'react';
+import { useActionState, useCallback, useId, useRef, useState, useTransition } from 'react';
 import { Icon, Chip, tintOf } from '../Icon';
-import { ErrorNote } from '../auth-ui';
+import { ErrorNote, Field } from '../auth-ui';
+import { fieldLabel, formCard, ghost, selectCls, solid, AddRow as AddButton, Said } from '../form-bits';
 import SwipeRow from '../SwipeRow';
 import Snack, { type SnackState } from '../Snack';
 import { haptic } from '../haptics';
@@ -13,6 +14,7 @@ import { ICONS, TINTS } from './options';
 import { Segmented } from '../DatePick';
 import { SCOPE_LABEL, type Scope } from '@/lib/scope';
 import Suggested from './Suggested';
+import { keepFields, useFocusSoon, useOnSuccess } from '../form-hooks';
 
 type Cat = {
   id: string; name: string; icon: string; tint: string; scope: Scope; parent_id: string | null;
@@ -26,86 +28,110 @@ type Parent = { id: string; name: string; scope: Scope };
 
 /* Picking an icon and a colour is the whole point of the screen, so both are
    shown as themselves rather than named in a dropdown. A hundred and more
-   glyphs is far past what Hick's law would want in one glance, so they sit
-   in a scrolling grid with a search box above it: type "mil" and the grid
-   is milk. The names are the search index, so it works offline and costs
+   glyphs is far past what Hick's law would want in one glance, so one row is
+   offered, with a search box above it (type "mil" and the row is milk) and the
+   rest behind "Show all". The names are the search index, so it works offline and costs
    nothing. */
 function Picker({ icon, tint, onIcon, onTint }: {
   icon: string; tint: string; onIcon: (v: string) => void; onTint: (v: string) => void;
 }) {
   const [find, setFind] = useState('');
   const q = find.trim().toLowerCase();
-  const shown = q ? ICONS.filter((n) => n.includes(q) || n === icon) : ICONS;
+  const matches: readonly string[] = q ? ICONS.filter((n) => n.includes(q)) : ICONS;
+  /* 184 icons are far past one glance, and a grid of them all put Save some 2,000px down the form. So ONE list in a
+     fixed order — the first five always on show, the rest behind "Show all" in a short box that scrolls by itself —
+     and the search to narrow it. Choosing an icon never moves it: its button stays where it is (and keeps focus).
+     The split is over the matches only, so for a given search it never depends on which icon is chosen. The chosen
+     icon stays in sight: when a search does not match it, it has a slot of its own before the row (choosing a match
+     then keeps that slot where it is, now holding the icon chosen before, unpressed and still choosable, so nothing
+     under the finger moves; the slot goes only when the search text changes or is cleared); when it sits in the shut
+     box it is shown again as a sixth tile ahead of "Show all". */
+  const head = matches.slice(0, 5);
+  const rest = matches.slice(5);
+  const chosenOutside = !!q && !matches.includes(icon);
+  /* The icon the slot held when a match was chosen, for this exact search text. */
+  const [held, setHeld] = useState<{ find: string; icon: string } | null>(null);
+  const slot = chosenOutside ? icon : held && held.find === find && q ? held.icon : null;
+  const choose = (n: string) => {
+    if (chosenOutside && n !== icon) setHeld({ find, icon });
+    onIcon(n);
+  };
+  const [all, setAll] = useState(false);
+  const allId = useId();
+  const slotNote = useId();
+  const chosenHidden = !all && rest.includes(icon);
+  const [ibg, iink] = tintOf(tint);
+  /* `describedBy` ties the slot's tile to its "Chosen now" / "Chosen before" line, so a screen reader hears why that
+     one tile stands apart from the grid. */
+  const tile = (n: string, describedBy?: string) => {
+    const on = n === icon;
+    return (
+      <button key={n} type="button" onClick={() => { haptic('tap'); choose(n); }}
+        aria-label={n} aria-pressed={on} aria-describedby={describedBy}
+        className={`flex min-h-12 items-center justify-center rounded-xl border ${on ? '' : 'border-border bg-background text-muted-foreground'}`}
+        style={on ? { background: ibg, color: iink, borderColor: iink } : undefined}>
+        <Icon name={n} size={20} />
+      </button>
+    );
+  };
   return (
     <>
       <input type="hidden" name="icon" value={icon} />
       <input type="hidden" name="tint" value={tint} />
 
-      <fieldset style={{ border: 0, padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 7 }}>
-        <legend style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--muted-foreground)', padding: 0 }}>
-          Colour
-        </legend>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+      <fieldset className="flex flex-col gap-2">
+        <legend className={`mb-2 ${fieldLabel}`}>Colour</legend>
+        <div className="flex flex-wrap gap-2">
           {TINTS.map((t) => {
             const [bg, ink] = tintOf(t);
             const on = t === tint;
+            /* The swatch is the category's own tint (data, so a style); the chosen one carries a check and a ring. */
             return (
               <button key={t} type="button" onClick={() => { haptic('tap'); onTint(t); }}
                 aria-label={t} aria-pressed={on}
-                style={{
-                  width: 44, height: 44, borderRadius: 999, background: bg,
-                  border: `2px solid ${on ? ink : 'transparent'}`,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', color: ink,
-                }}>
-                {on && (
-                  <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                    strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                    <path d="M5 12.5l5 5 9-11" />
-                  </svg>
-                )}
+                className="grid size-11 place-items-center rounded-full border-2 in-data-[platform=android]:size-12"
+                style={{ background: bg, color: ink, borderColor: on ? ink : 'transparent' }}>
+                {on && <Icon name="check" size={18} />}
               </button>
             );
           })}
         </div>
       </fieldset>
 
-      <fieldset style={{ border: 0, padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 7 }}>
-        <legend style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--muted-foreground)', padding: 0 }}>
-          Icon
-        </legend>
-        <input type="search" value={find} onChange={(e) => setFind(e.target.value)}
+      <fieldset className="flex flex-col gap-2">
+        <legend className={`mb-2 ${fieldLabel}`}>Icon</legend>
+        <input type="search" value={find} onChange={(e) => { setFind(e.target.value); setHeld(null); }}
           placeholder="Find an icon" aria-label="Find an icon" autoComplete="off"
-          style={{
-            minHeight: 44, borderRadius: 12, border: '1px solid var(--border)',
-            background: 'var(--card)', color: 'var(--foreground)', fontSize: 'var(--field)', padding: '0 12px',
-          }} />
-        <div style={{
-          display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(46px, 1fr))', gap: 7,
-          maxHeight: 200, overflowY: 'auto',
-        }}>
-          {shown.length === 0 && (
-            <span style={{ gridColumn: '1 / -1', fontSize: 'var(--step--1)', color: 'var(--muted-foreground)', padding: '8px 0' }}>
-              Nothing called that. Try another word.
-            </span>
-          )}
-          {shown.map((n) => {
-            const on = n === icon;
-            const [bg, ink] = tintOf(tint);
-            return (
-              <button key={n} type="button" onClick={() => { haptic('tap'); onIcon(n); }}
-                aria-label={n} aria-pressed={on}
-                style={{
-                  minHeight: 46, borderRadius: 12,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  background: on ? bg : 'var(--background)',
-                  color: on ? ink : 'var(--muted-foreground)',
-                  border: `1px solid ${on ? ink : 'var(--border)'}`,
-                }}>
-                <Icon name={n} size={20} />
+          className="h-12 w-full rounded-xl border border-input bg-card px-3.5 text-[length:var(--field)] text-foreground" />
+        {matches.length === 0 && (
+          <span className="py-2 text-sm text-muted-foreground">Nothing called that. Try another word.</span>
+        )}
+        {slot && (
+          <div className="flex items-center gap-3">
+            <div className="grid w-[calc((100%_-_2rem)/5)] flex-none">{tile(slot, slotNote)}</div>
+            <span id={slotNote} className="text-sm text-muted-foreground">{chosenOutside ? 'Chosen now' : 'Chosen before'}</span>
+          </div>
+        )}
+        <div className="grid grid-cols-5 gap-2">{head.map((n) => tile(n))}</div>
+        {(chosenHidden || rest.length > 0) && (
+          <div className="flex items-center gap-3">
+            {chosenHidden && <div className="grid w-[calc((100%_-_2rem)/5)] flex-none">{tile(icon)}</div>}
+            {rest.length > 0 && (
+              <button type="button" aria-expanded={all} aria-controls={allId} onClick={() => setAll((o) => !o)}
+                className="press flex min-h-11 items-center gap-1.5 text-sm font-semibold text-primary in-data-[platform=android]:min-h-12">
+                <Icon name={all ? 'expand_less' : 'expand_more'} size={18} />
+                {all ? 'Fewer icons' : q ? `Show all ${matches.length} matches` : `Show all ${matches.length} icons`}
               </button>
-            );
-          })}
-        </div>
+            )}
+          </div>
+        )}
+        {/* The rest of the same list, four rows tall, so the form's Save stays a short scroll away. */}
+        {all && rest.length > 0 && (
+          <div id={allId} role="group" aria-label="All icons"
+            className="grid max-h-[232px] grid-cols-5 gap-2 overflow-y-auto overscroll-contain rounded-xl border border-border p-2">
+            {rest.map((n) => tile(n))}
+          </div>
+        )}
       </fieldset>
     </>
   );
@@ -120,17 +146,14 @@ function UnderField({ parents, value, onChange, locked }: {
 }) {
   if (parents.length === 0 && !locked) return null;
   return (
-    <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-      <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--muted-foreground)' }}>Under</span>
+    <label className="flex flex-col gap-1.5">
+      <span className={fieldLabel}>Under</span>
       {locked ? (
-        <span style={{ fontSize: 'var(--step--1)', lineHeight: 1.45, color: 'var(--muted-foreground)', padding: '4px 0' }}>
+        <span className="py-1 text-sm leading-snug text-muted-foreground">
           It has categories under it, so it stays at the top level.
         </span>
       ) : (
-        <select name="parentId" value={value} onChange={(e) => onChange(e.target.value)} style={{
-          minHeight: 52, borderRadius: 13, border: '1px solid var(--border)',
-          background: 'var(--card)', color: 'var(--foreground)', fontSize: 'var(--field)', padding: '0 14px',
-        }}>
+        <select name="parentId" value={value} onChange={(e) => onChange(e.target.value)} className={selectCls}>
           <option value="">On its own</option>
           {parents.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
         </select>
@@ -149,10 +172,10 @@ function ScopeField({ value, onChange, parent }: {
   value: Scope; onChange: (v: Scope) => void; parent: Parent | null;
 }) {
   return (
-    <div role="group" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-      <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--muted-foreground)' }}>Files</span>
+    <div role="group" aria-label="Files" className="flex flex-col gap-1.5">
+      <span className={fieldLabel}>Files</span>
       {parent ? (
-        <span style={{ fontSize: 'var(--step--1)', lineHeight: 1.45, color: 'var(--muted-foreground)', padding: '4px 0' }}>
+        <span className="py-1 text-sm leading-snug text-muted-foreground">
           {SCOPE_LABEL[parent.scope].toLowerCase()}, the same as {parent.name}.
         </span>
       ) : (
@@ -163,16 +186,7 @@ function ScopeField({ value, onChange, parent }: {
 }
 
 function NameField({ defaultValue }: { defaultValue?: string }) {
-  return (
-    <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-      <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--muted-foreground)' }}>Name</span>
-      <input name="name" defaultValue={defaultValue} required maxLength={40}
-        placeholder="Groceries" style={{
-          minHeight: 52, borderRadius: 13, border: '1px solid var(--border)',
-          background: 'var(--card)', color: 'var(--foreground)', fontSize: 'var(--field)', padding: '0 14px',
-        }} />
-    </label>
-  );
+  return <Field label="Name" name="name" defaultValue={defaultValue} required maxLength={40} placeholder="Groceries" />;
 }
 
 /* Drag a row by its grip to reorder.
@@ -251,7 +265,7 @@ function useReorder(ids: string[], onCommit: (ids: string[]) => void) {
     if (id === drag.id) {
       return {
         transform: `translateY(${drag.dy}px) scale(1.015)`, position: 'relative', zIndex: 2,
-        filter: 'drop-shadow(0 6px 14px rgba(35,61,77,.22))',
+        filter: 'drop-shadow(0 6px 14px color-mix(in srgb, var(--foreground) 22%, transparent))',
       };
     }
     if (drag.from < drag.to && i > drag.from && i <= drag.to) return { transform: `translateY(${-drag.h}px)`, transition: ease };
@@ -267,6 +281,10 @@ export default function CategoryEditor({ categories, canEdit }: {
 }) {
   const [editing, setEditing] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
+  /* The add form closed (a save or Cancel): focus back on "Add a category", and a save said in the live region —
+     "Groceries added." — since the row it made arrives in the list far above, out of sight of the form. */
+  const [added, setAdded] = useState('');
+  const [addOpener, focusAddOpener] = useFocusSoon<HTMLButtonElement>();
   const [snack, setSnack] = useState<SnackState>(null);
   const [hidden, setHidden] = useState<Set<string>>(() => new Set());
   const [order, setOrder] = useState<string[] | null>(null);   // set by a drag, until the server agrees
@@ -327,8 +345,8 @@ export default function CategoryEditor({ categories, canEdit }: {
           parents={parents.filter((p) => p.id !== c.id && takes(p, c.scope))} onDone={() => setEditing(null)} />
       : (
         <SwipeRow key={c.id} grip={!!c.parent_id} actions={canEdit ? [
-          { label: 'Edit', tone: 'primary', icon: <Pen />, act: () => setEditing(c.id) },
-          { label: 'Retire', tone: 'danger', icon: <Box />, act: () => retire(c) },
+          { label: 'Edit', tone: 'primary', icon: <Icon name="pencil" size={20} />, act: () => setEditing(c.id) },
+          { label: 'Retire', tone: 'danger', icon: <Icon name="archive" size={20} />, act: () => retire(c) },
         ] : []}>
           <Row cat={c} last={last} canEdit={canEdit}
             lifted={reorder.drag?.id === c.id}
@@ -338,47 +356,41 @@ export default function CategoryEditor({ categories, canEdit }: {
   );
 
   return (
-    <>
-      <Head>In use</Head>
-      <section className="border border-border" style={{ ...card, overflow: 'hidden' }}>
-        {live.map((c, i) => {
-          const kids = kidsOf(c.id);
-          const lastFamily = i === live.length - 1;
-          return (
-            <div key={c.id} ref={reorder.bind(c.id)} style={{ background: 'var(--card)', ...reorder.shift(c.id) }}>
-              {rows(c, live, i, lastFamily && kids.length === 0)}
-              {kids.map((k, j) => rows(k, kids, j, lastFamily && j === kids.length - 1))}
-            </div>
-          );
-        })}
+    <div className="flex flex-col gap-6">
+      <section aria-labelledby="sec-in-use" className="flex flex-col gap-1.5 px-[var(--gutter)]">
+        <h2 id="sec-in-use" className="px-0.5 text-[13px] font-semibold text-muted-foreground">In use</h2>
+        {/* px-[var(--pad)]: a swipe row's negative margin is --pad, so its actions stop at the rounded edge. */}
+        <div className="overflow-hidden rounded-[18px] bg-card px-[var(--pad)]">
+          {live.map((c, i) => {
+            const kids = kidsOf(c.id);
+            const lastFamily = i === live.length - 1;
+            return (
+              <div key={c.id} ref={reorder.bind(c.id)} className="bg-card" style={reorder.shift(c.id)}>
+                {rows(c, live, i, lastFamily && kids.length === 0)}
+                {kids.map((k, j) => rows(k, kids, j, lastFamily && j === kids.length - 1))}
+              </div>
+            );
+          })}
+        </div>
+        {canEdit && (
+          <p className="px-0.5 pt-0.5 text-[13px] leading-snug text-muted-foreground">
+            Tap a row to edit it, swipe it left to retire it, and drag by the grip to change the order.
+            A category can sit under another — Milk under Groceries — and counts towards its line.
+          </p>
+        )}
       </section>
-      {canEdit && (
-        <p style={{ margin: '-12px var(--gutter) 22px', fontSize: 'var(--step--2)', lineHeight: 1.5, color: 'var(--muted-foreground)' }}>
-          Tap a row to edit it, swipe it left to retire it, and drag by the grip to change the order.
-          A category can sit under another — Milk under Groceries — and counts towards its line.
-        </p>
-      )}
 
-      {canEdit && (adding
-        ? <AddRow parents={parents} takes={takes} onDone={() => setAdding(false)} />
-        : (
-          <button type="button" onClick={() => setAdding(true)} className="press" style={{
-            margin: '0 var(--gutter) 22px', width: 'calc(100% - 36px)', minHeight: 56, borderRadius: 16,
-            display: 'flex', alignItems: 'center', gap: 11, padding: '0 var(--pad)',
-            background: 'var(--card)', border: '1px dashed var(--input)',
-            color: 'var(--foreground)', fontSize: 'var(--step-0)', fontWeight: 600,
-          }}>
-            <span style={{
-              width: 32, height: 32, flex: 'none', borderRadius: 999, display: 'flex',
-              alignItems: 'center', justifyContent: 'center',
-              background: 'var(--muted)', color: 'var(--muted-foreground)',
-            }}>
-              <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                strokeWidth={2.2} strokeLinecap="round" aria-hidden><path d="M12 5v14M5 12h14" /></svg>
-            </span>
-            Add a category
-          </button>
-        ))}
+      {canEdit && (
+        <div className="px-[var(--gutter)]">
+          <Said>{added}</Said>
+          {adding
+            ? <AddRow parents={parents} takes={takes} onDone={(message) => { setAdding(false); setAdded(message ?? ''); focusAddOpener(); }} />
+            : <AddButton ref={addOpener} onClick={() => { setAdded(''); setAdding(true); }}
+                done={added ? <span className="flex items-center gap-1 text-sm font-semibold text-primary"><Icon name="check" size={16} />Added</span> : null}>
+                Add a category
+              </AddButton>}
+        </div>
+      )}
 
       <Suggested have={categories.map((c) => c.name)} canEdit={canEdit}
         onResult={(r) => {
@@ -387,13 +399,13 @@ export default function CategoryEditor({ categories, canEdit }: {
         }} />
 
       {retired.length > 0 && (
-        <>
-          <Head>Retired</Head>
-          <p style={{ margin: '-4px var(--gutter) 12px', fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--muted-foreground)' }}>
+        <section aria-labelledby="sec-retired" className="flex flex-col gap-1.5 px-[var(--gutter)]">
+          <h2 id="sec-retired" className="px-0.5 text-[13px] font-semibold text-muted-foreground">Retired</h2>
+          <p className="px-0.5 pb-0.5 text-[13px] leading-snug text-muted-foreground">
             Not offered for new entries. Everything already filed under them is untouched, and
             they still appear in the months they were used.
           </p>
-          <section className="border border-border" style={card}>
+          <div className="overflow-hidden rounded-[18px] bg-card px-[var(--pad)]">
             {retired.map((c, i) => (
               <RetiredRow key={c.id} cat={c} under={nameOf(c.parent_id)} last={i === retired.length - 1} canEdit={canEdit}
                 onBack={() => setHidden((h) => {
@@ -402,12 +414,12 @@ export default function CategoryEditor({ categories, canEdit }: {
                   return n;
                 })} />
             ))}
-          </section>
-        </>
+          </div>
+        </section>
       )}
 
       <Snack snack={snack} onClose={closeSnack} />
-    </>
+    </div>
   );
 }
 
@@ -424,20 +436,16 @@ function Row({ cat, last, canEdit, lifted, onEdit, grip }: {
   // it belongs to the row above, and the eye should read it that way before
   // reading the name.
   const child = !!cat.parent_id;
-  const h = child ? 60 : 72;
+  const h = child ? 'min-h-[60px]' : 'min-h-[72px]';
   const body = (
     <>
       {child && (
-        <span aria-hidden style={{
-          width: 14, height: 22, flex: 'none', marginLeft: 12,
-          borderLeft: '1.5px solid var(--border)', borderBottom: '1.5px solid var(--border)',
-          borderBottomLeftRadius: 8, marginBottom: 14,
-        }} />
+        <span aria-hidden className="mb-3.5 ml-3 h-[22px] w-3.5 flex-none rounded-bl-lg border-b-[1.5px] border-l-[1.5px] border-border" />
       )}
-      <Chip icon={cat.icon} tint={cat.tint} size={child ? 32 : 40} />
-      <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
-        <span style={{ fontSize: child ? 'var(--step--1)' : 'var(--step-0)', fontWeight: 600 }}>{cat.name}</span>
-        <span style={{ fontSize: 'var(--step--2)', color: 'var(--muted-foreground)' }}>
+      <Chip icon={cat.icon} tint={cat.tint} size={child ? 32 : 38} radius={999} />
+      <span className="flex min-w-0 flex-1 flex-col gap-0.5 py-2">
+        <span className={`${child ? 'text-sm' : 'text-[15px]'} font-semibold leading-snug [overflow-wrap:anywhere]`}>{cat.name}</span>
+        <span className="text-[13px] leading-snug text-muted-foreground">
           {cat.entries === 0 ? 'nothing filed here yet'
             : `${cat.entries} ${cat.entries === 1 ? 'entry' : 'entries'}`}
           {cat.budgeted_months > 0 && ` · budgeted in ${cat.budgeted_months} ${cat.budgeted_months === 1 ? 'month' : 'months'}`}
@@ -448,30 +456,17 @@ function Row({ cat, last, canEdit, lifted, onEdit, grip }: {
     </>
   );
   return (
-    <div style={{
-      display: 'flex', alignItems: 'center', minHeight: h,
-      borderBottom: last || lifted ? undefined : '1px solid var(--border)',
-    }}>
+    <div className={`flex items-center ${h} ${last || lifted ? '' : 'border-b border-border'}`}>
       {canEdit ? (
-        <button type="button" onClick={onEdit} style={{
-          flex: 1, minWidth: 0, minHeight: h, display: 'flex', alignItems: 'center', gap: 12,
-        }}>{body}</button>
+        <button type="button" onClick={onEdit} aria-label={`Edit ${cat.name}`}
+          className={`flex min-w-0 flex-1 items-center gap-3 text-left text-foreground ${h}`}>{body}</button>
       ) : (
-        <span style={{ flex: 1, minWidth: 0, minHeight: h, display: 'flex', alignItems: 'center', gap: 12 }}>
-          {body}
-        </span>
+        <span className={`flex min-w-0 flex-1 items-center gap-3 ${h}`}>{body}</span>
       )}
       {canEdit && grip && (
-        <span aria-hidden {...grip} style={{
-          ...grip.style, width: 44, minHeight: 72, marginRight: -8, flex: 'none',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          color: lifted ? 'var(--primary)' : 'var(--muted-foreground)',
-        }}>
-          <svg width={16} height={20} viewBox="0 0 16 20" fill="currentColor" aria-hidden>
-            <circle cx="5" cy="4" r="1.7" /><circle cx="11" cy="4" r="1.7" />
-            <circle cx="5" cy="10" r="1.7" /><circle cx="11" cy="10" r="1.7" />
-            <circle cx="5" cy="16" r="1.7" /><circle cx="11" cy="16" r="1.7" />
-          </svg>
+        <span aria-hidden {...grip}
+          className={`-mr-2 flex min-h-[72px] w-11 flex-none items-center justify-center ${lifted ? 'text-primary' : 'text-muted-foreground'}`}>
+          <Icon name="drag_indicator" size={22} />
         </span>
       )}
     </div>
@@ -491,54 +486,45 @@ function EditRow({ cat, first, last, parents, onDone }: {
   const parent = parents.find((p) => p.id === parentId) ?? null;
 
   return (
-    <div style={{ padding: '16px 0', display: 'flex', flexDirection: 'column', gap: 13 }}>
-      <form action={act} style={{ display: 'flex', flexDirection: 'column', gap: 13 }}>
+    <div className="flex flex-col gap-3.5 border-b border-border py-4 last:border-b-0">
+      {/* JS-only (opened by a tap): keepFields, so a refusal never resets Under or the scope back. */}
+      <form onSubmit={keepFields(act)} aria-label={`Edit ${cat.name}`} className="flex flex-col gap-3.5">
         <input type="hidden" name="id" value={cat.id} />
         <NameField defaultValue={cat.name} />
         <UnderField parents={parents} value={parentId} onChange={setParentId} locked={cat.children > 0} />
         <ScopeField value={scope} onChange={setScope} parent={parent} />
         <Picker icon={icon} tint={tint} onIcon={setIcon} onTint={setTint} />
         {state && !state.ok && <ErrorNote>{state.error}</ErrorNote>}
-        <div style={{ display: 'flex', gap: 9 }}>
-          <button type="button" onClick={onDone} style={ghost}>Cancel</button>
-          <button type="submit" disabled={pending} style={solid}>
+        <div className="flex gap-2">
+          <button type="button" onClick={onDone} className={ghost}>Cancel</button>
+          <button type="submit" disabled={pending} className={solid}>
             {pending ? 'Saving…' : 'Save'}
           </button>
         </div>
       </form>
 
       {/* The same moves the grip makes, for a keyboard or a screen reader. */}
-      <div style={{ display: 'flex', gap: 9 }}>
-        {[['up', !first, 'Move up'], ['down', !last, 'Move down']].map(([dir, enabled, label]) => (
-          <form key={dir as string} action={move} style={{ flex: 1, display: 'flex' }}>
+      <div className="flex gap-2">
+        {([['up', !first, 'Move up'], ['down', !last, 'Move down']] as const).map(([dir, enabled, label]) => (
+          <form key={dir} action={move} className="flex flex-1">
             <input type="hidden" name="id" value={cat.id} />
-            <input type="hidden" name="direction" value={dir as string} />
-            <button type="submit" disabled={!enabled} style={{
-              ...ghost, flex: 1, minHeight: 44, justifyContent: 'center', display: 'flex',
-              alignItems: 'center', gap: 6, opacity: enabled ? 1 : .45,
-            }}>
-              <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                <path d={dir === 'up' ? 'M6 15l6-6 6 6' : 'M6 9l6 6 6-6'} />
-              </svg>
-              {label as string}
+            <input type="hidden" name="direction" value={dir} />
+            <button type="submit" disabled={!enabled} className={`${ghost} min-h-11 flex-1 disabled:opacity-45`}>
+              <Icon name={dir === 'up' ? 'arrow_upward' : 'arrow_downward'} size={18} />
+              {label}
             </button>
           </form>
         ))}
       </div>
 
-      <form action={retire} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <form action={retire} className="flex flex-col gap-1.5">
         <input type="hidden" name="id" value={cat.id} />
-        <button className="cta" type="submit" disabled={retiring} style={{
-          minHeight: 44, borderRadius: 11, fontSize: 'var(--step--1)', fontWeight: 600,
-          background: 'transparent', color: 'var(--destructive)',
-        }}>{retiring ? 'Retiring…' : 'Retire this category'}</button>
-        {retireState && !retireState.ok && (
-          <span role="alert" style={{ fontSize: 'var(--step--1)', color: 'var(--destructive)' }}>
-            {retireState.error}
-          </span>
-        )}
-        <span style={{ fontSize: 'var(--step--2)', lineHeight: 1.45, color: 'var(--muted-foreground)' }}>
+        <button type="submit" disabled={retiring}
+          className="press flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold text-destructive disabled:opacity-60">
+          <Icon name="archive" size={18} />{retiring ? 'Retiring…' : 'Retire this category'}
+        </button>
+        {retireState && !retireState.ok && <ErrorNote>{retireState.error}</ErrorNote>}
+        <span className="text-xs leading-snug text-muted-foreground">
           It stops being offered for new entries{cat.children > 0 && ', and so do the ones under it'}.
           Nothing already filed under it moves, and no month changes value.
         </span>
@@ -548,9 +534,11 @@ function EditRow({ cat, first, last, parents, onDone }: {
 }
 
 function AddRow({ parents, takes, onDone }: {
-  parents: Parent[]; takes: (p: Parent, scope: Scope) => boolean; onDone: () => void;
+  parents: Parent[]; takes: (p: Parent, scope: Scope) => boolean; onDone: (message?: string) => void;
 }) {
   const [state, act, pending] = useActionState(addCategory, null);
+  // Added: close, so the next one starts from the defaults rather than this one's name, colour and icon.
+  useOnSuccess(state, () => onDone(state?.ok ? state.message : undefined));
   const [icon, setIcon] = useState<string>('tag');
   const [tint, setTint] = useState<string>('blue');
   const [scope, setScope] = useState<Scope>('expense');
@@ -558,10 +546,8 @@ function AddRow({ parents, takes, onDone }: {
   const parent = parents.find((p) => p.id === parentId) ?? null;
 
   return (
-    <form action={act} className="border border-border" style={{
-      margin: '0 var(--gutter) 22px', background: 'var(--card)', borderRadius: 18, padding: 16,
-      display: 'flex', flexDirection: 'column', gap: 13,
-    }}>
+    /* JS-only (opened by a tap): keepFields, so a refusal never resets Under or the scope back. */
+    <form onSubmit={keepFields(act)} aria-label="Add a category" className={formCard}>
       <NameField />
       <UnderField parents={parents.filter((p) => takes(p, scope))} value={parentId} onChange={setParentId} />
       {/* Changing the kind can strand a parent that no longer takes it, so the
@@ -572,9 +558,9 @@ function AddRow({ parents, takes, onDone }: {
       }} parent={parent} />
       <Picker icon={icon} tint={tint} onIcon={setIcon} onTint={setTint} />
       {state && !state.ok && <ErrorNote>{state.error}</ErrorNote>}
-      <div style={{ display: 'flex', gap: 9 }}>
-        <button type="button" onClick={onDone} style={ghost}>Cancel</button>
-        <button type="submit" disabled={pending} style={solid}>
+      <div className="flex gap-2">
+        <button type="button" onClick={() => onDone()} className={ghost}>Cancel</button>
+        <button type="submit" disabled={pending} className={solid}>
           {pending ? 'Adding…' : 'Add category'}
         </button>
       </div>
@@ -587,63 +573,23 @@ function RetiredRow({ cat, under, last, canEdit, onBack }: {
 }) {
   const [, restore] = useActionState(restoreCategory, null);
   return (
-    <div style={{
-      display: 'flex', alignItems: 'center', gap: 12, minHeight: 68, opacity: 0.7,
-      borderBottom: last ? undefined : '1px solid var(--border)',
-    }}>
-      <Chip icon={cat.icon} tint={cat.tint} size={36} />
-      <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
-        <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>{cat.name}</span>
-        <span style={{ fontSize: 'var(--step--2)', color: 'var(--muted-foreground)' }}>
+    <div className={`flex min-h-[68px] items-center gap-3 py-2.5 ${last ? '' : 'border-b border-border'}`}>
+      <span className="opacity-70"><Chip icon={cat.icon} tint={cat.tint} size={36} radius={999} /></span>
+      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <span className="text-[15px] font-semibold leading-snug text-muted-foreground [overflow-wrap:anywhere]">{cat.name}</span>
+        <span className="text-[13px] leading-snug text-muted-foreground">
           {cat.entries} {cat.entries === 1 ? 'entry' : 'entries'} kept{under && ` · under ${under}`}
         </span>
       </span>
       {canEdit && (
         <form action={restore} onSubmit={() => { haptic('select'); onBack(); }}>
           <input type="hidden" name="id" value={cat.id} />
-          <button className="cta" type="submit" style={{
-            minHeight: 44, padding: '0 12px', borderRadius: 11, fontSize: 'var(--step--1)',
-            fontWeight: 600, background: 'var(--muted)', color: 'var(--foreground)',
-          }}>Bring back</button>
+          <button type="submit" aria-label={`Bring back ${cat.name}`}
+            className="press flex min-h-11 items-center gap-1.5 rounded-xl bg-muted px-3 text-sm font-semibold text-foreground">
+            <Icon name="restore" size={18} />Bring back
+          </button>
         </form>
       )}
     </div>
   );
 }
-
-function Head({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="mx-[var(--gutter)] mb-2 px-1">
-      <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{children}</h2>
-    </div>
-  );
-}
-
-function Pen() {
-  return (
-    <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-      strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <path d="M4 20h4l10.5-10.5a2.1 2.1 0 0 0-3-3L5 17z" /><path d="M13.5 6.5l3 3" />
-    </svg>
-  );
-}
-function Box() {
-  return (
-    <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-      strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <path d="M4 8h16v11a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z" /><path d="M3 5h18v3H3z" /><path d="M10 12h4" />
-    </svg>
-  );
-}
-
-const card: React.CSSProperties = {
-  margin: '0 var(--gutter) 22px', background: 'var(--card)', borderRadius: 18, padding: '0 var(--pad)',
-};
-const ghost: React.CSSProperties = {
-  minHeight: 50, padding: '0 16px', borderRadius: 13, fontSize: 'var(--step-0)', fontWeight: 600,
-  background: 'var(--muted)', color: 'var(--muted-foreground)',
-};
-const solid: React.CSSProperties = {
-  flex: 1, minHeight: 50, borderRadius: 13, fontSize: 'var(--step-0)', fontWeight: 600,
-  textAlign: 'center', background: 'var(--primary)', color: 'var(--primary-foreground)',
-};

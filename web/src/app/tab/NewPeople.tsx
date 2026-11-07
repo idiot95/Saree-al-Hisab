@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useSyncExternalStore } from 'react';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { Icon } from '../Icon';
 import { haptic } from '../haptics';
 
@@ -72,33 +74,26 @@ export default function NewPeople() {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+    <div className="flex flex-col gap-2">
       {people.length > 0 && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+        <div className="flex flex-wrap gap-2">
           {people.map((p) => (
-            <span key={p.name.toLowerCase()} style={{
-              minHeight: 44, padding: '0 4px 0 14px', borderRadius: 999, display: 'flex',
-              alignItems: 'center', gap: 4, fontSize: 'var(--step--1)', fontWeight: 600,
-              background: 'var(--cat-indigo-ink)', color: 'var(--c-on-tint)',
-            }}>
+            <span key={p.name.toLowerCase()}
+              className="flex min-h-11 items-center gap-1 rounded-full bg-primary pl-3.5 pr-0.5 text-sm font-semibold text-primary-foreground">
               <input type="hidden" name="newName" value={p.name} />
               <input type="hidden" name="newPhone" value={p.phone ?? ''} />
               {p.name}
               <button type="button" aria-label={`Remove ${p.name}`}
                 onClick={() => { haptic('select'); setPeople((h) => h.filter((q) => q !== p)); }}
-                style={{
-                  width: 40, height: 40, borderRadius: 999, display: 'flex', alignItems: 'center',
-                  justifyContent: 'center', background: 'transparent', color: 'inherit',
-                }}>
-                <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                  strokeWidth={2.2} strokeLinecap="round" aria-hidden><path d="M6 6l12 12M18 6L6 18" /></svg>
+                className="grid size-10 place-items-center rounded-full">
+                <Icon name="close" size={16} />
               </button>
             </span>
           ))}
         </div>
       )}
-      <div style={{ display: 'flex', gap: 8 }}>
-        <input
+      <div className="flex gap-2">
+        <Input
           value={typed}
           onChange={(e) => setTyped(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addTyped(); } }}
@@ -106,31 +101,19 @@ export default function NewPeople() {
           aria-label="Add someone by name"
           maxLength={60}
           autoComplete="off"
-          style={{
-            flex: 1, minWidth: 0, minHeight: 48, padding: '0 14px', borderRadius: 13,
-            background: 'var(--card)', border: '1px solid var(--border)',
-            color: 'var(--foreground)', fontSize: 'var(--field)',
-          }}
+          className="h-12 min-w-0 flex-1 rounded-xl bg-card px-3.5 text-[length:var(--field)]"
         />
-        <button type="button" onClick={addTyped} disabled={typed.trim().length < 2} className="cta" style={{
-          minHeight: 48, padding: '0 16px', borderRadius: 13, fontSize: 'var(--step--1)', fontWeight: 600,
-          background: 'var(--muted)', color: 'var(--foreground)', opacity: typed.trim().length < 2 ? 0.5 : 1,
-        }}>Add</button>
+        <Button type="button" variant="secondary" onClick={addTyped} disabled={typed.trim().length < 2}
+          className="h-12 rounded-xl px-4 font-semibold">Add</Button>
         {book && (
-          <button type="button" onClick={fromBook} className="cta" aria-label="Pick from contacts" style={{
-            minHeight: 48, padding: '0 14px', borderRadius: 13, fontSize: 'var(--step--1)', fontWeight: 600,
-            background: 'var(--muted)', color: 'var(--foreground)',
-          }}>
-            <Icon name="phone" size={17} strokeWidth={1.9} />
+          <Button type="button" variant="secondary" onClick={fromBook} aria-label="Pick from contacts"
+            className="h-12 rounded-xl px-3.5 font-semibold">
+            <Icon name="phone" size={17} />
             Contacts
-          </button>
+          </Button>
         )}
       </div>
-      {note && (
-        <p role="status" style={{ margin: 0, fontSize: 'var(--step--2)', lineHeight: 1.45, color: 'var(--muted-foreground)' }}>
-          {note}
-        </p>
-      )}
+      {note && <p role="status" className="text-xs leading-snug text-muted-foreground">{note}</p>}
     </div>
   );
 }

@@ -28,7 +28,18 @@ async function caller(): Promise<string> {
 export async function tooMany(
   action: string, limit: number, windowSeconds: number,
 ): Promise<number | null> {
-  const bucket = `${action}:${await caller()}`;
+  return tooManyIn(`${action}:${await caller()}`, limit, windowSeconds);
+}
+
+/**
+ * The same count against a bucket the caller names, for limits that belong
+ * to something other than an address — the SMS capture endpoint counts per
+ * token (`capture:<token id>`), because a phone's address changes with every
+ * network it joins and many phones share one carrier's.
+ */
+export async function tooManyIn(
+  bucket: string, limit: number, windowSeconds: number,
+): Promise<number | null> {
   const [row] = await sql`
     insert into rate_limit (bucket) values (${bucket})
     on conflict (bucket) do update

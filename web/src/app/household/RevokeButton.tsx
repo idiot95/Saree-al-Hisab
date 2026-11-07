@@ -7,13 +7,10 @@ export default function RevokeButton({ id }: { id: string }) {
   const [state, act, pending] = useActionState(revokeInvite, null);
 
   return (
-    <form action={act} style={{ flex: 'none' }}>
+    <form action={act} className="flex-none">
       <input type="hidden" name="id" value={id} />
-      <button className="cta" type="submit" disabled={pending} title={state && !state.ok ? state.error : undefined}
-        style={{
-          minHeight: 44, padding: '0 13px', borderRadius: 11, fontSize: 'var(--step--1)', fontWeight: 600,
-          background: 'var(--muted)', color: 'var(--destructive)',
-        }}>
+      <button type="submit" disabled={pending} title={state && !state.ok ? state.error : undefined}
+        className="press flex min-h-11 items-center rounded-xl bg-muted px-3 text-sm font-semibold text-destructive disabled:opacity-60 in-data-[platform=android]:min-h-12">
         {pending ? 'Withdrawing…' : 'Withdraw'}
       </button>
     </form>

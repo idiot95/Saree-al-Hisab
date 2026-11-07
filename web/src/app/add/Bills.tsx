@@ -22,6 +22,47 @@ const MAX_FILES = 5;
 const MAX_BYTES = 2 * 1024 * 1024;
 const EDGE = 1400;
 
+/* An iPhone photo is often HEIC, which no server here could show. It never
+   leaves the phone as HEIC: whatever the browser can decode is drawn onto the
+   canvas and re-encoded as JPEG. Some pickers report HEIC with an empty type,
+   so the extension counts too; and where createImageBitmap cannot decode it,
+   an <img> (which Safari can) is tried before giving up. */
+const HEIC = /\.(heic|heif)$/i;
+const isImage = (f: File) => f.type.startsWith('image/') || (f.type === '' && HEIC.test(f.name));
+
+async function decode(file: File): Promise<{ src: CanvasImageSource; width: number; height: number; done: () => void } | null> {
+  const bitmap = await createImageBitmap(file).catch(() => null);
+  if (bitmap) return { src: bitmap, width: bitmap.width, height: bitmap.height, done: () => bitmap.close() };
+  const url = URL.createObjectURL(file);
+  const img = new Image();
+  const ok = await new Promise<boolean>((res) => { img.onload = () => res(true); img.onerror = () => res(false); img.src = url; });
+  if (!ok || !img.naturalWidth) { URL.revokeObjectURL(url); return null; }
+  return { src: img, width: img.naturalWidth, height: img.naturalHeight, done: () => URL.revokeObjectURL(url) };
+}
+
+/** The file as it should be sent: an image downscaled and re-encoded as JPEG
+ *  (HEIC included), a PDF as it is, anything else or anything too large null. */
+export async function shrinkFile(file: File): Promise<File | null> {
+  if (file.type === 'application/pdf') return file.size > MAX_BYTES ? null : file;
+  if (!isImage(file)) return null;
+
+  const pic = await decode(file);
+  if (!pic) return null;
+  const scale = Math.min(1, EDGE / Math.max(pic.width, pic.height));
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.round(pic.width * scale);
+  canvas.height = Math.round(pic.height * scale);
+  const ctx = canvas.getContext('2d');
+  if (!ctx) { pic.done(); return null; }
+  ctx.drawImage(pic.src, 0, 0, canvas.width, canvas.height);
+  pic.done();
+
+  const blob = await new Promise<Blob | null>((res) => canvas.toBlob(res, 'image/jpeg', 0.82));
+  if (!blob || blob.size > MAX_BYTES) return null;
+  const name = file.name.replace(/\.[^.]+$/, '') || 'Photo';
+  return new File([blob], `${name}.jpg`, { type: 'image/jpeg' });
+}
+
 export async function shrink(file: File): Promise<Staged | null> {
   const asBase64 = (blob: Blob) => new Promise<string>((res, rej) => {
     const r = new FileReader();
@@ -29,28 +70,11 @@ export async function shrink(file: File): Promise<Staged | null> {
     r.onerror = () => rej(new Error('unreadable'));
     r.readAsDataURL(blob);
   });
-
-  if (file.type === 'application/pdf') {
-    if (file.size > MAX_BYTES) return null;
-    return { name: file.name, mime: file.type, data: await asBase64(file), bytes: file.size };
-  }
-  if (!file.type.startsWith('image/')) return null;
-
-  const bitmap = await createImageBitmap(file).catch(() => null);
-  if (!bitmap) return null;
-  const scale = Math.min(1, EDGE / Math.max(bitmap.width, bitmap.height));
-  const canvas = document.createElement('canvas');
-  canvas.width = Math.round(bitmap.width * scale);
-  canvas.height = Math.round(bitmap.height * scale);
-  const ctx = canvas.getContext('2d');
-  if (!ctx) return null;
-  ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-  bitmap.close();
-
-  const blob = await new Promise<Blob | null>((res) => canvas.toBlob(res, 'image/jpeg', 0.82));
-  if (!blob || blob.size > MAX_BYTES) return null;
-  const name = file.name.replace(/\.[^.]+$/, '') || 'Bill';
-  return { name: `${name}.jpg`, mime: 'image/jpeg', data: await asBase64(blob), bytes: blob.size };
+  const out = await shrinkFile(file);
+  if (!out) return null;
+  // A bill keeps the name it had; an image is renamed .jpg because it now is one.
+  const name = out === file ? file.name : out.name.replace(/^Photo\.jpg$/, 'Bill.jpg');
+  return { name, mime: out.type, data: await asBase64(out), bytes: out.size };
 }
 
 const kb = (n: number) => `${Math.max(1, Math.round(n / 1024))} KB`;
@@ -87,7 +111,7 @@ export default function Bills({ staged, onChange }: {
               minHeight: 46, padding: '6px 6px 6px 12px', borderRadius: 12, display: 'flex',
               alignItems: 'center', gap: 10, background: 'var(--background)',
             }}>
-              <Icon name={s.mime === 'application/pdf' ? 'invoice' : 'camera'} size={17} strokeWidth={1.9} />
+              <Icon name={s.mime === 'application/pdf' ? 'invoice' : 'camera'} size={17} />
               <span style={{
                 flex: 1, minWidth: 0, fontSize: 'var(--step--1)', fontWeight: 600,
                 overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
@@ -111,7 +135,7 @@ export default function Bills({ staged, onChange }: {
             padding: '0 14px', border: '1px dashed var(--input)', background: 'var(--card)',
             color: 'var(--foreground)', fontSize: 'var(--step--1)', fontWeight: 600,
           }}>
-          <Icon name="camera" size={17} strokeWidth={1.9} />
+          <Icon name="camera" size={17} />
           {busy ? 'Adding…' : staged.length ? 'Add another bill' : 'Attach a bill or photo'}
         </button>
       )}

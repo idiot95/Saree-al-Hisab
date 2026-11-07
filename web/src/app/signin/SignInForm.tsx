@@ -1,25 +1,25 @@
 'use client';
 
 import { useActionState } from 'react';
-import { Field, ErrorNote, primaryBtn } from '../auth-ui';
+import { Field, ErrorNote, quietBtn } from '../auth-ui';
 import { signInWithPassword } from './actions';
+import { cn } from '@/lib/utils';
 
 export default function SignInForm() {
   const [state, act, pending] = useActionState(signInWithPassword, null);
 
   return (
-    <form action={act} style={{ display: 'flex', flexDirection: 'column', gap: 13 }}>
+    <form action={act} className="flex flex-col gap-3">
       <Field
         label="Email" name="email" type="email" inputMode="email"
-        autoComplete="username" placeholder="you@example.com" required autoFocus
+        autoComplete="username" placeholder="you@example.com" required
       />
       <Field
         label="Password" name="password" type="password"
         autoComplete="current-password" required
       />
       {state?.error && <ErrorNote>{state.error}</ErrorNote>}
-      <button type="submit" disabled={pending}
-        style={{ ...primaryBtn, opacity: pending ? 0.65 : 1, marginTop: 3 }}>
+      <button type="submit" disabled={pending} className={cn(quietBtn, 'mt-1')}>
         {pending ? 'Signing in…' : 'Sign in'}
       </button>
     </form>

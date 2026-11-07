@@ -1,0 +1,48 @@
+# Final device sweep — Hisab v3, Task 30 (fix round 1), 6 Nov 2026
+#
+# THIS FILE IS AN EXCERPT, assembled from four runs. The '##' headings and the '#' lines other than '# sweep …' are
+# added notes; every other line (the '# sweep …' header included) is the sweep's own output, verbatim and complete (a clean run prints only its header, the engine
+# note and the summary). The screen-state totals are the sweep's own: its SWEEP SUMMARY line counts them.
+#
+# Tree: c158a1e plus this file (the commit that adds it changes nothing else), built clean (rm -rf .next && npm run
+# build) and served with next start on localhost:3000; local Postgres seeded --activity --wealth.
+# Command: node scripts/sweep.mjs --engine all [--routes …] [--out …] [--note …] — 360×780 and 412×915 (Android),
+# 375×667, 393×852 and 430×932 (iPhone), light and dark.
+#
+# WEBKIT WAS NOT AVAILABLE: Playwright's WebKit is not installed here and a second Playwright was not installed for
+# it. The second pass of --engine all ran in Chromium with iPhone emulation on the three iPhone sizes, as each run
+# prints ("webkit pass in chromium"). Safari's own engine is left to devices.md (items 1, 2 and 8).
+#
+# Totals, from the four SWEEP SUMMARY lines below: 288 + 448 + 32 + 288 = 1,056 screen-states, 0 failures.
+# The throwaway user and household of runs 3 and 4 were deleted afterwards (0 rows left).
+
+## 1. Default routes (scripts/sweep.mjs DEFAULT_ROUTES: 18, incl. /categories with Add open, and with Show all open)
+# sweep 2026-11-06T22:01:20.095Z base http://localhost:3000 | Task 30 final (fix round 1): default routes
+webkit unavailable; running Chromium with iPhone UA emulation for the iOS pass
+
+SWEEP SUMMARY: 0 failure(s); 288 screen-state(s) measured (chromium 180, webkit pass in chromium 108)
+
+## 2. Pushed screens, not-found, search, drawers and forms open (seeded owner) — 28 routes:
+# /household/capture /guide /scan /accounts/reconcile /accounts/<id>/reconcile /tab/<id> /people/<id> /worth/<pot>
+# /worth/<gold> /entries/<id with claims> /entries?q=coffee /tab/not-a-tab, and with taps: /add Paid with, When, All
+# categories; /worth Add a pot; a pot's Update balance and Add photos; gold's Your rate; /people New tab; a tab's
+# settings; /accounts Add an account, Add a way to pay; Upcoming Add a payment; an entry's Add someone else;
+# /categories Edit Eating Out, and with Show all; /household Rename this household
+# sweep 2026-11-06T22:04:21.667Z base http://localhost:3000 | Task 30 final (fix round 1): pushed screens, not-found, search, and drawers/forms open (Ammar)
+webkit unavailable; running Chromium with iPhone UA emulation for the iOS pass
+
+SWEEP SUMMARY: 0 failure(s); 448 screen-state(s) measured (chromium 280, webkit pass in chromium 168)
+
+## 3. Signed in, no household yet (throwaway user): /no-household /setup
+# sweep 2026-11-06T22:12:19.891Z base http://localhost:3000 | Task 30 final (fix round 1): signed in, no household yet (throwaway user)
+webkit unavailable; running Chromium with iPhone UA emulation for the iOS pass
+
+SWEEP SUMMARY: 0 failure(s); 32 screen-state(s) measured (chromium 20, webkit pass in chromium 12)
+
+## 4. A new, empty household (the same throwaway user after /setup) — 18 routes:
+# / /entries and its three chips /budget /people /worth /accounts /accounts/reconcile /categories /household
+# /household/capture /add, and /categories Add (and Show all), /people New tab, /worth Add a pot
+# sweep 2026-11-06T22:12:36.125Z base http://localhost:3000 | Task 30 final (fix round 1): a new, empty household (throwaway user)
+webkit unavailable; running Chromium with iPhone UA emulation for the iOS pass
+
+SWEEP SUMMARY: 0 failure(s); 288 screen-state(s) measured (chromium 180, webkit pass in chromium 108)

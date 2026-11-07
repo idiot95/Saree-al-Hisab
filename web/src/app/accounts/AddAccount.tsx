@@ -1,9 +1,11 @@
 'use client';
 
 import { useActionState, useState } from 'react';
-import { Chip, ACCOUNT_ICON, ACCOUNT_TINT } from '../Icon';
+import { Chip, Icon, ACCOUNT_ICON, ACCOUNT_TINT } from '../Icon';
+import { AddRow, Info, Said, fieldLabel, formCard, ghost, solid } from '../form-bits';
 import { Field, ErrorNote } from '../auth-ui';
 import { addAccount } from './actions';
+import { useFocusSoon, useKeepOnRefusal, useOnSuccess } from '../form-hooks';
 import CardIdentityFields from './CardIdentityFields';
 
 const KINDS = [
@@ -15,48 +17,43 @@ const KINDS = [
 
 export default function AddAccount({ startOpen = false }: { startOpen?: boolean }) {
   const [state, act, pending] = useActionState(addAccount, null);
+  // Page-level and no-JS capable (it opens itself on an empty screen), so it posts directly; a refusal's reset is undone.
+  const keep = useKeepOnRefusal(state);
   const [open, setOpen] = useState(startOpen);
   const [kind, setKind] = useState<string>('spending');
+  // Added: close, and start the next one from Bank account, so React's reset after a success never leaves the
+  // kind on screen (state) and the kind sent (DOM) disagreeing.
+  // ...and focus goes back to "Add an account" (the form held it), while the live region says what was added.
+  const [opener, focusOpener] = useFocusSoon<HTMLButtonElement>();
+  useOnSuccess(state, () => { setOpen(false); setKind('spending'); focusOpener(); });
+  const said = <Said>{state?.ok ? state.message : ''}</Said>;
 
   if (!open) {
-    return (
-      <button type="button" onClick={() => setOpen(true)} className="border border-border" style={{
-        margin: '0 var(--gutter) 22px', width: 'calc(100% - 36px)', minHeight: 58, borderRadius: 16,
-        display: 'flex', alignItems: 'center', gap: 11, padding: '0 var(--pad)',
-        background: 'var(--card)', border: '1px dashed var(--input)',
-        color: 'var(--foreground)', fontSize: 'var(--step-0)', fontWeight: 600,
-      }}>
-        <Plus /> Add an account
-        {state?.ok && state.message && (
-          <span style={{ marginLeft: 'auto', fontSize: 'var(--step--1)', color: 'var(--primary)' }}>added</span>
-        )}
-      </button>
-    );
+    return (<>
+      {said}
+      <AddRow ref={opener} onClick={() => setOpen(true)}
+        done={state?.ok && state.message
+          ? <span className="flex items-center gap-1 text-sm font-semibold text-primary"><Icon name="check" size={16} />Added</span>
+          : null}>
+        Add an account
+      </AddRow>
+    </>);
   }
 
-  return (
-    <form action={act} className="border border-border" style={{
-      margin: '0 var(--gutter) 22px', background: 'var(--card)', borderRadius: 18, padding: 16,
-      display: 'flex', flexDirection: 'column', gap: 13,
-    }}>
-      <fieldset style={{ border: 0, padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
-        <legend style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--muted-foreground)', padding: 0 }}>
-          Type
-        </legend>
+  return (<>
+    {said}
+    <form action={act} {...keep} aria-label="Add an account" className={formCard}>
+      <fieldset className="flex flex-col gap-2">
+        <legend className={`mb-2 ${fieldLabel}`}>Type</legend>
         {KINDS.map((k) => (
-          <label key={k.id} style={{
-            display: 'flex', alignItems: 'flex-start', gap: 11, minHeight: 44, padding: '11px 13px',
-            borderRadius: 13, cursor: 'pointer',
-            background: kind === k.id ? 'var(--accent)' : 'var(--background)',
-            border: `1px solid ${kind === k.id ? 'var(--chart-1)' : 'var(--border)'}`,
-          }}>
+          <label key={k.id}
+            className={`flex min-h-11 cursor-pointer items-start gap-3 rounded-xl border px-3.5 py-3 ${kind === k.id ? 'border-primary bg-accent' : 'border-border bg-background'}`}>
             <input type="radio" name="kind" value={k.id} checked={kind === k.id}
-              onChange={() => setKind(k.id)}
-              style={{ width: 18, height: 18, marginTop: 1, accentColor: 'var(--chart-1)', flex: 'none' }} />
+              onChange={() => setKind(k.id)} className="mt-0.5 size-[19px] flex-none accent-primary" />
             <Chip icon={ACCOUNT_ICON[k.id]} tint={ACCOUNT_TINT[k.id]} size={34} radius={9} iconSize={17} />
-            <span style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-              <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>{k.label}</span>
-              <span style={{ fontSize: 'var(--step--1)', lineHeight: 1.45, color: 'var(--muted-foreground)' }}>{k.what}</span>
+            <span className="flex min-w-0 flex-col gap-0.5">
+              <span className="text-[15px] font-semibold">{k.label}</span>
+              <span className="text-sm leading-snug text-muted-foreground">{k.what}</span>
             </span>
           </label>
         ))}
@@ -77,23 +74,16 @@ export default function AddAccount({ startOpen = false }: { startOpen?: boolean 
           <Field label="Currently owed" name="opening" inputMode="decimal" placeholder="0"
             hint="Leave at 0 if the bill is cleared." />
           <Field label="Credit limit (optional)" name="limit" inputMode="decimal" placeholder="200000" />
-          <div style={{ display: 'flex', gap: 10 }}>
-            <span style={{ flex: 1 }}>
-              <Field label="Statement day" name="statement_day" inputMode="numeric"
-                required placeholder="5" maxLength={2} />
-            </span>
-            <span style={{ flex: 1 }}>
-              <Field label="Bill due day" name="due_day" inputMode="numeric"
-                required placeholder="12" maxLength={2} />
-            </span>
+          <div className="grid grid-cols-2 gap-2.5">
+            <Field label="Statement day" name="statement_day" inputMode="numeric"
+              required placeholder="5" maxLength={2} />
+            <Field label="Bill due day" name="due_day" inputMode="numeric"
+              required placeholder="12" maxLength={2} />
           </div>
-          <p style={{
-            margin: 0, padding: '11px 13px', borderRadius: 12, background: 'var(--accent)',
-            color: 'var(--foreground)', fontSize: 'var(--step--1)', lineHeight: 1.5,
-          }}>
+          <Info>
             Purchases on this card are filed into the right billing cycle automatically.
             Use a day between 1 and 28 &mdash; every month has one.
-          </p>
+          </Info>
         </>
       ) : (
         <Field label="Current balance" name="opening" inputMode="decimal" placeholder="0" />
@@ -101,29 +91,10 @@ export default function AddAccount({ startOpen = false }: { startOpen?: boolean 
 
       {state && !state.ok && <ErrorNote>{state.error}</ErrorNote>}
 
-      <div style={{ display: 'flex', gap: 9 }}>
-        <button className="cta" type="button" onClick={() => setOpen(false)} style={{
-          minHeight: 50, padding: '0 16px', borderRadius: 13, fontSize: 'var(--step-0)', fontWeight: 600,
-          background: 'var(--muted)', color: 'var(--muted-foreground)',
-        }}>Cancel</button>
-        <button className="cta" type="submit" disabled={pending} style={{
-          flex: 1, minHeight: 50, borderRadius: 13, fontSize: 'var(--step-0)', fontWeight: 600,
-          background: 'var(--primary)', color: 'var(--primary-foreground)', opacity: pending ? 0.65 : 1,
-        }}>{pending ? 'Saving…' : 'Add account'}</button>
+      <div className="flex gap-2">
+        <button type="button" onClick={() => { setOpen(false); focusOpener(); }} className={ghost}>Cancel</button>
+        <button type="submit" disabled={pending} className={solid}>{pending ? 'Saving…' : 'Add account'}</button>
       </div>
     </form>
-  );
-}
-
-function Plus() {
-  return (
-    <span style={{
-      width: 32, height: 32, flex: 'none', borderRadius: 999, display: 'flex',
-      alignItems: 'center', justifyContent: 'center',
-      background: 'var(--muted)', color: 'var(--muted-foreground)',
-    }}>
-      <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-        strokeWidth={2.2} strokeLinecap="round" aria-hidden><path d="M12 5v14M5 12h14" /></svg>
-    </span>
-  );
+  </>);
 }

@@ -2,54 +2,39 @@
 
 import { useActionState, useState } from 'react';
 import { signOutEverywhere } from './actions';
+import { ErrorNote } from '../auth-ui';
+import { Chevron, danger, ghost, Glyph, row, Words } from './rows';
 
 export default function SignOutEverywhere() {
   const [state, act, pending] = useActionState(signOutEverywhere, null);
   const [sure, setSure] = useState(false);
 
+  if (!sure) {
+    return (
+      <button type="button" onClick={() => setSure(true)} className={row}>
+        <Glyph name="devices" />
+        <Words title="Sign out everywhere" sub="Every phone, this one included" />
+        <Chevron />
+      </button>
+    );
+  }
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingTop: 4 }}>
-      {!sure ? (
-        <button type="button" onClick={() => setSure(true)} style={{
-          minHeight: 48, display: 'flex', alignItems: 'center', gap: 11, textAlign: 'left',
-        }}>
-          <span style={{
-            width: 38, height: 38, flex: 'none', borderRadius: 999, display: 'flex',
-            alignItems: 'center', justifyContent: 'center',
-            background: 'var(--muted)', color: 'var(--muted-foreground)',
-          }}>
-            <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-              strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-              <path d="M15 16.5 19.5 12 15 7.5" /><path d="M19 12H9" />
-              <path d="M12 4.5H6.5A1.5 1.5 0 0 0 5 6v12a1.5 1.5 0 0 0 1.5 1.5H12" />
-            </svg>
-          </span>
-          <span style={{ flex: 1, fontSize: 'var(--step-0)', fontWeight: 600 }}>Sign out everywhere</span>
-          <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="var(--muted-foreground)"
-            strokeWidth={2} strokeLinecap="round" aria-hidden><path d="M9 5l7 7-7 7" /></svg>
+    <form action={act} className="flex flex-col gap-3 px-[var(--pad)] py-4">
+      <div className="flex items-center gap-3">
+        <Glyph name="devices" />
+        <Words title="Sign out everywhere" />
+      </div>
+      <p className="text-sm leading-normal text-muted-foreground">
+        Ends every signed-in session on every device, including this one. Use this if a
+        phone has been lost or you think someone else has your password.
+      </p>
+      {state && !state.ok && <ErrorNote>{state.error}</ErrorNote>}
+      <div className="flex gap-2">
+        <button type="button" onClick={() => setSure(false)} className={ghost}>Cancel</button>
+        <button type="submit" disabled={pending} className={`${danger} flex-1`}>
+          {pending ? 'Signing out…' : 'Sign out everywhere'}
         </button>
-      ) : (
-        <form action={act} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <p style={{ margin: 0, fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--muted-foreground)' }}>
-            Ends every signed-in session on every device, including this one. Use this if a
-            phone has been lost or you think someone else has your password.
-          </p>
-          {state && !state.ok && (
-            <p role="alert" style={{ margin: 0, fontSize: 'var(--step--1)', color: 'var(--destructive)' }}>{state.error}</p>
-          )}
-          <div style={{ display: 'flex', gap: 9 }}>
-            <button className="cta" type="button" onClick={() => setSure(false)} style={{
-              minHeight: 48, padding: '0 16px', borderRadius: 12, fontSize: 'var(--step-0)', fontWeight: 600,
-              background: 'var(--muted)', color: 'var(--muted-foreground)',
-            }}>Cancel</button>
-            <button className="cta" type="submit" disabled={pending} style={{
-              flex: 1, minHeight: 48, borderRadius: 12, fontSize: 'var(--step-0)', fontWeight: 600,
-              background: 'color-mix(in srgb, var(--destructive) 12%, transparent)', color: 'var(--destructive)',
-              opacity: pending ? 0.65 : 1,
-            }}>{pending ? 'Signing out…' : 'Sign out everywhere'}</button>
-          </div>
-        </form>
-      )}
-    </div>
+      </div>
+    </form>
   );
 }

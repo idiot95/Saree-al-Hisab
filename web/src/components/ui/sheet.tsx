@@ -2,8 +2,8 @@
 
 import * as React from "react"
 import { cn } from "@/lib/utils"
-import { IconX } from "@tabler/icons-react"
 import { Dialog as SheetPrimitive } from "radix-ui"
+import { Icon } from '@/app/Icon';
 
 function Sheet({ ...props }: React.ComponentProps<typeof SheetPrimitive.Root>) {
   return <SheetPrimitive.Root data-slot="sheet" {...props} />
@@ -75,7 +75,7 @@ function SheetContent({
         {children}
         {showCloseButton && (
           <SheetPrimitive.Close className="absolute top-4 right-4 rounded-xs opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none data-[state=open]:bg-secondary">
-            <IconX className="size-4" />
+            <Icon name="close" size={16} />
             <span className="sr-only">Close</span>
           </SheetPrimitive.Close>
         )}

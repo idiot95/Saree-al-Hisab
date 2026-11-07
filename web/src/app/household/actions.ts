@@ -1,11 +1,15 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { rethrowControlFlow } from '@/lib/rethrow';
 import { redirect } from 'next/navigation';
 import { identity, sql, withHousehold } from '@/db/client';
-import { currentActor } from '@/db/queries';
+import { actorOrNull, currentActor } from '@/db/queries';
+import { signIn } from '@/auth';
+import { hasGoogle } from '@/db/identity';
+import { sealLinkIntent } from '@/lib/link-intent';
+import { LINK_COOKIE, LINK_MAX_AGE, clearOtherFlowCookies, flowCookieOptions } from '@/lib/flow-cookies';
 import { createHousehold, revokeSessions, switchHousehold } from '@/db/membership';
 import { newLinkToken } from '@/lib/link-token';
 import { hashPassword, passwordProblem, verifyPassword } from '@/lib/password';
@@ -13,6 +17,7 @@ import { seal, hint } from '@/lib/secretbox';
 import { testKey } from '@/db/gemini';
 import { THEMES, THEME_COOKIE } from '@/lib/theme';
 import { isCurrency } from '@/lib/money';
+import { changeRoleIn, removeMemberIn } from '@/lib/member-change';
 
 /* Every one of these is reachable by direct POST, so each re-establishes who
    is asking and what they are allowed to do. Hiding a button is presentation;
@@ -20,7 +25,9 @@ import { isCurrency } from '@/lib/money';
 
 const INVITE_DAYS = 7;
 
-export type Result = { ok: true; message?: string; until?: string } | { ok: false; error: string };
+export type Result =
+  | { ok: true; message?: string; until?: string; email?: string; role?: 'adult' | 'viewer' }
+  | { ok: false; error: string };
 
 /* Every one takes (previous state, form data) so it can be handed straight to
    useActionState. That is not a formality: an action passed through a client
@@ -78,7 +85,8 @@ export async function createInvite(_prev: Result | null, formData: FormData): Pr
     revalidatePath('/household');
     // The expiry the database actually set, so the message quotes the same day.
     const until = new Date(made.expires_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'long' });
-    return { ok: true, message: token, until };
+    // The address and role the invite row was written with, so the message is about this invite and no other.
+    return { ok: true, message: token, until, email, role };
   });
 }
 
@@ -113,8 +121,9 @@ export async function changeRole(_prev: Result | null, formData: FormData): Prom
       }
     }
 
-    await sql`update member set role = ${role}
-              where household_id = ${actor.household_id} and user_id = ${userId}`;
+    /* One transaction (withHousehold): dropped to viewer, their phones' capture keys are revoked with it, so
+       raising them back later does not bring an old key back to life. */
+    await changeRoleIn(sql, actor.household_id, userId, role as 'owner' | 'adult' | 'viewer');
     revalidatePath('/household');
     return { ok: true };
   });
@@ -130,8 +139,8 @@ export async function removeMember(_prev: Result | null, formData: FormData): Pr
     }
     // Their entries stay. The ledger is the household's, not the person's —
     // removing someone must never silently change what the month cost.
-    await sql`delete from member
-              where household_id = ${actor.household_id} and user_id = ${userId}`;
+    // Their capture keys go in the same transaction, so a re-invitation never revives an old phone's key.
+    await removeMemberIn(sql, actor.household_id, userId);
     revalidatePath('/household');
     return { ok: true };
   });
@@ -341,5 +350,27 @@ export async function setTheme(_prev: Result | null, formData: FormData): Promis
     });
   }
   revalidatePath('/', 'layout');
+  return { ok: true };
+}
+
+/* ── Google ──────────────────────────────────────────────────────────────
+   Linking is per person and open to every role: a viewer signs in like
+   anyone else. The cookie names who asked, sealed and good for ten minutes;
+   the signIn callback links only if it still matches the session that comes
+   back from Google, and only a session we still honour (a revoked one is
+   nobody, so it cannot link). */
+export async function startLinkGoogle(_prev: Result | null, _fd: FormData): Promise<Result> {
+  const actor = await actorOrNull();
+  if (!actor) redirect('/signin');
+  if (await hasGoogle(actor.user_id)) return { ok: false, error: 'Google is already linked to your account.' };
+  const secret = process.env.AUTH_SECRET;
+  if (!secret) return { ok: false, error: 'Google cannot be linked right now.' };
+
+  const jar = await cookies();
+  clearOtherFlowCookies(jar, LINK_COOKIE);
+  jar.set(LINK_COOKIE, sealLinkIntent(actor.user_id, secret, Date.now()),
+    flowCookieOptions(LINK_MAX_AGE, (await headers()).get('x-forwarded-proto')));
+  // Redirects to Google by throwing; it must not be caught here.
+  await signIn('google', { redirectTo: '/household' });
   return { ok: true };
 }

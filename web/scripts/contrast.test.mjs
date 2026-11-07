@@ -28,6 +28,25 @@ function themes(file) {
   return { light: vars(light), dark: vars(dark) };
 }
 
+/* Dark is written twice in each stylesheet: under the system's dark setting (unless the household chose light) and
+   under data-theme="dark" (the household chose dark). The pairs are measured on the second, so the first must say
+   exactly the same, or a phone left on its own setting would wear a dark palette nobody measured. Every custom
+   property, colour or not, is compared both ways. */
+let pass = 0, fail = 0;
+function sameDarkTwice(file) {
+  const css = readFileSync(join(root, 'src/app', file), 'utf8');
+  const decls = (text) => Object.fromEntries([...text.matchAll(/--([\w-]+)\s*:\s*([^;]+);/g)].map((m) => [m[1], m[2].trim()]));
+  const after = (from) => { const a = css.indexOf(from); return a < 0 ? null : css.slice(a, css.indexOf('}', a)); };
+  const media = after(':root:not([data-theme="light"])'), chosen = after(':root[data-theme="dark"]');
+  if (media === null || chosen === null) { fail++; console.log(`  MISS ${file}: a dark block is missing`); return; }
+  const a = decls(media), b = decls(chosen);
+  for (const k of new Set([...Object.keys(a), ...Object.keys(b)])) {
+    if (a[k] === b[k]) pass++;
+    else { fail++; console.log(`  FAIL ${file} --${k}: ${a[k] ?? '(absent)'} under the system's dark, ${b[k] ?? '(absent)'} under data-theme=dark`); }
+  }
+}
+for (const f of ['tokens.css', 'globals.css', 'ql.css']) sameDarkTwice(f);
+
 const tok = themes('tokens.css');
 const glob = themes('globals.css');
 const P = {
@@ -104,7 +123,6 @@ const PAIRS = [
 
 
 const MIN = 4.5;
-let pass = 0, fail = 0;
 for (const theme of ['light', 'dark']) {
   console.log(`\n  ${theme.toUpperCase()}`);
   for (const [ink, grounds, min = MIN] of PAIRS) {
@@ -116,7 +134,7 @@ for (const theme of ['light', 'dark']) {
       if (ground.startsWith('lit:')) b = lit(b);
       const r = ratio(a, b);
       const ok = r >= min;
-      ok ? pass++ : fail++;
+      if (ok) pass++; else fail++;
       if (!ok) console.log(`  FAIL ${ink} on ${ground}  ${r.toFixed(2)}:1 (needs ${min})  (${a} on ${b})`);
     }
   }
@@ -133,6 +151,33 @@ for (const theme of ['light', 'dark']) {
   const darkText = block(':root[data-theme="dark"]');
   const L = { ...vars(lightText) }, Lr = refs(lightText);
   const D = { ...L, ...vars(darkText) }, Dr = { ...Lr, ...refs(darkText) };
+  /* Plum & Rose Gold, as the owner chose it. The stylesheet must carry exactly these; the pairs below then
+     prove them. Dark is spelled out in full, so a token that silently falls back to light is caught here. */
+  const PALETTE = {
+    light: { background: '#F8F5F4', card: '#FFFFFF', foreground: '#1E161D', 'muted-foreground': '#63575F',
+      muted: '#EDE5E6', secondary: '#EDE5E6', primary: '#4A2545', 'primary-foreground': '#FFFFFF',
+      accent: '#F0E4EE', 'accent-foreground': '#3B1C37', hero: '#3A1D36',
+      attention: '#D9A38C', 'attention-foreground': '#1E161D', 'attention-ink': '#9A5B45',
+      'attention-soft': '#FBEDE6', 'attention-soft-foreground': '#8A4A2E',
+      'money-in': '#157F3C', destructive: '#B91C1C', 'chart-1': '#4A2545', 'chart-2': '#9A5B45',
+      border: '#E6DCDE', input: '#E6DCDE', 'hero-foreground': '#FFFFFF', 'hero-muted': '#D9C3D5',
+      'hero-1': '#A8D9B8', 'hero-2': '#9CC9E8', 'hero-3': '#E8C77A', 'hero-4': '#F2B49C' },
+    dark: { background: '#130E12', card: '#1D161C', foreground: '#F0E7EE', 'muted-foreground': '#B3A3AF',
+      muted: '#2C2229', secondary: '#2C2229', primary: '#D9A9D0', 'primary-foreground': '#1E161D',
+      accent: '#2E1F2B', 'accent-foreground': '#F0DCEB', hero: '#2D1729',
+      attention: '#E3B5A0', 'attention-foreground': '#1E161D', 'attention-ink': '#E3B5A0',
+      'attention-soft': '#3A241A', 'attention-soft-foreground': '#F2C9B6',
+      'money-in': '#A3E6BB', destructive: '#F2867A', 'chart-1': '#D9A9D0', 'chart-2': '#E3B5A0',
+      border: '#3A2E37', input: '#463A43', 'hero-foreground': '#F0E7EE', 'hero-muted': '#CDB5C9',
+      'hero-1': '#A8D9B8', 'hero-2': '#9CC9E8', 'hero-3': '#E8C77A', 'hero-4': '#F2B49C' },
+  };
+  for (const [theme, T] of [['light', L], ['dark', D]]) {
+    for (const [k, want] of Object.entries(PALETTE[theme])) {
+      const got = T[k];
+      if (got && got.toUpperCase() === want) pass++;
+      else { fail++; console.log(`  FAIL palette ${theme} --${k} is ${got} (the chosen palette says ${want})`); }
+    }
+  }
   const get = (T, R, k) => T[k] ?? (R[k] ? T[R[k]] : undefined);
   const TEXT = [
     ['foreground', ['background', 'card', 'muted', 'accent', 'raised']],
@@ -144,23 +189,53 @@ for (const theme of ['light', 'dark']) {
     ['attention-soft-foreground', ['attention-soft']],
     ['destructive', ['background', 'card']],
     ['destructive-foreground', ['destructive']],
-    ['money-in', ['background', 'card']],
+    ['money-in', ['card', 'background']],
     ['money-out', ['background', 'card']],
+    // Plum & Rose Gold additions
+    ['foreground', ['secondary', 'attention-soft']],
+    ['primary', ['accent']],
+    ['muted-foreground', ['secondary']],
+    ['primary-foreground', ['primary']],
+    ['secondary-foreground', ['secondary']],
+    // the net-worth card
+    ['hero-foreground', ['hero']],
+    // Wealth: a stale rate's note sits on paper and on a card, not only on its own attention ground
+    ['attention-soft-foreground', ['background', 'card']],
+    ['hero-muted', ['hero']],
   ];
-  const MARKS = [['primary', ['muted']], ['destructive', ['muted']], ['attention-ink', ['card', 'muted']]];
+  const MARKS = [['primary', ['muted']], ['destructive', ['muted']], ['attention-ink', ['background', 'card', 'muted']],
+    ['chart-1', ['card']], ['chart-2', ['card']],
+    ['hero-1', ['hero']], ['hero-2', ['hero']], ['hero-3', ['hero']], ['hero-4', ['hero']]];
   for (const [theme, T, R] of [['light', L, Lr], ['dark', D, Dr]]) {
     console.log(`\n  QUIET LEDGER ${theme.toUpperCase()}`);
+    // money-in must not be mistaken for the primary: a luminance gap, not just contrast against the ground
+    {
+      const a = get(T, R, 'money-in'), b = get(T, R, 'primary');
+      const gap = Math.abs(lum(a) - lum(b)), ok = gap >= 0.05;
+      if (ok) pass++; else fail++;
+      if (!ok) console.log(`  FAIL money-in vs primary luminance gap ${gap.toFixed(3)} (needs 0.05)  (${a} vs ${b})`);
+    }
+    /* A refusal in a holdings form: the destructive ink on its own 10% wash (bg-destructive/10), the wash
+       composited over the ground the form sits on (the drawer is background; account rows are card). */
+    for (const ground of ['background', 'card']) {
+      const ink = get(T, R, 'destructive'), g = get(T, R, ground);
+      const [a, b] = [hex(ink), hex(g)];
+      const wash = `#${a.map((v, i) => Math.round(v * 0.1 + b[i] * 0.9).toString(16).padStart(2, '0')).join('')}`;
+      const r = ratio(ink, wash), ok = r >= MIN;
+      if (ok) pass++; else fail++;
+      if (!ok) console.log(`  FAIL destructive on destructive/10 over ${ground}  ${r.toFixed(2)}:1 (needs ${MIN})  (${ink} on ${wash})`);
+    }
     for (const [list, min] of [[TEXT, MIN], [MARKS, 3]]) {
-      for (const [ink, grounds] of list) for (const ground of grounds) {
+      for (const [ink, grounds, own] of list) for (const ground of grounds) {
         const a = get(T, R, ink), b = get(T, R, ground);
         if (!a || !b) { fail++; console.log(`  MISS ${ink} on ${ground} — token not defined`); continue; }
-        const r = ratio(a, b), ok = r >= min;
-        ok ? pass++ : fail++;
-        if (!ok) console.log(`  FAIL ${ink} on ${ground}  ${r.toFixed(2)}:1 (needs ${min})  (${a} on ${b})`);
+        const need = own ?? min, r = ratio(a, b), ok = r >= need;
+        if (ok) pass++; else fail++;
+        if (!ok) console.log(`  FAIL ${ink} on ${ground}  ${r.toFixed(2)}:1 (needs ${need})  (${a} on ${b})`);
       }
     }
   }
 }
 
-console.log(`\n  ${pass} pairs at ${MIN}:1 or better, ${fail} below\n`);
+console.log(`\n  ${pass} checks passed (pairs at ${MIN}:1 or better or 3:1 for marks, the chosen palette, dark written the same twice), ${fail} failed\n`);
 process.exit(fail ? 1 : 0);

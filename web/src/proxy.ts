@@ -1,7 +1,8 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { auth } from '@/auth';
+import { clearOtherFlowCookies } from '@/lib/flow-cookies';
 
-/* Two jobs, and only two.
+/* Two jobs, and one chore.
 
    1. A Content-Security-Policy with a fresh nonce per request. Next inlines a
       bootstrap script on every page, so a policy without a nonce would have to
@@ -14,6 +15,8 @@ import { auth } from '@/auth';
       real check runs in the page and in every Server Action, where the cookie
       is verified, dated against the account's session epoch, and the role is
       read from the database.
+
+   The chore: /signin?error= drops the Google flow cookies (see below).
 
    /api/auth, /signin, /signup, /join, /reset and /terms are excluded from the
    redirect: Auth.js has to answer, and opening your own household, accepting
@@ -38,7 +41,9 @@ function policy(nonce: string, dev: boolean) {
     "img-src 'self' data: blob: https:",
     "font-src 'self' data:",
     `connect-src 'self'${dev ? ' ws: http:' : ''}`,
-    "form-action 'self'",
+    // Google sign-in posts to us and we redirect to Google; a no-JS form
+    // submission follows that redirect, and form-action governs it.
+    "form-action 'self' https://accounts.google.com",
     "frame-ancestors 'none'",
     "base-uri 'none'",
     "object-src 'none'",
@@ -66,7 +71,18 @@ export default async function proxy(req: NextRequest) {
   }
 
   const res = NextResponse.next({ request: { headers } });
-  res.headers.set('Content-Security-Policy', policy(nonce, dev));
+  /* A stored file is shown on its own, never as a page, so it gets the strictest policy there is rather
+     than the page policy — and it gets it HERE, not only from the route: a path under /attachment/ that no
+     route matches (a 404, a future route that forgets) still answers under default-src 'none'; sandbox. */
+  res.headers.set('Content-Security-Policy',
+    pathname.startsWith('/attachment/') ? "default-src 'none'; sandbox" : policy(nonce, dev));
+  /* A sign-in that Auth.js gave up on — cancelled at Google, or refused
+     before our callback ran — never reaches the code that spends the link and
+     invite cookies, so they would outlive the attempt they were set for. It
+     always lands here with ?error=, and a page cannot set cookies; this can. */
+  if (pathname === '/signin' && req.nextUrl.searchParams.has('error')) {
+    clearOtherFlowCookies(res.cookies);
+  }
   return res;
 }
 
@@ -79,7 +95,10 @@ export const config = {
        a font is fetched by the CSS engine, not by the page, and a redirect to
        /signin where a woff2 was expected is a silently missing typeface —
        which is how the Arabic line came back in a fallback face the first
-       time this shipped. */
-    '/((?!_next/static|_next/image|icons|brands|fonts|manifest.webmanifest|favicon.ico|sw.js).*)',
+       time this shipped.
+       `api/capture/` (with its slash, so /api/captureX is still covered) is the SMS endpoint a phone posts to with a bearer token:
+       no session to redirect for, JSON rather than a page so no CSP or nonce,
+       and nothing here may set a cookie on it. */
+    '/((?!_next/static|_next/image|icons|brands|fonts|manifest.webmanifest|favicon.ico|sw.js|api/capture/).*)',
   ],
 };

@@ -1,6 +1,7 @@
 'use server';
 
 import { redirect } from 'next/navigation';
+import { isUuid } from '@/lib/bills';
 import { revalidatePath } from 'next/cache';
 import { sql, withHousehold } from '@/db/client';
 import { currentActor } from '@/db/queries';
@@ -68,6 +69,9 @@ export async function addPerson(_prev: Result | null, fd: FormData): Promise<Res
 }
 
 async function personAccount(householdId: string, id: string) {
+  /* '' or a malformed id would fail Postgres's uuid cast as a 500; undefined lets each caller refuse it with its
+     own "not one of yours" sentence, before any query. */
+  if (!isUuid(id)) return undefined;
   const [p] = await sql`
     select c.id, c.name, c.account_id from counterparty c
     where c.id = ${id} and c.household_id = ${householdId} and c.archived_at is null`;
@@ -165,9 +169,12 @@ export async function writeOff(_prev: Result | null, fd: FormData): Promise<Resu
     const on = String(fd.get('occurred_on') ?? '');
     if (!/^\d{4}-\d{2}-\d{2}$/.test(on)) return { ok: false, error: 'That date is not valid.' };
 
+    // Refused before the query: '' or a malformed id would fail Postgres's uuid cast as a 500.
+    const categoryId = String(fd.get('categoryId') ?? '');
+    if (!isUuid(categoryId)) return { ok: false, error: 'Choose which category to count it under.' };
     const [cat] = await sql`
       select id, name, scope from category
-      where id = ${String(fd.get('categoryId') ?? '')} and household_id = ${actor.household_id}
+      where id = ${categoryId} and household_id = ${actor.household_id}
         and archived_at is null`;
     if (!cat) return { ok: false, error: 'Choose which category to count it under.' };
     if (!fits(cat.scope, 'expense')) return { ok: false, error: misfit('expense', cat.name) };

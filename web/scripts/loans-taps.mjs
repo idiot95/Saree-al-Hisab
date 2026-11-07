@@ -1,0 +1,340 @@
+#!/usr/bin/env node
+/* Loans (/people, /tab/[id]), against a running build.
+
+     node scripts/loans-taps.mjs [--state file] [--keep]
+
+   Env: LOANS_BASE (default http://localhost:3000), LOANS_EMAIL (default ammar@example.com).
+   Reads OWNER_DATABASE_URL from .env.local. --state is a signed-in Playwright storage state for an owner or
+   contributing member (default .sweep-state.json).
+
+   1. /people shows "Owed to you" as a figure and the open tab with the most still owed as a row; the row opens
+      the tab's screen.
+   2. Money back on the tab, ₹100 from whoever is first: the "Still to come back" figure drops by exactly ₹100 and
+      a claim_receipt of 10000 is in the books.
+   3. Back on /people, "Owed to you" has dropped by the same ₹100.
+   4. A tab row swipes open (a finger dragged left) to Remind and Add cost, and closes again on Escape; shut, its
+      action layer is not drawn at all (the dark-theme edge). The grip opens and closes it too.
+   5. A throwaway tab (named for this run): New tab creates it and lands on its screen (a redirect through
+      keepFields), the menu renames it, closes it ("Tab · closed", closed_at set) and deletes it (back on /people,
+      the row gone from the books).
+   6. On a person: Lend ₹50, and their figure goes up by ₹50; Got money back ₹50, and it comes back down.
+   The receipts, loans and tabs this run made are removed afterwards, unless --keep.                                          */
+import { createRequire } from 'node:module';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import assert from 'node:assert/strict';
+import { localOwnerUrl } from './local-only.mjs';
+
+const require = createRequire(import.meta.url);
+const { chromium, devices } = require('playwright');
+const postgres = require('postgres');
+
+const HERE = path.dirname(fileURLToPath(import.meta.url));
+const ROOT = path.join(HERE, '..');
+const BASE = (process.env.LOANS_BASE || 'http://localhost:3000').replace(/\/$/, '');
+const EMAIL = process.env.LOANS_EMAIL || 'ammar@example.com';
+const argv = process.argv.slice(2);
+const arg = (k) => { const i = argv.indexOf(k); return i >= 0 ? argv[i + 1] : null; };
+const STATE = arg('--state') ?? path.join(ROOT, '.sweep-state.json');
+const KEEP = argv.includes('--keep');
+
+const sql = postgres(localOwnerUrl(ROOT), { ssl: 'require', max: 1, onnotice: () => {} });
+
+let n = 0;
+const ok = (what) => { n++; console.log(`  ok   ${what}`); };
+const strip = (d) => { const { defaultBrowserType, ...rest } = d; void defaultBrowserType; return rest; };
+const IOS = { ...strip(devices['iPhone 13']), viewport: { width: 390, height: 844 }, screen: { width: 390, height: 844 } };
+const browser = await chromium.launch();
+const ctx = await browser.newContext({ ...IOS, storageState: STATE });
+/* No first-visit peek: it would slide a row out on its own while the test is measuring it. */
+await ctx.addInitScript(() => { try { localStorage.setItem('swipe-peeked', '1'); } catch { /* none */ } });
+const page = await ctx.newPage();
+
+/* "₹9,000" / "+₹9,000" → 900000 minor units. */
+const minor = (label) => Math.round(Number(String(label).replace(/[^0-9.]/g, '')) * 100);
+const figureIn = (region) => region.getByRole('img').first();
+
+const started = new Date();
+let hh = null;
+let tabId = null;
+const RUN = Date.now().toString(36);
+const TAB = `Loans taps ${RUN}`;
+let personAcc = null;
+let me = null;              // the signed-in person, whose entries these are
+let receiptsBefore = null;  // the tab's money back before step 2: anything new on it by `me` is this run's
+const NOTE = `Loans taps ${RUN}`;   // the lend and the repayment carry it, so the cleanup takes exactly those two
+
+try {
+  [{ hh, me }] = await sql`select active_household_id as hh, id as me from app_user where lower(email) = lower(${EMAIL})`;
+  const [tab] = await sql`select b.id, b.name, coalesce(sum(tb.outstanding), 0)::bigint as out
+    from ledger_book b join tab_balance tb on tb.book_id = b.id
+    where b.household_id = ${hh} and b.closed_at is null
+    group by b.id, b.name having coalesce(sum(tb.outstanding), 0) >= 10000 order by 3 desc limit 1`;
+  assert.ok(tab, 'an open tab with at least ₹100 still owed (seed with --activity)');
+  tabId = tab.id;
+
+  /* ── 1. the list ──────────────────────────────────────────────────── */
+  await page.goto(`${BASE}/people`);
+  await page.getByRole('heading', { name: 'Loans', level: 1 }).waitFor();
+  const hero = page.getByRole('region', { name: 'Owed to you' });
+  const owedBefore = minor(await figureIn(hero).getAttribute('aria-label'));
+  await page.getByRole('button', { name: 'New tab' }).waitFor();
+  const row = page.getByRole('link', { name: new RegExp(tab.name) });
+  await row.click();
+  await page.waitForURL((u) => u.pathname === `/tab/${tabId}`);
+  await page.getByRole('heading', { name: tab.name, level: 1 }).waitFor();
+  ok(`/people: "Owed to you" ${owedBefore / 100}, the "New tab" button, and "${tab.name}" opens its tab`);
+
+  /* ── 2. money back ────────────────────────────────────────────────── */
+  const still = page.getByRole('region', { name: 'Still to come back' });
+  const before = minor(await figureIn(still).getAttribute('aria-label'));
+  assert.equal(before, Number(tab.out), 'the tab figure is what the books say is outstanding');
+  receiptsBefore = (await sql`select t.id from txn t join claim c on c.id = t.claim_id join txn o on o.id = c.txn_id
+    where t.kind = 'claim_receipt' and o.book_id = ${tabId}`).map((r) => r.id);
+  await page.getByRole('button', { name: 'Money back' }).click();
+  const sheet = page.getByRole('dialog', { name: 'Money back' });
+  await sheet.getByLabel(/^Amount/).fill('100');
+  await sheet.getByRole('button', { name: 'Record what came back' }).click();
+  await page.waitForFunction(([want]) => {
+    const r = document.querySelector('section[aria-label="Still to come back"] [role=img]');
+    const v = r && Math.round(Number(r.getAttribute('aria-label').replace(/[^0-9.]/g, '')) * 100);
+    return v === want;
+  }, [before - 10000], { timeout: 20000 });
+  const got = await sql`select t.amount::bigint as amount from txn t join claim c on c.id = t.claim_id
+    join txn o on o.id = c.txn_id
+    where t.household_id = ${hh} and t.kind = 'claim_receipt' and o.book_id = ${tabId}
+      and t.created_at >= ${started} and t.deleted_at is null`;
+  assert.equal(got.reduce((s, r) => s + Number(r.amount), 0), 10000, 'one ₹100 of claim_receipt in the books');
+  ok(`Money back ₹100: "Still to come back" rolled from ${before / 100} to ${(before - 10000) / 100}, and the receipt is in the books`);
+
+  /* ── 2b. drawers: a day picked in a nested drawer, Escape, and focus back ── */
+  /* Money back's "Another day…" opens the month as vaul's nested drawer over Money back; picking a day closes only
+     the nested one and the day becomes the chosen chip. Escape then closes Money back, nothing is sent, and the
+     keyboard is back on the button that opened it. */
+  await page.getByRole('dialog', { name: 'Money back' }).waitFor({ state: 'hidden' });
+  const opener = page.getByRole('button', { name: 'Money back' });
+  /* Focus is back on the opener itself — that very button, by name — not merely somewhere whose text mentions it
+     (the body's text does, so a check on textContent passed with focus lost to <body>). */
+  const focusIsOn = async (name) => {
+    const exact = page.getByRole('button', { name, exact: true });
+    for (let i = 0; i < 50; i++) {
+      const [mine, tag] = await Promise.all([
+        exact.evaluate((el) => el === document.activeElement).catch(() => false),
+        page.evaluate(() => document.activeElement?.tagName),
+      ]);
+      if (mine && tag === 'BUTTON') return;
+      await page.waitForTimeout(100);
+    }
+    throw new Error(`focus is not on the "${name}" button (it is on ${await page.evaluate(() => document.activeElement?.tagName)})`);
+  };
+
+  /* The handle is a real Close button, as Sheet's was: the drawer opens with focus on it, activating it (a keyboard,
+     or a screen reader's double tap) closes the drawer, and focus is back on the button that opened it. Then a tap
+     on it does the same. */
+  await opener.click();
+  const mbDrawer = page.getByRole('dialog', { name: 'Money back' });
+  await mbDrawer.waitFor();
+  await page.waitForFunction(() => document.activeElement?.getAttribute('aria-label') === 'Close', null, { timeout: 5000 });
+  const closeBox = await mbDrawer.getByRole('button', { name: 'Close' }).boundingBox();
+  assert.ok(closeBox.height >= 44 && closeBox.width >= 44, `Close is a 44px target (${closeBox.width}x${closeBox.height})`);
+  await page.keyboard.press('Enter');
+  await mbDrawer.waitFor({ state: 'hidden' });
+  await focusIsOn('Money back');
+  await opener.click();
+  await mbDrawer.getByRole('button', { name: 'Close' }).click();
+  await mbDrawer.waitFor({ state: 'hidden' });
+  await focusIsOn('Money back');
+  ok('Money back opens with focus on its Close handle (44px); Enter closes it and so does a tap, focus back on Money back each time');
+  await opener.click();
+  const again = page.getByRole('dialog', { name: 'Money back' });
+  await again.getByRole('button', { name: 'Another day…' }).click();
+  const month = page.getByRole('dialog', { name: 'When did it come back' });
+  await month.getByRole('grid').waitFor();
+  assert.equal(await page.locator('[data-slot=drawer-content]').count(), 2, 'the month opens over Money back, which stays');
+  await month.getByRole('button', { name: 'Previous month' }).click();
+  const day = month.getByRole('grid').getByRole('button', { name: /^10 / });
+  const named = (await day.getAttribute('aria-label')).split(',')[0];               // "10 October"
+  await day.click();
+  await month.waitFor({ state: 'hidden' });
+  assert.ok(await again.isVisible(), 'Money back is still open');
+  await page.waitForFunction(() => document.activeElement?.textContent === 'Another day…', null, { timeout: 5000 });
+  const chip = await again.getByRole('radiogroup', { name: 'When did it come back' }).getByRole('radio', { checked: true }).innerText();
+  assert.ok(chip.includes(named.replace(/^(\d+) (\w{3})\w*$/, '$1 $2')), `the chosen chip is ${named} (${chip})`);
+  await page.keyboard.press('Escape');
+  await again.waitFor({ state: 'hidden' });
+  await focusIsOn('Money back');
+  const sent = await sql`select count(*)::int as n from txn t join claim c on c.id = t.claim_id join txn o on o.id = c.txn_id
+    where t.household_id = ${hh} and t.kind = 'claim_receipt' and o.book_id = ${tabId} and t.created_at >= ${started}`;
+  assert.equal(sent[0].n, got.length, 'closing the drawer sent nothing');
+  ok(`Money back's "Another day…" nests the month over it; ${named} becomes the chip with focus back on "Another day…", Escape closes Money back unsent, and focus is back on its button`);
+
+  /* ── 3. the list agrees ───────────────────────────────────────────── */
+  await page.goto(`${BASE}/people`);
+  const owedAfter = minor(await figureIn(page.getByRole('region', { name: 'Owed to you' })).getAttribute('aria-label'));
+  assert.equal(owedAfter, owedBefore - 10000);
+  ok(`/people "Owed to you" is ${owedAfter / 100}, ₹100 less`);
+
+  /* ── 4. swipe a row open and closed ───────────────────────────────── */
+  const link = page.getByRole('link', { name: new RegExp(tab.name) });
+  const swipe = link.locator('xpath=..');                               // the moving layer
+  const actions = swipe.locator('xpath=preceding-sibling::div[1]');      // what it covers
+  const grip = swipe.getByRole('button', { name: /Show actions|Hide actions/ });
+  const shut = async () => {
+    await page.waitForTimeout(400);
+    assert.equal(await grip.getAttribute('aria-expanded'), 'false');
+    assert.equal(await actions.evaluate((el) => getComputedStyle(el).visibility), 'hidden', 'shut, the actions are not drawn');
+  };
+  await shut();
+  /* A finger, not a mouse: touch events through the DevTools protocol, so the browser does what a phone does
+     (pointerType touch, and no click after a drag). */
+  const box = await link.boundingBox();
+  const y = box.y + box.height / 2;
+  const cdp = await ctx.newCDPSession(page);
+  const touch = (type, x) => cdp.send('Input.dispatchTouchEvent', {
+    type, touchPoints: type === 'touchEnd' ? [] : [{ x, y, id: 1, radiusX: 4, radiusY: 4, force: 1 }],
+  });
+  const x0 = box.x + box.width - 20;
+  await touch('touchStart', x0);
+  for (let i = 1; i <= 12; i++) { await touch('touchMove', x0 - i * 12); await page.waitForTimeout(16); }
+  await touch('touchEnd', x0 - 144);
+  await page.waitForTimeout(350);
+  assert.equal(await grip.getAttribute('aria-expanded'), 'true', 'a drag to the left opens the row');
+  await actions.getByRole('button', { name: 'Add cost' }).waitFor({ state: 'visible' });
+  await actions.getByRole('button', { name: 'Remind' }).waitFor({ state: 'visible' });
+  assert.equal(await actions.evaluate((el) => getComputedStyle(el).visibility), 'visible');
+  await page.keyboard.press('Escape');
+  await shut();
+  ok('the tab row swipes open to Remind and Add cost, and closes on Escape with its actions no longer drawn');
+
+  await grip.click();
+  await page.waitForTimeout(350);
+  assert.equal(await grip.getAttribute('aria-expanded'), 'true');
+  await grip.click();
+  await shut();
+  ok('the grip opens and closes the same row');
+
+  /* ── 5. a throwaway tab: create, rename, close, delete ────────────── */
+  await page.goto(`${BASE}/people`);
+  await page.getByRole('button', { name: 'New tab' }).click();
+  const make = page.getByRole('dialog', { name: 'New tab' });
+  await make.getByLabel('Name · optional').fill(TAB);
+  await make.getByRole('button', { name: 'Open the tab' }).click();
+  await page.waitForURL((u) => /^\/tab\/[0-9a-f-]{36}$/.test(u.pathname), { timeout: 20000 });
+  await page.getByRole('heading', { name: TAB, level: 1 }).waitFor();
+  const [made] = await sql`select id from ledger_book where household_id = ${hh} and name = ${TAB}`;
+  assert.ok(made, 'the tab is in the books');
+  assert.equal(new URL(page.url()).pathname, `/tab/${made.id}`);
+
+  const menu = async () => {
+    await page.getByRole('button', { name: 'Tab settings' }).click();
+    return page.getByRole('dialog', { name: 'Tab settings' });
+  };
+  let m = await menu();
+  await m.getByRole('button', { name: /^Rename/ }).click();
+  await m.getByLabel('Name', { exact: true }).fill(`${TAB} renamed`);
+  await m.getByRole('button', { name: 'Save', exact: true }).click();
+  await page.getByRole('heading', { name: `${TAB} renamed`, level: 1 }).waitFor({ timeout: 20000 });
+  await page.getByRole('dialog', { name: 'Tab settings' }).waitFor({ state: 'hidden' });
+
+  m = await menu();
+  await m.getByRole('button', { name: /^Close this tab/ }).click();
+  await page.getByText('Tab · closed').waitFor({ timeout: 20000 });
+  const [shutRow] = await sql`select closed_at from ledger_book where id = ${made.id}`;
+  assert.ok(shutRow.closed_at, 'closed_at is set');
+  await page.getByRole('dialog', { name: 'Tab settings' }).waitFor({ state: 'hidden' });
+
+  m = await menu();
+  await m.getByRole('button', { name: /^Delete this tab/ }).click();
+  await m.getByRole('button', { name: 'Delete the tab' }).click();
+  await page.waitForURL((u) => u.pathname === '/people', { timeout: 20000 });
+  assert.equal((await sql`select 1 from ledger_book where id = ${made.id}`).length, 0, 'the tab is gone from the books');
+  assert.equal(await page.getByRole('link', { name: new RegExp(TAB) }).count(), 0, 'and from the list');
+  ok('a throwaway tab: New tab creates it and lands on it, the menu renames it, closes it and deletes it');
+
+  /* ── 6. a person: lend, then take it back ─────────────────────────── */
+  /* A person picked by what the page will show, not by the seed: owed nothing by them on balance (balance ≥ 0, so
+     the hero is the one Figure, never "owes you" and "you owe" side by side), and with a Figure on their page. */
+  const people = await sql`select cp.id, cp.name, cp.account_id from counterparty cp
+    join account_balance b on b.id = cp.account_id
+    where cp.household_id = ${hh} and cp.archived_at is null and b.balance >= 0 order by cp.name`;
+  let who = null;
+  for (const p of people) {
+    await page.goto(`${BASE}/people/${p.id}`);
+    await page.getByRole('heading', { name: p.name, level: 1 }).waitFor();
+    if (await page.locator('main section').first().getByRole('img').count()) { who = p; break; }
+  }
+  assert.ok(who, 'a person with a balance of zero or more and a Figure for a hero');
+  personAcc = who.account_id;
+  /* This step's own entries are the ones made from here on (the database's clock, as created_at is). */
+  const [{ now: stepStarted }] = await sql`select now()`;
+  const heroFigure = async () => {
+    const v = await page.locator('main section').first().getByRole('img').first().getAttribute('aria-label');
+    return minor(v);
+  };
+  await page.goto(`${BASE}/people/${who.id}`);
+  await page.getByRole('heading', { name: who.name, level: 1 }).waitFor();
+  const p0 = await heroFigure();
+  await page.getByRole('button', { name: 'Lend money' }).click();
+  await page.getByLabel('Amount').fill('50');
+  await page.getByLabel('Note (optional)').fill(NOTE);
+  await page.getByRole('button', { name: 'Record loan' }).click();
+  await page.waitForFunction((want) => {
+    const el = document.querySelector('main section [role=img]');
+    return el && Math.round(Number(el.getAttribute('aria-label').replace(/[^0-9.]/g, '')) * 100) === want;
+  }, p0 + 5000, { timeout: 20000 });
+  ok(`Lend ₹50 to ${who.name}: their figure went from ${p0 / 100} to ${(p0 + 5000) / 100}`);
+
+  await page.goto(`${BASE}/people/${who.id}`);
+  await page.getByRole('button', { name: 'Got money back' }).click();
+  await page.getByLabel('Amount').fill('50');
+  await page.getByLabel('Note (optional)').fill(NOTE);
+  await page.getByRole('button', { name: 'Record repayment' }).click();
+  await page.waitForFunction((want) => {
+    const el = document.querySelector('main section [role=img]');
+    return el && Math.round(Number(el.getAttribute('aria-label').replace(/[^0-9.]/g, '')) * 100) === want;
+  }, p0, { timeout: 20000 });
+  const moved = await sql`select kind, amount::bigint as amount, note from txn
+    where household_id = ${hh} and created_at >= ${stepStarted} and deleted_at is null
+      and (account_id = ${personAcc} or counter_account_id = ${personAcc})`;
+  assert.ok(moved.every((r) => r.note === NOTE), 'both carry this run\'s note');
+  assert.equal(moved.length, 2, `one loan and one repayment in the books (${moved.map((r) => r.kind).join(', ')})`);
+  ok(`Got ₹50 back from ${who.name}: the figure is back at ${p0 / 100}, and both transfers are in the books`);
+} finally {
+  /* Cleanup never masks the failure that got us here: each part reports its own error and marks the run failed,
+     and the one in flight (if any) is what is thrown. */
+  const tidy = async (what, fn) => {
+    try { await fn(); } catch (e) { process.exitCode = 1; console.error(`  cleanup failed (${what}): ${e.message}`); }
+  };
+  /* Only what this run made: the money back that was not on the tab before step 2 and that this person entered
+     since the run began; the lend and repayment by their run-unique note; the throwaway tab by its run-unique name. */
+  if (!KEEP && hh && tabId && receiptsBefore) {
+    await tidy('money back', () => sql`delete from txn t using claim c, txn o
+      where c.id = t.claim_id and o.id = c.txn_id and o.book_id = ${tabId}
+        and t.household_id = ${hh} and t.kind = 'claim_receipt' and t.created_by = ${me}
+        and t.created_at >= ${started} and not (t.id = any(${receiptsBefore}::uuid[]))`);
+  }
+  if (!KEEP && hh) {
+    if (personAcc) {
+      await tidy('the loan', () => sql`delete from txn where household_id = ${hh} and note = ${NOTE}
+        and (account_id = ${personAcc} or counter_account_id = ${personAcc})`);
+    }
+    /* Normally already deleted by step 5; a run that stopped part way leaves its tab here (named "Loans taps <run>",
+       or that with " renamed"; only this run's). Deleting a tab does not fail on its entries or
+       regular payments — txn.book_id and schedule.book_id are ON DELETE SET NULL — it would leave them in the
+       main books. So what hangs off each throwaway tab goes first, whatever its age: the money back on its
+       costs, the costs (their claims cascade), the regular payments and their dues; members cascade with it. */
+    await tidy('the throwaway tabs', () => sql.begin(async (tx) => {
+      const tabs = await tx`select id from ledger_book where household_id = ${hh} and name in (${TAB}, ${`${TAB} renamed`})`;
+      for (const { id } of tabs) {
+        await tx`delete from txn where claim_id in (select c.id from claim c join txn t on t.id = c.txn_id where t.book_id = ${id})`;
+        await tx`delete from txn where book_id = ${id}`;
+        await tx`delete from occurrence where schedule_id in (select id from schedule where book_id = ${id})`;
+        await tx`delete from schedule where book_id = ${id}`;
+        await tx`delete from ledger_book where id = ${id}`;
+      }
+    }));
+  }
+  await browser.close();
+  await sql.end();
+}
+console.log(`loans-taps: ${n} passed`);

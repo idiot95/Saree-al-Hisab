@@ -39,6 +39,10 @@ export type Pickers = {
   ways?: Way[];
   /** Absent on a device that last opened Add Entry before tabs existed. */
   tabs?: { id: string; name: string; people: number; last_counts: boolean | null }[];
+  /** The most-used category ids per kind, and the way to pay to open on. Absent on a device that last opened
+      Add Entry before the one-screen form; the tiles then rank by the categories' own counts. */
+  top?: { expense: string[]; income: string[] };
+  paidWith?: string;
   savedAt: string;
 };
 
@@ -96,7 +100,8 @@ export const readQueue = (): Queued[] => read<Queued[]>(QUEUE) ?? [];
 
 export function enqueue(d: Draft, householdId: string): Queued {
   const item: Queued = {
-    ...d, householdId, clientRef: crypto.randomUUID(), queuedAt: new Date().toISOString(),
+    /* An entry made from a bank message keeps that draft's id, so it is accepted when it lands. */
+    ...d, householdId, clientRef: d.clientRef ?? crypto.randomUUID(), queuedAt: new Date().toISOString(),
   };
   write(QUEUE, [...readQueue(), item]);
   return item;

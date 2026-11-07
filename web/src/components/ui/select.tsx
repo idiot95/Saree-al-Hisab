@@ -2,8 +2,8 @@
 
 import * as React from "react"
 import { cn } from "@/lib/utils"
-import { IconCheck, IconChevronDown, IconChevronUp } from "@tabler/icons-react"
 import { Select as SelectPrimitive } from "radix-ui"
+import { Icon } from '@/app/Icon';
 
 function Select({
   ...props
@@ -43,7 +43,7 @@ function SelectTrigger({
     >
       {children}
       <SelectPrimitive.Icon asChild>
-        <IconChevronDown className="size-4 opacity-50" />
+        <Icon name="expand_more" size={16} className="opacity-50" />
       </SelectPrimitive.Icon>
     </SelectPrimitive.Trigger>
   )
@@ -118,7 +118,7 @@ function SelectItem({
         className="absolute right-2 flex size-3.5 items-center justify-center"
       >
         <SelectPrimitive.ItemIndicator>
-          <IconCheck className="size-4" />
+          <Icon name="check" size={16} />
         </SelectPrimitive.ItemIndicator>
       </span>
       <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>
@@ -152,7 +152,7 @@ function SelectScrollUpButton({
       )}
       {...props}
     >
-      <IconChevronUp className="size-4" />
+      <Icon name="expand_less" size={16} />
     </SelectPrimitive.ScrollUpButton>
   )
 }
@@ -170,7 +170,7 @@ function SelectScrollDownButton({
       )}
       {...props}
     >
-      <IconChevronDown className="size-4" />
+      <Icon name="expand_more" size={16} />
     </SelectPrimitive.ScrollDownButton>
   )
 }

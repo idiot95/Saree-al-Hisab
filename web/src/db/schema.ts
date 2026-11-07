@@ -1,6 +1,6 @@
 import {
-  pgTable, pgEnum, uuid, text, integer, bigint, date, timestamp,
-  boolean, jsonb, index, uniqueIndex, check, foreignKey, customType,
+  pgTable, pgEnum, uuid, text, integer, bigint, date, timestamp, numeric,
+  boolean, jsonb, index, uniqueIndex, check, foreignKey, customType, primaryKey, unique,
 } from 'drizzle-orm/pg-core';
 import type { AnyPgColumn } from 'drizzle-orm/pg-core';
 import { sql, relations } from 'drizzle-orm';
@@ -94,6 +94,14 @@ export const appUser = pgTable('app_user', {
      that something: any token issued before this moment is refused. Changing a
      password, using a reset link, or signing out everywhere moves it. */
   sessionsValidFrom: timestamp('sessions_valid_from', { withTimezone: true }).notNull().defaultNow(),
+  /* The way to pay this person last used on an expense, as the reference Add
+     Entry sends (`a:<account>` / `m:<rail>`, src/lib/pay.ts). A preference,
+     never read for authorisation, and deliberately NOT a foreign key: the
+     account or rail can be archived, or belong to another set of books this
+     person keeps, and a stale reference must never stop an entry being saved.
+     Add Entry resolves it against this household's ways and falls back to
+     the first way when it names nothing. */
+  lastPaidWith: text('last_paid_with'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [
   // One of the two must identify them. Without this a nameless row with
@@ -158,6 +166,23 @@ export const passwordReset = pgTable('password_reset', {
   index('password_reset_user').on(t.userId),
 ]);
 
+/* A Google account, keyed on its `sub` — the one claim Google promises never
+   changes or gets reused; the address can. A sub belongs to exactly one
+   person, and a person links at most one Google account. `email_at_link` is
+   a note of what the address was then, never a way to find someone. Keyed by
+   a person, like app_user, so it has no row policy. */
+export const authIdentity = pgTable('auth_identity', {
+  userId: uuid('user_id').notNull().references(() => appUser.id, { onDelete: 'cascade' }),
+  provider: text('provider').notNull(),
+  subject: text('subject').notNull(),
+  emailAtLink: text('email_at_link').notNull(),
+  linkedAt: timestamp('linked_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  primaryKey({ columns: [t.provider, t.subject] }),
+  unique('auth_identity_user_provider').on(t.userId, t.provider),
+  check('auth_identity_provider', sql`${t.provider} in ('google')`),
+]);
+
 export const account = pgTable('account', {
   id: uuid('id').primaryKey().defaultRandom(),
   householdId: uuid('household_id').notNull().references(() => household.id, { onDelete: 'cascade' }),
@@ -172,8 +197,14 @@ export const account = pgTable('account', {
   statementDay: integer('statement_day'),
   dueDay: integer('due_day'),
   archivedAt: timestamp('archived_at', { withTimezone: true }),
+  /* Whose it is, for per-person net worth. NULL is joint, which is what every
+     account was before this column existed. The owner must be a member of
+     the household (trigger `account_owner_is_member`, 0110). */
+  ownerUserId: uuid('owner_user_id').references(() => appUser.id, { onDelete: 'set null' }),
 }, (t) => [
   index('account_household').on(t.householdId),
+  // A person account is somebody else's money with you, never one member's.
+  check('person_has_no_owner', sql`${t.kind} <> 'person' OR ${t.ownerUserId} IS NULL`),
   // INVARIANT 3, half of it: only a credit account may carry card metadata.
   check('card_fields_only_on_credit', sql`
     ${t.kind} = 'credit'
@@ -422,6 +453,9 @@ export const txn = pgTable('txn', {
   // a real double-spend at the same shop is legitimate, so this surfaces
   // a decision in the Inbox rather than rejecting the write.
   index('txn_dupe_probe').on(t.accountId, t.amount, t.occurredOn),
+  // The key sms_draft's composite foreign key points at, so a draft can only
+  // name an entry of its own household.
+  uniqueIndex('txn_household_key').on(t.id, t.householdId),
 
   check('amount_positive', sql`${t.amount} > 0`),
 
@@ -661,4 +695,187 @@ export const reconciliation = pgTable('reconciliation', {
 }, (t) => [
   index('reconciliation_account').on(t.accountId, t.statementOn),
   index('reconciliation_household').on(t.householdId),
+]);
+
+/* ── wealth: what is held outside the ledger ─────────────────────────────
+   A pot of foreign cash or a weight of gold is recorded as SNAPSHOTS — "on
+   this day there was this much" — never as entries. Nothing here touches
+   txn, so spend_txn, the budget and every balance are untouched by
+   construction (an invariant proves no view but holding_value reads these).
+   Valuation is in SQL numeric, rounded once, half-even (holding_value, 0110). */
+export const holdingKind = pgEnum('holding_kind', ['fx_cash', 'metal']);
+
+export const holding = pgTable('holding', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  householdId: uuid('household_id').notNull().references(() => household.id, { onDelete: 'cascade' }),
+  // NULL is joint. A member of the household (trigger `holding_owner_is_member`, 0110).
+  ownerUserId: uuid('owner_user_id').references(() => appUser.id, { onDelete: 'set null' }),
+  kind: holdingKind('kind').notNull(),
+  name: text('name').notNull(),
+  /* fx_cash: the ISO code, never the household's own (that is an account;
+     trigger `fx_pot_not_base`, 0110). Quantity is in its minor units. */
+  currency: text('currency'),
+  // metal: 'gold' | 'silver', purity in parts per thousand. Quantity is milligrams.
+  metal: text('metal'),
+  purityPermille: integer('purity_permille'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  archivedAt: timestamp('archived_at', { withTimezone: true }),
+}, (t) => [
+  index('holding_household').on(t.householdId),
+  // The key a snapshot's composite foreign key points at, so a snapshot can
+  // never sit in a different household from its holding.
+  uniqueIndex('holding_household_key').on(t.id, t.householdId),
+  check('holding_shape', sql`
+    (${t.kind} = 'fx_cash' AND ${t.currency} IS NOT NULL AND ${t.metal} IS NULL AND ${t.purityPermille} IS NULL)
+    OR (${t.kind} = 'metal' AND ${t.metal} IN ('gold','silver')
+        AND ${t.purityPermille} BETWEEN 1 AND 1000 AND ${t.currency} IS NULL)`),
+  check('holding_currency_is_a_code', sql`${t.currency} IS NULL OR ${t.currency} ~ '^[A-Z]{3}$'`),
+]);
+
+/* One figure per holding per day; a second save that day replaces it. */
+export const holdingSnapshot = pgTable('holding_snapshot', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  holdingId: uuid('holding_id').notNull(),
+  householdId: uuid('household_id').notNull().references(() => household.id, { onDelete: 'cascade' }),
+  asOf: date('as_of').notNull(),
+  // fx_cash: minor units of holding.currency. metal: milligrams.
+  quantity: bigint('quantity', { mode: 'number' }).notNull(),
+  note: text('note'),
+  createdBy: uuid('created_by').references(() => appUser.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  unique('holding_snapshot_one_a_day').on(t.holdingId, t.asOf),
+  // The key a photo's composite foreign key points at, so a photo of a figure
+  // can never sit on a different holding than the figure.
+  uniqueIndex('holding_snapshot_holding_key').on(t.id, t.holdingId),
+  index('holding_snapshot_household').on(t.householdId),
+  foreignKey({
+    name: 'holding_snapshot_same_household',
+    columns: [t.holdingId, t.householdId], foreignColumns: [holding.id, holding.householdId],
+  }).onDelete('cascade'),
+  check('holding_snapshot_quantity_not_negative', sql`${t.quantity} >= 0`),
+]);
+
+/* A photo or a PDF kept with a holding: the jewellery on the scale, a jeweller's
+   valuation slip, a statement for a foreign pot. A table of its own rather
+   than a wider `attachment`, whose txn_id is NOT NULL and whose columns stay as
+   they are. Same caps as an entry's bills (src/lib/bills.ts). snapshot_id NULL
+   is a photo of the holding itself; set, it is evidence for that day's figure.
+   Photos are kept when a holding is archived. */
+export const holdingAttachment = pgTable('holding_attachment', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  householdId: uuid('household_id').notNull().references(() => household.id, { onDelete: 'cascade' }),
+  holdingId: uuid('holding_id').notNull(),
+  snapshotId: uuid('snapshot_id'),
+  name: text('name').notNull(),
+  mime: text('mime').notNull(),
+  bytes: integer('bytes').notNull(),
+  data: customBytea('data').notNull(),
+  createdBy: uuid('created_by').references(() => appUser.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  index('holding_attachment_holding').on(t.holdingId),
+  index('holding_attachment_household').on(t.householdId),
+  foreignKey({
+    name: 'holding_attachment_same_household',
+    columns: [t.holdingId, t.householdId], foreignColumns: [holding.id, holding.householdId],
+  }).onDelete('cascade'),
+  // MATCH SIMPLE: with snapshot_id NULL this is not checked, as intended.
+  foreignKey({
+    name: 'holding_attachment_snapshot_same_holding',
+    columns: [t.snapshotId, t.holdingId], foreignColumns: [holdingSnapshot.id, holdingSnapshot.holdingId],
+  }).onDelete('cascade'),
+  check('holding_attachment_size', sql`${t.bytes} > 0 AND ${t.bytes} <= 2097152`),
+  check('holding_attachment_mime', sql`${t.mime} IN ('image/jpeg','image/png','image/webp','application/pdf')`),
+]);
+
+/* A market price, the same for every household: no household_id, no row
+   policy, and the app role may read and add one but never change one.
+   `base` is an ISO code, or XAU/XAG priced per gram of PURE metal; `quote`
+   is the currency it is priced in. numeric, not a float. */
+export const priceQuote = pgTable('price_quote', {
+  base: text('base').notNull(),
+  quote: text('quote').notNull(),
+  asOf: date('as_of').notNull(),
+  rate: numeric('rate', { precision: 24, scale: 10 }).notNull(),
+  source: text('source').notNull(),
+  fetchedAt: timestamp('fetched_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  primaryKey({ columns: [t.base, t.quote, t.asOf, t.source] }),
+  check('price_quote_rate_positive', sql`${t.rate} > 0`),
+  // A ceiling, so one absurd rate cannot overflow a value and break the household's whole view.
+  check('price_quote_rate_bounded', sql`${t.rate} < 1000000000`),
+  check('price_quote_codes', sql`${t.base} ~ '^[A-Z]{3}$' AND ${t.quote} ~ '^[A-Z]{3}$'`),
+]);
+
+/* A household's own rate for a day, set from the rate line. It wins over a
+   fetched quote of the same day or older (holding_value, 0110). */
+export const priceOverride = pgTable('price_override', {
+  householdId: uuid('household_id').notNull().references(() => household.id, { onDelete: 'cascade' }),
+  base: text('base').notNull(),
+  quote: text('quote').notNull(),
+  asOf: date('as_of').notNull(),
+  rate: numeric('rate', { precision: 24, scale: 10 }).notNull(),
+  setBy: uuid('set_by').references(() => appUser.id, { onDelete: 'set null' }),
+  setAt: timestamp('set_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  primaryKey({ columns: [t.householdId, t.base, t.quote, t.asOf] }),
+  check('price_override_rate_positive', sql`${t.rate} > 0`),
+  // A ceiling, so one absurd rate cannot overflow a value and break the household's whole view.
+  check('price_override_rate_bounded', sql`${t.rate} < 1000000000`),
+  check('price_override_codes', sql`${t.base} ~ '^[A-Z]{3}$' AND ${t.quote} ~ '^[A-Z]{3}$'`),
+]);
+
+/* SMS capture. A phone forwards a bank message to /api/capture/sms with a
+   bearer token; the token is 256 random bits shown once, and only its SHA-256
+   hex is kept, so a stolen database yields no working token. */
+export const captureToken = pgTable('capture_token', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').notNull().references(() => appUser.id, { onDelete: 'cascade' }),
+  householdId: uuid('household_id').notNull().references(() => household.id, { onDelete: 'cascade' }),
+  tokenHash: text('token_hash').notNull().unique(),
+  label: text('label').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  lastUsedAt: timestamp('last_used_at', { withTimezone: true }),
+  revokedAt: timestamp('revoked_at', { withTimezone: true }),
+}, (t) => [
+  index('capture_token_household').on(t.householdId),
+  check('capture_token_hash_hex', sql`${t.tokenHash} ~ '^[0-9a-f]{64}$'`),
+  check('capture_token_label_len', sql`char_length(${t.label}) BETWEEN 1 AND 40`),
+]);
+
+/* A forwarded message, parsed as far as it could be. It is never an entry on
+   its own: accepting one opens Add entry, and only saving that makes a txn.
+   The raw body is set to NULL once the draft is accepted or dismissed (and
+   after 30 days), so it is nullable. The same SMS forwarded twice is one
+   draft: unique (household, body_hash). txn_id is held to the draft's own
+   household by a composite key; deleting the entry only clears txn_id (the
+   migration writes SET NULL (txn_id), which drizzle cannot express, since a
+   plain SET NULL would try to null household_id too). */
+export const smsDraft = pgTable('sms_draft', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  householdId: uuid('household_id').notNull().references(() => household.id, { onDelete: 'cascade' }),
+  userId: uuid('user_id').references(() => appUser.id, { onDelete: 'set null' }),
+  sender: text('sender'),
+  body: text('body'),
+  receivedAt: timestamp('received_at', { withTimezone: true }).notNull().defaultNow(),
+  bodyHash: text('body_hash').notNull(),
+  parsed: jsonb('parsed').notNull().default(sql`'{}'::jsonb`),
+  status: inboxStatus('status').notNull().default('open'),
+  txnId: uuid('txn_id'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  /** When it was accepted or dismissed: what lets a dismissal be undone for a
+   *  quarter of an hour and no longer. Null while it is open. */
+  decidedAt: timestamp('decided_at', { withTimezone: true }),
+}, (t) => [
+  uniqueIndex('sms_draft_household_body').on(t.householdId, t.bodyHash),
+  index('sms_draft_household_status').on(t.householdId, t.status),
+  foreignKey({
+    columns: [t.txnId, t.householdId], foreignColumns: [txn.id, txn.householdId],
+    name: 'sms_draft_txn_same_household',
+  }).onDelete('set null'),
+  check('sms_draft_accepted_has_txn', sql`${t.status} <> 'accepted' OR ${t.txnId} IS NOT NULL`),
+  check('sms_draft_body_hash_hex', sql`${t.bodyHash} ~ '^[0-9a-f]{64}$'`),
+  check('sms_draft_body_len', sql`${t.body} IS NULL OR char_length(${t.body}) <= 2000`),
+  check('sms_draft_sender_len', sql`${t.sender} IS NULL OR char_length(${t.sender}) <= 64`),
 ]);

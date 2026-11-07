@@ -5,6 +5,7 @@ import PageHead from '../PageHead';
 import TabBar from '../TabBar';
 import Screen from '../Screen';
 import { TAB_BAR_SPACE } from '../tabs';
+import { Icon } from '../Icon';
 
 export const metadata = { title: 'Categories · Saree al-Hisab' };
 export const dynamic = 'force-dynamic';
@@ -19,13 +20,14 @@ export default async function Categories() {
 
   return (
     <Screen>
-      <main style={{ minHeight: '100dvh', background: 'var(--background)', paddingBottom: TAB_BAR_SPACE }}>
+      <main className="min-h-dvh bg-background text-foreground" style={{ paddingBottom: TAB_BAR_SPACE }}>
         <PageHead back="/budget" eyebrow="Plan" title="Categories"
           sub={`${live} in use. Add Entry offers them in this order, so put the everyday ones first.`} />
 
-        <div style={{ paddingTop: 20 }}>
+        <div className="flex flex-col gap-4 pb-8">
           <CategoryEditor categories={categories} canEdit={actor.role !== 'viewer'} />
-          <p style={{ margin: '0 var(--gutter)', fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--muted-foreground)' }}>
+          <p className="mx-[var(--gutter)] flex items-start gap-1.5 px-0.5 text-[13px] leading-snug text-muted-foreground">
+            <Icon name="info" size={16} className="mt-px flex-none" />
             Renaming is safe: every entry points at the category itself, so they all follow the
             new name and no month changes value.
           </p>

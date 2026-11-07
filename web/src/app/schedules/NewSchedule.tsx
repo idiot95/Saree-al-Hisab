@@ -6,6 +6,7 @@ import { buildRule, describeRule, friendlyDay, maxDay, nextDates, type Calendar 
 import { HIJRI_MONTHS_SHORT, formatHijri, toHijri } from '@/lib/hijri';
 import { DateChips, DayOfMonth, MonthOfYear, Segmented } from '../DatePick';
 import { createSchedule } from './actions';
+import { useFocusSoon, useKeepOnRefusal, useOnSuccess } from '../form-hooks';
 import PayPicker, { CHIP, CHIP_TEXT } from '../PayPicker';
 import CategoryPick from '../CategoryPick';
 import type { Category } from '../CategoryFinder';
@@ -13,6 +14,7 @@ import { defaultRef, type Way } from '@/lib/pay';
 import { fits } from '@/lib/scope';
 import { choice } from '../choice';
 import { Icon } from '../Icon';
+import { AddRow, Said, fieldLabel, formCard, ghost, solid } from '../form-bits';
 
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -29,11 +31,37 @@ const ENDS = [['never', 'Never'], ['after', 'After a number'], ['on', 'On a date
    the rule will be and when it first lands. The end is one line, "Ends
    never", until someone wants otherwise. */
 
-export default function NewSchedule({ ways, categories, tabs, startOpen = false }: {
+export default function NewSchedule({ startOpen = false, ...form }: {
   ways: Way[]; categories: Category[]; tabs: { id: string; name: string }[]; startOpen?: boolean;
 }) {
-  const [state, act, pending] = useActionState(createSchedule, null);
+  /* The form is its own component, so closing it (Cancel, or a success) drops every choice with it: the next
+     one starts from the defaults in React's state and in the DOM alike. */
   const [open, setOpen] = useState(startOpen);
+  /* Closed (a save or Cancel), focus goes back to the add row the form replaced; a save is said in the live
+     region, which stays here because the form that knew the message has gone. */
+  const [said, setSaid] = useState('');
+  const [opener, focusOpener] = useFocusSoon<HTMLButtonElement>();
+  return (<>
+    <Said>{said}</Said>
+    {open
+      ? <ScheduleForm {...form} onClose={(message) => { setOpen(false); setSaid(message ?? ''); focusOpener(); }} />
+      : (
+        <div className="mx-[var(--gutter)]">
+          <AddRow ref={opener} onClick={() => { setSaid(''); setOpen(true); }}>Add a payment or income that comes round</AddRow>
+        </div>
+      )}
+  </>);
+}
+
+function ScheduleForm({ ways, categories, tabs, onClose }: {
+  ways: Way[]; categories: Category[]; tabs: { id: string; name: string }[]; onClose: (message?: string) => void;
+}) {
+  const [state, act, pending] = useActionState(createSchedule, null);
+  /* It can open itself (?new=1, a plain link), so it posts directly and works without script; with script, a
+     refusal's form reset is undone so Income, Once a year, Hijri and the rest stay as chosen for the resubmit. */
+  const keep = useKeepOnRefusal(state);
+  // Saved: close, so the reset React does after a success never leaves this form's switches and DOM disagreeing.
+  useOnSuccess(state, () => onClose(state?.ok ? state.message : undefined));
   const [freq, setFreq] = useState<'MONTHLY' | 'YEARLY'>('MONTHLY');
   const [kind, setKind] = useState<'expense' | 'income'>('expense');
   const [counts, setCounts] = useState(true);
@@ -70,48 +98,16 @@ export default function NewSchedule({ ways, categories, tabs, startOpen = false 
     : untilDate ? `Ends on ${friendlyDay(untilDate, iso)}${last && last !== untilDate ? ` — the last is ${friendlyDay(last, iso)}` : ''}` : 'Ends on a date';
   const later = [[6, 'In 6 months'], [12, 'In a year'], [24, 'In 2 years']] as const;
 
-  if (!open) {
-    return (
-      <button type="button" onClick={() => setOpen(true)} className="border border-border" style={{
-        margin: '0 var(--gutter) 22px', width: 'calc(100% - 36px)', minHeight: 56, borderRadius: 16,
-        display: 'flex', alignItems: 'center', gap: 11, padding: '0 var(--pad)',
-        background: 'var(--card)', border: '1px dashed var(--input)',
-        color: 'var(--foreground)', fontSize: 'var(--step-0)', fontWeight: 600,
-      }}>
-        <span style={{
-          width: 32, height: 32, flex: 'none', borderRadius: 999, display: 'flex',
-          alignItems: 'center', justifyContent: 'center',
-          background: 'var(--muted)', color: 'var(--muted-foreground)',
-        }}>
-          <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-            strokeWidth={2.2} strokeLinecap="round" aria-hidden><path d="M12 5v14M5 12h14" /></svg>
-        </span>
-        Add a payment or income that comes round
-      </button>
-    );
-  }
-
   return (
-    <form action={act} className="border border-border" style={{
-      margin: '0 var(--gutter) 22px', background: 'var(--card)', borderRadius: 18, padding: 16,
-      display: 'flex', flexDirection: 'column', gap: 13,
-    }}>
-      <div role="tablist" aria-label="Expense or income" style={{
-        display: 'flex', gap: 3, padding: 3, background: 'var(--muted)', borderRadius: 999,
-      }}>
+    <form action={act} {...keep} aria-label="Add a regular payment" className={`mx-[var(--gutter)] ${formCard}`}>
+      <div role="radiogroup" aria-label="Expense or income" className="flex gap-0.5 rounded-full bg-muted p-[3px]">
         {([['expense', 'Expense'], ['income', 'Income']] as const).map(([id, label]) => {
           const on = kind === id;
           return (
-            <label key={id} style={{
-              position: 'relative', flex: 1, minHeight: 44, display: 'flex', alignItems: 'center',
-              justifyContent: 'center', borderRadius: 999, cursor: 'pointer',
-              fontSize: 'var(--step--1)', fontWeight: 600,
-              background: on ? 'var(--card)' : 'transparent',
-              color: on ? 'var(--foreground)' : 'var(--muted-foreground)',
-              boxShadow: on ? '0 1px 2px rgba(0,0,0,.08)' : undefined,
-            }}>
+            <label key={id}
+              className={`relative flex min-h-11 flex-1 cursor-pointer items-center justify-center rounded-full text-sm font-semibold ${on ? 'bg-card text-foreground shadow-xs' : 'text-muted-foreground'}`}>
               <input type="radio" name="kind" value={id} checked={on} onChange={() => setKind(id)}
-                style={{ position: 'absolute', opacity: 0, width: 1, height: 1 }} />
+                className="absolute size-px opacity-0" />
               {label}
             </label>
           );
@@ -122,13 +118,13 @@ export default function NewSchedule({ ways, categories, tabs, startOpen = false 
       <Field label="Amount" name="amount" inputMode="decimal" required
         placeholder={kind === 'income' ? '120000' : '45000'} />
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
-        <div style={row}>
-          <span style={rowLabel}>Repeats</span>
+      <div className="flex flex-col gap-2">
+        <div className={row}>
+          <span className={rowLabel}>Repeats</span>
           <Segmented name="freq" value={freq} options={REPEATS} onChange={setFreq} label="How often it repeats" />
         </div>
-        <div style={row}>
-          <span style={rowLabel}>Calendar</span>
+        <div className={row}>
+          <span className={rowLabel}>Calendar</span>
           <Segmented name="calendar" value={cal} options={CALENDARS} onChange={setCal} label="Which calendar" />
         </div>
 
@@ -140,46 +136,54 @@ export default function NewSchedule({ ways, categories, tabs, startOpen = false 
         <DayOfMonth value={chosenDay} top={top} onPick={(v) => setDay({ ...day, [cal]: v })} />
         <input type="hidden" name="day" value={chosenDay} />
 
-        <p style={{ margin: '2px 0 0', display: 'flex', flexDirection: 'column', gap: 3 }}>
-          <span style={{ fontSize: 'var(--step-0)', fontWeight: 600, lineHeight: 1.3 }}>
-            {sentence.charAt(0).toUpperCase()}{sentence.slice(1)}
-          </span>
-          <span style={{ fontSize: 'var(--step--2)', lineHeight: 1.45, color: 'var(--muted-foreground)' }}>
-            {first ? `First on ${friendlyDay(first, iso)}` : 'No date ahead'}
-            {cal === 'hijri' && first && ` · ${formatHijri(toHijri(civil(first)), true)}`}
-            {cal === 'hijri'
-              ? `. Today is ${formatHijri(toHijri({ y: today.getFullYear(), m: today.getMonth() + 1, d: today.getDate() }), true)} by the Misri calendar.`
-              : '. Days stop at the 28th so it lands in every month.'}
+        {/* What the rule will be, in one sentence, and when it first lands. */}
+        <p className="mt-0.5 flex items-start gap-2 rounded-xl bg-accent px-3.5 py-3 text-accent-foreground">
+          <Icon name="event_repeat" size={18} className="mt-px" />
+          <span className="flex min-w-0 flex-col gap-0.5">
+            <span className="text-[15px] font-semibold leading-snug">
+              {sentence.charAt(0).toUpperCase()}{sentence.slice(1)}
+            </span>
+            <span className="text-[13px] leading-snug">
+              {first ? `First on ${friendlyDay(first, iso)}` : 'No date ahead'}
+              {cal === 'hijri' && first && ` · ${formatHijri(toHijri(civil(first)), true)}`}
+              {cal === 'hijri'
+                ? `. Today is ${formatHijri(toHijri({ y: today.getFullYear(), m: today.getMonth() + 1, d: today.getDate() }), true)} by the Misri calendar.`
+                : '. Days stop at the 28th so it lands in every month.'}
+            </span>
           </span>
         </p>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
+      <div className="flex flex-col gap-2">
         {!endsOpen ? (
-          <div style={row}>
-            <span style={{ flex: 1, fontSize: 'var(--step--1)', fontWeight: 600 }}>{endsLine}</span>
+          <div className={row}>
+            <span className="flex-1 text-sm font-semibold">{endsLine}</span>
             <input type="hidden" name="ends" value="never" />
-            <button type="button" onClick={() => setEndsOpen(true)} style={{
-              minHeight: 44, padding: '0 12px', borderRadius: 999, fontSize: 'var(--step--1)', fontWeight: 600,
-              background: 'var(--muted)', color: 'var(--primary)',
-            }}>Change</button>
+            <button type="button" onClick={() => setEndsOpen(true)}
+              className="press flex min-h-11 items-center gap-1 rounded-full bg-muted px-3.5 text-sm font-semibold text-primary">
+              <Icon name="edit" size={16} />Change
+            </button>
           </div>
         ) : (
           <>
-            <div style={row}>
-              <span style={rowLabel}>Ends</span>
+            <div className={row}>
+              <span className={rowLabel}>Ends</span>
               <Segmented name="ends" value={ends} options={ENDS} label="When it ends"
                 onChange={(v) => { setEnds(v); if (v === 'on' && !untilDate) setUntilDate(addMonths(iso, 12)); }} />
             </div>
             {ends === 'after' && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <button type="button" aria-label="One fewer" onClick={() => setTimes(Math.max(1, times - 1))} style={stepBtn}>−</button>
+              <div className="flex items-center gap-2">
+                <button type="button" aria-label="One fewer" onClick={() => setTimes(Math.max(1, times - 1))} className={stepBtn}>
+                  <Icon name="remove" size={20} />
+                </button>
                 <input name="times" type="number" inputMode="numeric" min={1} max={600} required
                   value={times} onChange={(e) => setTimes(Math.min(600, Math.max(1, Number(e.target.value) || 1)))}
-                  aria-label="How many times" className="t"
-                  style={{ ...select, width: 76, textAlign: 'center', padding: 0 }} />
-                <button type="button" aria-label="One more" onClick={() => setTimes(Math.min(600, times + 1))} style={stepBtn}>+</button>
-                <span style={{ flex: 1, fontSize: 'var(--step--1)', lineHeight: 1.4, color: 'var(--muted-foreground)' }}>
+                  aria-label="How many times"
+                  className="h-12 w-[76px] rounded-xl border border-input bg-card text-center text-[length:var(--field)] font-semibold tabular-nums text-foreground" />
+                <button type="button" aria-label="One more" onClick={() => setTimes(Math.min(600, times + 1))} className={stepBtn}>
+                  <Icon name="add" size={20} />
+                </button>
+                <span className="flex-1 text-sm leading-snug text-muted-foreground">
                   {times === 1 ? 'once' : `${times} times`}{last ? `, the last on ${friendlyDay(last, iso)}` : ''}
                 </span>
               </div>
@@ -190,7 +194,7 @@ export default function NewSchedule({ ways, categories, tabs, startOpen = false 
                   quick={later.map(([n, text]) => ({ iso: addMonths(iso, n), label: text }))}
                   onChange={setUntilDate} />
                 <input type="hidden" name="untilDate" value={untilDate || addMonths(iso, 12)} />
-                <span style={{ fontSize: 'var(--step--1)', lineHeight: 1.4, color: 'var(--muted-foreground)' }}>
+                <span className="text-sm leading-snug text-muted-foreground">
                   {last ? `The last is ${friendlyDay(last, iso)}.` : 'None before then.'}
                 </span>
               </>
@@ -199,10 +203,8 @@ export default function NewSchedule({ ways, categories, tabs, startOpen = false 
         )}
       </div>
 
-      <div role="group" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-        <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--muted-foreground)' }}>
-          {kind === 'income' ? 'How it comes in' : 'How it is paid'}
-        </span>
+      <div role="group" aria-label={kind === 'income' ? 'How it comes in' : 'How it is paid'} className="flex flex-col gap-1.5">
+        <span className={fieldLabel}>{kind === 'income' ? 'How it comes in' : 'How it is paid'}</span>
         <PayPicker name="paidWith" ways={ways} defaultValue={defaultRef(ways)} />
       </div>
       <CategoryPick name="categoryId" categories={offered}
@@ -212,19 +214,17 @@ export default function NewSchedule({ ways, categories, tabs, startOpen = false 
       {/* A standing cost can belong to a tab, and every due it records lands
           there and claims the same shares a one-off would. */}
       {tabs.length > 0 && (
-        <div role="group" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--muted-foreground)' }}>
-            On a tab (optional)
-          </span>
+        <div role="group" aria-label="On a tab (optional)" className="flex flex-col gap-1.5">
+          <span className={fieldLabel}>On a tab (optional)</span>
           <input type="hidden" name="bookId" value={bookId ?? ''} />
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+          <div className="flex flex-wrap gap-2">
             {tabs.map((t) => {
               const on = t.id === bookId;
               return (
                 <button key={t.id} type="button" aria-pressed={on}
                   onClick={() => setBookId(on ? null : t.id)}
-                  style={{ ...CHIP, ...choice(on, 'var(--cat-purple-ink)') }}>
-                  <Icon name="tab" size={16} strokeWidth={1.9} />
+                  style={{ ...CHIP, ...choice(on) }}>
+                  <Icon name="tab" size={16} />
                   <span style={CHIP_TEXT}>{t.name}</span>
                 </button>
               );
@@ -237,27 +237,21 @@ export default function NewSchedule({ ways, categories, tabs, startOpen = false 
           that will answer it every month. Rent fronted for a cousin is never
           your spending however many times it goes out. */}
       {kind === 'expense' && (
-        <div role="group" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--muted-foreground)' }}>
-            Is this your own spending?
-          </span>
+        <div role="group" aria-label="Is this your own spending?" className="flex flex-col gap-1.5">
+          <span className={fieldLabel}>Is this your own spending?</span>
           <input type="hidden" name="counts_as_spend" value={counts ? 'yes' : 'no'} />
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div className="flex gap-2">
             {([
               [true, 'receivable', 'Yes, mine', 'Counts in the budget, even if paid back'],
               [false, 'person', 'No, I covered it', 'Owed back, never counted as spending'],
             ] as const).map(([v, icon, label, what]) => (
               <button key={String(v)} type="button" aria-pressed={counts === v}
                 onClick={() => setCounts(v)}
-                style={{
-                  flex: 1, minHeight: 56, padding: '8px 12px', borderRadius: 13, textAlign: 'left',
-                  display: 'flex', alignItems: 'center', gap: 9,
-                  ...choice(counts === v),
-                }}>
-                <Icon name={icon} size={17} strokeWidth={1.9} />
-                <span style={{ display: 'flex', flexDirection: 'column', gap: 1, minWidth: 0 }}>
-                  <span style={{ fontSize: 'var(--step--1)', fontWeight: 600 }}>{label}</span>
-                  <span style={{ fontSize: 'var(--step--2)', opacity: 0.82, lineHeight: 1.3 }}>{what}</span>
+                className={`flex min-h-14 flex-1 items-center gap-2 rounded-xl border px-3 py-2 text-left ${counts === v ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-card text-foreground'}`}>
+                <Icon name={icon} size={18} />
+                <span className="flex min-w-0 flex-col gap-px">
+                  <span className="text-sm font-semibold">{label}</span>
+                  <span className="text-xs leading-snug opacity-80">{what}</span>
                 </span>
               </button>
             ))}
@@ -266,29 +260,17 @@ export default function NewSchedule({ ways, categories, tabs, startOpen = false 
       )}
 
       {state && !state.ok && <ErrorNote>{state.error}</ErrorNote>}
-      <div style={{ display: 'flex', gap: 9 }}>
-        <button className="cta" type="button" onClick={() => setOpen(false)} style={{
-          minHeight: 50, padding: '0 16px', borderRadius: 13, fontSize: 'var(--step-0)', fontWeight: 600,
-          background: 'var(--muted)', color: 'var(--muted-foreground)',
-        }}>Cancel</button>
-        <button className="cta" type="submit" disabled={pending} style={{
-          flex: 1, minHeight: 50, borderRadius: 13, fontSize: 'var(--step-0)', fontWeight: 600,
-          background: 'var(--primary)', color: 'var(--primary-foreground)', opacity: pending ? 0.65 : 1,
-        }}>{pending ? 'Saving…' : 'Add it'}</button>
+      <div className="flex gap-2">
+        <button type="button" onClick={() => onClose()} className={ghost}>Cancel</button>
+        <button type="submit" disabled={pending} className={solid}>{pending ? 'Saving…' : 'Add it'}</button>
       </div>
     </form>
   );
 }
 
-const row: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 10, minHeight: 44 };
-const rowLabel: React.CSSProperties = {
-  width: 74, flex: 'none', fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--muted-foreground)',
-};
-const stepBtn: React.CSSProperties = {
-  width: 44, height: 44, flex: 'none', borderRadius: 999, background: 'var(--background)',
-  color: 'var(--foreground)', fontSize: 'var(--step-1)', fontWeight: 600,
-  display: 'flex', alignItems: 'center', justifyContent: 'center',
-};
+const row = 'flex min-h-11 items-center gap-2.5';
+const rowLabel = `w-[74px] flex-none ${fieldLabel}`;
+const stepBtn = 'press grid size-11 flex-none place-items-center rounded-full bg-muted text-foreground';
 
 const civil = (iso: string) => { const [y, m, d] = iso.split('-').map(Number); return { y, m, d }; };
 /** The same day n months on, or the month's last day when it has no such day. */
@@ -297,9 +279,3 @@ function addMonths(iso: string, n: number) {
   const last = new Date(Date.UTC(y, m - 1 + n + 1, 0)).getUTCDate();
   return new Date(Date.UTC(y, m - 1 + n, Math.min(d, last))).toISOString().slice(0, 10);
 }
-
-const select: React.CSSProperties = {
-  minHeight: 52, borderRadius: 13, border: '1px solid var(--border)',
-  background: 'var(--card)', color: 'var(--foreground)', fontSize: 'var(--field)',
-  fontWeight: 600, padding: '0 12px',
-};

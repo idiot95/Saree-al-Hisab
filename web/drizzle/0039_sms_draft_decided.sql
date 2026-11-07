@@ -1,0 +1,1 @@
+ALTER TABLE "sms_draft" ADD COLUMN "decided_at" timestamp with time zone;

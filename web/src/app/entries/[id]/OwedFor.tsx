@@ -4,6 +4,10 @@ import { useActionState, useState } from 'react';
 import { Field, ErrorNote } from '../../auth-ui';
 import { addClaim, abandonClaim } from '../../people/actions';
 import { useMoney } from '@/app/currency';
+import { useFocusSoon, useKeepOnRefusal, useOnSuccess } from '../../form-hooks';
+import { Icon } from '../../Icon';
+import { Said, fieldLabel, ghost, selectCls, solid } from '../../form-bits';
+import { cn } from '@/lib/utils';
 
 type Person = { id: string; name: string };
 type Claim = {
@@ -11,11 +15,12 @@ type Claim = {
   outstanding: string; status: string; note: string | null;
 };
 
-const WORD: Record<string, [string, string]> = {
-  open: ['owes you', 'var(--foreground)'],
-  part_paid: ['part paid', 'var(--attention-soft-foreground)'],
-  settled: ['settled up', 'var(--primary)'],
-  written_off: ['written off', 'var(--muted-foreground)'],
+/* Each status is an icon and a word, never a colour alone. */
+const WORD: Record<string, { word: string; icon: string; ink: string }> = {
+  open: { word: 'owes you', icon: 'schedule', ink: 'text-foreground' },
+  part_paid: { word: 'part paid', icon: 'trending_down', ink: 'text-attention-soft-foreground' },
+  settled: { word: 'settled up', icon: 'check_circle', ink: 'text-primary' },
+  written_off: { word: 'written off', icon: 'archive', ink: 'text-muted-foreground' },
 };
 
 /* Marking an expense as owed does not change the expense. You paid for it, it
@@ -26,44 +31,46 @@ export default function OwedFor({ txnId, entryAmount, people, claims, canEdit }:
 }) {
   const { format, toKeys } = useMoney();
   const [state, act, pending] = useActionState(addClaim, null);
+  // Posts directly; a refusal's form reset is undone so the person chosen and the amount typed stay.
+  const keep = useKeepOnRefusal(state);
   const [, drop] = useActionState(abandonClaim, null);
   const [open, setOpen] = useState(false);
+  // Added: close, so React's reset after a success never leaves the person and the amount disagreeing with the screen.
+  // ...and focus goes back to the button the form replaced, while the live region says who now owes what.
+  const [opener, focusOpener] = useFocusSoon<HTMLButtonElement>();
+  useOnSuccess(state, () => { setOpen(false); focusOpener(); });
 
   if (people.length === 0 && claims.length === 0) return null;
 
   return (
-    <section className="border border-border" style={{
-      margin: '0 var(--gutter) 16px', background: 'var(--card)', borderRadius: 18, padding: 16,
-      display: 'flex', flexDirection: 'column', gap: 12,
-    }}>
-      <h2 style={{ margin: 0, fontSize: 'var(--step-0)', fontWeight: 600 }}>Owed back to you</h2>
+    <section aria-labelledby="owed-for" className="mx-[var(--gutter)] mb-4 flex flex-col gap-3 rounded-[18px] bg-card p-[var(--pad)]">
+      <h2 id="owed-for" className="text-[15px] font-semibold">Owed back to you</h2>
+      <Said>{state?.ok ? state.message : ''}</Said>
 
       {claims.length > 0 && (
-        <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column' }}>
+        <ul className="flex flex-col">
           {claims.map((c, i) => {
-            const [word, colour] = WORD[c.status] ?? WORD.open;
+            const w = WORD[c.status] ?? WORD.open;
             return (
-              <li key={c.id} style={{
-                display: 'flex', alignItems: 'center', gap: 10, minHeight: 56,
-                borderBottom: i === claims.length - 1 ? undefined : '1px solid var(--border)',
-              }}>
-                <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>{c.person}</span>
-                  <span style={{ fontSize: 'var(--step--2)', color: colour }}>
-                    {word}
+              <li key={c.id} className={cn('flex min-h-14 items-center gap-2.5 py-1.5', i < claims.length - 1 && 'border-b border-border')}>
+                <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                  <span className="text-[15px] font-semibold [overflow-wrap:anywhere]">{c.person}</span>
+                  <span className={cn('flex items-center gap-1 text-[13px]', w.ink)}>
+                    <Icon name={w.icon} size={15} />
+                    {w.word}
                     {c.status === 'part_paid' && ` · ${format(Number(c.received))} in`}
                   </span>
                 </span>
-                <span className="t amt" style={{ fontSize: 'var(--step-0)', color: colour }}>
+                <span className={cn('flex-none text-right text-[15px] font-semibold whitespace-nowrap', w.ink)}>
                   {format(Number(c.status === 'settled' ? c.expected_amount : c.outstanding))}
                 </span>
                 {canEdit && c.status !== 'settled' && c.status !== 'written_off' && (
                   <form action={drop}>
                     <input type="hidden" name="claimId" value={c.id} />
-                    <button type="submit" style={{
-                      minHeight: 44, padding: '0 8px', fontSize: 'var(--step--2)', fontWeight: 600,
-                      color: 'var(--muted-foreground)', background: 'transparent',
-                    }}>Drop</button>
+                    <button type="submit" aria-label={`Drop what ${c.person} owes`}
+                      className="press flex min-h-11 items-center justify-center px-2 text-[13px] font-semibold text-muted-foreground">
+                      Drop
+                    </button>
                   </form>
                 )}
               </li>
@@ -73,19 +80,15 @@ export default function OwedFor({ txnId, entryAmount, people, claims, canEdit }:
       )}
 
       {canEdit && (open ? (
-        <form action={act} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <form action={act} {...keep} aria-label="Someone owes me for this" className="flex flex-col gap-3">
           <input type="hidden" name="txnId" value={txnId} />
-          <p style={{ margin: 0, fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--muted-foreground)' }}>
+          <p className="text-sm leading-normal text-muted-foreground">
             This does not change the entry. You paid for it, so it stays in the month&rsquo;s
             spending — what you are recording is that some of it is coming back.
           </p>
-          <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--muted-foreground)' }}>Who owes you</span>
-            <select name="counterpartyId" required style={{
-              minHeight: 52, borderRadius: 13, border: '1px solid var(--border)',
-              background: 'var(--card)', color: 'var(--foreground)', fontSize: 'var(--field)',
-              fontWeight: 600, padding: '0 12px',
-            }}>
+          <label className="flex flex-col gap-1.5">
+            <span className={fieldLabel}>Who owes you</span>
+            <select name="counterpartyId" required className={selectCls}>
               {people.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
           </label>
@@ -94,30 +97,23 @@ export default function OwedFor({ txnId, entryAmount, people, claims, canEdit }:
             hint={`The entry came to ${format(entryAmount)}.`} />
           <Field label="Note (optional)" name="note" maxLength={200} />
           {state && !state.ok && <ErrorNote>{state.error}</ErrorNote>}
-          <div style={{ display: 'flex', gap: 9 }}>
-            <button className="cta" type="button" onClick={() => setOpen(false)} style={{
-              minHeight: 48, padding: '0 16px', borderRadius: 12, fontSize: 'var(--step-0)', fontWeight: 600,
-              background: 'var(--muted)', color: 'var(--muted-foreground)',
-            }}>Cancel</button>
-            <button className="cta" type="submit" disabled={pending} style={{
-              flex: 1, minHeight: 48, borderRadius: 12, fontSize: 'var(--step-0)', fontWeight: 600,
-              background: 'var(--primary)', color: 'var(--primary-foreground)', opacity: pending ? 0.6 : 1,
-            }}>{pending ? 'Saving…' : 'Someone owes me'}</button>
+          <div className="flex gap-2">
+            <button type="button" onClick={() => { setOpen(false); focusOpener(); }} className={ghost}>Cancel</button>
+            <button type="submit" disabled={pending} className={solid}>
+              {pending ? 'Saving…' : 'Someone owes me'}
+            </button>
           </div>
         </form>
       ) : (
-        <button className="cta" type="button" onClick={() => setOpen(true)} style={{
-          minHeight: 48, borderRadius: 12, fontSize: 'var(--step-0)', fontWeight: 600,
-          background: 'var(--muted)', color: 'var(--foreground)',
-        }}>
+        <button ref={opener} type="button" onClick={() => setOpen(true)}
+          className="press flex min-h-12 items-center justify-center gap-2 rounded-xl bg-muted px-4 text-base font-semibold text-foreground">
+          <Icon name="person_add" size={19} />
           {claims.length ? 'Add someone else' : 'Someone owes me for this'}
         </button>
       ))}
 
       {people.length === 0 && (
-        <p style={{ margin: 0, fontSize: 'var(--step--1)', color: 'var(--muted-foreground)' }}>
-          Add someone to a tab in the Loan centre first.
-        </p>
+        <p className="text-sm text-muted-foreground">Add someone to a tab in Loans first.</p>
       )}
     </section>
   );

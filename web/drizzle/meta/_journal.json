@@ -232,6 +232,48 @@
       "when": 1789285805383,
       "tag": "0033_reconciliation",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1793958712608,
+      "tag": "0034_auth_identity",
+      "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1793965922563,
+      "tag": "0035_wealth",
+      "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1793967940654,
+      "tag": "0036_holding_attachment",
+      "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1793970904450,
+      "tag": "0037_last_paid_with",
+      "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1793972520877,
+      "tag": "0038_sms_capture",
+      "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1793976810383,
+      "tag": "0039_sms_draft_decided",
+      "breakpoints": true
     }
   ]
 }

@@ -1,7 +1,10 @@
 'use client';
 
 import { useActionState, useState } from 'react';
-import { Field, ErrorNote } from '../../auth-ui';
+import { Button } from '@/components/ui/button';
+import { ErrorNote as Problem } from '../../auth-ui';
+import { Field } from '../../worth/fields';
+import { Icon } from '../../Icon';
 import { lend, recordRepayment, writeOff } from '../actions';
 import { useMoney } from '@/app/currency';
 import PayPicker from '../../PayPicker';
@@ -26,9 +29,14 @@ export default function PersonActions({ personId, name, balance, ways, categorie
 
   if (mode === null) {
     return (
-      <div style={{ display: 'flex', gap: 9, margin: '0 var(--gutter) 20px' }}>
-        <Btn onClick={() => setMode('lend')} primary>Lend money</Btn>
-        <Btn onClick={() => setMode('back')}>Got money back</Btn>
+      <div className="mx-[var(--gutter)] flex flex-wrap gap-2">
+        <Button type="button" onClick={() => setMode('lend')} className="h-[54px] flex-1 basis-40 rounded-2xl text-base font-semibold">
+          <Icon name="payments" size={18} />Lend money
+        </Button>
+        <Button type="button" variant="outline" onClick={() => setMode('back')}
+          className="h-[54px] flex-1 basis-40 rounded-2xl border-border bg-card text-base font-semibold dark:border-border dark:bg-card">
+          <Icon name="receivable" size={18} />Got money back
+        </Button>
       </div>
     );
   }
@@ -41,39 +49,38 @@ export default function PersonActions({ personId, name, balance, ways, categorie
     </>
   );
 
+  /* Page-level forms: each server action goes straight into useActionState, so the form posts without script. */
   return (
-    <div className="border border-border" style={{
-      margin: '0 var(--gutter) 20px', background: 'var(--card)', borderRadius: 18, padding: 16,
-    }}>
+    <div className="mx-[var(--gutter)] rounded-[18px] bg-card p-4">
       {mode === 'lend' && (
-        <form action={lendAct} style={{ display: 'flex', flexDirection: 'column', gap: 13 }}>
+        <form action={lendAct} className="flex flex-col gap-3">
           <Title>Lend to {name}</Title>
           <Explain>Not spending. The money moves from your account into theirs.</Explain>
           {common}
           <PayField label="How you sent it" ways={ways} />
           <Field label="Note (optional)" name="note" maxLength={200} />
-          {lendState && !lendState.ok && <ErrorNote>{lendState.error}</ErrorNote>}
+          {lendState && !lendState.ok && <Problem>{lendState.error}</Problem>}
           <Row onCancel={() => setMode(null)} pending={lending} label="Record loan" />
         </form>
       )}
 
       {mode === 'back' && (
-        <form action={backAct} style={{ display: 'flex', flexDirection: 'column', gap: 13 }}>
+        <form action={backAct} className="flex flex-col gap-3">
           <Title>{name} paid you back</Title>
           <Explain>Not income either — it was never spending, so getting it back is not earning.</Explain>
           {common}
           <PayField label="How it came back" ways={ways} />
           <Field label="Note (optional)" name="note" maxLength={200} />
-          {backState && !backState.ok && <ErrorNote>{backState.error}</ErrorNote>}
+          {backState && !backState.ok && <Problem>{backState.error}</Problem>}
           <Row onCancel={() => setMode(null)} pending={paying} label="Record repayment" />
         </form>
       )}
 
       {mode === 'off' && (
-        <form action={offAct} style={{ display: 'flex', flexDirection: 'column', gap: 13 }}>
+        <form action={offAct} className="flex flex-col gap-3">
           <Title>Write off what {name} owes</Title>
           <Explain>
-            This <b>is</b> spending, counted in the month you forgive it. Until now the money was
+            This <b className="text-foreground">is</b> spending, counted in the month you forgive it. Until now the money was
             still yours; from here it has been spent.
           </Explain>
           <input type="hidden" name="personId" value={personId} />
@@ -84,35 +91,31 @@ export default function PersonActions({ personId, name, balance, ways, categorie
           <CategoryPick label="Count it under" name="categoryId"
             categories={categories.filter((c) => fits(c.scope, 'expense'))} />
           <Field label="Note (optional)" name="note" maxLength={200} />
-          {offState && !offState.ok && <ErrorNote>{offState.error}</ErrorNote>}
+          {offState && !offState.ok && <Problem>{offState.error}</Problem>}
           <Row onCancel={() => setMode(null)} pending={forgiving} label="Write it off" danger />
         </form>
       )}
 
       {mode !== 'off' && balance > 0 && (
-        <button type="button" onClick={() => setMode('off')} style={{
-          marginTop: 12, minHeight: 44, width: '100%', fontSize: 'var(--step--1)', fontWeight: 600,
-          color: 'var(--muted-foreground)', background: 'transparent',
-        }}>
+        <Button type="button" variant="ghost" onClick={() => setMode('off')}
+          className="mt-3 h-11 w-full font-semibold text-muted-foreground">
           Or write off the {format(balance)} they owe
-        </button>
+        </Button>
       )}
     </div>
   );
 }
 
 function Title({ children }: { children: React.ReactNode }) {
-  return <h2 style={{ margin: 0, fontSize: 'var(--step-1)', fontWeight: 600 }}>{children}</h2>;
+  return <h2 className="text-lg font-bold">{children}</h2>;
 }
 function Explain({ children }: { children: React.ReactNode }) {
-  return (
-    <p style={{ margin: 0, fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--muted-foreground)' }}>{children}</p>
-  );
+  return <p className="text-[13px] leading-relaxed text-muted-foreground">{children}</p>;
 }
 function PayField({ label, ways }: { label: string; ways: Way[] }) {
   return (
-    <div role="group" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-      <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--muted-foreground)' }}>{label}</span>
+    <div role="group" className="flex flex-col gap-1.5">
+      <span className="text-sm font-medium text-muted-foreground">{label}</span>
       <PayPicker name="paidWith" ways={ways} defaultValue={defaultRef(ways)} />
     </div>
   );
@@ -121,31 +124,14 @@ function Row({ onCancel, pending, label, danger }: {
   onCancel: () => void; pending: boolean; label: string; danger?: boolean;
 }) {
   return (
-    <div style={{ display: 'flex', gap: 9 }}>
-      <button className="cta" type="button" onClick={onCancel} style={{
-        minHeight: 50, padding: '0 16px', borderRadius: 13, fontSize: 'var(--step-0)', fontWeight: 600,
-        background: 'var(--muted)', color: 'var(--muted-foreground)',
-      }}>Cancel</button>
-      <button className="cta" type="submit" disabled={pending} style={{
-        flex: 1, minHeight: 50, borderRadius: 13, fontSize: 'var(--step-0)', fontWeight: 600,
-        opacity: pending ? 0.65 : 1,
-        background: danger ? 'color-mix(in srgb, var(--destructive) 12%, transparent)' : 'var(--chart-1)',
-        color: danger ? 'var(--destructive)' : 'var(--attention-soft-foreground)',
-      }}>{pending ? 'Saving…' : label}</button>
+    <div className="flex gap-2">
+      <Button type="button" variant="secondary" onClick={onCancel} className="h-12 rounded-xl px-4 text-base font-semibold">
+        Cancel
+      </Button>
+      <Button type="submit" disabled={pending}
+        className={`h-12 flex-1 rounded-xl text-base font-semibold ${danger ? 'bg-destructive/10 text-destructive hover:bg-destructive/15' : ''}`}>
+        {pending ? 'Saving…' : label}
+      </Button>
     </div>
-  );
-}
-function Btn({ children, onClick, primary }: {
-  children: React.ReactNode; onClick: () => void; primary?: boolean;
-}) {
-  return (
-    <button type="button" onClick={onClick} className={`${primary ? 'el2' : 'el'} cta`} style={{
-      flex: 1, minHeight: 54, borderRadius: 14, fontSize: 'var(--step-0)', fontWeight: 600,
-      background: primary
-        ? 'var(--primary)'
-        : 'var(--card)',
-      color: primary ? 'var(--primary-foreground)' : 'var(--foreground)',
-      border: primary ? 0 : '1px solid var(--border)',
-    }}>{children}</button>
   );
 }

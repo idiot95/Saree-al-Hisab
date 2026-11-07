@@ -101,7 +101,7 @@ export const CURRENCIES: readonly Currency[] = [
 const BY_CODE: Record<string, Currency> = Object.fromEntries(CURRENCIES.map((x) => [x.code, x]));
 const LOCALE = { lakh: 'en-IN', thousand: 'en-US' } as const;
 
-export const isCurrency = (code: string) => code in BY_CODE;
+export const isCurrency = (code: string) => Object.hasOwn(BY_CODE, code);
 
 /* Which currency a bare format() means. Every call site could name it, and
    client components do (through useMoney, which reads it from context). On
@@ -122,19 +122,50 @@ export const digitsOf = (currency: string = resolver()) => ccy(currency).digits;
 export const unitOf = (currency: string = resolver()) => 10 ** ccy(currency).digits;
 export const symbolOf = (currency: string = resolver()) => ccy(currency).symbol;
 
+/** Whether the minor units are drawn: never (rounded away), always (the
+ *  accounting form, ₹2,340.00), or 'auto' — only when there are some
+ *  (₹2,340 but ₹2,340.50), which is how a person says an amount aloud. */
+export type Paise = boolean | 'auto';
+const fractionDigits = (minor: Minor, digits: number, paise: Paise | undefined) =>
+  paise === 'auto' ? (Math.abs(minor) % 10 ** digits === 0 ? 0 : digits) : paise ? digits : 0;
+
 /** ₹2,15,600 — not ₹215,600. Indian grouping puts the first comma after three
  *  digits and every two after that, which `en-IN` gets right and a naive
  *  thousands separator does not. `paise` shows the minor units in full —
  *  the accounting form, ₹2,15,600.00 — otherwise they are rounded away. */
-export function format(minor: Minor, currency: string = resolver(), opts: { sign?: boolean; paise?: boolean } = {}) {
+export function format(minor: Minor, currency: string = resolver(), opts: { sign?: boolean; paise?: Paise } = {}) {
   const x = ccy(currency);
   const whole = Math.abs(minor) / 10 ** x.digits;
+  const f = fractionDigits(minor, x.digits, opts.paise);
   const body = new Intl.NumberFormat(LOCALE[x.group], {
-    minimumFractionDigits: opts.paise ? x.digits : 0,
-    maximumFractionDigits: opts.paise ? x.digits : 0,
+    minimumFractionDigits: f,
+    maximumFractionDigits: f,
   }).format(whole);
   const lead = opts.sign ? (minor < 0 ? '−' : '+') : minor < 0 ? '−' : '';
   return `${lead}${x.symbol}${body}`;
+}
+
+/** Minor units as a whole-unit number, for a component that draws digits
+ *  itself: 234000 paise is 2340, 1500 fils is 1.5. Only for display — never
+ *  add or compare these; the ledger stays in minor units. */
+export const toMajor = (minor: Minor, currency: string = resolver()) => minor / unitOf(currency);
+
+/** What a rolling-digits component needs to draw exactly what format() writes:
+ *  `prefix + new Intl.NumberFormat(locale, format).format(value)` equals
+ *  format(minor, currency, { sign, paise }) — whole units unless `paise`, as
+ *  format() does. The sign and the symbol live in the
+ *  prefix (with the same U+2212 minus) and the value is its magnitude, so the
+ *  digits never draw a second, different minus. */
+export function figureParts(minor: Minor, currency: string = resolver(), opts: { sign?: boolean; paise?: Paise } = {}) {
+  const x = ccy(currency);
+  const f = fractionDigits(minor, x.digits, opts.paise);
+  const lead = opts.sign ? (minor < 0 ? '\u2212' : '+') : minor < 0 ? '\u2212' : '';
+  return {
+    value: Math.abs(toMajor(minor, currency)),
+    locale: LOCALE[x.group],
+    format: { style: 'decimal', minimumFractionDigits: f, maximumFractionDigits: f } as const,
+    prefix: `${lead}${x.symbol}`,
+  };
 }
 
 /* "Keys" are the digits of an amount as a person types them — "2340.5" — the

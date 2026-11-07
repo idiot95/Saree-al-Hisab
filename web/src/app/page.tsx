@@ -1,20 +1,24 @@
+import { Suspense } from 'react';
+import { SkeletonFor } from './Skeleton';
 import Link from '@/app/NavLink';
 import { redirect } from 'next/navigation';
-import { actorOrNull, claimsFor, entriesFor, inboxCount, monthTotals, peopleFor, schedulesFor, setupProgress } from '@/db/queries';
-import { owedToYou } from '@/lib/worth';
-import { IconChevronRight, IconUsers } from '@tabler/icons-react';
+import { actorOrNull, claimsFor, entriesFor, inboxCount, reviewCount, monthTotals, peopleFor, schedulesFor, setupProgress } from '@/db/queries';
+import { netWorth, owedToYou } from '@/lib/worth';
 import { withHousehold } from '@/db/client';
-import { format, monthKey } from '@/lib/money';
+import { worthInput } from '@/db/worth';
+import { monthKey } from '@/lib/money';
 import { outstandingDues, ruleOf } from '@/lib/recur';
 import DueRow from './schedules/DueRow';
 import EntryList from './entries/EntryList';
 import { toRow } from './entries/rows';
 import GettingStarted from './GettingStarted';
-import MonthRing from './home/MonthRing';
+import LeftToSpend from './home/LeftToSpend';
+import { Figure } from './Figure';
 import TabBar from './TabBar';
 import { TAB_BAR_SPACE } from './tabs';
 import Screen from './Screen';
 import SavedSnack from './SavedSnack';
+import { Icon } from './Icon';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,14 +30,30 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ s
   const actor = await actorOrNull();
   if (!actor) redirect('/signin');
   if (!actor.household_id) redirect('/no-household');
-
   const { saved } = await searchParams;
+  /* Home's frame, from here rather than a loading.tsx: one at the root would also stand in front of sign-in,
+     the terms and every other screen that has none of its own. The redirects above stay outside it, so a
+     signed-out visit is still a redirect and not a frame. */
+  return (
+    <Suspense fallback={<SkeletonFor path="/" />}>
+      <HomeScreen saved={saved} />
+    </Suspense>
+  );
+}
+
+async function HomeScreen({ saved }: { saved?: string }) {
+  const actor = await actorOrNull();
+  if (!actor?.household_id) redirect('/no-household');
+  const savedId = saved && /^[0-9a-f-]{36}$/.test(saved) ? saved : null;
   const name = actor.household_name;
   const month = monthKey(new Date());
   const hh = actor.household_id;
-  /* Home asks only what it shows: the month, what to review and what is coming, what is owed to you (one line,
-     the door to Loans), and today. Net worth is under Money, the per-category budget under Plan. */
-  const [progress, totals, inbox, schedules, recent, claims, people] = await withHousehold(hh, () => Promise.all([
+  /* Home asks only what it shows: the month, what to review and what is coming, the household's net worth (one
+     row, the door to Wealth), what is owed to you (one line, the door to Loans), and today. The net worth is read
+     the way Wealth reads it (worthInput, then netWorth for the household), so the two never disagree. */
+  /* One transaction for everything Home reads, net worth included. Home does not refresh rates (Wealth does);
+     it values holdings at the last stored rates. */
+  const [progress, totals, inbox, schedules, recent, claims, people, worth] = await withHousehold(hh, () => Promise.all([
     setupProgress(hh),
     monthTotals(hh, month),
     inboxCount(hh),
@@ -41,8 +61,10 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ s
     entriesFor(hh, month),
     claimsFor(hh),
     peopleFor(hh),
+    worthInput(hh, actor.currency, { refreshRates: false }),
   ]));
   const { owed } = owedToYou(claims, people);
+  const householdWorth = netWorth(worth.input, { kind: 'household' }).worth;
 
   const budget = Number(totals.budget);
   const spent = Number(totals.spent);
@@ -54,8 +76,12 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ s
   const allDues = outstandingDues(schedules, now, 7);
   const canAct = actor.role !== 'viewer';
   const dueNow = canAct ? allDues.filter((d) => d.daysAway <= 0) : [];
-  /* The same count as Activity's "To review" badge, so the two never disagree. What is due comes under Upcoming. */
-  const review = inbox.duplicates + inbox.bills;
+  /* Activity's To review and From SMS badges together, so the tile and the chips never disagree. What is due comes
+     under Upcoming. */
+  const review = reviewCount(inbox);
+  /* The tile opens the chip that holds what it counts: To review for bills and duplicates, From SMS when bank
+     messages are all there is. */
+  const reviewHref = inbox.bills + inbox.duplicates === 0 && inbox.sms > 0 ? '/entries?f=sms' : '/entries?f=review';
   const byId = new Map(schedules.map((s) => [s.id, s]));
   const monthName = new Date(month).toLocaleDateString('en-IN', { month: 'long' });
 
@@ -64,113 +90,148 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ s
   const dueSoon = allDues.filter((d) => d.daysAway > 0);
   const dueSoonTotal = dueSoon.reduce((n, d) => n + Number(byId.get(d.scheduleId)?.amount ?? 0), 0);
 
+  /* The second tile is what comes round this week; when nothing does and bank messages are waiting, it is those. */
+  const fromSms = dueSoon.length === 0 && inbox.sms > 0;
+
   return (
     <Screen>
       <main className="min-h-dvh bg-background text-foreground" style={{ paddingBottom: TAB_BAR_SPACE }}>
-        {/* Quiet Ledger: no dark header. The month and the household, and your initials at the far end — the door to
-            household and settings, where people look for them. */}
-        <header className="flex items-center gap-3 px-[var(--gutter)] pb-2 pt-4">
+        {/* The household, the month large, and your initials at the far end — the door to household and settings. */}
+        <header className="flex items-end gap-3 px-[var(--gutter)] pb-2 pt-4">
           <div className="min-w-0 flex-1">
-            <p className="text-xs text-muted-foreground">{now.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })}</p>
-            <h1 className="truncate font-display text-[28px] leading-tight">{name}</h1>
+            <p className="truncate text-[13px] text-muted-foreground">{name}</p>
+            <h1 className="text-[32px] font-bold leading-tight tracking-tight">{monthName}</h1>
           </div>
           <Link href="/household" transitionTypes={['nav-forward']} aria-label="Household and settings"
-            className="press grid size-11 flex-none place-items-center rounded-full bg-accent text-sm font-bold text-accent-foreground">
+            className="press grid size-11 flex-none place-items-center rounded-full bg-accent text-[15px] font-semibold text-accent-foreground in-data-[platform=android]:size-12">
             {(actor.user_name || '?').slice(0, 2).toUpperCase()}
           </Link>
         </header>
 
-        <div className="flex flex-col gap-3.5 px-[var(--gutter)] pt-2">
+        {/* A breathing gap, so the last card is not flush against the tab bar — and, while "Entry saved" floats
+            above the bar, room enough that the last line can scroll out from under it. */}
+        <div className={`flex flex-col gap-4 px-[var(--gutter)] pt-2 ${savedId ? 'pb-20' : 'pb-6'}`}>
           {budget > 0
-            ? <MonthRing month={month} budget={budget} spent={spent} />
-            : <NoBudgetYet monthName={monthName} spent={spent} entries={progress.entries} />}
+            ? <LeftToSpend month={month} budget={budget} spent={spent} />
+            : <NoBudgetYet spent={spent} entries={progress.entries} />}
 
-          {/* Activity's two other views, counted: decisions waiting, and what comes round this week. Nothing else. */}
-          <div className="grid grid-cols-2 gap-2.5">
-            <Link href="/inbox" transitionTypes={['nav-forward']}
-              className={`press flex min-h-[72px] flex-col justify-center gap-0.5 rounded-2xl border px-3.5 ${review > 0
-                ? 'border-attention/40 bg-attention-soft text-attention-soft-foreground' : 'border-border bg-card'}`}>
-              <span className="text-xs opacity-80">To review</span>
-              <span className="text-base font-semibold">{review > 0 ? `${review} to look at` : 'All clear'}</span>
+          {/* Decisions waiting, and what comes round this week (or the bank messages, when nothing does). */}
+          <div className="grid grid-cols-2 gap-3">
+            <Link href={reviewHref} transitionTypes={['nav-lateral']}
+              className={`press flex min-h-[96px] flex-col gap-1.5 rounded-[18px] p-3.5 ${review > 0
+                ? 'bg-attention-soft text-attention-soft-foreground' : 'bg-card'}`}>
+              <Icon name="rule" size={22} className={review > 0 ? '' : 'text-primary'} />
+              <span className={`text-xs ${review > 0 ? '' : 'text-muted-foreground'}`}>To review</span>
+              <span className="text-lg font-semibold leading-tight">
+                {review > 0 ? `${review} ${review === 1 ? 'decision' : 'decisions'}` : 'All clear'}
+              </span>
             </Link>
-            <Link href="/schedules" transitionTypes={['nav-forward']}
-              className="press flex min-h-[72px] flex-col justify-center gap-0.5 rounded-2xl border border-border bg-card px-3.5">
-              <span className="text-xs text-muted-foreground">Upcoming this week</span>
-              <span className="text-base font-semibold tabular-nums">{dueSoon.length ? format(dueSoonTotal) : 'Nothing'}</span>
-            </Link>
+            {fromSms ? (
+              <Link href="/entries?f=sms" transitionTypes={['nav-lateral']}
+                className="press flex min-h-[96px] flex-col gap-1.5 rounded-[18px] bg-card p-3.5">
+                <Icon name="sms" size={22} className="text-primary" />
+                <span className="text-xs text-muted-foreground">From SMS</span>
+                <span className="text-lg font-semibold leading-tight">
+                  {inbox.sms} {inbox.sms === 1 ? 'message' : 'messages'}
+                </span>
+              </Link>
+            ) : (
+              <Link href="/entries?f=upcoming" transitionTypes={['nav-lateral']}
+                className="press flex min-h-[96px] flex-col gap-1.5 rounded-[18px] bg-card p-3.5">
+                <Icon name="event_upcoming" size={22} className="text-primary" />
+                <span className="text-xs text-muted-foreground">Due this week</span>
+                <span className="text-lg font-semibold leading-tight tabular-nums">
+                  {dueSoon.length ? <Figure minor={dueSoonTotal} /> : 'Nothing'}
+                </span>
+              </Link>
+            )}
           </div>
+
+          {/* The household's net worth, dark, into Wealth. */}
+          <Link href="/worth" transitionTypes={['nav-lateral']}
+            className="press flex min-h-[68px] items-center gap-3 rounded-[18px] bg-hero px-4 py-3.5 text-hero-foreground">
+            <Icon name="trending_up" size={22} className="text-hero-4" />
+            <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+              <span className="text-xs text-hero-muted">Household net worth</span>
+              <Figure minor={householdWorth} className="text-lg font-semibold leading-tight tabular-nums" />
+            </span>
+            <Icon name="chevron_right" size={22} className="text-hero-muted" />
+          </Link>
 
           {owed > 0 && (
             <Link href="/people" transitionTypes={['nav-lateral']}
-              className="press flex min-h-14 items-center gap-3 rounded-2xl border border-border bg-card px-3.5">
-              <IconUsers size={20} className="text-muted-foreground" aria-hidden />
+              className="press flex min-h-14 items-center gap-3 rounded-[18px] bg-card px-4">
+              <Icon name="group" size={20} className="text-primary" />
               <span className="flex-1 text-sm text-muted-foreground">Owed to you</span>
-              <span className="text-base font-semibold tabular-nums">{format(owed)}</span>
-              <IconChevronRight size={17} className="text-muted-foreground" aria-hidden />
+              <Figure minor={owed} className="text-base font-semibold tabular-nums" />
+              <Icon name="chevron_right" size={20} className="text-muted-foreground" />
             </Link>
           )}
 
           {dueNow.length > 0 && (
-            <section aria-label="Due today" className="rounded-2xl border border-border bg-card px-[var(--pad)]">
-              <h2 className="pb-0.5 pt-3 text-sm font-semibold">{dueNow.some((d) => d.daysAway < 0) ? 'Due now' : 'Due today'}</h2>
-              {dueNow.map((d) => {
-                const s = byId.get(d.scheduleId)!;
-                return (
-                  <DueRow key={`${d.scheduleId}:${d.dueOn}`}
-                    scheduleId={d.scheduleId} name={s.name} kind={s.kind} dueOn={d.dueOn}
-                    on={d.on} movedFrom={d.movedFrom} daysAway={d.daysAway}
-                    amount={Number(s.amount ?? 0)} category={s.category} icon={s.icon} tint={s.tint}
-                    rule={ruleOf(s)?.rule} cal={ruleOf(s)?.cal} today={todayIso} />
-                );
-              })}
+            <section aria-label="Due today" className="flex flex-col gap-1">
+              <div className="flex items-baseline justify-between gap-3 px-0.5">
+                <h2 className="py-1 text-[13px] font-semibold text-muted-foreground">
+                  {dueNow.some((d) => d.daysAway < 0) ? 'Due now' : 'Due today'} · paid, or moved?
+                </h2>
+                <Link href="/entries?f=upcoming" transitionTypes={['nav-lateral']} className="-my-3 flex min-h-11 flex-none items-center px-1 text-sm font-medium text-primary">See all</Link>
+              </div>
+              <div className="overflow-hidden rounded-[18px] bg-card px-[var(--pad)]">
+                {dueNow.map((d) => {
+                  const s = byId.get(d.scheduleId)!;
+                  return (
+                    <DueRow key={`${d.scheduleId}:${d.dueOn}`}
+                      scheduleId={d.scheduleId} name={s.name} kind={s.kind} dueOn={d.dueOn}
+                      on={d.on} movedFrom={d.movedFrom} daysAway={d.daysAway}
+                      amount={Number(s.amount ?? 0)} category={s.category} icon={s.icon}
+                      rule={ruleOf(s)?.rule} cal={ruleOf(s)?.cal} today={todayIso} />
+                  );
+                })}
+              </div>
             </section>
           )}
 
-          <GettingStarted progress={{ ...progress, budget }} />
+          <GettingStarted progress={{ ...progress, budget }} budgetAskedAbove={budget <= 0} />
 
           {latest.length > 0 && (
-            <section aria-label={todays.length ? 'Today' : 'Latest'} className="flex flex-col gap-2">
-              <div className="flex items-baseline justify-between px-1">
-                <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{todays.length ? 'Today' : 'Latest'}</h2>
+            <section aria-label={todays.length ? 'Today' : 'Latest'} className="flex flex-col gap-1">
+              <div className="flex items-baseline justify-between px-0.5">
+                <h2 className="py-1 text-[13px] font-semibold text-muted-foreground">{todays.length ? 'Today' : 'Latest'}</h2>
                 <Link href="/entries" transitionTypes={['nav-lateral']} className="-my-3 flex min-h-11 items-center px-1 text-sm font-medium text-primary">See all</Link>
               </div>
               <EntryList days={[{ on: todayIso, label: '', rows: latest.map(toRow) }]} canEdit={canAct} flat />
             </section>
           )}
 
-          <Link href="/guide" transitionTypes={['nav-forward']} className="self-center py-2 text-sm text-muted-foreground underline-offset-4 hover:underline">
+          <Link href="/guide" transitionTypes={['nav-forward']} className="flex min-h-11 items-center self-center px-2 text-sm text-muted-foreground underline-offset-4 hover:underline">
             How the app works
           </Link>
         </div>
-        {saved && /^[0-9a-f-]{36}$/.test(saved) && <SavedSnack id={saved} />}
+        {savedId && <SavedSnack key={savedId} id={savedId} />}
         <TabBar current="/" />
       </main>
     </Screen>
   );
 }
 
-/* Without a budget there is still something true to say, and saying it beats
-   an empty space with a prompt in it. */
-function NoBudgetYet({ monthName, spent, entries }: {
-  monthName: string; spent: number; entries: number;
-}) {
+/* Without a budget there is still something true to say — what the month has cost so far — and the card is the
+   door to setting one. */
+function NoBudgetYet({ spent, entries }: { spent: number; entries: number }) {
   return (
-    <section className="border border-border bg-card" style={{
-      borderRadius: 22, padding: '18px 17px', display: 'flex', flexDirection: 'column', gap: 10,
-    }}>
-      <h2 style={{ fontSize: 'var(--step-2)', fontWeight: 600 }}>{monthName} so far</h2>
-      <span className="font-display tabular-nums" style={{ fontSize: 40, lineHeight: 1 }}>{format(spent)}</span>
-      <p style={{ margin: 0, fontSize: 'var(--step--1)', color: 'var(--muted-foreground)' }}>
-        {entries === 0
-          ? 'Nothing recorded yet.'
-          : `Across ${entries} ${entries === 1 ? 'entry' : 'entries'}. Set a budget and this gets something to measure against.`}
-      </p>
-      <Link transitionTypes={['nav-lateral']} href="/budget" style={{
-        minHeight: 48, borderRadius: 13, display: 'flex', alignItems: 'center',
-        justifyContent: 'center', textDecoration: 'none',
-        fontSize: 'var(--step-0)', fontWeight: 600,
-        background: 'var(--primary)', color: 'var(--primary-foreground)',
-      }}>Create a budget</Link>
-    </section>
+    <Link href="/budget" transitionTypes={['nav-forward']}
+      className="press flex min-h-[72px] items-center gap-3 rounded-[22px] bg-card p-[18px] text-card-foreground">
+      <span className="grid size-10 flex-none place-items-center rounded-xl bg-accent text-accent-foreground">
+        <Icon name="calendar_month" size={22} />
+      </span>
+      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <span className="text-base font-semibold">Set this month’s budget</span>
+        <span className="text-xs text-muted-foreground">
+          {entries === 0
+            ? 'Nothing recorded yet.'
+            : <><Figure minor={spent} /> spent so far, across {entries} {entries === 1 ? 'entry' : 'entries'}.</>}
+        </span>
+      </span>
+      <Icon name="chevron_right" size={20} className="text-muted-foreground" />
+    </Link>
   );
 }

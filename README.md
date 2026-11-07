@@ -23,13 +23,26 @@ npm install
 echo 'DATABASE_URL=postgresql://user:pass@host/db?sslmode=require' >> .env.local
 echo "AUTH_SECRET=$(openssl rand -base64 32)" >> .env.local
 echo 'AUTH_TRUST_HOST=true' >> .env.local      # only when not on Vercel
+echo 'AUTH_GOOGLE_ID=...' >> .env.local         # from your Google OAuth client
+echo 'AUTH_GOOGLE_SECRET=...' >> .env.local
+echo 'AUTH_PASSWORD_UNTIL=2026-12-31' >> .env.local   # optional; see below
 
 npm run migrate      # creates every table, view and trigger, in order
 npm run build
 npm start            # http://localhost:3000
 ```
 
-Open it, create your account, name your household and pick its currency. That
+Sign-in is Google. In the Google Cloud console create an OAuth client (type
+Web application) and give it the redirect URI
+`https://<your host>/api/auth/callback/google` (`http://localhost:3000/...` to
+try it locally). Only that exact host works, so a Vercel preview URL cannot
+sign in; use the stable one. `AUTH_PASSWORD_UNTIL` is an ISO date: until then
+people who already have a password can still use it, after it password
+sign-in is refused. Leave it unset and password sign-in stays open (a value
+that is not a date does the same and logs a warning). Password hashes are kept
+either way. New accounts are Google-only.
+
+Open it, continue with Google, name your household and pick its currency. That
 is the whole setup: there is no admin console and no seed step. Receipt
 scanning is per household and needs a Google AI key, added inside the app
 under Household; it is stored encrypted and used for nothing else.

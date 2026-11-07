@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
+import { platformOf } from '@/lib/platform';
 import { forcedTheme, THEME_COOKIE } from '@/lib/theme';
 import { actorOrNull } from '@/db/queries';
 import { CurrencyProvider } from './currency';
@@ -8,7 +9,8 @@ import NavTrail from './NavTrail';
 import RegisterSW from './RegisterSW';
 import SyncQueue from './SyncQueue';
 import PendingSkeleton from './PendingSkeleton';
-import { Inter, Instrument_Serif } from 'next/font/google';
+import { Inter } from 'next/font/google';
+import localFont from 'next/font/local';
 import './globals.css';
 
 /* Inter, for a ledger, for two reasons that are not taste.
@@ -35,9 +37,13 @@ const inter = Inter({
      twice. */
 });
 
-/* Quiet Ledger's display face: page titles and the one big figure a screen exists to give. Inter stays for
-   everything else, for the tabular figures and slashed zero above. One weight, latin only. */
-const display = Instrument_Serif({ subsets: ['latin'], weight: '400', variable: '--font-display-loaded', display: 'swap' });
+/* One face: v3 dropped Instrument Serif (spec §3.2). Titles are Inter bold, like everything else. */
+
+/* The icon font: Material Symbols Rounded, subset to the glyphs the app names
+   (scripts/icons-font.mjs), committed and served from this origin. `block`,
+   not `swap`: until it arrives an icon's ligature text would show as the word
+   "shopping_cart", which is worse than a moment of nothing. */
+const icons = localFont({ src: './fonts/material-symbols.woff2', variable: '--font-icons', display: 'block' });
 
 export const metadata: Metadata = {
   title: 'Saree al-Hisab',
@@ -60,7 +66,7 @@ export const metadata: Metadata = {
 
 /* The header colour in each scheme: what the iOS status bar and the Android
    task-switcher paint behind the app. */
-const HEADER = { light: '#F6F4EF', dark: '#0F151D' } as const;
+const HEADER = { light: '#F8F5F4', dark: '#130E12' } as const;
 
 async function chosenTheme() {
   return forcedTheme((await cookies()).get(THEME_COOKIE)?.value);
@@ -95,10 +101,12 @@ export default async function RootLayout({ children, modal }: { children: React.
      components through context, and the layout is the one place above all
      of them. Nobody signed in, or no household yet, and it is rupees. */
   const actor = await actorOrNull();
+  const h = await headers();
+  const platform = platformOf(h.get('user-agent') ?? '', h.get('sec-ch-ua-platform'));
   return (
-    <html lang="en" className={`${inter.variable} ${display.variable}`} data-theme={forced ?? undefined}
+    <html lang="en" className={`${inter.variable} ${icons.variable}`} data-theme={forced ?? undefined} data-platform={platform}
       style={forced ? { colorScheme: forced } : undefined}>
-      <body>
+      <body className="group/app">
         <CurrencyProvider currency={actor?.currency ?? 'INR'}>
           {children}
           {/* Add Entry as a drawer over the screen it was opened from (app/@modal). */}

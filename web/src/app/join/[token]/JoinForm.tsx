@@ -3,20 +3,17 @@
 import { useActionState } from 'react';
 import { Field, ErrorNote, primaryBtn } from '../../auth-ui';
 import { joinWithNewAccount } from '../actions';
+import { cn } from '@/lib/utils';
 
 export default function JoinForm({ token, email }: { token: string; email: string }) {
   const [state, act, pending] = useActionState(joinWithNewAccount, null);
 
   return (
-    <form action={act} style={{ display: 'flex', flexDirection: 'column', gap: 13 }}>
+    <form action={act} className="flex flex-col gap-3">
       <input type="hidden" name="token" value={token} />
       {/* Fixed, not chosen: this is the address the invitation was written to. */}
       <Field label="Email" name="shown" type="email" value={email} readOnly disabled
-        style={{
-          minHeight: 52, borderRadius: 13, border: '1px solid var(--border)',
-          background: 'var(--muted)', color: 'var(--muted-foreground)', fontSize: 'var(--step-0)',
-          padding: '0 14px', width: '100%',
-        }} />
+        className="bg-muted text-muted-foreground disabled:opacity-100 dark:bg-muted" />
       <Field label="Your name" name="name" autoComplete="name"
         placeholder="Fatema" required autoFocus />
       <Field label="Password" name="password" type="password"
@@ -25,8 +22,7 @@ export default function JoinForm({ token, email }: { token: string; email: strin
       <Field label="Confirm password" name="confirm" type="password"
         autoComplete="new-password" required />
       {state?.error && <ErrorNote>{state.error}</ErrorNote>}
-      <button type="submit" disabled={pending} 
-        style={{ ...primaryBtn, opacity: pending ? 0.65 : 1, marginTop: 3 }}>
+      <button type="submit" disabled={pending} className={cn(primaryBtn, 'mt-1')}>
         {pending ? 'Joining…' : 'Join household'}
       </button>
     </form>

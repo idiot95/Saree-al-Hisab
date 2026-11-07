@@ -1,4 +1,5 @@
 import { notFound, redirect } from 'next/navigation';
+import { EmptyLine } from '../../entries/parts';
 import {
   actorOrNull, attachmentsForTxns, categoriesFor, claimsFor, personById, personLedger,
 } from '@/db/queries';
@@ -10,14 +11,17 @@ import Claims from './Claims';
 import PageHead from '../../PageHead';
 import Screen from '../../Screen';
 import { BACK_SPACE } from '../../tabs';
+import { Figure } from '../../Figure';
+import { Icon } from '../../Icon';
 
 export const metadata = { title: 'Person · Saree al-Hisab' };
 export const dynamic = 'force-dynamic';
 
+/* Each line says what happened in a word with its icon, so the colour is never the only signal. */
 const WORD = {
-  lent: ['Lent', 'var(--foreground)'],
-  back: ['Paid back', 'var(--primary)'],
-  written_off: ['Written off', 'var(--destructive)'],
+  lent: { word: 'Lent', icon: 'payments', tone: '' },
+  back: { word: 'Paid back', icon: 'check_circle', tone: 'text-primary' },
+  written_off: { word: 'Written off', icon: 'delete', tone: 'text-destructive' },
 } as const;
 
 export default async function Person({ params }: { params: Promise<{ id: string }> }) {
@@ -50,29 +54,59 @@ export default async function Person({ params }: { params: Promise<{ id: string 
     .reduce((n, c) => n + Number(c.outstanding), 0);
   const canWrite = actor.role !== 'viewer';
 
+  const settled = balance === 0 && owedOnClaims === 0;
+  /* What this person owes you is money arriving: money-in and a +. What you owe them is plain ink with the words.
+     The two directions are never added into one figure: when both are open (you owe them on a loan, they owe you
+     for shared costs) the card shows each on its own. */
+  const theyOwe = balance >= 0;
+  const youOweOnly = balance < 0 && owedOnClaims === 0;
+  const bothWays = balance < 0 && owedOnClaims > 0;
+  const label = settled || bothWays ? 'Between you' : theyOwe ? 'Owes you' : 'You owe';
+  const big = 'text-[38px] font-bold leading-none tracking-tight tabular-nums';
+
   return (
     <Screen>
-      <main style={{ minHeight: '100dvh', background: 'var(--background)', paddingBottom: BACK_SPACE }}>
-        <PageHead back="/people" eyebrow="Loans" title={person.name}>
-          <div className="flex flex-col gap-2 rounded-[22px] border border-border bg-card p-4">
-            <span className="font-display text-[36px] leading-none tabular-nums">
-              {balance === 0 && owedOnClaims === 0 ? 'Settled up' : format(Math.abs(balance) + owedOnClaims)}
-            </span>
-            {/* Lending and shared costs are different debts and are said apart —
-                conflating them is what makes a khata stop being trusted. */}
-            <p className="text-sm text-muted-foreground">
-              {balance === 0 && owedOnClaims === 0
-                ? `Nothing outstanding between you${person.phone ? ` · ${person.phone}` : ''}`
-                : [
-                    balance > 0 ? `${format(balance)} lent` : null,
-                    balance < 0 ? `${format(-balance)} you owe` : null,
-                    owedOnClaims > 0 ? `${format(owedOnClaims)} for shared costs` : null,
-                  ].filter(Boolean).join(' · ')}
-            </p>
-          </div>
-        </PageHead>
+      <main className="min-h-dvh bg-background text-foreground" style={{ paddingBottom: BACK_SPACE }}>
+        <PageHead back="/people" eyebrow="Loans" title={person.name} />
 
-        <div style={{ paddingTop: 20 }}>
+        <div className="flex flex-col gap-5 pb-6">
+          <section aria-label={label} className="mx-[var(--gutter)] flex flex-col gap-2 rounded-[22px] bg-card p-[18px]">
+            <span className="text-[13px] text-muted-foreground">{label}</span>
+            {settled ? (
+              <span className="flex items-center gap-2 text-[30px] font-bold leading-none tracking-tight">
+                <Icon name="check_circle" size={28} className="text-money-in" />Settled up
+              </span>
+            ) : bothWays ? (
+              <dl className="grid grid-cols-2 gap-3">
+                <div className="flex min-w-0 flex-col gap-1">
+                  <dt className="text-xs text-muted-foreground">Owes you, for shared costs</dt>
+                  <dd><Figure minor={owedOnClaims} sign className="text-[28px] font-bold leading-none tracking-tight text-money-in tabular-nums" /></dd>
+                </div>
+                <div className="flex min-w-0 flex-col gap-1">
+                  <dt className="text-xs text-muted-foreground">You owe, on loans</dt>
+                  <dd><Figure minor={-balance} className="text-[28px] font-bold leading-none tracking-tight tabular-nums" /></dd>
+                </div>
+              </dl>
+            ) : youOweOnly ? (
+              <Figure minor={-balance} className={big} />
+            ) : (
+              <Figure minor={balance + owedOnClaims} sign className={`${big} text-money-in`} />
+            )}
+            {/* Lending and shared costs are different debts and are said apart — conflating them is what makes a
+                khata stop being trusted. */}
+            {!bothWays && (
+              <p className="text-[13px] leading-snug text-muted-foreground">
+                {settled
+                  ? `Nothing outstanding between you${person.phone ? ` · ${person.phone}` : ''}`
+                  : [
+                      balance > 0 ? `${format(balance)} lent` : null,
+                      balance < 0 ? `${format(-balance)} you owe` : null,
+                      owedOnClaims > 0 ? `${format(owedOnClaims)} for shared costs` : null,
+                    ].filter(Boolean).join(' · ')}
+              </p>
+            )}
+          </section>
+
           {canWrite && (
             <PersonActions
               personId={person.id} name={person.name} balance={balance}
@@ -94,56 +128,39 @@ export default async function Person({ params }: { params: Promise<{ id: string 
             bills={bills.map((b) => ({ id: b.id, txn_id: b.txn_id, name: b.name, mime: b.mime }))}
           />
 
-          {ledger.length > 0 && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0 var(--gutter) 11px' }}>
-              <h2 style={{ margin: 0, fontSize: 'var(--step-1)', fontWeight: 600 }}>Money lent and returned</h2>
-              <span style={{ flex: 1, height: 1, background: 'var(--border)' }} />
-            </div>
-          )}
-
-          {ledger.length === 0 ? (
-            <p style={{
-              margin: '10px 34px', textAlign: 'center', fontSize: 'var(--step--1)', lineHeight: 1.55,
-              color: 'var(--muted-foreground)',
-            }}>
-              Nothing between you yet.
-            </p>
-          ) : (
-            <section className="border border-border" style={{
-              margin: '0 var(--gutter)', background: 'var(--card)', borderRadius: 18, padding: '0 var(--pad)',
-            }}>
-              {ledger.map((e, i) => {
-                const [word, colour] = WORD[e.direction];
-                return (
-                  <div key={e.id} style={{
-                    display: 'flex', alignItems: 'center', gap: 12, minHeight: 70,
-                    borderBottom: i === ledger.length - 1 ? undefined : '1px solid var(--border)',
-                  }}>
-                    <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
-                      <span style={{ fontSize: 'var(--step-0)', fontWeight: 600, color: colour }}>{word}</span>
-                      <span style={{
-                        fontSize: 'var(--step--1)', color: 'var(--muted-foreground)', overflow: 'hidden',
-                        textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                      }}>
-                        {new Date(e.occurred_on).toLocaleDateString('en-IN',
-                          { day: 'numeric', month: 'short', year: 'numeric' })}
-                        {e.direction === 'written_off' && e.category ? ` · ${e.category}` : ''}
-                        {e.direction !== 'written_off' && e.other_side ? ` · ${e.other_side}` : ''}
-                        {e.note ? ` · ${e.note}` : ''}
+          <section aria-label="Money lent and returned" className="mx-[var(--gutter)] flex flex-col gap-1.5">
+            <h2 className="px-0.5 text-[13px] font-semibold text-muted-foreground">Money lent and returned</h2>
+            {ledger.length === 0 ? (
+              <EmptyLine icon="handshake">Nothing lent or returned between you yet.</EmptyLine>
+            ) : (
+              <ul className="overflow-hidden rounded-[18px] bg-card">
+                {ledger.map((e) => {
+                  const w = WORD[e.direction];
+                  return (
+                    <li key={e.id} className="flex min-h-16 items-center gap-3 border-b border-border px-3.5 py-2.5 last:border-b-0">
+                      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                        <span className={`flex items-center gap-1.5 text-[15px] font-medium ${w.tone}`}>
+                          <Icon name={w.icon} size={16} />{w.word}
+                        </span>
+                        <span className="text-xs leading-snug text-muted-foreground">
+                          {new Date(e.occurred_on).toLocaleDateString('en-IN',
+                            { day: 'numeric', month: 'short', year: 'numeric' })}
+                          {e.direction === 'written_off' && e.category ? ` · ${e.category}` : ''}
+                          {e.direction !== 'written_off' && e.other_side ? ` · ${e.other_side}` : ''}
+                          {e.note ? ` · ${e.note}` : ''}
+                        </span>
                       </span>
-                    </span>
-                    <span className="t amt" style={{ fontSize: 'var(--step-0)', letterSpacing: '-.01em', color: colour }}>
-                      {e.direction === 'back' ? '−' : '+'}{format(Number(e.amount))}
-                    </span>
-                  </div>
-                );
-              })}
-            </section>
-          )}
+                      <span className={`flex-none text-[15px] font-semibold tabular-nums ${w.tone}`}>
+                        {e.direction === 'back' ? '−' : '+'}{format(Number(e.amount))}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </section>
 
-          <p style={{
-            margin: '18px 20px 0', fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--muted-foreground)',
-          }}>
+          <p className="px-[var(--gutter)] text-[13px] leading-relaxed text-muted-foreground">
             None of this touches the monthly budget while it is outstanding — money lent has not
             been spent. Writing it off is the moment that changes.
           </p>

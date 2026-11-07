@@ -37,3 +37,11 @@ new table is reachable. A new `01xx` file that creates a view or a table needs
 nothing extra as long as it sorts before `0109`; a new household-scoped table
 needs its own `ENABLE` + `FORCE ROW LEVEL SECURITY` and policy added to `0109`,
 and `scripts/invariants.test.mjs` fails until it has one.
+
+## Hand-edited generated files
+
+`0038_sms_capture.sql` is hand-edited: its composite foreign key
+`sms_draft_txn_same_household` uses a column-list `ON DELETE SET NULL ("txn_id")`
+(a plain SET NULL would null the NOT NULL `household_id`), and the `txn`
+`(id, household_id)` unique index sits before it. drizzle-kit cannot express
+the column list, so a regeneration must keep both edits.

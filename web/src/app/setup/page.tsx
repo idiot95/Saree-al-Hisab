@@ -1,7 +1,8 @@
 import { redirect } from 'next/navigation';
 import { signOut } from '@/auth';
 import { actorOrNull } from '@/db/queries';
-import { AuthShell } from '../auth-ui';
+import { AuthShell, Small } from '../auth-ui';
+import { Icon } from '../Icon';
 import SetupForm from './SetupForm';
 
 export const metadata = { title: 'Set up your household · Saree al-Hisab' };
@@ -21,23 +22,18 @@ export default async function Setup() {
       title="Set up your household"
       blurb="What the books are called, and the currency they are kept in. Set a budget for the month after this, and everything you record reports against it."
     >
-      <div style={{ padding: '26px var(--gutter) 30px', display: 'flex', flexDirection: 'column', gap: 14 }}>
-        <SetupForm />
+      <SetupForm />
 
-        <p style={{ margin: '4px 4px 0', fontSize: 'var(--step--1)', lineHeight: 1.5, color: 'var(--muted-foreground)' }}>
-          Been invited to someone else&rsquo;s household instead? Open the link they sent you
-          {actor.email ? <> — it is addressed to <strong>{actor.email}</strong></> : ''}.
-        </p>
+      <Small className="[overflow-wrap:anywhere]">
+        Been invited to someone else&rsquo;s household instead? Open the link they sent you
+        {actor.email ? <> — it is addressed to <strong className="text-foreground">{actor.email}</strong></> : ''}.
+      </Small>
 
-        <form action={async () => { 'use server'; await signOut({ redirectTo: '/signin' }); }}>
-          <button type="submit" style={{
-            minHeight: 44, padding: '0 6px', display: 'flex', alignItems: 'center',
-            color: 'var(--muted-foreground)', fontSize: 'var(--step--1)', fontWeight: 600,
-          }}>
-            Sign out
-          </button>
-        </form>
-      </div>
+      <form action={async () => { 'use server'; await signOut({ redirectTo: '/signin' }); }}>
+        <button type="submit" className="flex min-h-11 items-center gap-2 px-1 text-sm font-semibold text-muted-foreground">
+          <Icon name="logout" size={18} />Sign out
+        </button>
+      </form>
     </AuthShell>
   );
 }

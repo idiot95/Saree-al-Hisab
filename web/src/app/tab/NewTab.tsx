@@ -1,10 +1,13 @@
 'use client';
 
 import { useActionState, useCallback, useState } from 'react';
-import { Field, ErrorNote } from '../auth-ui';
+import { Button } from '@/components/ui/button';
+import { ErrorNote as Problem } from '../auth-ui';
+import { Field } from '../worth/fields';
+import { keepFields } from '../form-hooks';
 import { Icon } from '../Icon';
 import { haptic } from '../haptics';
-import Sheet from '../Sheet';
+import BottomDrawer from '../BottomDrawer';
 import { createTab } from './actions';
 import NewPeople from './NewPeople';
 
@@ -13,7 +16,10 @@ import NewPeople from './NewPeople';
    a tab with nobody on it still takes costs and still counts in what you are
    owed. People come from the phone's address book where the browser has one,
    or are typed; either way they are only names on this tab, and a name that
-   is already on another tab is the same person, not a second one. */
+   is already on another tab is the same person, not a second one.
+
+   The button sits in the Loans header. The form is in a drawer, which cannot open without script, so it submits
+   through keepFields: a refusal keeps the name and the people chips as typed instead of React's form reset. */
 export default function NewTab() {
   const [open, setOpen] = useState(false);
   const close = useCallback(() => setOpen(false), []);
@@ -21,55 +27,38 @@ export default function NewTab() {
 
   return (
     <>
-      <button type="button" onClick={() => { haptic('select'); setOpen(true); }} className="border border-border" style={{
-        margin: '0 var(--gutter) 22px', width: 'calc(100% - 36px)', minHeight: 56, borderRadius: 16,
-        display: 'flex', alignItems: 'center', gap: 11, padding: '0 var(--pad)',
-        background: 'var(--card)', border: '1px dashed var(--input)',
-        color: 'var(--foreground)', fontSize: 'var(--step-0)', fontWeight: 600,
-      }}>
-        <span style={{
-          width: 32, height: 32, flex: 'none', borderRadius: 999, display: 'flex',
-          alignItems: 'center', justifyContent: 'center',
-          background: 'var(--muted)', color: 'var(--muted-foreground)',
-        }}>
-          <Icon name="plus" size={16} strokeWidth={2.2} />
-        </span>
+      <button type="button" onClick={() => { haptic('select'); setOpen(true); }}
+        className="press flex min-h-11 flex-none items-center gap-1.5 rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground in-data-[platform=android]:min-h-12">
+        <Icon name="add" size={18} />
         New tab
       </button>
 
-      <Sheet open={open} onClose={close} label="New tab">
-        <form action={act} style={{ display: 'flex', flexDirection: 'column', gap: 16, paddingTop: 2 }}>
-          <h2 style={{ fontSize: 'var(--step-2)', fontWeight: 600 }}>New tab</h2>
+      <BottomDrawer open={open} onClose={close} label="New tab" showTitle>
+        <form noValidate onSubmit={keepFields(act)} className="flex flex-col gap-4 pt-0.5">
           <Field label="Name · optional" name="name" maxLength={60}
             placeholder="Goa weekend, Office petrol…" autoComplete="off" />
 
-          <div role="group" aria-label="Who owes on it" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--muted-foreground)' }}>
-              Who owes on it · optional
-            </span>
+          <div role="group" aria-label="Who owes on it" className="flex flex-col gap-2">
+            <span className="text-sm font-medium text-muted-foreground">Who owes on it · optional</span>
             <NewPeople />
-            <p style={{ margin: 0, fontSize: 'var(--step--2)', lineHeight: 1.45, color: 'var(--muted-foreground)' }}>
+            <p className="text-xs leading-snug text-muted-foreground">
               A cost on this tab splits equally between the people on it. Leave it empty and the
               tab still counts in what you are owed.
             </p>
           </div>
 
-          {state && !state.ok && <ErrorNote>{state.error}</ErrorNote>}
-          <div style={{ display: 'flex', gap: 9 }}>
-            <button className="cta" type="button" onClick={close} style={{
-              minHeight: 50, padding: '0 16px', borderRadius: 13, fontSize: 'var(--step-0)', fontWeight: 600,
-              background: 'var(--muted)', color: 'var(--muted-foreground)',
-            }}>Cancel</button>
-            <button className="cta" type="submit" disabled={pending} style={{
-              flex: 1, minHeight: 50, borderRadius: 13, fontSize: 'var(--step-0)', fontWeight: 600,
-              background: 'var(--primary)', color: 'var(--primary-foreground)', opacity: pending ? 0.65 : 1,
-            }}>
-              <Icon name="folder" size={18} strokeWidth={2} />
+          {state && !state.ok && <Problem>{state.error}</Problem>}
+          <div className="flex gap-2">
+            <Button type="button" variant="secondary" onClick={close} className="h-12 rounded-xl px-4 text-base font-semibold">
+              Cancel
+            </Button>
+            <Button type="submit" disabled={pending} className="h-12 flex-1 rounded-xl text-base font-semibold">
+              <Icon name="folder" size={18} />
               {pending ? 'Opening…' : 'Open the tab'}
-            </button>
+            </Button>
           </div>
         </form>
-      </Sheet>
+      </BottomDrawer>
     </>
   );
 }

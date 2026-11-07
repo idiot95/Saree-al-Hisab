@@ -18,10 +18,47 @@ function write(trail: string[]) {
   try { sessionStorage.setItem(KEY, JSON.stringify(trail.slice(-MAX))); } catch { /* the trail is a convenience */ }
 }
 
+/* A replacing navigation leaves the history no new step, so the trail must not get one either, or canGoBack would
+   promise a screen that is not there. Which navigations replace is said where they happen, not guessed from the
+   addresses: every `<Link replace>` carries `data-replace` (NavTrail's click listener calls `replacing` with its
+   href), and every `router.replace` or `history.replaceState` calls `replacing` first. scripts/back.test.mjs fails
+   if one does not. The mark applies only to the address it names, once; an address in between does not spend it
+   (a replace called from an effect can be marked before the trail has heard of the address it replaces — the
+   saved snack's tidy-up on Home after Back), and a mark that is never followed lapses after a few seconds. */
+const LAPSE_MS = 10_000;
+let pending: { url: string; at: number } | null = null;
+
+/** The same address however it was spelled: path, then the query as URLSearchParams writes it. */
+export function normal(url: string) {
+  try {
+    const u = new URL(url, 'http://x');
+    const q = u.searchParams.toString();
+    return q ? `${u.pathname}?${q}` : u.pathname;
+  } catch { return url; }
+}
+
+/** The next arrival at `url` replaces the current address rather than pushing a new one. */
+export function replacing(url: string) {
+  pending = { url: normal(url), at: Date.now() };
+}
+
+/** A link the person tapped, as NavTrail's click listener hears it. A tap is a new intention: whatever mark is still
+ *  waiting is dropped, so a mark nobody spent can never turn a later push into a replace. A tap on a `data-replace`
+ *  link marks its own address instead (a link to where the page already is goes nowhere and changes nothing). */
+export function tapped(href: string, replace: boolean, here?: string) {
+  if (here !== undefined && normal(href) === normal(here)) return;
+  if (replace) replacing(href);
+  else pending = null;
+}
+
 /** Called on every route change with the full address (path and query). */
 export function visited(url: string) {
+  const mark = pending && Date.now() - pending.at < LAPSE_MS ? pending : null;
+  const replaced = !!mark && mark.url === normal(url);
+  if (replaced || !mark) pending = null;
   const trail = read();
   if (trail[trail.length - 1] === url) return;
+  if (replaced && trail.length) { trail[trail.length - 1] = url; write(trail); return; }
   if (trail[trail.length - 2] === url) { trail.pop(); write(trail); return; }
   trail.push(url);
   write(trail);

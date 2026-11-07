@@ -2,10 +2,12 @@
 
 import Link from '@/app/NavLink';
 import { useActionState, useCallback, useState } from 'react';
-import { ErrorNote } from '../../auth-ui';
+import { Button } from '@/components/ui/button';
+import { ErrorNote as Problem } from '../../auth-ui';
+import { keepFields } from '../../form-hooks';
 import { Icon } from '../../Icon';
 import { haptic } from '../../haptics';
-import Sheet from '../../Sheet';
+import BottomDrawer from '../../BottomDrawer';
 import { useMoney } from '@/app/currency';
 import { addToTab, removeFromTab } from '../actions';
 import NewPeople from '../NewPeople';
@@ -38,89 +40,76 @@ export default function TabContacts({ tabId, people, canEdit }: {
 
   return (
     <>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 2 }}>
+      <div className="flex flex-wrap gap-2">
         {people.map((p) => (
-          <button key={p.id} type="button" onClick={() => { haptic('tap'); setOpen(true); }} style={{
-            minHeight: 44, padding: '0 12px 0 6px', borderRadius: 999, display: 'flex', alignItems: 'center', gap: 8,
-            background: 'var(--card)', border: '1px solid var(--border)', color: 'var(--foreground)',
-            fontSize: 'var(--step--1)', fontWeight: 600,
-          }}>
+          <button key={p.id} type="button" onClick={() => { haptic('tap'); setOpen(true); }}
+            className="press flex min-h-11 items-center gap-2 rounded-full border border-border bg-card py-1 pl-1.5 pr-3 text-sm font-semibold text-foreground">
             <Face name={p.name} tint={p.tint} size={30} />
             {first(p.name)}
-            <span style={{ fontWeight: 500, color: 'var(--muted-foreground)', display: 'flex', alignItems: 'center', gap: 3 }}>
-              {p.owed > 0 ? format(p.owed) : p.inAll > 0 ? <><Icon name="check" size={13} strokeWidth={2.6} />settled</> : null}
+            <span className="flex items-center gap-0.5 font-medium text-muted-foreground">
+              {p.owed > 0 ? format(p.owed) : p.inAll > 0 ? <><Icon name="check" size={14} />settled</> : null}
             </span>
           </button>
         ))}
         {canEdit && (
-          <button type="button" onClick={() => { haptic('select'); setOpen(true); }} style={{
-            minHeight: 44, padding: '0 14px 0 11px', borderRadius: 999, display: 'flex', alignItems: 'center', gap: 6,
-            border: '1px dashed var(--input)', color: 'var(--muted-foreground)',
-            fontSize: 'var(--step--1)', fontWeight: 600,
-          }}>
-            <Icon name="plus" size={15} strokeWidth={2.2} />
+          <button type="button" onClick={() => { haptic('select'); setOpen(true); }}
+            className="press flex min-h-11 items-center gap-1.5 rounded-full border border-dashed border-input pl-3 pr-3.5 text-sm font-semibold text-muted-foreground">
+            <Icon name="plus" size={16} />
             {people.length === 0 ? 'Add a contact' : 'Contact'}
           </button>
         )}
       </div>
 
-      <Sheet open={open} onClose={close} label="People on this tab">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14, paddingTop: 2 }}>
-          <h2 style={{ fontSize: 'var(--step-2)', fontWeight: 600 }}>People on this tab</h2>
+      <BottomDrawer open={open} onClose={close} label="People on this tab" showTitle>
+        <div className="flex flex-col gap-4 pt-0.5">
 
           {people.length > 0 && (
-            <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column' }}>
-              {people.map((p, i) => (
-                <li key={p.id} style={{
-                  display: 'flex', alignItems: 'center', gap: 12, minHeight: 62,
-                  borderBottom: i === people.length - 1 ? undefined : '1px solid var(--border)',
-                }}>
+            <ul className="flex flex-col">
+              {people.map((p) => (
+                <li key={p.id} className="flex min-h-15 items-center gap-3 border-b border-border last:border-b-0">
                   <Face name={p.name} tint={p.tint} />
-                  <Link href={`/people/${p.id}`} transitionTypes={['nav-forward']} style={{
-                    flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2,
-                    textDecoration: 'none', color: 'var(--foreground)',
-                  }}>
-                    <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>
-                      {p.name}{!p.onTab && <span style={{ fontWeight: 500, color: 'var(--muted-foreground)' }}> · left the tab</span>}
+                  <Link href={`/people/${p.id}`} transitionTypes={['nav-forward']}
+                    className="flex min-h-11 min-w-0 flex-1 flex-col justify-center gap-0.5 text-foreground">
+                    <span className="text-[15px] font-semibold">
+                      {p.name}{!p.onTab && <span className="font-medium text-muted-foreground"> · left the tab</span>}
                     </span>
-                    <span style={{ fontSize: 'var(--step--2)', color: 'var(--muted-foreground)' }}>
+                    <span className="text-xs text-muted-foreground">
                       {p.inAll === 0 ? 'nothing on the tab yet'
                         : p.owed === 0 ? `settled · ${format(p.inAll)} in all`
                         : `owes ${format(p.owed)} of ${format(p.inAll)}`}
                     </span>
                   </Link>
                   {canEdit && p.onTab && p.owed === 0 && (
-                    <form action={drop}>
+                    <form noValidate onSubmit={keepFields(drop)}>
                       <input type="hidden" name="tabId" value={tabId} />
                       <input type="hidden" name="counterpartyId" value={p.id} />
-                      <button type="submit" className="cta" style={{
-                        minHeight: 44, padding: '0 12px', fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--muted-foreground)',
-                      }}>Remove</button>
+                      <Button type="submit" variant="ghost" className="h-11 px-3 font-semibold text-muted-foreground">Remove</Button>
                     </form>
                   )}
                 </li>
               ))}
             </ul>
           )}
-          {dropped && !dropped.ok && <ErrorNote>{dropped.error}</ErrorNote>}
+          {dropped && !dropped.ok && <Problem>{dropped.error}</Problem>}
 
           {canEdit && (
-            <form key={round} action={add} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            /* In a drawer (script needed to open it): keepFields keeps the names typed after a refusal. A new round of
+               chips comes from the key once they are on the tab. */
+            <form key={round} noValidate onSubmit={keepFields(add)} className="flex flex-col gap-2.5">
               <input type="hidden" name="tabId" value={tabId} />
-              <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--muted-foreground)' }}>Add someone</span>
+              <span className="text-sm font-medium text-muted-foreground">Add someone</span>
               <NewPeople />
-              {added && !added.ok && <ErrorNote>{added.error}</ErrorNote>}
-              <button className="cta" type="submit" disabled={adding} style={{
-                minHeight: 50, borderRadius: 13, fontSize: 'var(--step-0)', fontWeight: 600,
-                background: 'var(--primary)', color: 'var(--primary-foreground)', opacity: adding ? 0.65 : 1,
-              }}>{adding ? 'Adding…' : 'Add to this tab'}</button>
-              <p style={{ margin: 0, fontSize: 'var(--step--2)', lineHeight: 1.45, color: 'var(--muted-foreground)' }}>
+              {added && !added.ok && <Problem>{added.error}</Problem>}
+              <Button type="submit" disabled={adding} className="h-12 rounded-xl text-base font-semibold">
+                {adding ? 'Adding…' : 'Add to this tab'}
+              </Button>
+              <p className="text-xs leading-snug text-muted-foreground">
                 Costs from now on split between everyone on the tab. What is already on it stays as it was.
               </p>
             </form>
           )}
         </div>
-      </Sheet>
+      </BottomDrawer>
     </>
   );
 }

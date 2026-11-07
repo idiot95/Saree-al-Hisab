@@ -9,8 +9,11 @@ export default function manifest(): MetadataRoute.Manifest {
     scope: '/',
     display: 'standalone',
     orientation: 'portrait',
-    background_color: '#F6F4EF',
-    theme_color: '#F6F4EF',
+    /* Plum & Rose Gold. The splash is the light ground (ql.css --background); the install's own colour — the
+       splash's bar and the task switcher before a page has said otherwise — is the hero plum (--hero), the colour
+       the app is known by. Once a page loads, layout.tsx's theme-color follows the scheme. */
+    background_color: '#F8F5F4',
+    theme_color: '#3A1D36',
     categories: ['finance', 'productivity'],
     icons: [
       { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },

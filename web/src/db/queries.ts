@@ -6,6 +6,8 @@ import { auth } from '@/auth';
 import { contextFor } from './membership';
 import { hashLinkToken } from '@/lib/link-token';
 import { setCurrencyResolver } from '@/lib/money';
+import { fits } from '@/lib/scope';
+import { purgeSmsBodiesIn } from '@/lib/sms-draft';
 
 /* Who is asking, and what they may do — resolved on the server, on every
    request, in a single round trip.
@@ -111,6 +113,43 @@ export async function categoriesFor(householdId: string) {
   });
 }
 
+/* Add Entry's eight tiles: the categories this household has actually used
+   in the last 90 days, most entries of THIS kind first (a 'both' category
+   filed under spending ranks for spending, not for income). A newer
+   household — or one that files only a few things — has fewer than eight,
+   so the rest are padded with its top-level categories in their own order
+   (the order Categories sets). Children are offered only once used: a tile
+   reading "Milk" before anyone has bought milk would push out Rent. Active
+   categories only, and only those whose scope takes the kind (fits(), the
+   same rule the action re-checks). Ids, in tile order. */
+export async function topCategories(householdId: string, kind: 'expense' | 'income', limit = 8) {
+  return withHousehold(householdId, async () => {
+    const rows = await sql`
+      select c.id, c.scope
+      from category c
+      left join category p on p.id = c.parent_id
+      left join (
+        select category_id, count(*)::int as n from txn
+        where household_id = ${householdId} and deleted_at is null and category_id is not null
+          and kind = ${kind} and occurred_on >= current_date - 90
+        group by category_id
+      ) u on u.category_id = c.id
+      where c.household_id = ${householdId} and c.archived_at is null
+        and (coalesce(u.n, 0) > 0 or c.parent_id is null)
+      order by coalesce(u.n, 0) desc, coalesce(p.sort_order, c.sort_order), (c.parent_id is not null),
+               c.sort_order, c.name
+    ` as { id: string; scope: CategoryScope }[];
+    return rows.filter((r) => fits(r.scope, kind)).slice(0, limit).map((r) => r.id);
+  });
+}
+
+/** The way to pay this person last used, as stored: a preference that may
+ *  name nothing in these books any more. Resolve it before use. */
+export async function lastPaidWith(userId: string): Promise<string | null> {
+  const [row] = await sql`select last_paid_with from app_user where id = ${userId}`;
+  return (row?.last_paid_with as string | null | undefined) ?? null;
+}
+
 /* The pickers' accounts and rails live in db/payment.ts: every real account
    is a way to pay, with the rails that draw on it nested under it. */
 
@@ -141,12 +180,15 @@ export async function possibleDuplicate(
 export async function membersOf(householdId: string) {
   return withHousehold(householdId, async () => {
     return sql`
-      select u.id, u.name, u.email, u.image, m.role, m.joined_at, u.last_seen_at
+      select u.id, u.name, u.email, u.image, m.role, m.joined_at, u.last_seen_at,
+             exists (select 1 from auth_identity ai
+                     where ai.user_id = u.id and ai.provider = 'google') as has_google
       from member m join app_user u on u.id = m.user_id
       where m.household_id = ${householdId}
       order by case m.role when 'owner' then 0 when 'adult' then 1 else 2 end, m.joined_at
     ` as Promise<{ id: string; name: string; email: string | null; image: string | null;
-                   role: 'owner' | 'adult' | 'viewer'; joined_at: Date; last_seen_at: Date | null }[]>;
+                   role: 'owner' | 'adult' | 'viewer'; joined_at: Date; last_seen_at: Date | null;
+                   has_google: boolean }[]>;
   });
 }
 
@@ -215,6 +257,8 @@ export type AccountRow = {
   credit_limit: string | null; statement_day: number | null; due_day: number | null;
   methods: number;
   reconciled_on: string | null;
+  /** A current or former member, or null for joint. */
+  owner_user_id: string | null;
 };
 
 /** Balances come from `account_balance`, never from a stored figure — a
@@ -225,7 +269,7 @@ export async function accountsWithBalances(householdId: string) {
     return sql`
       select b.id, b.name, b.kind, b.last4, b.bank_key, b.card_network,
              b.opening_balance::text, b.balance::text,
-             b.entries::int, b.credit_limit::text, b.statement_day, b.due_day,
+             b.entries::int, b.credit_limit::text, b.statement_day, b.due_day, b.owner_user_id,
              (select to_char(max(r.statement_on), 'YYYY-MM-DD') from reconciliation r
                where r.account_id = b.id) as reconciled_on,
              (select count(*)::int from payment_method m
@@ -711,14 +755,15 @@ export async function tabHeldOwed(householdId: string) {
 }
 
 /** Money that has come back against what was owed, by month — the six bars on
- *  Trends. Empty months stay in, for the same reason they do in monthlySeries. */
-export async function receiptsByMonth(householdId: string, months = 6) {
+ *  Trends, ending at `end` (a month's first day; this month when null). Empty
+ *  months stay in, for the same reason they do in monthlySeries. */
+export async function receiptsByMonth(householdId: string, months = 6, end: string | null = null) {
   return withHousehold(householdId, async () => {
     return sql`
       with span as (
         select generate_series(
-          date_trunc('month', current_date) - make_interval(months => ${months - 1}),
-          date_trunc('month', current_date),
+          coalesce(${end}::date, date_trunc('month', current_date)::date) - make_interval(months => ${months - 1}),
+          coalesce(${end}::date, date_trunc('month', current_date)::date),
           interval '1 month')::date as month
       )
       select to_char(s.month, 'YYYY-MM-DD') as month,
@@ -1017,8 +1062,104 @@ export async function inboxCount(householdId: string) {
         (select count(*)::int from card_bill c
           join account a on a.id = c.account_id
           where a.household_id = ${householdId} and c.outstanding > 0
-            and c.due_on <= current_date + 21) as bills`;
-    return r as unknown as { duplicates: number; bills: number };
+            and c.due_on <= current_date + 21) as bills,
+        (select count(*)::int from sms_draft
+          where household_id = ${householdId} and status = 'open') as sms`;
+    return r as unknown as { duplicates: number; bills: number; sms: number };
+  });
+}
+
+/** What Home's To review tile counts: card bills, possible duplicates and bank messages waiting to become
+ *  entries. On Activity the same three are split across two chips — To review (bills + duplicates) and From SMS
+ *  (messages) — whose badges add up to this. */
+export const reviewCount = (i: { duplicates: number; bills: number; sms: number }) => i.duplicates + i.bills + i.sms;
+
+/* ── forwarded bank messages ─────────────────────────────────────────────── */
+
+export type SmsDraftRow = {
+  id: string; sender: string | null; received_at: Date;
+  amount: string | null; direction: 'debit' | 'credit' | null; last4: string | null;
+  merchant: string | null; on_date: string | null; via: string | null;
+  /** The account whose last four digits the message named, if one does. */
+  account_id: string | null; account: string | null;
+};
+
+/* The parsed fields only: the raw text is read on the one screen where a
+   person reads the original (smsDraftBody). The account is the first live,
+   non-person account carrying the message's last four, in the order the pay
+   picker uses, so the two never disagree about which account it meant. */
+const draftColumns = (tx: typeof sql) => tx`
+  d.id, d.sender, d.received_at,
+  case when d.parsed->>'amountMinor' ~ '^[0-9]{1,15}$' then d.parsed->>'amountMinor' end as amount,
+  case when d.parsed->>'direction' in ('debit', 'credit') then d.parsed->>'direction' end as direction,
+  d.parsed->>'last4' as last4, d.parsed->>'merchant' as merchant,
+  case when d.parsed->>'date' ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' then d.parsed->>'date' end as on_date,
+  d.parsed->>'via' as via,
+  acc.id as account_id, acc.name as account`;
+const draftAccount = (tx: typeof sql) => tx`
+  left join lateral (
+    select ra.id, ra.name from real_account ra
+    where ra.household_id = d.household_id and ra.archived_at is null
+      and ra.last4 is not null and ra.last4 = d.parsed->>'last4'
+    order by case ra.kind when 'cash' then 0 when 'spending' then 1 when 'credit' then 2 else 3 end, ra.name
+    limit 1) acc on true`;
+
+/** The open drafts, newest first. Fifty at most: a phone forwarding faster
+ *  than anyone decides is a reason to look at the phone, not to page. */
+export async function smsDrafts(householdId: string) {
+  return withHousehold(householdId, async () => {
+    return sql`
+      select ${draftColumns(sql)}
+      from sms_draft d ${draftAccount(sql)}
+      where d.household_id = ${householdId} and d.status = 'open'
+      order by d.received_at desc, d.created_at desc
+      limit 50` as Promise<SmsDraftRow[]>;
+  });
+}
+
+/** One open draft, for Add entry to prefill from. Null when it is not this
+ *  household's or is no longer open. */
+export async function smsDraftById(householdId: string, id: string) {
+  return withHousehold(householdId, async () => {
+    const [r] = await sql`
+      select ${draftColumns(sql)}
+      from sms_draft d ${draftAccount(sql)}
+      where d.household_id = ${householdId} and d.id = ${id} and d.status = 'open'`;
+    return (r as SmsDraftRow | undefined) ?? null;
+  });
+}
+
+/** One draft with the message as it arrived, for the screen that shows the
+ *  original. `body` is null once the text has been deleted. */
+export async function smsDraftWithBody(householdId: string, id: string) {
+  return withHousehold(householdId, async () => {
+    const [r] = await sql`
+      select ${draftColumns(sql)}, d.body, d.status
+      from sms_draft d ${draftAccount(sql)}
+      where d.household_id = ${householdId} and d.id = ${id}`;
+    return (r as (SmsDraftRow & { body: string | null; status: 'open' | 'accepted' | 'dismissed' }) | undefined) ?? null;
+  });
+}
+
+/** The thirty-day rule, run where drafts are listed (there is no scheduler):
+ *  the text of anything decided or older than thirty days is deleted. */
+export async function purgeSmsBodies(householdId: string) {
+  return withHousehold(householdId, () => purgeSmsBodiesIn(sql, householdId));
+}
+
+/** The phones that can forward messages into these books: this person's own,
+ *  or — for an owner, who may revoke any — everyone's, with whose it is. Live
+ *  tokens only; a revoked one opens nothing and has nothing left to show. */
+export async function captureTokensFor(householdId: string, userId: string, everyone: boolean) {
+  return withHousehold(householdId, async () => {
+    return sql`
+      select t.id, t.label, t.created_at, t.last_used_at, t.user_id, u.name as who
+      from capture_token t join app_user u on u.id = t.user_id
+      where t.household_id = ${householdId} and t.revoked_at is null
+        ${everyone ? sql`` : sql`and t.user_id = ${userId}`}
+      order by (t.user_id = ${userId}) desc, t.created_at desc` as Promise<{
+        id: string; label: string; created_at: Date; last_used_at: Date | null; user_id: string; who: string;
+      }[]>;
   });
 }
 
@@ -1081,7 +1222,7 @@ export async function schedulesFor(householdId: string) {
 /* ── what the household is actually worth ───────────────────────────────── */
 
 export type WorthRow = {
-  id: string; name: string; kind: string; last4: string | null; balance: string;
+  id: string; name: string; kind: string; last4: string | null; balance: string; owner_user_id: string | null;
 };
 
 /** Every account with its balance, people included. A person's account IS the
@@ -1090,7 +1231,7 @@ export type WorthRow = {
 export async function allBalances(householdId: string) {
   return withHousehold(householdId, async () => {
     return sql`
-      select b.id, b.name, b.kind, b.last4, b.balance::text
+      select b.id, b.name, b.kind, b.last4, b.balance::text, b.owner_user_id
       from account_balance b
       where b.household_id = ${householdId} and b.archived_at is null
       order by case b.kind when 'spending' then 0 when 'cash' then 1 when 'savings' then 2
@@ -1099,7 +1240,8 @@ export async function allBalances(householdId: string) {
   });
 }
 
-/* What was held in accounts at the end of each of the last N months.
+/* What was held in accounts at the end of each of the last N months, and
+ * what the holdings were worth on the same days.
  *
  * Deliberately the household's own accounts only — no people. An outstanding
  * claim or a loan is money owed to you today and is in the headline figure,
@@ -1135,10 +1277,23 @@ export async function worthSeries(householdId: string, months = 6) {
                      and a.archived_at is null
                      and a.kind <> 'person'
                      and t.occurred_on < (s.month + interval '1 month')), 0)
-             )::text as held
+             )::text as held,
+             /* Holdings at the same month-end: each one's latest snapshot dated on
+                or before it, times the rate in effect that day, rounded once,
+                half-even — holding_value_at is holding_value for any date. The
+                current month stops at today, so its point is today's figure and
+                a snapshot dated ahead is not counted early. A holding archived
+                during or before a month is out of that month and later ones;
+                archiving never rewrites the months it was live in. A holding with no snapshot or
+                no rate yet that day contributes nothing. */
+             coalesce((select sum(v.value_minor)
+                       from holding_value_at(${householdId},
+                              least((s.month + interval '1 month - 1 day')::date, current_date)) v
+                       where v.archived_at is null
+                          or v.archived_at >= (s.month + interval '1 month')::date), 0)::text as holdings
       from span s
       order by s.month
-    ` as Promise<{ month: string; held: string }[]>;
+    ` as Promise<{ month: string; held: string; holdings: string }[]>;
   });
 }
 

@@ -1,122 +1,36 @@
-import {
-  IconHome2, IconShoppingCart, IconBabyCarriage, IconToolsKitchen2, IconShoppingBag,
-  IconBulb, IconCar, IconHeartbeat, IconDeviceMobile, IconGift, IconPlane, IconGasStation,
-  IconBook, IconCoffee, IconScissors, IconTools, IconPaw, IconBarbell, IconMusic, IconWifi,
-  IconShieldCheck, IconHeartHandshake, IconCashBanknote, IconTrendingUp, IconTag,
-  IconBuildingBank, IconCash, IconCoins, IconCreditCard, IconUser, IconQrcode,
-  IconDeviceLaptop, IconWallet, IconRepeat, IconReceipt, IconSettings,
-  IconSunHigh, IconMoon, IconChartAreaLine, IconArrowDownLeft, IconUsersGroup,
-  IconPlus, IconCamera, IconUpload, IconPencil, IconCheck,
-  IconTrash, IconPlayerSkipForward, IconPlayerStop, IconArrowsRightLeft,
-  IconFolder, IconDots, IconBell, IconPaperclip,
-  type Icon as TablerIcon,
-} from '@tabler/icons-react';
-import dynamic from 'next/dynamic';
-import { MORE_GLYPHS } from './glyph-names';
+import { ICON_NAMES, MATERIAL_USED } from './icon-names';
 
-/* Tabler Icons (MIT), imported by name so only what is used is bundled.
+/* Material Symbols Rounded, self-hosted as a subset (src/app/fonts, built by
+   scripts/icons-font.mjs) and drawn by ligature: the span's text is the glyph
+   name, which is why it is aria-hidden unless it carries a label.
 
-   Drawing them by hand was a false economy: a set somebody maintains is more
-   consistent than one I invent glyph by glyph, and it grows when a household
-   wants a category nobody thought of. The wrapper stays, so every call site
-   still asks for 'cart' and gets whatever the set calls a trolley.
+   Call sites still ask for 'cart' and get whatever the set calls a trolley:
+   categories store the app name in the database, so ICON_NAMES maps it. A name
+   the app does not know falls back to a tag rather than an empty box — a
+   household may name a category anything, and a gap in a row is worse than a
+   generic mark. Names the interface uses directly ('chevron_right') are
+   accepted as they are. */
 
-   Broad categories on purpose, which is what makes a wallet app scannable: one
-   clear glyph for "eating out" beats six for restaurants, cafés and takeaway. */
+const MATERIAL = new Set(MATERIAL_USED);
 
-const SET: Record<string, TablerIcon> = {
-  // ── categories ───────────────────────────────────────────────────────────
-  house2: IconHome2,
-  cart: IconShoppingCart,
-  child: IconBabyCarriage,
-  cutlery: IconToolsKitchen2,
-  bag: IconShoppingBag,
-  bulb: IconBulb,
-  car: IconCar,
-  health: IconHeartbeat,
-  phone: IconDeviceMobile,
-  gift: IconGift,
-  plane: IconPlane,
-  fuel: IconGasStation,
-  book: IconBook,
-  coffee: IconCoffee,
-  scissors: IconScissors,
-  tools: IconTools,
-  pet: IconPaw,
-  gym: IconBarbell,
-  music: IconMusic,
-  wifi: IconWifi,
-  shield: IconShieldCheck,
-  charity: IconHeartHandshake,
-  salary: IconCashBanknote,
-  invest: IconTrendingUp,
-  tag: IconTag,
-
-  // ── accounts, and the rails money travels on ────────────────────────────
-  bank: IconBuildingBank,
-  cash: IconCash,
-  // Savings: coins set aside, not a piggy bank — this is a household's
-  // reserve, not a child's.
-  savings: IconCoins,
-  card: IconCreditCard,
-  person: IconUser,
-  upi: IconQrcode,
-  netbanking: IconDeviceLaptop,
-  cheque: IconReceipt,
-  wallet: IconWallet,
-  autodebit: IconRepeat,
-  settings: IconSettings,
-
-  // ── the rest of the app ─────────────────────────────────────────────────
-  sun: IconSunHigh,
-  moon: IconMoon,
-  // Net worth: a line that rises, not a pig — a household's whole position is
-  // not a jar of coins.
-  worth: IconChartAreaLine,
-  // Money owed to you: an arrow coming in.
-  receivable: IconArrowDownLeft,
-  // A tab: a few people sharing a cost.
-  tab: IconUsersGroup,
-  // The plus button's sheet: type it, photograph it, or pick a photo.
-  plus: IconPlus,
-  camera: IconCamera,
-  upload: IconUpload,
-  pencil: IconPencil,
-  check: IconCheck,
-  // What a swipe reveals: delete, skip this one, stop for good, move money.
-  trash: IconTrash,
-  skip: IconPlayerSkipForward,
-  stop: IconPlayerStop,
-  move: IconArrowsRightLeft,
-  // The Loan centre: a tab is a folder of costs, a reminder is a bell, a bill
-  // is clipped to its entry, and a tab's settings are behind the dots.
-  folder: IconFolder,
-  dots: IconDots,
-  bell: IconBell,
-  clip: IconPaperclip,
-};
-
-/* The long tail of glyphs lives in its own chunk (glyphs-more.tsx) and is
-   fetched the first time a page shows one — so a household that never files
-   "Milk" under "Groceries" never downloads the milk bottle. Names alone are
-   cheap, so the base set knows which names it can send there. */
-const MORE = new Set<string>(MORE_GLYPHS);
-const MoreGlyph = dynamic(() => import('./glyphs-more'), {
-  // Hold the space while the chunk arrives, so a row does not jump.
-  loading: () => <span style={{ display: 'inline-block', width: 19, height: 19 }} aria-hidden />,
-});
-
-export function Icon({ name, size = 19, strokeWidth = 1.8, ...rest }: {
-  name: string | null | undefined; size?: number; strokeWidth?: number;
-} & Omit<React.ComponentProps<TablerIcon>, 'name' | 'size' | 'strokeWidth'>) {
-  // An unknown name gets a tag rather than an empty box — a household may name
-  // a category anything, and a gap in a row is worse than a generic mark.
-  const Glyph = SET[name ?? ''];
-  if (!Glyph && name && MORE.has(name)) {
-    return <MoreGlyph name={name} size={size} strokeWidth={strokeWidth} {...rest} />;
-  }
-  const G = Glyph ?? IconTag;
-  return <G size={size} stroke={strokeWidth} aria-hidden {...rest} />;
+export function Icon({ name, size = 20, filled = false, className, 'aria-label': label }: {
+  name: string | null | undefined; size?: number; filled?: boolean; className?: string;
+  'aria-label'?: string;
+}) {
+  const glyph = (name && ICON_NAMES[name]) || (name && MATERIAL.has(name) ? name : 'sell');
+  return (
+    <span
+      aria-hidden={label ? undefined : true}
+      aria-label={label}
+      role={label ? 'img' : undefined}
+      className={`inline-block shrink-0 select-none overflow-hidden whitespace-nowrap font-[family-name:var(--font-icons)] leading-none [font-feature-settings:'liga'] ${className ?? ''}`}
+      style={{
+        fontSize: size, width: size, height: size, ...(filled ? { fontVariationSettings: "'FILL' 1" } : null),
+      }}
+    >
+      {glyph}
+    </span>
+  );
 }
 
 const TINT: Record<string, [string, string]> = {

@@ -5,8 +5,11 @@ import { useCallback, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import SwipeRow, { type SwipeAction } from '../../SwipeRow';
 import Snack, { type SnackState } from '../../Snack';
-import Sheet from '../../Sheet';
+import BottomDrawer from '../../BottomDrawer';
+import { Button } from '@/components/ui/button';
+import { ErrorNote as Problem } from '../../auth-ui';
 import { Chip, Icon } from '../../Icon';
+import { Empty } from '../../entries/parts';
 import { haptic } from '../../haptics';
 import { useMoney } from '@/app/currency';
 import { addBills, removeEntry, restoreEntry } from '../../entries/actions';
@@ -14,6 +17,7 @@ import { shrink } from '../../add/Bills';
 import { reminderText, shareReminder } from '../../remind';
 import { Face, tabTint } from '../look';
 import { startPending } from '../../pending';
+import { replacing } from '../../backStack';
 
 export type TabEntry = {
   id: string; on: string; incoming: boolean; title: string;
@@ -67,6 +71,7 @@ export default function TabEntries({
     setOpen(null);
     if (fromUrl.current) {
       fromUrl.current = false;
+      replacing(`/tab/${tabId}`);
       router.replace(`/tab/${tabId}`, { scroll: false });
     }
   }, [router, tabId]);
@@ -91,7 +96,7 @@ export default function TabEntries({
   };
 
   const owedOn = (txnId: string) => claims.filter((c) => c.txnId === txnId && c.outstanding > 0);
-  const glyph = (name: string) => <Icon name={name} size={20} strokeWidth={2} />;
+  const glyph = (name: string) => <Icon name={name} size={20} />;
   const edit = (id: string) => `/entries/${id}?from=/tab/${tabId}`;
   const actionsFor = (e: TabEntry): SwipeAction[] => [
     { label: 'Edit', icon: glyph('pencil'), tone: 'neutral' as const,
@@ -125,49 +130,35 @@ export default function TabEntries({
   return (
     <>
       {visible.length === 0 && (
-        <p style={{ margin: '0 20px 18px', fontSize: 'var(--step-0)', color: 'var(--muted-foreground)' }}>
-          Nothing on this tab yet.
-        </p>
+        <Empty icon="receipt_long" text={canEdit ? 'Nothing on this tab yet. Add cost, below, puts the first one on.' : 'Nothing on this tab yet.'} />
       )}
 
       {months.map((m) => (
-        <section key={m.key} aria-label={monthName(m.key)}>
-          <div className="mx-[var(--gutter)] mb-2 px-1">
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{monthName(m.key)}</h2>
-          </div>
-          <div className="border border-border" style={{
-            margin: '0 var(--gutter) 20px', background: 'var(--card)', borderRadius: 18,
-            padding: '0 var(--pad)', overflow: 'hidden',
-          }}>
+        <section key={m.key} aria-label={monthName(m.key)} className="mx-[var(--gutter)] flex flex-col gap-1.5">
+          <h2 className="px-0.5 text-[13px] font-semibold text-muted-foreground">{monthName(m.key)}</h2>
+          {/* px-[var(--pad)] and overflow-hidden: the swipe row's negative margin is --pad, so its actions stop at
+              the rounded edge and the card never scrolls sideways. */}
+          <div className="overflow-hidden rounded-[18px] bg-card px-[var(--pad)]">
             {m.rows.map((e, i) => (
               <SwipeRow key={e.id} commit={false} actions={canEdit ? actionsFor(e) : []}>
-                <Link href={edit(e.id)} transitionTypes={['nav-forward']} draggable={false} style={{
-                  display: 'flex', alignItems: 'center', gap: 12, minHeight: 66,
-                  textDecoration: 'none', color: 'var(--foreground)',
-                  borderBottom: i === m.rows.length - 1 ? undefined : '1px solid var(--border)',
-                }}>
-                  {e.incoming ? <Chip icon="receivable" tint="green" /> : <Chip icon={e.icon} tint={e.tint} />}
-                  <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
-                    <span style={{
-                      fontSize: 'var(--step-0)', fontWeight: 600, overflow: 'hidden',
-                      textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                    }}>{e.title}</span>
-                    <span style={{
-                      display: 'flex', alignItems: 'center', gap: 4, fontSize: 'var(--step--2)',
-                      color: 'var(--muted-foreground)', whiteSpace: 'nowrap', overflow: 'hidden',
-                    }}>
+                <Link href={edit(e.id)} transitionTypes={['nav-forward']} draggable={false}
+                  className={`flex min-h-16 items-center gap-3 py-2.5 text-foreground ${i === m.rows.length - 1 ? '' : 'border-b border-border'}`}>
+                  {e.incoming ? <Chip icon="receivable" tint="green" size={36} /> : <Chip icon={e.icon} tint={e.tint} size={36} />}
+                  <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                    <span className="text-[15px] font-medium leading-snug [overflow-wrap:anywhere]">{e.title}</span>
+                    <span className="flex flex-wrap items-center gap-x-1 text-xs text-muted-foreground">
                       <span>{new Date(`${e.on}T00:00:00`).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</span>
                       {!e.incoming && <span>· {e.outstanding > 0 ? `${format(e.outstanding)} owed` : 'settled'}</span>}
                       {e.bills > 0 ? (
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: 'var(--primary)', fontWeight: 600 }}>
-                          · <Icon name="clip" size={12} strokeWidth={2.2} />{e.bills} {e.bills === 1 ? 'bill' : 'bills'}
+                        <span className="inline-flex items-center gap-0.5 font-semibold text-primary">
+                          · <Icon name="clip" size={12} />{e.bills} {e.bills === 1 ? 'bill' : 'bills'}
                         </span>
-                      ) : !e.incoming ? <span style={{ color: 'var(--muted-foreground)' }}>· no bill</span> : null}
+                      ) : !e.incoming ? <span>· no bill</span> : null}
                     </span>
                   </span>
-                  <span className="t amt" style={{
-                    fontSize: 'var(--step-0)', color: e.incoming ? 'var(--money-in)' : 'var(--money-out)',
-                  }}>{e.incoming ? '+' : ''}{format(e.amount)}</span>
+                  <span className={`flex-none text-[15px] font-semibold tabular-nums ${e.incoming ? 'text-money-in' : ''}`}>
+                    {e.incoming ? '+' : ''}{format(e.amount)}
+                  </span>
                 </Link>
               </SwipeRow>
             ))}
@@ -175,7 +166,7 @@ export default function TabEntries({
         </section>
       ))}
 
-      <Sheet open={open?.kind === 'bill' && !!target} onClose={close}
+      <BottomDrawer open={open?.kind === 'bill' && !!target} onClose={close}
         label={shown?.kind === 'bill' && shown.fresh ? 'Attach the bill' : 'Bills'}>
         {shown?.kind === 'bill' && target && (
           <BillBody entry={target} fresh={shown.fresh} tabName={tabName} editHref={edit(target.id)}
@@ -183,15 +174,15 @@ export default function TabEntries({
             onDone={(text) => { close(); setSnack({ text }); router.refresh(); }}
             onSkip={close} />
         )}
-      </Sheet>
+      </BottomDrawer>
 
-      <Sheet open={open?.kind === 'remind'} onClose={close} label="Remind">
+      <BottomDrawer open={open?.kind === 'remind'} onClose={close} label="Remind">
         {shown?.kind === 'remind' && (
           <RemindBody entry={shown.txnId ? target : null} tabId={tabId} tabName={tabName}
             claims={shown.txnId ? owedOn(shown.txnId) : claims.filter((c) => c.outstanding > 0)}
             bills={bills} />
         )}
-      </Sheet>
+      </BottomDrawer>
 
       <Snack snack={snack} onClose={closeSnack} />
     </>
@@ -234,76 +225,57 @@ function BillBody({ entry, bills, fresh, tabName, editHref, onDone, onSkip }: {
   /* A tile is a label around its file input, so the tap that opens the camera
      or the picker is the browser's own and needs no script to reach it. */
   const tile = (icon: string, label: string, input: React.ReactNode) => (
-    <label onClick={() => haptic('select')} style={{
-      minHeight: 112, borderRadius: 16, border: '1px solid var(--border)', background: 'var(--background)',
-      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10,
-      fontSize: 'var(--step-0)', fontWeight: 600, color: 'var(--foreground)', textAlign: 'center',
-      opacity: busy ? 0.6 : 1, cursor: busy ? 'default' : 'pointer', pointerEvents: busy ? 'none' : undefined,
-    }}>
+    <label onClick={() => haptic('select')}
+      className={`flex min-h-28 cursor-pointer flex-col items-center justify-center gap-2.5 rounded-2xl border border-border bg-background text-center text-[15px] font-semibold text-foreground ${busy ? 'pointer-events-none opacity-60' : ''}`}>
       {input}
-      <span style={{
-        width: 46, height: 46, borderRadius: 999, display: 'flex', alignItems: 'center',
-        justifyContent: 'center', background: 'var(--card)', color: 'var(--primary)',
-      }}><Icon name={icon} size={22} strokeWidth={1.9} /></span>
+      <span className="grid size-[46px] place-items-center rounded-full bg-card text-primary"><Icon name={icon} size={22} /></span>
       {label}
     </label>
   );
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16, paddingTop: 2 }}>
+    <div className="flex flex-col gap-4 pt-0.5">
       {fresh ? (
         <>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <span style={{
-              width: 40, height: 40, flex: 'none', borderRadius: 999, display: 'flex', alignItems: 'center',
-              justifyContent: 'center', background: 'var(--accent)', color: 'var(--primary)',
-            }}><Icon name="check" size={20} strokeWidth={2.4} className="check-draw" /></span>
-            <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
-              <span style={{ fontSize: 'var(--step-1)', fontWeight: 600 }}>Saved on {tabName}</span>
-              <span style={{ fontSize: 'var(--step--1)', color: 'var(--muted-foreground)' }}>
+          <div className="flex items-center gap-3">
+            <span className="grid size-10 flex-none place-items-center rounded-full bg-accent text-primary"><Icon name="check" size={20} /></span>
+            <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+              <span className="text-base font-semibold">Saved on {tabName}</span>
+              <span className="text-[13px] text-muted-foreground">
                 {entry.title} · {format(entry.amount)}
                 {entry.outstanding > 0 ? ` · ${format(entry.outstanding)} to come back` : ''}
               </span>
             </span>
-            <Link href={editHref} transitionTypes={['nav-forward']} className="cta" style={{
-              minHeight: 44, padding: '0 14px', borderRadius: 11, fontSize: 'var(--step--1)', fontWeight: 600,
-              background: 'var(--muted)', color: 'var(--foreground)', textDecoration: 'none', flex: 'none',
-            }}>
-              <Icon name="pencil" size={15} strokeWidth={2} />
+            <Link href={editHref} transitionTypes={['nav-forward']}
+              className="press flex min-h-11 flex-none items-center gap-1.5 rounded-xl bg-muted px-3.5 text-[13px] font-semibold text-foreground">
+              <Icon name="pencil" size={15} />
               Edit
             </Link>
           </div>
-          <span style={{ height: 1, background: 'var(--border)' }} />
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <h2 style={{ fontSize: 'var(--step-2)', fontWeight: 600 }}>Attach the bill?</h2>
-            <p style={{ margin: 0, fontSize: 'var(--step--1)', color: 'var(--muted-foreground)' }}>
-              It goes out with every reminder for this cost. A photo or a PDF.
-            </p>
+          <span className="h-px bg-border" />
+          <div className="flex flex-col gap-1">
+            <h2 className="text-xl font-bold">Attach the bill?</h2>
+            <p className="text-[13px] text-muted-foreground">It goes out with every reminder for this cost. A photo or a PDF.</p>
           </div>
         </>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <h2 style={{ fontSize: 'var(--step-2)', fontWeight: 600 }}>Bills for {entry.title}</h2>
-          <p style={{ margin: 0, fontSize: 'var(--step--1)', color: 'var(--muted-foreground)' }}>
+        <div className="flex flex-col gap-1">
+          <h2 className="text-xl font-bold">Bills for {entry.title}</h2>
+          <p className="text-[13px] text-muted-foreground">
             {bills.length === 0 ? 'None yet. They go out with every reminder for this cost.' : 'They go out with every reminder for this cost.'}
           </p>
         </div>
       )}
 
       {bills.length > 0 && (
-        <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <ul className="flex flex-col gap-1.5">
           {bills.map((b) => (
             <li key={b.id}>
-              <a href={`/attachment/${b.id}`} target="_blank" rel="noopener noreferrer" style={{
-                minHeight: 48, padding: '0 12px', borderRadius: 12, display: 'flex', alignItems: 'center', gap: 10,
-                background: 'var(--background)', color: 'var(--foreground)', textDecoration: 'none',
-              }}>
-                <Icon name="clip" size={17} strokeWidth={1.9} />
-                <span style={{
-                  flex: 1, minWidth: 0, fontSize: 'var(--step--1)', fontWeight: 600,
-                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                }}>{b.name}</span>
-                <span style={{ fontSize: 'var(--step--2)', fontWeight: 600, color: 'var(--primary)' }}>Open</span>
+              <a href={`/attachment/${b.id}`} target="_blank" rel="noopener noreferrer"
+                className="press flex min-h-12 items-center gap-2.5 rounded-xl bg-background px-3 text-foreground">
+                <Icon name="clip" size={17} />
+                <span className="min-w-0 flex-1 text-[13px] font-semibold [overflow-wrap:anywhere]">{b.name}</span>
+                <span className="text-xs font-semibold text-primary">Open</span>
               </a>
             </li>
           ))}
@@ -311,31 +283,24 @@ function BillBody({ entry, bills, fresh, tabName, editHref, onDone, onSkip }: {
       )}
 
       {room > 0 ? (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 10 }}>
+        <div className="grid grid-cols-2 gap-2.5">
           {tile('camera', busy ? 'Attaching…' : 'Take a photo',
             <input type="file" accept="image/*" capture="environment"
-              onChange={(e) => take(e.currentTarget)} style={{ display: 'none' }} />)}
+              onChange={(e) => take(e.currentTarget)} className="hidden" />)}
           {tile('upload', busy ? 'Attaching…' : 'Choose a file',
             <input type="file" accept="image/*,application/pdf" multiple
-              onChange={(e) => take(e.currentTarget)} style={{ display: 'none' }} />)}
+              onChange={(e) => take(e.currentTarget)} className="hidden" />)}
         </div>
       ) : (
-        <p style={{ margin: 0, fontSize: 'var(--step--1)', color: 'var(--muted-foreground)' }}>
-          Five bills is the most an entry keeps.
-        </p>
+        <p className="text-[13px] text-muted-foreground">Five bills is the most an entry keeps.</p>
       )}
-      {problem && (
-        <p role="alert" style={{ margin: 0, fontSize: 'var(--step--1)', color: 'var(--destructive)' }}>{problem}</p>
-      )}
+      {problem && <Problem>{problem}</Problem>}
 
       {fresh && (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-          <button type="button" className="cta" onClick={onSkip} style={{
-            minHeight: 46, padding: '0 18px', fontSize: 'var(--step-0)', fontWeight: 600, color: 'var(--muted-foreground)',
-          }}>Not now</button>
-          <span style={{ fontSize: 'var(--step--2)', color: 'var(--muted-foreground)' }}>
-            Swipe the entry left to add it later.
-          </span>
+        <div className="flex flex-col items-center gap-0.5">
+          <Button type="button" variant="ghost" onClick={onSkip}
+            className="h-12 px-5 text-base font-semibold text-muted-foreground">Not now</Button>
+          <span className="text-xs text-muted-foreground">Swipe the entry left to add it later.</span>
         </div>
       )}
     </div>
@@ -394,12 +359,10 @@ function RemindBody({ entry, tabId, tabName, claims, bills }: {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16, paddingTop: 2 }}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-        <h2 style={{ fontSize: 'var(--step-2)', fontWeight: 600 }}>
-          {entry ? `Remind about ${entry.title}` : `Remind about ${tabName}`}
-        </h2>
-        <p style={{ margin: 0, fontSize: 'var(--step--1)', color: 'var(--muted-foreground)' }}>
+    <div className="flex flex-col gap-4 pt-0.5">
+      <div className="flex flex-col gap-1">
+        <h2 className="text-xl font-bold">{entry ? `Remind about ${entry.title}` : `Remind about ${tabName}`}</h2>
+        <p className="text-[13px] text-muted-foreground">
           {entry
             ? `${new Date(`${entry.on}T00:00:00`).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} · ${format(entry.outstanding)} still owed`
             : `${format(rows.reduce((n, r) => n + r.amount, 0))} still owed on this tab`}
@@ -407,31 +370,25 @@ function RemindBody({ entry, tabId, tabName, claims, bills }: {
       </div>
 
       {rows.length === 0 ? (
-        <p style={{ margin: 0, fontSize: 'var(--step-0)', color: 'var(--muted-foreground)' }}>Nothing is owed on this.</p>
+        <p className="text-[15px] text-muted-foreground">Nothing is owed on this.</p>
       ) : (
-        <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column' }}>
-          {rows.map((r, i) => {
+        <ul className="flex flex-col">
+          {rows.map((r) => {
             const done = sent.has(r.key);
             return (
-              <li key={r.key} style={{
-                display: 'flex', alignItems: 'center', gap: 12, minHeight: 62,
-                borderBottom: i === rows.length - 1 ? undefined : '1px solid var(--border)',
-              }}>
+              <li key={r.key} className="flex min-h-[62px] items-center gap-3 border-b border-border last:border-b-0">
                 {r.name ? <Face name={r.name} tint={r.tint} /> : <Chip icon="folder" tint={tabTint(tabId)} />}
-                <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  <span style={{ fontSize: 'var(--step-0)', fontWeight: 600 }}>{r.name ?? 'Nobody named'}</span>
-                  <span style={{ fontSize: 'var(--step--2)', color: 'var(--muted-foreground)' }}>
+                <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                  <span className="text-[15px] font-semibold">{r.name ?? 'Nobody named'}</span>
+                  <span className="text-xs text-muted-foreground">
                     {format(r.amount)}{r.name ? '' : ' · you choose who gets it'}
                   </span>
                 </span>
-                <button type="button" className="cta" onClick={() => send(r)} style={{
-                  minHeight: 44, padding: '0 14px', borderRadius: 11, fontSize: 'var(--step--1)', fontWeight: 600,
-                  background: done ? 'var(--muted)' : 'var(--primary)',
-                  color: done ? 'var(--muted-foreground)' : 'var(--primary-foreground)',
-                }}>
-                  <Icon name={done ? 'check' : 'bell'} size={16} strokeWidth={2.2} />
+                <Button type="button" variant={done ? 'secondary' : 'default'} onClick={() => send(r)}
+                  className={`h-11 rounded-xl px-3.5 font-semibold ${done ? 'text-muted-foreground' : ''}`}>
+                  <Icon name={done ? 'check' : 'bell'} size={16} />
                   {done ? 'Sent' : 'Send'}
-                </button>
+                </Button>
               </li>
             );
           })}
@@ -439,28 +396,25 @@ function RemindBody({ entry, tabId, tabName, claims, bills }: {
       )}
 
       {rows.length > 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <span style={{ fontSize: 'var(--step--1)', fontWeight: 600, color: 'var(--muted-foreground)' }}>What they get</span>
-          <div className="quiet" style={{ borderRadius: 14, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <p style={{ margin: 0, fontSize: 'var(--step-0)', lineHeight: 1.45 }}>{rows[0].text}</p>
+        <div className="flex flex-col gap-2">
+          <span className="text-sm font-medium text-muted-foreground">What they get</span>
+          <div className="flex flex-col gap-2.5 rounded-2xl bg-muted px-3.5 py-3">
+            <p className="text-[15px] leading-snug">{rows[0].text}</p>
             {anyBills && (
-              <label style={{
-                display: 'flex', alignItems: 'center', gap: 10, minHeight: 44, paddingTop: 8,
-                borderTop: '1px solid var(--border)', cursor: 'pointer', fontSize: 'var(--step--1)',
-              }}>
-                <Icon name="clip" size={16} strokeWidth={2} />
-                <span style={{ flex: 1 }}>Send the bills with it</span>
+              <label className="flex min-h-11 cursor-pointer items-center gap-2.5 border-t border-border pt-2 text-[13px]">
+                <Icon name="clip" size={16} />
+                <span className="flex-1">Send the bills with it</span>
                 <input type="checkbox" checked={withBills} onChange={(e) => setWithBills(e.target.checked)}
-                  style={{ width: 20, height: 20, margin: 0, accentColor: 'var(--primary)' }} />
+                  className="size-5 accent-primary" />
               </label>
             )}
           </div>
-          <p style={{ margin: 0, fontSize: 'var(--step--2)', lineHeight: 1.45, color: 'var(--muted-foreground)' }}>
+          <p className="text-xs leading-snug text-muted-foreground">
             One message each, through your phone’s share sheet — WhatsApp, Messages, wherever you already talk.
           </p>
         </div>
       )}
-      {said && <p role="status" style={{ margin: 0, fontSize: 'var(--step--1)', color: 'var(--muted-foreground)' }}>{said}</p>}
+      {said && <p role="status" className="text-[13px] text-muted-foreground">{said}</p>}
     </div>
   );
 }
