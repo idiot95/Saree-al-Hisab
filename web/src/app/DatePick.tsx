@@ -2,7 +2,8 @@
 
 import { useCallback, useState } from 'react';
 import BottomDrawer from './BottomDrawer';
-import HijriCalendar, { civil } from './HijriCalendar';
+import HijriCalendar, { opensCalendar } from './LazyCalendar';
+import { civil } from './calendar-dates';
 import { haptic } from './haptics';
 import { choice } from './choice';
 import { formatHijri, toHijri } from '@/lib/hijri';
@@ -55,7 +56,7 @@ export function DateChips({ value, onChange, today, from = today, dir, min, max,
             </button>
           );
         })}
-        <button type="button" onClick={() => { haptic('tap'); setOpen(true); }} style={{
+        <button type="button" {...opensCalendar} onClick={() => { haptic('tap'); setOpen(true); }} style={{
           ...chip, background: 'transparent', color: 'var(--muted-foreground)', border: '1px dashed var(--input)',
         }}>
           Another day…

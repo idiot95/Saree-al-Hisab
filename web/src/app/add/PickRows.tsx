@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Icon, ACCOUNT_ICON } from '../Icon';
 import PayPicker, { WayTile, describe } from '../PayPicker';
 import { MonthGrid } from '../DatePick';
+import { opensCalendar } from '../LazyCalendar';
 import BottomDrawer, { InDrawer } from '../BottomDrawer';
 import { findRef, payLabel, type Way } from '@/lib/pay';
 import { friendlyDay, shiftDay } from '@/lib/recur';
@@ -35,12 +36,14 @@ export function PickDrawer({ open, onClose, title, children }: {
 
 /** One row of the stack: icon, what it is, the answer, and a chevron. A long answer ("HDFC Regalia · UPI · …") wraps
  *  onto a second line rather than losing its end to an ellipsis. */
-export function Row({ icon, caption, value, tag, onClick, muted = false, expanded, controls, id }: {
+export function Row({ icon, caption, value, tag, onClick, muted = false, expanded, controls, id, opens }: {
   icon: React.ReactNode; caption?: string; value: React.ReactNode; tag?: string; onClick: () => void;
   muted?: boolean; expanded?: boolean; controls?: string; id?: string;
+  /** Handlers that start loading what the row opens as the finger lands (the month grid's `opensCalendar`). */
+  opens?: { onPointerDown: () => void; onFocus: () => void };
 }) {
   return (
-    <button type="button" id={id} onClick={() => { haptic('tap'); onClick(); }}
+    <button type="button" id={id} {...opens} onClick={() => { haptic('tap'); onClick(); }}
       aria-expanded={expanded} aria-controls={controls} aria-haspopup={expanded === undefined ? 'dialog' : undefined}
       className={cn('flex min-h-14 w-full items-center gap-3 px-3.5 py-2 text-left',
         muted ? 'text-muted-foreground' : 'text-foreground')}>
@@ -109,7 +112,7 @@ export function WhenRow({ value, onChange, today }: {
   return (
     <>
       <Row icon={<Icon name="calendar_month" size={22} />} caption="When" value={friendlyDay(value, today)}
-        onClick={() => setOpen(true)} />
+        opens={opensCalendar} onClick={() => setOpen(true)} />
       <PickDrawer open={open} onClose={() => setOpen(false)} title="Which day was it">
         <div role="radiogroup" aria-label="Which day was it" className={`mb-3 ${chipRow}`}>
           {quick.map((iso) => {

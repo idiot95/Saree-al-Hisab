@@ -10,6 +10,12 @@ import { Icon } from '../Icon';
 import { quietBtn } from '../auth-ui';
 import { cn } from '@/lib/utils';
 import { liRule } from '../form-bits';
+import * as Calendar from '../HijriCalendar';
+import { primeCalendar } from '../LazyCalendar';
+
+/* Without signal there is nothing to fetch a chunk from, and the worker keeps only the chunks this page names. So
+   the month grid (loaded on demand everywhere else) is bundled into this page and handed to the loader. */
+primeCalendar(Calendar);
 
 /* What the app is when there is no signal.
 

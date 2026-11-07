@@ -4,7 +4,8 @@ import Link from '@/app/NavLink';
 import { useCallback, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { Icon } from '../Icon';
 import BottomDrawer from '../BottomDrawer';
-import HijriCalendar, { MONTHS, civil, hijriSpan, type DayMarks } from '../HijriCalendar';
+import HijriCalendar, { opensCalendar } from '../LazyCalendar';
+import { MONTHS, civil, hijriSpan, type DayMarks } from '../calendar-dates';
 import { cn } from '@/lib/utils';
 import { haptic } from '../haptics';
 import DueRow from './DueRow';
@@ -128,7 +129,7 @@ export default function Calendar({ schedules, canWrite, today }: {
 
   return (
     <section className="mx-[var(--gutter)] flex flex-col gap-2 rounded-[20px] bg-card shadow-card px-[var(--pad)] py-1.5">
-      <button type="button" onClick={toggle} aria-expanded={open} aria-controls="cal-grid"
+      <button type="button" {...opensCalendar} onClick={toggle} aria-expanded={open} aria-controls="cal-grid"
         className="flex min-h-15 w-full items-center gap-3 bg-transparent text-left text-foreground">
         <span className={cn('grid size-10 flex-none place-items-center rounded-full',
           overdue ? 'bg-destructive/12 text-destructive' : 'bg-muted text-primary')}>
@@ -164,9 +165,10 @@ export default function Calendar({ schedules, canWrite, today }: {
           }}
           onPointerCancel={() => { swipe.current = null; }}
           onClickCapture={(e) => { if (swiped.current) { e.stopPropagation(); e.preventDefault(); } }}>
-          <HijriCalendar month={new Date(y, m - 1, 1)} onMonthChange={(d) => setYm({ y: d.getFullYear(), m: d.getMonth() + 1 })}
+          {/* Drawn only while unfolded, so a folded month never loads the grid (LazyCalendar.tsx). */}
+          {open && <HijriCalendar month={new Date(y, m - 1, 1)} onMonthChange={(d) => setYm({ y: d.getFullYear(), m: d.getMonth() + 1 })}
             today={today} onPick={setSel} marksFor={marksFor}
-            className="-mx-[calc(var(--pad)-2px)] w-[calc(100%+2*var(--pad)-4px)]" />
+            className="-mx-[calc(var(--pad)-2px)] w-[calc(100%+2*var(--pad)-4px)]" />}
         </div>
 
         {!isNow && (

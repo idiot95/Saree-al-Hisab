@@ -286,7 +286,12 @@ and nests (`InDrawer`). Add's pickers (`PickDrawer`), Wealth's drawers, New tab,
 finder all use it; only the Add drawer itself, being the route `@modal/(.)add`, uses `DrawerContent` directly and
 gets the same cap and grip from it. Every month grid is `src/app/HijriCalendar.tsx` (react-day-picker): Monday
 first, the Hijri day under each date, `min`/`max` as disabled days and paging bounds, 44px cells (48 on Android),
-`marksFor` for Upcoming's dots.
+`marksFor` for Upcoming's dots. **It is loaded on open** (v3.1 P5, perf row 9): screens import
+`src/app/LazyCalendar.tsx`, never HijriCalendar itself (its date helpers are in `calendar-dates.ts`), so
+react-day-picker (~23KB gz) is in no route's first load — it was in every one, through the root layout's Add drawer.
+An opener spreads `opensCalendar` (the import starts on pointerdown/focus), the drawer draws at once and the grid's
+exact height is held until it lands; Upcoming's month renders the grid only while unfolded; `/offline` bundles it and
+`primeCalendar`s the loader, so the worker's snapshot has it with no signal.
 
 **Form state after an action** (`src/app/form-hooks.tsx`; it was in worth/fields until the final review). React resets a `<form action>` after it settles —
 refusals and successes alike — which put radios and selects back to their defaults while the component's state kept

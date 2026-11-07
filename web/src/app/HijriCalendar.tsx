@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useRef } from 'react';
 import type { DayButton, MonthCaption } from 'react-day-picker';
 import { Calendar } from '@/components/ui/calendar';
 import { HIJRI_MONTHS_SHORT, formatHijri, toHijri } from '@/lib/hijri';
+import { MONTHS, civil, dateOf, isoOf, hijriSpan, type DayMarks } from './calendar-dates';
 import { cn } from '@/lib/utils';
 
 /* One month on shadcn's Calendar (react-day-picker), the way this house reads a month: Monday first, each English
@@ -16,25 +17,8 @@ import { cn } from '@/lib/utils';
    from a 360px screen up: in a drawer the grid has the drawer's width less its gutters, and Upcoming's card lets it
    run into its own padding (its className). */
 
-export const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December'];
-const pad = (n: number) => String(n).padStart(2, '0');
-export const civil = (iso: string) => { const [y, m, d] = iso.split('-').map(Number); return { y, m, d }; };
-export const dateOf = (iso: string) => { const c = civil(iso); return new Date(c.y, c.m - 1, c.d); };
-export const isoOf = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-
-/** "Rabi II – Jumada I 1448": the Hijri months a Gregorian month spans. */
-export function hijriSpan(y: number, m: number) {
-  const days = new Date(y, m, 0).getDate();
-  const a = toHijri({ y, m, d: 1 }), b = toHijri({ y, m, d: days });
-  const A = HIJRI_MONTHS_SHORT[a.m - 1], B = HIJRI_MONTHS_SHORT[b.m - 1];
-  if (a.m === b.m && a.y === b.y) return `${A} ${a.y}`;
-  return a.y === b.y ? `${A} – ${B} ${a.y}` : `${A} ${a.y} – ${B} ${b.y}`;
-}
-
-/** What a day carries beyond its dates: words for its label, marks drawn under it, and a ground when it is busy. */
-export type DayMarks = { label?: string; marks?: React.ReactNode; busy?: boolean };
-
+/* The plain date helpers live in calendar-dates.ts, so a screen can use them without loading react-day-picker:
+   this module is only ever loaded on demand, through LazyCalendar.tsx. */
 export default function HijriCalendar({ month, onMonthChange, today, selected, onPick, min, max, marksFor, className }: {
   /** The first of the month shown (controlled). */
   month: Date; onMonthChange: (first: Date) => void;
