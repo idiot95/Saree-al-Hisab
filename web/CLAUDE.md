@@ -720,7 +720,8 @@ matters — start your own — rather than leaving you stranded waiting to be
 re-invited.
 
 `/api/auth`, `/signin`, `/signup`, `/join`, `/reset` and `/terms` are let
-through by the proxy without a session (`NO_REDIRECT`) — they have to open for
+through by the proxy without a session (`NO_REDIRECT`; everywhere else the proxy only checks that the cookie is
+ours and unexpired, see "The proxy asks the database nothing") — they have to open for
 someone not signed in yet, and a redirect on `/api/auth` would break the
 round trip to Google. The CSP's `form-action` includes
 `https://accounts.google.com`, because the sign-in form posts to us and the
@@ -847,6 +848,20 @@ cosmetic. One rule, `staleAgainst`, judges it in whole seconds, and the `jwt`
 callback applies it too: a revoked session ends there, so refreshing it through
 `/api/auth/session` no longer revives it. (Judging by `iat` let exactly that
 work, and it predated the Google change.)
+
+**The proxy asks the database nothing** (v3.1 P5, perf row 3). In production `src/proxy.ts` runs in the edge
+region (bom1 for the owner), a round trip — or a new TLS connection — from Neon in Singapore, so it reads the
+session with `proxyAuth` from `src/auth.config.ts`: the shared Auth.js settings with no providers and a jwt callback
+that only decrypts and checks expiry. A forged or expired cookie is still sent to `/signin` by the proxy; a revoked
+one passes it and is refused one step later by **contextFor**, which every page and Server Action reaches through
+`src/db/queries.ts` (`actorOrNull`/`currentActor`) and so do both route handlers that read the actor
+(`/attachment/[id]`, `/attachment/h/[id]`: a plain 404). `/api/auth/[...nextauth]` is Auth.js with the full jwt
+callback; `/api/capture/sms` is outside the proxy and answers to its bearer key alone. A page with a `loading.tsx`
+streams its frame before it runs, so a revoked cookie there sees the frame and then the in-stream redirect to
+`/signin`, never data. `src/auth.config.ts` must never import `src/db` — the built proxy
+(`.next/server/middleware.js` and its chunks) carries no postgres.js. `scripts/revocation.check.mjs` proves all of
+it: one cookie reads a page, a Server Action (`checkDuplicate`) and a bill while fresh and none of them once revoked,
+and a forged or expired cookie is turned away at the proxy.
 
 **One round trip decides everything about the caller.** `contextFor(userId,
 authAt)` returns household, role, household name and staleness in a single query —

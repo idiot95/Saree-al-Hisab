@@ -17,6 +17,7 @@ import { signInErrorPath } from '@/lib/signin-errors';
 import { rethrowControlFlow } from '@/lib/rethrow';
 import { INVITE_COOKIE, LINK_COOKIE, RESET_COOKIE, clearOtherFlowCookies } from '@/lib/flow-cookies';
 import { looksLikeLinkToken } from '@/lib/link-token';
+import { authConfig } from './auth.config';
 
 /* Two ways in: Google (the primary one), and an address and a password we
    hold ourselves until AUTH_PASSWORD_UNTIL.
@@ -177,13 +178,7 @@ async function googleSignIn(user: User, profile: Profile | undefined): Promise<b
 }
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  session: {
-    strategy: 'jwt',
-    maxAge: 30 * 24 * 60 * 60,   // a phone should not ask every week
-    updateAge: 24 * 60 * 60,
-  },
-  // Every Auth.js error lands on our sign-in screen, not its own page.
-  pages: { signIn: '/signin', error: '/signin' },
+  ...authConfig,
   providers: [
     Google({ allowDangerousEmailAccountLinking: false }),
     Credentials({
@@ -249,14 +244,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (!userId || await sessionRevoked(userId, authAt)) return null;
       return token;
     },
-    async session({ session, token }) {
-      session.user.id = token.userId as string;
-      /* When the person signed in, not when the cookie was last re-encoded
-         (iat moves on every refresh). This is what lets the server refuse a
-         session begun before the account's session epoch — see contextFor. */
-      session.issuedAt = typeof token.authAt === 'number' ? token.authAt : 0;
-      return session;
-    },
+    // The same session as the proxy's reader (auth.config.ts).
+    session: authConfig.callbacks.session,
   },
 });
 
