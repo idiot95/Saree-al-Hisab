@@ -56,11 +56,29 @@ capture_token, sms_draft). Where an older section disagrees, this wins.
   the active tab, bars); plum soft `#F0E4EE` (chosen chips, the Android tab pill); hero `#3A1D36` (the net-worth
   card); rose gold `#D9A38C` with dark ink for **Add only**, `#9A5B45` when drawn on paper; attention a blush ground
   `#FBEDE6` with `#8A4A2E` ink; money in `#157F3C` with a +, money out plain ink; danger `#B91C1C`. Dark: ground
-  `#130E12`, card `#1D161C`, primary `#D9A9D0`, hero `#2D1729`, rose gold `#E3B5A0`. Classes: `bg-background`,
+  `#130E12`, card `#1D161C`, primary `#D9A9D0`, hero `#3F2139` (lifted in v3.1 P3 to stand off the ground at 1.35:1), rose gold `#E3B5A0`. Classes: `bg-background`,
   `bg-card`, `text-muted-foreground`, `bg-primary`, `bg-accent`, `bg-attention` (Add), `bg-attention-soft`,
   `text-money-in`, `bg-hero`. Dark is written twice (system setting, and `data-theme="dark"`); `test:contrast`
-  checks the two say the same, that the stylesheet carries exactly the chosen palette, and every pair (412 checks).
+  checks the two say the same, that the stylesheet carries exactly the chosen palette, and every pair, and that the dark hero stands off its ground (415 checks).
   The manifest's `theme_color` is the hero plum, its `background_color` the ground.
+- **Surfaces** (v3.1 P3, ux-audit O2/O7): a card is `rounded-[20px] bg-card shadow-card` with 16px inside (`p-4` or
+  `--pad`); a screen's hero card (Left to spend, Owed to you, net worth) is `rounded-[22px]`. `shadow-card` is
+  `--card-shadow` in ql.css — a hairline and a pixel of shadow in light, a faint light edge in dark — because white on
+  the paper ground is 1.08:1. A bottom drawer has a `border-t`. Every `Chip` (category, account, rail, tab folder) is
+  one shape, a rounded square whose corner is 0.3 of its side (12px at 40); people keep round initials (40 in rows,
+  24 inside a chip). A list's hairline runs from where the text starts to the card's right edge (`form-bits`
+  `rowRule`, household's `Card`). Disabled filled buttons are `bg-muted text-muted-foreground` (button.tsx's
+  default variant, `solid`, Add's Save), never a faded plum.
+- **One chip** (v3.1 P3, ux-audit C1; `form-bits.tsx`): `chip` is drawn 32px (`h-8`, `px-3`, `text-subhead`,
+  `min-w-12`, `rounded-full`, 1px border) and takes the tap over 44px (48 on Android) through an invisible absolute
+  `::after`; `chipOff` (card, `border-input`), `chipOn` (primary, the same weight so a lit chip never rewraps its
+  row), `chipQuiet`/`chipQuietOn` (Activity's kind filter: no ground until chosen, then plum soft), `chipRow`
+  (`gap-x-1.5 gap-y-3`, so wrapped rows' targets meet but never overlap), `countBadge` (18px), `statusPill` (24px,
+  every read-only status: Owner, In use, Possibly the same thing, Retired, Exact match), `headerPill` (36px drawn,
+  New tab), `monthPill`/`monthStep` (MonthPill and its frame, at a chip's height). Combine with `cn()` when adding
+  classes that compete. Colours change over `--dur-2`. `PageHead`'s `right` (a month pill, New tab, a menu) sits on
+  the title's line, centred on it; Activity's header does the same. The sweep measures a target as the element's
+  box joined with its `::after`.
 - **No hand-written CSS.** Tailwind utilities and shadcn components. `ql.css` token values may change; `globals.css`
   only shrinks (Task 30 took out `.cta`, `.t`, `.n`, `.amt`, its own `.sr-only`, the gradients and the unused
   aliases, and no class name in `src` still asks for them: `tabular-nums` where a figure wants it). `tokens.css` is generated and now read only for the category tints (`--cat-*`) and the legacy contrast
@@ -82,17 +100,24 @@ capture_token, sms_draft). Where an older section disagrees, this wins.
   server (`lib/platform.ts`), so the first paint is right. Variants are `in-data-[platform=android]:…` — the
   attribute is on `<html>` and the group class on `<body>`, so `group-data-[…]` never matches. Tap targets are 44px,
   Android icon buttons 48px (`in-data-[platform=android]:min-h-12 min-w-12`); fields are at least 16px.
-- **Type: Inter only.** Instrument Serif is gone (spec §3.2): every title, pushed or tab, is Inter bold with
-  `tracking-tight` (`PageHead` and auth-ui at 30/34px, the tabs at 32px). There is no `font-display` utility.
+- **Type: Inter only, on one scale** (v3.1 P3, ux-audit O6). The sizes are role tokens in ql.css's `@theme static`
+  with their line heights: `text-caption` 11, `text-footnote` 12, `text-subhead` 13, `text-body` 15 (the body's own
+  size), `text-headline` 17, `text-title` 20, `text-title-2` 28, `text-large-title` 34 (every screen's title, pushed
+  or tab, and a pushed screen's hero figure), `text-display` 40 (a tab's hero figure), `text-amount` 52 (Add's amount
+  only, stepping to `text-amount-2` 42, then 34 and 28). Nothing is under 11px, no arbitrary `text-[Npx]` and no
+  Tailwind `text-xs/sm/lg/xl` remain; inline styles read `var(--text-*)`. Fields stay 16px (`text-base`, `--field`).
+  `cn()`'s tailwind-merge knows the names as font sizes. Titles are Inter bold with `tracking-tight`; Instrument Serif
+  is gone (spec §3.2). There is no `font-display` utility.
 
 **Navigation.**
 - **Five slots, Add among them**: Home · Activity · **+** · Loans · Wealth (`TABS` in tabs.ts). Add is the middle
-  slot, a 52px rose-gold tile (`bg-attention`) into `/add` — still the drawer over the current screen — so nothing
+  slot, a rose-gold tile (`bg-attention`, 48px in iOS's bar and 52 in Android's, with a `ring-attention-ink/30` edge) into `/add` — still the drawer over the current screen — so nothing
   floats over the bar and `ADD_FAB` is gone. Loans has its own tab because the owner uses it daily; Home carries
   one "Owed to you" line into it (`owedToYou()` in lib/worth.ts). Plan (`/budget`, `/trends`), Categories and the
   household belong to Home (`OWNED_BY` lights it) and open as pushed screens with a back arrow; `/accounts` is
   pushed from Wealth (`/worth`). The active tab is a filled icon with a `text-primary` label on iOS, and a 56x30
-  `bg-accent` pill on Android. Every page leaves a breathing gap above the bar.
+  `bg-accent` pill on Android. The bar is `--tab-bar` tall above the safe area — 64px on iOS, 80 on Android (ql.css,
+  by `data-platform`; v3.1 P3) — and `TAB_BAR_SPACE` and the snack follow it. Every page leaves a breathing gap above the bar.
 - **One name per thing**, the same on the tab, the switch, the page and the browser title: **Home**, **Activity**
   (was Entries), **Loans** (was Loan centre, then People), **Wealth** (was Money, before that Accounts; "Net worth"
   is the figure, "Pots" are foreign-currency holdings, "Gold & silver" metal holdings), **Plan** (Budget and Trends
@@ -124,7 +149,11 @@ capture_token, sms_draft). Where an older section disagrees, this wins.
   `safeBack` is the one exact list of where they may go (`scripts/activity-taps.mjs` drives chips, redirects
   and both returns against a running build). `Segments`/`ActivityNav` are gone. A card holding swipe rows keeps
   `px-[var(--pad)]`: SwipeRow's negative margin is `--pad`, and any other padding makes the card scrollable, so
-  opening a row scrolls it and the scroll closes the row again.
+  opening a row scrolls it and the scroll closes the row again. All's kind filter (Every kind · Spending · Income ·
+  Moves · Shared) is the same chip at its quiet weight, so the screen has one chip language (v3.1 P3); search says
+  "Search this month". On Upcoming, when something is due in the next two weeks, *Every regular payment* opens
+  folded to one line ("Every regular payment · n", a `<details>`), since the dues above already list them; a due row
+  wears the payment's own category chip and says late with an icon and the word.
 - **To review is decisions only** — card bills, possible duplicates and open
   SMS drafts. Home's tile and Activity's badge count exactly those three
   (`inboxCount` → `reviewCount`). What is merely due lives under Upcoming.
@@ -173,7 +202,7 @@ capture_token, sms_draft). Where an older section disagrees, this wins.
   swipes a row open and shut with real touch events, creates, renames, closes and deletes a throwaway tab, and
   lends to and takes a repayment from a person, watching their figure move each time.
 - **Accounts, Reconcile, Categories, Scan and the Upcoming forms** (Task 27b) follow the same section-and-card
-  structure: a pushed `PageHead`, 13px section labels over one `bg-card` list, chips in circles, names and rails that
+  structure: a pushed `PageHead`, 13px section labels over one `bg-card` list, chips in one rounded-square shape, names and rails that
   wrap instead of truncating. Balances that an edit or a match moves are `Figure`s (the account row, Net worth on
   `/accounts`, "In the books today" on a reconciliation). The in-place forms share `src/app/form-bits.tsx`
   (`fieldLabel`, `selectCls`, `formCard`, `Info`, `AddRow`, and the `solid`/`ghost`/`danger` buttons household's rows re-export)
@@ -199,7 +228,7 @@ capture_token, sms_draft). Where an older section disagrees, this wins.
   `scripts/sweep.mjs` takes `route|tap=<regex>` steps, so a drawer can be swept open; with a dialog open the overlap
   check measures that dialog only, and a bar outside it only where it really paints on top.
 - **Loading frames are the screens' own shapes** (Task 29). Each frame in `Skeleton.tsx` is the finished screen's
-  structure in Tailwind: PageHead's header (or a tab's bold 32px one), the hero card, the section headings and the row
+  structure in Tailwind: PageHead's header (or a tab's bold 34px one), the hero card, the section headings and the row
   heights. Text not known yet is a `Ghost` — a sample of the line in the same type, hidden under a shimmer — so it is
   exactly as tall, and wraps where the real line will; a Figure's ghost is half an em taller (NumberFlow's mask).
   `frameFor(href)` reads Activity's `?f=` too: loading.tsx cannot see a query, so Activity and Home render their own
@@ -1679,7 +1708,7 @@ triad: over-budget red is an alarm and an ordinary expense is not, so these are
 quieter than `--c-danger` and `--c-ok`. Both live in `globals.css`, not the
 generated `tokens.css`.
 
-**`npm run test:contrast` measured 82 pairs in both themes when it was written** (412 checks now, Plum & Rose Gold included) rather than
+**`npm run test:contrast` measured 82 pairs in both themes when it was written** (415 checks now, Plum & Rose Gold included) rather than
 taking anyone's word for it, and it found four real faults on its first run.
 The primary button was dark ink on the brand green at **3.56:1**, so the ground
 went darker and its label went white (`--c-on-primary`). The raised Add button
@@ -1736,7 +1765,7 @@ They live in `options.ts` now.
 
 - **Jakob** — a bottom tab bar, because every finance app people already use has
   one. Before it, you had to walk back to home to get anywhere.
-- **Fitts** — tab targets are 60px in the thumb zone and Add is centre and
+- **Fitts** — tab targets are 64px (80 on Android) in the thumb zone and Add is centre and
   raised. The budget's Save is sticky at the TOP, not the bottom, because a
   bottom bar sits under the phone keyboard the moment someone types a number.
 - **Hick** — five tabs and no more. The home tiles were deleted once navigation
@@ -1799,7 +1828,8 @@ also the twin — tapping it opens the actions, tapping again closes — so
 nothing is gesture-only and a row needs no second set of buttons repeating
 what the swipe offers. The first swipe row a device sees peeks its actions
 out and back once (`localStorage 'swipe-peeked'`, coarse pointers only,
-reduced motion respected). Shut and at rest, the action layer is `visibility: hidden` (after
+reduced motion respected), with a destructive action drawn in rose gold while it peeks, so a new household's first
+sight is not a red Delete. Shut and at rest, the action layer is `visibility: hidden` (after
 the slide home), because a row on a fractional pixel showed a sliver of a filled action
 at its edge on the dark ground. Where a row's every action is in the swipe (a due
 row, a schedule row), there are no buttons under it.
@@ -1945,7 +1975,8 @@ wear the brand green, not seagrass (white on seagrass was 3.2:1).
 and every ink on its own wash, in both themes.
 
 **Settings has a door**: the Home header — your initials, the household, a
-cog — opens `/household`, and Sign out lives there under "Your account". A
+cog — opens `/household`, and Sign out lives there under "Your account", the last section (v3.1 P3: Members,
+Invite, Books, Appearance, Scanning key, SMS capture, then Your account; Sign out everywhere in destructive ink). A
 tile at the bottom of the grid wearing Lending's icon was not a door.
 
 ## Teaching the app
