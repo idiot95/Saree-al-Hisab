@@ -199,19 +199,8 @@
      (PendingSkeleton) and the screen takes its place the moment it arrives. The durations and curves are the
      tokens in ql.css; the frame's motion is Tailwind on PendingSkeleton itself. */
 
-  /* The shimmer on a loading block. Deliberately slow and low-contrast: a
-     placeholder that flashes is more distracting than the wait it covers. */
-  .shim {
-    background: linear-gradient(90deg, var(--muted) 25%, var(--background) 37%, var(--muted) 63%);
-    background-size: 400% 100%;
-    animation: shim 1.4s ease-in-out infinite;
-  }
-  @keyframes shim { from { background-position: 100% 50% } to { background-position: 0 50% } }
-
-
-  @media (prefers-reduced-motion: reduce) {
-    .shim { animation: none; background: var(--muted); }
-  }
+  /* The shimmer's travel (Skeleton.tsx SHIM): one band across the viewport, every block's gradient fixed to it. */
+  @keyframes shim { from { background-position: 100vw 0 } to { background-position: -100vw 0 } }
 
   /* Quiet Ledger draws its surfaces with Tailwind (bg-card, border-border); the old .hero, .card and .quiet faces are gone. */
 
