@@ -99,7 +99,7 @@ export default async function Terms() {
         <div className="flex flex-col gap-4 px-[var(--gutter)] pb-8">
           <ol className="flex flex-col gap-3">
             {SECTIONS.map((s) => (
-              <li key={s.title} className="flex flex-col gap-2.5 rounded-[18px] bg-card p-[var(--pad)]">
+              <li key={s.title} className="flex flex-col gap-2.5 rounded-[20px] bg-card shadow-card p-[var(--pad)]">
                 <h2 className="text-headline font-semibold">{s.title}</h2>
                 <ul className="flex flex-col gap-2">
                   {s.lines.map((line, i) => (

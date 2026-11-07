@@ -126,7 +126,7 @@ export default function Calendar({ schedules, canWrite, today }: {
   }, [byDay]);
 
   return (
-    <section className="mx-[var(--gutter)] flex flex-col gap-2 rounded-[18px] bg-card px-[var(--pad)] py-1.5">
+    <section className="mx-[var(--gutter)] flex flex-col gap-2 rounded-[20px] bg-card shadow-card px-[var(--pad)] py-1.5">
       <button type="button" onClick={toggle} aria-expanded={open} aria-controls="cal-grid"
         className="flex min-h-15 w-full items-center gap-3 bg-transparent text-left text-foreground">
         <span className={cn('grid size-10 flex-none place-items-center rounded-full',
@@ -205,20 +205,20 @@ export default function Calendar({ schedules, canWrite, today }: {
                 return (
                   <DueRow key={`${it.s.id}:${it.dueOn}`} scheduleId={it.s.id} name={it.s.name} kind={it.s.kind}
                     dueOn={it.dueOn} on={it.on} movedFrom={it.movedFrom} daysAway={daysAway}
-                    amount={it.s.amount} category={it.s.category} icon={it.s.icon}
+                    amount={it.s.amount} category={it.s.category} icon={it.s.icon} tint={it.s.tint}
                     rule={it.s.rule} cal={it.s.cal} today={today} canRecord={daysAway <= 14} />
                 );
               }
               const income = it.s.kind === 'income';
               return (
                 <div key={`${it.s.id}:${it.dueOn}`} className="flex min-h-16 items-center gap-3 border-b border-border py-2.5">
-                  <span className={cn('grid size-10 flex-none place-items-center rounded-full',
+                  <span className={cn('grid size-10 flex-none place-items-center rounded-[12px]',
                     settled ? 'bg-muted text-muted-foreground' : 'bg-attention-soft text-attention-soft-foreground')}>
                     <Icon name={it.s.icon ?? 'autodebit'} size={19} />
                   </span>
                   <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-                    <span className="text-headline font-semibold [overflow-wrap:anywhere]">{it.s.name}</span>
-                    <span className="text-subhead text-muted-foreground">
+                    <span className="text-body font-medium [overflow-wrap:anywhere]">{it.s.name}</span>
+                    <span className="text-footnote text-muted-foreground">
                       {cap(describeRule(it.s.rule, it.s.cal))}
                       {it.movedFrom && ` · moved from the ${civil(it.movedFrom).d}${suffix(civil(it.movedFrom).d)}`}
                     </span>

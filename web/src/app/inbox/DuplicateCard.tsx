@@ -26,7 +26,7 @@ export default function DuplicateCard({ low, high, reason, canWrite = true }: {
     || (dropState && !dropState.ok && dropState.error);
 
   return (
-    <article className="flex flex-col gap-3 rounded-[18px] bg-card p-4">
+    <article className="flex flex-col gap-3 rounded-[20px] bg-card shadow-card p-4">
       <p className={`${statusPill} self-start bg-attention-soft text-attention-soft-foreground`}>
         <Icon name="content_copy" size={15} /> Possibly the same thing
       </p>

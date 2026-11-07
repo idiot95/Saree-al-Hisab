@@ -48,8 +48,9 @@
   --chart-4: #B5651D;
   --chart-5: #7A5C99;
 
-  /* The net-worth card: plum in both themes, deeper in the dark one (the dark primary is a pale
-     pink, which would make a pale card). Its four class colours are drawn on it, never on paper. */
+  /* The net-worth card: plum in both themes (the dark primary is a pale pink, which would make a pale card). In the
+     dark one it is lifted to #3F2139 (v3.1 P3, ux-audit O7) so it stands off the near-black ground at 1.35:1
+     instead of vanishing into it. Its four class colours are drawn on it, never on paper. */
   --hero: #3A1D36;
   --hero-foreground: #FFFFFF;
   --hero-muted: #D9C3D5;
@@ -57,6 +58,10 @@
   --hero-2: #9CC9E8;              /* pots in other currencies */
   --hero-3: #E8C77A;              /* gold & silver */
   --hero-4: #F2B49C;              /* owed to you */
+
+  /* A card's edge on the ground (ux-audit O7): card on ground is 1.08:1, so a card is lifted by a hairline and a
+     shadow a pixel deep rather than by its colour alone. Dark lights the edge instead, where a shadow cannot show. */
+  --card-shadow: 0 1px 2px rgb(30 22 29 / .06), 0 0 0 1px rgb(30 22 29 / .035);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -75,7 +80,8 @@
     --chart-3: #7FB2CC; --chart-4: #E39A5B; --chart-5: #B79BD6;
     --attention-soft: #3A241A; --attention-soft-foreground: #F2C9B6;
     --money-in: #A3E6BB; --money-out: var(--foreground);
-    --hero: #2D1729; --hero-foreground: #F0E7EE; --hero-muted: #CDB5C9;
+    --hero: #3F2139; --hero-foreground: #F0E7EE; --hero-muted: #CDB5C9;
+    --card-shadow: 0 0 0 1px rgb(240 231 238 / .06);
   }
 }
 :root[data-theme="dark"] {
@@ -93,7 +99,8 @@
   --chart-3: #7FB2CC; --chart-4: #E39A5B; --chart-5: #B79BD6;
   --attention-soft: #3A241A; --attention-soft-foreground: #F2C9B6;
   --money-in: #A3E6BB; --money-out: var(--foreground);
-  --hero: #2D1729; --hero-foreground: #F0E7EE; --hero-muted: #CDB5C9;
+  --hero: #3F2139; --hero-foreground: #F0E7EE; --hero-muted: #CDB5C9;
+  --card-shadow: 0 0 0 1px rgb(240 231 238 / .06);
 }
 
 @theme inline {
@@ -133,6 +140,7 @@
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
+  --shadow-card: var(--card-shadow);
   --color-hero: var(--hero);
   --color-hero-foreground: var(--hero-foreground);
   --color-hero-muted: var(--hero-muted);
@@ -203,3 +211,9 @@
   --text-amount: 52px;        --text-amount--line-height: 60px;
   --text-amount-2: 42px;      --text-amount-2--line-height: 50px;
 }
+
+/* The tab bar's height above the safe area (v3.1 P3, ux-audit O8): 64px on iOS (UIKit's bar is 49pt, and a 48px Add
+   tile needs the rest), 80 on Android (Material 3's navigation bar). Read by the bar (TabItem BAR_CLASS), the room
+   every screen leaves for it (tabs.ts TAB_BAR_SPACE) and the snack that floats above it. */
+:root { --tab-bar: 64px; }
+:root[data-platform="android"] { --tab-bar: 80px; }

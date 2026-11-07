@@ -14,11 +14,11 @@ export default function HoldingRow({ h, value }: { h: HoldingItem; value: string
       <Link href={`/worth/${h.id}`}
         className="press flex min-h-16 items-center gap-3 px-3.5 py-2.5">
         {h.kind === 'fx_cash' ? (
-          <span className="grid size-10 flex-none place-items-center rounded-xl bg-accent text-footnote font-bold text-accent-foreground">
+          <span className="grid size-10 flex-none place-items-center rounded-[12px] bg-accent text-footnote font-bold text-accent-foreground">
             {h.badge}
           </span>
         ) : (
-          <span className="grid size-10 flex-none place-items-center rounded-xl bg-attention-soft text-attention-soft-foreground">
+          <span className="grid size-10 flex-none place-items-center rounded-[12px] bg-attention-soft text-attention-soft-foreground">
             <Icon name="diamond" size={20} />
           </span>
         )}

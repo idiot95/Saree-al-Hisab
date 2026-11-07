@@ -105,7 +105,7 @@ function CardBlock({ card, canWrite }: { card: CardInfo; canWrite: boolean }) {
 
   if (editing) {
     return (
-      <section className="min-w-0 flex-1 overflow-hidden rounded-[20px] border border-border bg-card px-[var(--pad)]">
+      <section className="min-w-0 flex-1 overflow-hidden rounded-[20px] border border-border bg-card shadow-card px-[var(--pad)]">
         <AccountForm account={account} onDone={() => setEditing(false)} />
       </section>
     );
@@ -163,7 +163,7 @@ function CardFace({ card }: { card: CardInfo }) {
      it is mostly empty middle, and a card that says four things should be the height of four things. */
   return (
     <section aria-label={`${account.name}, ${format(owed)} outstanding`}
-      className="flex aspect-[1.95/1] w-full min-w-0 flex-col justify-between rounded-[18px] border border-[var(--card-edge)] bg-[var(--card-face)] p-4 text-foreground">
+      className="flex aspect-[1.95/1] w-full min-w-0 flex-col justify-between rounded-[20px] border border-[var(--card-edge)] bg-[var(--card-face)] p-4 text-foreground">
       <div className="flex items-start gap-2.5">
         <span className="flex min-w-0 flex-1 items-center gap-[9px]">
           {/* The one thing on the card wearing a colour. */}

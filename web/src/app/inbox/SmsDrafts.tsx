@@ -90,7 +90,7 @@ export default function SmsDrafts({ rows, canWrite, justDismissed = null, empty 
         <Link href="/household/capture"
           className="-my-2.5 -mr-2 flex min-h-11 min-w-11 items-center justify-center px-2 text-body font-medium text-primary in-data-[platform=android]:min-h-12 in-data-[platform=android]:min-w-12">Set up</Link>
       </div>
-      <div className="overflow-hidden rounded-[18px] bg-card px-[var(--pad)]">
+      <div className="overflow-hidden rounded-[20px] bg-card shadow-card px-[var(--pad)]">
         {shown.map((r, i) => (
           <SwipeRow key={r.id} commit={false} actions={canWrite ? [
             { label: 'Add', tone: 'primary', icon: <Icon name="add" size={20} />, act: () => review(r.id) },
@@ -119,7 +119,7 @@ function Row({ r, last, canWrite }: { r: SmsRow; last: boolean; canWrite: boolea
     <div className={`flex min-h-[76px] items-center gap-3 py-2.5 ${last ? '' : 'border-b border-border'}`}>
       <Link href={`/inbox/sms/${r.id}`} draggable={false}
         className="flex min-h-11 min-w-0 flex-1 items-center gap-3 text-foreground no-underline in-data-[platform=android]:min-h-12">
-        <span className={`grid size-10 flex-none place-items-center rounded-xl ${d.tone}`}>
+        <span className={`grid size-10 flex-none place-items-center rounded-[12px] ${d.tone}`}>
           <Icon name={d.icon} size={20} />
         </span>
         <span className="flex min-w-0 flex-1 flex-col gap-0.5">

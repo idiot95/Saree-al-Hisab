@@ -78,7 +78,7 @@ export default async function Holding({ params }: { params: Promise<{ id: string
         </header>
 
         <div className="flex flex-col gap-4 px-[var(--gutter)]">
-          <section aria-label="What it is worth" className="flex flex-col gap-2 rounded-[22px] bg-hero p-[18px] text-hero-foreground">
+          <section aria-label="What it is worth" className="flex flex-col gap-2 rounded-[22px] bg-hero p-4 text-hero-foreground">
             <span className="text-subhead text-hero-muted">{owner ? first(owner.name) : 'Joint'} · {what}</span>
             {value !== null
               ? <Figure minor={value} className="text-large-title font-bold leading-none tracking-tight tabular-nums" />
@@ -102,7 +102,7 @@ export default async function Holding({ params }: { params: Promise<{ id: string
 
           <section aria-label="History" className="flex flex-col gap-1.5">
             <h2 className="px-0.5 text-subhead font-semibold text-muted-foreground">History</h2>
-            <ol className="overflow-hidden rounded-[18px] bg-card">
+            <ol className="overflow-hidden rounded-[20px] bg-card shadow-card">
               {snapshots.map((s) => (
                 <li key={s.id} className="flex flex-col gap-2 border-b border-border px-3.5 py-3 last:border-b-0">
                   <span className="flex items-baseline justify-between gap-3">
@@ -119,7 +119,7 @@ export default async function Holding({ params }: { params: Promise<{ id: string
           {own.length > 0 && (
             <section aria-label="Photos" className="flex flex-col gap-1.5">
               <h2 className="px-0.5 text-subhead font-semibold text-muted-foreground">Photos</h2>
-              <div className="rounded-[18px] bg-card p-3.5"><Thumbs photos={own} /></div>
+              <div className="rounded-[20px] bg-card shadow-card p-3.5"><Thumbs photos={own} /></div>
             </section>
           )}
 

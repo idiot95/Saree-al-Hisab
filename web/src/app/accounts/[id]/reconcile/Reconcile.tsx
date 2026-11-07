@@ -60,7 +60,7 @@ export default function Reconcile({ accountId, credit, today, lastOn, cleared, e
       <input type="hidden" name="balance" value={String(statement)} />
       {ticked.map((e) => <input key={e.id} type="hidden" name="txnId" value={e.id} />)}
 
-      <section aria-label="The statement" className="mx-[var(--gutter)] flex flex-col gap-3.5 rounded-[18px] bg-card p-[var(--pad)]">
+      <section aria-label="The statement" className="mx-[var(--gutter)] flex flex-col gap-3.5 rounded-[20px] bg-card shadow-card p-[var(--pad)]">
         <DateChips value={on} onChange={(v) => { setOn(v); setUnticked(new Set()); }} today={today}
           dir="past" min={lastOn ?? undefined} max={today} label="Statement date" />
         <label className="flex flex-col gap-1.5">
@@ -77,7 +77,7 @@ export default function Reconcile({ accountId, credit, today, lastOn, cleared, e
 
       {/* The working, live: statement, what is ticked, and the difference — with an icon and a word for each state. */}
       <section aria-live="polite" aria-label="The difference"
-        className="mx-[var(--gutter)] flex flex-col gap-2 rounded-[18px] border border-border bg-background px-3.5 py-3">
+        className="mx-[var(--gutter)] flex flex-col gap-2 rounded-[20px] border border-border bg-background px-3.5 py-3">
         <Line label="Statement" value={typed ? shown(statement) : '—'} />
         <Line label={`Ticked off${ticked.length ? ` (${ticked.length})` : ''}`} value={shown(reached)} />
         <div className={`flex items-center gap-2 border-t border-border pt-2 text-body font-semibold ${!typed ? 'text-muted-foreground' : matches ? 'text-primary' : 'text-attention-soft-foreground'}`}>
@@ -98,7 +98,7 @@ export default function Reconcile({ accountId, credit, today, lastOn, cleared, e
             </button>
           )}
         </div>
-        <div className="overflow-hidden rounded-[18px] bg-card">
+        <div className="overflow-hidden rounded-[20px] bg-card shadow-card">
           {upTo.map((e) => {
             const isOn = !unticked.has(e.id);
             return (

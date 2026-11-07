@@ -29,7 +29,7 @@ export default function AddPhone({ endpoint }: { endpoint: string }) {
             className="min-h-12 w-full rounded-xl border border-border bg-background px-3.5 text-[length:var(--field)] text-foreground" />
         </label>
         <button type="submit" disabled={pending}
-          className="press flex min-h-12 items-center justify-center gap-2 rounded-xl bg-primary text-headline font-semibold text-primary-foreground disabled:opacity-60">
+          className="press flex min-h-12 items-center justify-center gap-2 rounded-xl bg-primary text-headline font-semibold text-primary-foreground disabled:bg-muted disabled:text-muted-foreground">
           <Icon name="add" size={20} /> {pending ? 'Adding…' : 'Add a phone'}
         </button>
         {state && !state.ok && (

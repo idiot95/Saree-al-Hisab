@@ -90,7 +90,7 @@ export default async function Tab({ params, searchParams }: {
             {/* What is still to come back is money arriving, so it wears money-in and a +. Settled and empty say so
                 in words, with an icon for settled. */}
             <section aria-label={outstanding > 0 ? 'Still to come back' : 'On this tab'}
-              className="flex flex-col gap-2 rounded-[22px] bg-card p-[18px]">
+              className="flex flex-col gap-2 rounded-[22px] bg-card shadow-card p-4">
               <span className="text-subhead text-muted-foreground">{outstanding > 0 ? 'Still to come back' : 'On this tab'}</span>
               {outstanding > 0 ? (
                 <Figure minor={outstanding} sign
@@ -146,12 +146,12 @@ export default async function Tab({ params, searchParams }: {
           <div className="fixed inset-x-0 bottom-0 z-30 flex gap-2 border-t border-border bg-background px-[var(--gutter)] pt-3 pb-[calc(14px+env(safe-area-inset-bottom,0px))]">
             <MoneyBack tabId={tab.id} ways={ways} today={today} owing={owing} />
             {closed ? (
-              <span className="flex min-h-[54px] flex-[1.3] items-center justify-center gap-2 rounded-2xl bg-muted text-headline font-semibold text-muted-foreground">
+              <span className="flex min-h-[54px] flex-[1.3] items-center justify-center gap-2 rounded-2xl bg-muted text-body font-semibold text-muted-foreground">
                 <Icon name="folder" size={18} />Closed
               </span>
             ) : (
               <Link href={`/add?tab=${tab.id}`}
-                className="press flex min-h-[54px] flex-[1.3] items-center justify-center gap-2 rounded-2xl bg-primary text-headline font-semibold text-primary-foreground">
+                className="press flex min-h-[54px] flex-[1.3] items-center justify-center gap-2 rounded-2xl bg-primary text-body font-semibold text-primary-foreground">
                 <Icon name="plus" size={18} />
                 Add cost
               </Link>

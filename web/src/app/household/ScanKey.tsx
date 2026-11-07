@@ -15,7 +15,7 @@ export default function ScanKey({ hasKey, setOn }: { hasKey: boolean; setOn: str
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="flex flex-col gap-3 rounded-[18px] bg-card p-[var(--pad)]">
+    <div className="flex flex-col gap-3 rounded-[20px] bg-card shadow-card p-[var(--pad)]">
       <div className="flex items-center gap-3">
         <Glyph name="photo_camera" tone={hasKey ? 'accent' : 'muted'} />
         <Words title="Receipt scanning"

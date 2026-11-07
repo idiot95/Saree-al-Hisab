@@ -168,7 +168,7 @@ export default async function Guide() {
             open cards were a 5,000px scroll to find one of them. Native <details>, so it opens with no script.
             pb-8 is the breathing gap, so the last topic, open, never ends flush under the tab bar. */}
         <div className="px-[var(--gutter)] pb-8">
-          <ol className="overflow-hidden rounded-[18px] bg-card">
+          <ol className="overflow-hidden rounded-[20px] bg-card shadow-card">
             {SECTIONS.map((s, i) => (
               <li key={s.title} className={i === 0 ? '' : 'border-t border-border'}>
                 <details className="group">

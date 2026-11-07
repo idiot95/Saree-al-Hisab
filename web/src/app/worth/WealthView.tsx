@@ -44,7 +44,7 @@ export default function WealthView({ views, initial, items, potRates, metalRates
     <div className="flex flex-col gap-4">
       <OwnerChips chips={views} current={v.key} onPick={setKey} />
 
-      <section aria-label={v.title} className="mx-[var(--gutter)] flex flex-col gap-3 rounded-[22px] bg-hero p-[18px] text-hero-foreground">
+      <section aria-label={v.title} className="mx-[var(--gutter)] flex flex-col gap-3 rounded-[22px] bg-hero p-4 text-hero-foreground">
         <span className="text-subhead text-hero-muted">{v.title}</span>
         <Figure minor={v.worth} className="text-display font-bold leading-none tracking-tight tabular-nums" />
         {/* The bar is the shape; the legend under it is the record, word and figure for each class. */}
@@ -88,13 +88,13 @@ export default function WealthView({ views, initial, items, potRates, metalRates
         </Section>
       )}
 
-      <section aria-label="Accounts and what is owed to you" className="mx-[var(--gutter)] rounded-[18px] bg-card">
+      <section aria-label="Accounts and what is owed to you" className="mx-[var(--gutter)] rounded-[20px] bg-card shadow-card">
         <Row href="/accounts" icon="account_balance" word="Accounts & cards" value={format(v.accounts)} />
         {v.counted && <Row href="/people" icon="handshake" word="Owed to you" value={format(v.owed)} lateral />}
       </section>
 
       {pots.length === 0 && metals.length === 0 && (
-        <EmptyLine icon="currency_exchange" className="mx-[var(--gutter)] rounded-[18px] bg-card">
+        <EmptyLine icon="currency_exchange" className="mx-[var(--gutter)] rounded-[20px] bg-card shadow-card">
           Keep a pot in another currency, or gold and silver, with + above. Each is priced in your currency every day.
         </EmptyLine>
       )}
@@ -102,7 +102,7 @@ export default function WealthView({ views, initial, items, potRates, metalRates
       {v.key === 'household' && series.length > 1 && (
         <section aria-label="Month by month" className="mx-[var(--gutter)] flex flex-col gap-2">
           <h2 className="px-0.5 text-subhead font-semibold text-muted-foreground">Month by month</h2>
-          <div className="rounded-[18px] bg-card p-4">
+          <div className="rounded-[20px] bg-card shadow-card p-4">
             <figure className="flex flex-col gap-2">
               <WhenNear className="h-36"><WorthChart series={series} /></WhenNear>
               <figcaption className="text-footnote leading-relaxed text-muted-foreground">
@@ -128,7 +128,7 @@ function Section({ title, rates, children }: { title: string; rates: RateNote; c
           <Icon name="sync_problem" size={15} />{s}
         </p>
       ))}
-      <div className="overflow-hidden rounded-[18px] bg-card">{children}</div>
+      <div className="overflow-hidden rounded-[20px] bg-card shadow-card">{children}</div>
     </section>
   );
 }

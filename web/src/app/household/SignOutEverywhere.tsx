@@ -12,8 +12,8 @@ export default function SignOutEverywhere() {
   if (!sure) {
     return (
       <button type="button" onClick={() => setSure(true)} className={row}>
-        <Glyph name="devices" />
-        <Words title="Sign out everywhere" sub="Every phone, this one included" />
+        <Glyph name="devices" tone="danger" />
+        <Words title={<span className="text-destructive">Sign out everywhere</span>} sub="Every phone, this one included" />
         <Chevron />
       </button>
     );

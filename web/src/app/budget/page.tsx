@@ -96,7 +96,7 @@ export default async function Plan({ searchParams }: {
             {lit.length > 0 && (
               <section aria-label="By category" className="flex flex-col gap-1.5">
                 <h2 className="px-0.5 text-subhead font-semibold text-muted-foreground">By category</h2>
-                <ul className="overflow-hidden rounded-[18px] bg-card">
+                <ul className="overflow-hidden rounded-[20px] bg-card shadow-card">
                   {lit.map((r) => <CategoryLine key={r.category_id} row={r} month={month} />)}
                 </ul>
               </section>
@@ -116,7 +116,7 @@ export default async function Plan({ searchParams }: {
           {/* Two ways to change things, in one card: this month alone (the full grid, every category including the
               ones with nothing against them, without touching the budget behind it — a native <details>, so it opens
               with no JS), and the categories themselves. */}
-          <div className="mx-[var(--gutter)] overflow-clip rounded-[18px] bg-card">
+          <div className="mx-[var(--gutter)] overflow-clip rounded-[20px] bg-card shadow-card">
             {canEdit && sets.length > 0 && (
               <details className="group border-b border-border">
                 <summary className="flex min-h-14 cursor-pointer list-none items-center gap-3 px-4 text-body font-medium [&::-webkit-details-marker]:hidden">
@@ -157,7 +157,7 @@ function MonthFigures({ month, budget, spent, future }: { month: string; budget:
   const name = new Date(month).toLocaleDateString('en-IN', { month: 'long' });
   if (budget === 0) {
     return (
-      <section aria-label={`${label(month)} so far`} className="flex flex-col gap-2 rounded-[22px] bg-card p-[18px]">
+      <section aria-label={`${label(month)} so far`} className="flex flex-col gap-2 rounded-[22px] bg-card shadow-card p-4">
         <span className="text-subhead text-muted-foreground">Spent in {name}</span>
         <Figure minor={spent} className="text-large-title font-bold leading-none tracking-tight tabular-nums" />
         <span className="text-footnote text-muted-foreground">Nothing budgeted for {name} yet.</span>
@@ -169,7 +169,7 @@ function MonthFigures({ month, budget, spent, future }: { month: string; budget:
     : future ? { word: 'Not started', icon: 'schedule', tone: 'text-muted-foreground' }
       : { word: 'Within budget', icon: 'check_circle', tone: 'text-money-in' };
   return (
-    <section aria-label={`${label(month)} against the budget`} className="flex flex-col gap-3 rounded-[22px] bg-card p-[18px]">
+    <section aria-label={`${label(month)} against the budget`} className="flex flex-col gap-3 rounded-[22px] bg-card shadow-card p-4">
       <div className="flex items-center justify-between gap-3">
         <span className="text-subhead text-muted-foreground">{pace.over ? 'Over budget by' : 'Left to spend'}</span>
         <span className={`flex items-center gap-1 text-footnote font-semibold ${status.tone}`}>
@@ -208,7 +208,7 @@ function CategoryLine({ row, month }: { row: Row; month: string }) {
     <li className="border-b border-border last:border-b-0">
       <Link href={`/entries?m=${month}&c=${row.category_id}`}
         className="press flex min-h-[68px] items-center gap-3 px-3.5 py-3">
-        <Chip icon={row.icon} tint={row.tint} size={36} radius={10} />
+        <Chip icon={row.icon} tint={row.tint} size={36} />
         <span className="flex min-w-0 flex-1 flex-col gap-1.5">
           <span className="flex items-baseline justify-between gap-2">
             <span className="min-w-0 text-body font-medium [overflow-wrap:anywhere]">

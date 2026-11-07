@@ -17,7 +17,7 @@ export default function CopyPrevious({ month, from, total, categories }: {
   const [state, act, pending] = useActionState(copyPreviousMonth, null);
 
   return (
-    <form action={act} className="flex flex-col gap-3 rounded-[18px] bg-card p-4">
+    <form action={act} className="flex flex-col gap-3 rounded-[20px] bg-card shadow-card p-4">
       <input type="hidden" name="month" value={month} />
       <p className="text-subhead leading-relaxed text-muted-foreground">
         {from} came to <b className="font-semibold text-foreground tabular-nums">{format(Number(total))}</b> across{' '}

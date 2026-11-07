@@ -64,7 +64,7 @@ export default function TopCategories({ categories, top, value, onChange, label 
                  the category's own colour stays on its icon chip. */
               style={choice(isOn)}
               className={cn(tile, 'bg-card', isOn ? 'font-semibold' : 'font-medium')}>
-              <Chip icon={c.icon} tint={c.tint} size={32} radius={10} />
+              <Chip icon={c.icon} tint={c.tint} size={32} />
               <span className="line-clamp-2 w-full break-words text-center">{c.name}</span>
             </button>
           );

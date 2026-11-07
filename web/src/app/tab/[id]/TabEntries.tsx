@@ -138,7 +138,7 @@ export default function TabEntries({
           <h2 className="px-0.5 text-subhead font-semibold text-muted-foreground">{monthName(m.key)}</h2>
           {/* px-[var(--pad)] and overflow-hidden: the swipe row's negative margin is --pad, so its actions stop at
               the rounded edge and the card never scrolls sideways. */}
-          <div className="overflow-hidden rounded-[18px] bg-card px-[var(--pad)]">
+          <div className="overflow-hidden rounded-[20px] bg-card shadow-card px-[var(--pad)]">
             {m.rows.map((e, i) => (
               <SwipeRow key={e.id} commit={false} actions={canEdit ? actionsFor(e) : []}>
                 <Link href={edit(e.id)} draggable={false}

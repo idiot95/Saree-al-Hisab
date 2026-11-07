@@ -357,6 +357,11 @@ try {
   await form.getByLabel('Amount').fill('123');
   await form.getByRole('button', { name: 'Add it' }).click();
   const list = page.getByRole('region', { name: 'Every regular payment' });
+  /* With something due in the next two weeks the full list opens folded to one line (the dues above would otherwise
+     be listed twice): unfold it. */
+  await list.waitFor({ timeout: 20000 });
+  const fold = list.locator('details:not([open]) > summary');
+  if (await fold.count()) await fold.click();
   await list.getByText(SCHEDULE, { exact: true }).waitFor({ timeout: 20000 });
   const [rule] = await sql`select rrule, hijri_rule from schedule where household_id = ${hh} and name = ${SCHEDULE}`;
   assert.equal(rule.rrule, null, 'no Gregorian rule');

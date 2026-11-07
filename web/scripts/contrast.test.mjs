@@ -164,7 +164,7 @@ for (const theme of ['light', 'dark']) {
       'hero-1': '#A8D9B8', 'hero-2': '#9CC9E8', 'hero-3': '#E8C77A', 'hero-4': '#F2B49C' },
     dark: { background: '#130E12', card: '#1D161C', foreground: '#F0E7EE', 'muted-foreground': '#B3A3AF',
       muted: '#2C2229', secondary: '#2C2229', primary: '#D9A9D0', 'primary-foreground': '#1E161D',
-      accent: '#2E1F2B', 'accent-foreground': '#F0DCEB', hero: '#2D1729',
+      accent: '#2E1F2B', 'accent-foreground': '#F0DCEB', hero: '#3F2139',
       attention: '#E3B5A0', 'attention-foreground': '#1E161D', 'attention-ink': '#E3B5A0',
       'attention-soft': '#3A241A', 'attention-soft-foreground': '#F2C9B6',
       'money-in': '#A3E6BB', destructive: '#F2867A', 'chart-1': '#D9A9D0', 'chart-2': '#E3B5A0',
@@ -206,8 +206,17 @@ for (const theme of ['light', 'dark']) {
   const MARKS = [['primary', ['muted']], ['destructive', ['muted']], ['attention-ink', ['background', 'card', 'muted']],
     ['chart-1', ['card']], ['chart-2', ['card']],
     ['hero-1', ['hero']], ['hero-2', ['hero']], ['hero-3', ['hero']], ['hero-4', ['hero']]];
+  /* Surfaces that must stand off the ground they sit on (v3.1 P3, ux-audit O7): the net-worth card, the one dark
+     surface on Home, vanished into the dark ground at 1.15:1. Not text, so a lower bar: 1.3:1. (A white card on the
+     paper ground is 1.08:1 by design and is lifted by --card-shadow, which a ratio cannot measure.) */
+  const SURFACES = [['hero', ['background'], 1.3]];
   for (const [theme, T, R] of [['light', L, Lr], ['dark', D, Dr]]) {
     console.log(`\n  QUIET LEDGER ${theme.toUpperCase()}`);
+    for (const [s, grounds, need] of SURFACES) for (const ground of grounds) {
+      const a = get(T, R, s), b = get(T, R, ground), r = ratio(a, b), ok = r >= need;
+      if (ok) pass++; else fail++;
+      if (!ok) console.log(`  FAIL surface ${s} on ${ground}  ${r.toFixed(2)}:1 (needs ${need})  (${a} on ${b})`);
+    }
     // money-in must not be mistaken for the primary: a luminance gap, not just contrast against the ground
     {
       const a = get(T, R, 'money-in'), b = get(T, R, 'primary');

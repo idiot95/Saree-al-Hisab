@@ -52,7 +52,7 @@ export default function BooksSwitcher({ books, canRename, currency, currencyFixe
     <Card>
       {books.map((b) => (
         <div key={b.id} className="flex min-h-16 items-center gap-3 px-[var(--pad)] py-2.5">
-          <span className={`grid size-[38px] flex-none place-items-center rounded-[10px] text-body font-bold ${b.active
+          <span className={`grid size-10 flex-none place-items-center rounded-[12px] text-body font-bold ${b.active
             ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
             {b.name.slice(0, 2).toUpperCase()}
           </span>

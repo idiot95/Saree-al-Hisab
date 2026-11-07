@@ -50,7 +50,7 @@ export default function AddAccount({ startOpen = false }: { startOpen?: boolean 
             className={`flex min-h-11 cursor-pointer items-start gap-3 rounded-xl border px-3.5 py-3 ${kind === k.id ? 'border-primary bg-accent' : 'border-border bg-background'}`}>
             <input type="radio" name="kind" value={k.id} checked={kind === k.id}
               onChange={() => setKind(k.id)} className="mt-0.5 size-[19px] flex-none accent-primary" />
-            <Chip icon={ACCOUNT_ICON[k.id]} tint={ACCOUNT_TINT[k.id]} size={34} radius={9} iconSize={17} />
+            <Chip icon={ACCOUNT_ICON[k.id]} tint={ACCOUNT_TINT[k.id]} size={34} iconSize={17} />
             <span className="flex min-w-0 flex-col gap-0.5">
               <span className="text-body font-semibold">{k.label}</span>
               <span className="text-subhead leading-snug text-muted-foreground">{k.what}</span>

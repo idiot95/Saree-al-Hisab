@@ -43,7 +43,7 @@ export default function InviteForm({ origin, household, inviter, passwordOpen }:
   const sentRole = state?.ok && state.role === 'viewer' ? 'viewer' : 'adult';
 
   return (
-    <div className="flex flex-col gap-4 rounded-[18px] bg-card p-[var(--pad)]">
+    <div className="flex flex-col gap-4 rounded-[20px] bg-card shadow-card p-[var(--pad)]">
       <Said>{said}</Said>
       <form key={round} action={act} {...keep} onSubmit={() => { setSaid(''); keep.onSubmit(); }} className="flex flex-col gap-3">
         <Field label="Email address" name="email" type="email" inputMode="email" autoComplete="off"

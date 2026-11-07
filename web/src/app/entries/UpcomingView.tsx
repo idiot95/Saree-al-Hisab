@@ -8,7 +8,7 @@ import Calendar, { type CalSchedule } from '../schedules/Calendar';
 import DueRow from '../schedules/DueRow';
 import { archiveSchedule } from '../schedules/actions';
 import Swipeable from '../Swipeable';
-import { Chip } from '../Icon';
+import { Chip, Icon } from '../Icon';
 import { Empty, Section } from './parts';
 
 /* Activity › Upcoming: what comes round anyway — rent, fees, an EMI, a salary. What is due in the next fortnight
@@ -58,7 +58,7 @@ export async function loadUpcoming(hh: string, canWrite: boolean, startOpen: boo
       )}
       {dues.length > 0 && (
         <Section title="Due in the next two weeks">
-          <div className="overflow-hidden rounded-[18px] bg-card px-[var(--pad)]">
+          <div className="overflow-hidden rounded-[20px] bg-card shadow-card px-[var(--pad)]">
             {dues.map((d) => {
               const s = byId.get(d.scheduleId)!;
               return (
@@ -66,7 +66,7 @@ export async function loadUpcoming(hh: string, canWrite: boolean, startOpen: boo
                   scheduleId={d.scheduleId} name={s.name} kind={s.kind} dueOn={d.dueOn}
                   on={d.on} movedFrom={d.movedFrom}
                   daysAway={d.daysAway} amount={Number(s.amount ?? 0)} category={s.category}
-                  icon={s.icon} rule={ruleOf(s)?.rule} cal={ruleOf(s)?.cal} today={todayIso} />
+                  icon={s.icon} tint={s.tint} rule={ruleOf(s)?.rule} cal={ruleOf(s)?.cal} today={todayIso} />
               );
             })}
           </div>
@@ -80,7 +80,21 @@ export async function loadUpcoming(hh: string, canWrite: boolean, startOpen: boo
         </section>
       )}
 
-      {live.length > 0 && (
+      {/* When some are due soon they are already above, so the full list opens folded to one line rather than
+          showing the same payments twice (ux-audit O5); with nothing due it is the screen's list, open. */}
+      {live.length > 0 && dues.length > 0 && (
+        <section aria-label="Every regular payment" className="mx-[var(--gutter)]">
+          <details className="group">
+            <summary className="press flex min-h-14 cursor-pointer list-none items-center gap-3 rounded-[20px] bg-card shadow-card px-[var(--pad)] text-body font-medium text-muted-foreground group-open:mb-1.5 group-open:rounded-none group-open:bg-transparent group-open:px-0.5 [&::-webkit-details-marker]:hidden">
+              <Icon name="event_repeat" size={22} className="group-open:hidden" />
+              <span className="flex-1 group-open:text-subhead group-open:font-semibold">Every regular payment · {live.length}</span>
+              <Icon name="expand_more" size={20} className="transition-transform duration-(--dur-2) group-open:rotate-180" />
+            </summary>
+            <Rows schedules={live} canWrite={canWrite} today={today} todayIso={todayIso} />
+          </details>
+        </section>
+      )}
+      {live.length > 0 && dues.length === 0 && (
         <Section title="Every regular payment">
           <Rows schedules={live} canWrite={canWrite} today={today} todayIso={todayIso} />
         </Section>
@@ -112,7 +126,7 @@ function Rows({ schedules, canWrite, today, todayIso, done = false }: {
   schedules: ScheduleRow[]; canWrite: boolean; today: Date; todayIso: string; done?: boolean;
 }) {
   return (
-    <div className={`overflow-hidden rounded-[18px] bg-card px-[var(--pad)] ${done ? 'opacity-75' : ''}`}>
+    <div className={`overflow-hidden rounded-[20px] bg-card shadow-card px-[var(--pad)] ${done ? 'opacity-75' : ''}`}>
       {schedules.map((s, i) => {
         const r = ruleOf(s);
         const next = done ? null : nextUnsettled(s, s.settled, today);
@@ -124,7 +138,7 @@ function Rows({ schedules, canWrite, today, todayIso, done = false }: {
               fields: { scheduleId: s.id }, done: `${s.name} ${done ? 'removed' : 'stopped'}.` },
           ] : []}>
             <div className={`flex min-h-[72px] items-center gap-3 py-2.5 ${i === schedules.length - 1 ? '' : 'border-b border-border'}`}>
-              <Chip icon={s.icon ?? 'autodebit'} tint={s.tint} size={40} radius={12} />
+              <Chip icon={s.icon ?? 'autodebit'} tint={s.tint} size={40} />
               <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                 <span className="text-body font-medium [overflow-wrap:anywhere]">{s.name}</span>
                 <span className="text-footnote text-muted-foreground [overflow-wrap:anywhere]">

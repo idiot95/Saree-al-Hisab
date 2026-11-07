@@ -10,7 +10,7 @@ import { useMoney } from '@/app/currency';
 import { removeEntry, restoreEntry } from './actions';
 import { startPending } from '../pending';
 import { Chip, Icon } from '../Icon';
-import { chip, chipQuiet, chipQuietOn, chipQuietRow } from '../form-bits';
+import { chip, chipQuiet, chipQuietOn, chipQuietRow, rowRule } from '../form-bits';
 
 export type Row = {
   id: string; kind: string; amount: string; merchant: string | null;
@@ -126,7 +126,7 @@ export default function EntryList({ days, canEdit, tools = false, flat = false, 
         </div>
       )}
       {tools && nothing && (
-        <p className="mx-[var(--gutter)] rounded-[18px] bg-card px-6 py-8 text-center text-subhead text-muted-foreground">
+        <p className="mx-[var(--gutter)] rounded-[20px] bg-card shadow-card px-6 py-8 text-center text-subhead text-muted-foreground">
           {q ? `Nothing ${everyMonth ? 'here' : 'this month'} matches “${q.trim()}”.` : `Nothing of that kind ${everyMonth ? 'here' : 'this month'}.`}
         </p>
       )}
@@ -138,14 +138,14 @@ export default function EntryList({ days, canEdit, tools = false, flat = false, 
             {!flat && (
               <h2 className="mx-[var(--gutter)] px-0.5 text-subhead font-semibold text-muted-foreground">{d.label}</h2>
             )}
-            <div className={`${flat ? '' : 'mx-[var(--gutter)]'} overflow-hidden rounded-[18px] bg-card px-[var(--pad)]`}>
+            <div className={`${flat ? '' : 'mx-[var(--gutter)]'} overflow-hidden rounded-[20px] bg-card shadow-card px-[var(--pad)]`}>
               {rows.map((e, i) => (
                 <SwipeRow key={e.id} actions={canEdit ? [
                   { label: 'Edit', tone: 'primary', icon: <Icon name="edit" size={20} />,
                     act: () => { startPending(`/entries/${e.id}`); router.push(`/entries/${e.id}`); } },
                   { label: 'Delete', tone: 'danger', icon: <Icon name="delete" size={20} />, act: () => del(e) },
                 ] : []}>
-                  <Entry e={e} last={i === rows.length - 1} />
+                  <Entry e={e} last={i === rows.length - 1} swipe={canEdit} />
                 </SwipeRow>
               ))}
             </div>
@@ -157,7 +157,7 @@ export default function EntryList({ days, canEdit, tools = false, flat = false, 
   );
 }
 
-function Entry({ e, last }: { e: Row; last: boolean }) {
+function Entry({ e, last, swipe }: { e: Row; last: boolean; swipe: boolean }) {
   const { format } = useMoney();
   const move = MOVES.has(e.kind);
   const incoming = INCOMING.has(e.kind);
@@ -168,13 +168,13 @@ function Entry({ e, last }: { e: Row; last: boolean }) {
   /* Names wrap rather than trail off: "Came back from Imran Qureshi" is the whole point of the row. */
   return (
     <Link href={`/entries/${e.id}`} draggable={false}
-      className={`flex min-h-16 items-center gap-3 py-2.5 text-foreground no-underline ${last ? '' : 'border-b border-border'}`}>
+      className={`relative flex min-h-16 items-center gap-3 py-2.5 text-foreground no-underline ${last ? '' : `${rowRule} ${swipe ? 'after:-right-[calc(var(--pad)+28px)]' : 'after:-right-[var(--pad)]'}`}`}>
       {move && !lent ? (
-        <span className="grid size-10 flex-none place-items-center rounded-xl bg-muted text-muted-foreground">
+        <span className="grid size-10 flex-none place-items-center rounded-[12px] bg-muted text-muted-foreground">
           <Icon name="swap_horiz" size={20} />
         </span>
       ) : (
-        <Chip icon={e.icon} tint={e.tint} size={40} radius={12} />
+        <Chip icon={e.icon} tint={e.tint} size={40} />
       )}
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span className="text-body font-medium [overflow-wrap:anywhere]">

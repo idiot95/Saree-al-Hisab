@@ -20,6 +20,9 @@ import MoreFields, { type MoreState } from './MoreFields';
 import { InDrawer, PayRow, Row, ToRow, WhenRow } from './PickRows';
 import { useKeyboardInset } from './keyboard';
 
+/** Currency symbols more than one currency writes, so the amount names its code beside them. */
+const AMBIGUOUS = new Set(['$', 'kr', 'kr.', '¥', 'Rs', 'R', '£', 'Fr', 'CHF']);
+
 /* Add Entry — the screen the whole product rests on, and now one screen.
 
    With no bank feed and no SMS, this is how nearly everything gets in, so the
@@ -364,7 +367,7 @@ export default function AddEntry({
         <header className="flex flex-none flex-col gap-1 px-[var(--gutter)] pt-2">
           <div className="flex items-center justify-between gap-2">
             <button type="button" aria-label="Close"
-              className="-ml-2.5 flex size-11 items-center justify-center rounded-full in-data-[platform=android]:size-12"
+              className="-ml-2.5 flex size-11 flex-none items-center justify-center rounded-full in-data-[platform=android]:size-12"
               onClick={() => {
                 haptic('select');
                 if (onClose) onClose(); else if (sheet) router.back(); else { startPending('/', 'pop'); router.push('/'); }
@@ -379,7 +382,7 @@ export default function AddEntry({
                 return (
                   <button key={k.id} type="button" role="radio" aria-checked={isOn} tabIndex={isOn ? 0 : -1}
                     onClick={() => chooseKind(k.id)} onKeyDown={kindKeys}
-                    className={cn('min-h-11 rounded-[10px] px-3.5 text-body transition-colors',
+                    className={cn('min-h-11 rounded-[10px] px-3 text-body transition-colors duration-(--dur-2)',
                       isOn ? 'bg-raised font-semibold text-foreground shadow-sm' : 'font-medium text-muted-foreground')}>
                     {k.label}
                   </button>
@@ -410,7 +413,7 @@ export default function AddEntry({
             <input
               ref={amountBox}
               size={Math.max(2, len + 1)} data-amount-size={amountSize}
-              className={cn('tabular-nums w-auto max-w-[calc(100%-56px)] min-w-0 flex-initial [field-sizing:content] bg-transparent p-0 leading-tight font-bold tracking-tight text-foreground caret-primary outline-none placeholder:text-muted-foreground/50', amountSize)}
+              className={cn('tabular-nums w-auto max-w-[calc(100%-56px)] min-w-0 flex-initial [field-sizing:content] bg-transparent p-0 leading-tight font-bold tracking-tight text-foreground caret-primary outline-none placeholder:text-muted-foreground/70', amountSize)}
               type="text" inputMode="decimal" autoComplete="off" enterKeyHint="done"
               autoFocus={!draft?.amountMinor}
               value={shown}
@@ -421,9 +424,9 @@ export default function AddEntry({
               placeholder="0"
               aria-label={`Amount in ${currency}`}
             />
-            {/* The code, for a symbol that does not spell it: ₹ says INR to one
-                household and nothing to a guest. AED already says AED. */}
-            {symbol.trim() !== currency && (
+            {/* The code, only where the symbol could be someone else's money: $ is dollars in a dozen countries, kr
+                in four. ₹ is only ever INR, and AED already says AED (ux-audit O13). */}
+            {AMBIGUOUS.has(symbol.trim()) && symbol.trim() !== currency && (
               <span className="tabular-nums flex-none text-subhead font-semibold text-muted-foreground">{currency}</span>
             )}
           </label>
@@ -511,7 +514,7 @@ export default function AddEntry({
           </p>
         )}
         <button type="button" onClick={save} disabled={!canSave} data-save
-          className="flex h-14 w-full min-w-0 items-center justify-center gap-1.5 rounded-2xl bg-primary px-4 text-headline font-semibold text-primary-foreground transition-opacity disabled:opacity-45">
+          className="flex h-14 w-full min-w-0 items-center justify-center gap-1.5 rounded-2xl bg-primary px-4 text-headline font-semibold text-primary-foreground transition-colors duration-(--dur-2) disabled:bg-muted disabled:text-muted-foreground">
           {pending ? 'Saving…' : (
             <>
               <span className="flex-none">Save</span>

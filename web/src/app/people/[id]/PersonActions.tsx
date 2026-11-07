@@ -30,11 +30,11 @@ export default function PersonActions({ personId, name, balance, ways, categorie
   if (mode === null) {
     return (
       <div className="mx-[var(--gutter)] flex flex-wrap gap-2">
-        <Button type="button" onClick={() => setMode('lend')} className="h-[54px] flex-1 basis-40 rounded-2xl text-headline font-semibold">
+        <Button type="button" onClick={() => setMode('lend')} className="h-[54px] flex-1 basis-40 rounded-2xl text-body font-semibold">
           <Icon name="payments" size={18} />Lend money
         </Button>
         <Button type="button" variant="outline" onClick={() => setMode('back')}
-          className="h-[54px] flex-1 basis-40 rounded-2xl border-border bg-card text-headline font-semibold dark:border-border dark:bg-card">
+          className="h-[54px] flex-1 basis-40 rounded-2xl border-border bg-card text-body font-semibold dark:border-border dark:bg-card">
           <Icon name="receivable" size={18} />Got money back
         </Button>
       </div>
@@ -51,7 +51,7 @@ export default function PersonActions({ personId, name, balance, ways, categorie
 
   /* Page-level forms: each server action goes straight into useActionState, so the form posts without script. */
   return (
-    <div className="mx-[var(--gutter)] rounded-[18px] bg-card p-4">
+    <div className="mx-[var(--gutter)] rounded-[20px] bg-card shadow-card p-4">
       {mode === 'lend' && (
         <form action={lendAct} className="flex flex-col gap-3">
           <Title>Lend to {name}</Title>

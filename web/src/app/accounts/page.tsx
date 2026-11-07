@@ -86,7 +86,7 @@ export default async function Accounts() {
           <div className="flex flex-col gap-6 px-[var(--gutter)]">
             {/* The same figure Wealth shows, from the same helper; a tap goes there. */}
             <Link href="/worth" motion="fade" aria-label="Net worth, open Wealth"
-              className="press flex flex-col gap-3 rounded-[22px] bg-card p-[18px] text-foreground no-underline">
+              className="press flex flex-col gap-3 rounded-[22px] bg-card shadow-card p-4 text-foreground no-underline">
               <span className="flex items-center justify-between">
                 <span className="text-subhead text-muted-foreground">Net worth</span>
                 <Icon name="chevron_right" size={20} className="text-muted-foreground" />
@@ -147,7 +147,7 @@ export default async function Accounts() {
           <div className="flex flex-col gap-3 px-[var(--gutter)]">
             {canWrite && accounts.length > 0 && (
               <Link href="/accounts/reconcile"
-                className="press flex min-h-16 items-center gap-3 rounded-[18px] bg-card px-[var(--pad)] py-3 text-foreground no-underline">
+                className="press flex min-h-16 items-center gap-3 rounded-[20px] bg-card shadow-card px-[var(--pad)] py-3 text-foreground no-underline">
                 <span className="grid size-[38px] flex-none place-items-center rounded-full bg-accent text-accent-foreground">
                   <Icon name="done_all" size={20} />
                 </span>
@@ -172,7 +172,7 @@ export default async function Accounts() {
               <List>
                 {methods.map((m, i) => (
                   <div key={m.id} className={`flex min-h-[68px] items-start gap-3 py-3 ${i === methods.length - 1 ? '' : 'border-b border-border'}`}>
-                    <Chip icon={RAIL_ICON[m.kind] ?? 'tag'} tint={RAIL_TINT[m.kind] ?? 'neutral'} size={38} radius={999} />
+                    <Chip icon={RAIL_ICON[m.kind] ?? 'tag'} tint={RAIL_TINT[m.kind] ?? 'neutral'} size={38} />
                     <div className="flex min-w-0 flex-1 flex-col gap-0.5">
                       <span className="text-body font-semibold leading-snug [overflow-wrap:anywhere]">{m.name}</span>
                       {/* Which balance it spends, in as few words as the row has space for. */}
@@ -230,7 +230,7 @@ function Section({ title, note, children }: { title: string; note?: string; chil
 /* One list card. px-[var(--pad)] and overflow-hidden: a swipe row's negative margin is --pad, so its actions stop
    at the rounded edge and the card never scrolls sideways. */
 function List({ children }: { children: React.ReactNode }) {
-  return <div className="overflow-hidden rounded-[18px] bg-card px-[var(--pad)]">{children}</div>;
+  return <div className="overflow-hidden rounded-[20px] bg-card shadow-card px-[var(--pad)]">{children}</div>;
 }
 
 type AccountRow = Awaited<ReturnType<typeof accountsWithBalances>>[number];
@@ -241,7 +241,7 @@ function AccountLine({ a, rails }: { a: AccountRow; rails: string[] }) {
   const bal = Number(a.balance);
   return (
     <>
-      <Chip icon={ACCOUNT_ICON[a.kind]} tint={ACCOUNT_TINT[a.kind]} size={38} radius={999} />
+      <Chip icon={ACCOUNT_ICON[a.kind]} tint={ACCOUNT_TINT[a.kind]} size={38} />
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span className="text-body font-semibold leading-snug [overflow-wrap:anywhere]">{a.name}</span>
         <span className="text-subhead leading-snug text-muted-foreground">

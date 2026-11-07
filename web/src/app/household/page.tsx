@@ -63,37 +63,9 @@ export default async function Household() {
             {live.length > 0 && ` · ${live.length} invited`}</>} />
 
         <div className="flex flex-col gap-6 px-[var(--gutter)] pb-8">
-          {/* The order the brief sets: you, the people, inviting more, the books, then the device and the
-              household's tools. */}
-          <Section label="Your account">
-            <Card>
-              <div className="flex min-h-16 items-center gap-3 px-[var(--pad)] py-3">
-                <Avatar name={actor.user_name} image={me?.image ?? null} />
-                <Words title={actor.user_name || 'You'}
-                  sub={[actor.email, actor.role ? LABEL[actor.role] : null].filter(Boolean).join(' · ')} />
-              </div>
-              <LinkGoogle linked={!!me?.has_google} />
-              <PasswordCard />
-              <SignOutEverywhere />
-              {/* Signing out lives here, with the rest of the account — not on the Home header, where it was the
-                  only button and the wrong one to press by accident with a thumb. */}
-              <form action={async () => { 'use server'; await signOut({ redirectTo: '/signin' }); }}>
-                <button type="submit" className={row}>
-                  <Glyph name="logout" />
-                  <Words title="Sign out" sub="On this phone only" />
-                  <Chevron />
-                </button>
-              </form>
-              {/* The same page that sign-up points at, from inside: the terms are also the record of how the books
-                  are kept, and that is a question people ask months later, when the household has grown. */}
-              <Link href="/terms" className={row}>
-                <Glyph name="verified_user" />
-                <Words title="Terms, and how your data is kept" sub="Encrypted, checked on every request, source public" />
-                <Chevron />
-              </Link>
-            </Card>
-          </Section>
-
+          {/* The household first (ux-audit O11): the screen is opened from Home's "Household and settings", so the
+              people, inviting more, the books and the household's tools lead, and the account — with its two ways
+              out — comes last. */}
           <Section label="Members"
             note={<span className="flex items-start gap-1.5"><Icon name="lock" size={16} className="mt-px" />
               Everyone in a household sees every entry and every budget.{!canManage && ' Only an owner can invite or remove people.'}</span>}>
@@ -145,7 +117,7 @@ export default async function Household() {
               currency={actor.currency} currencyFixed={entries > 0} />
           </Section>
 
-          <Section label="Theme">
+          <Section label="Appearance">
             <ThemePicker current={theme} />
           </Section>
 
@@ -160,6 +132,35 @@ export default async function Household() {
               <Link href="/household/capture" className={row}>
                 <Glyph name="sms" />
                 <Words title="SMS capture" sub="Bank messages from your phone, as drafts to review" />
+                <Chevron />
+              </Link>
+            </Card>
+          </Section>
+
+          <Section label="Your account">
+            <Card>
+              <div className="flex min-h-16 items-center gap-3 px-[var(--pad)] py-3">
+                <Avatar name={actor.user_name} image={me?.image ?? null} />
+                <Words title={actor.user_name || 'You'}
+                  sub={[actor.email, actor.role ? LABEL[actor.role] : null].filter(Boolean).join(' · ')} />
+              </div>
+              <LinkGoogle linked={!!me?.has_google} />
+              <PasswordCard />
+              <SignOutEverywhere />
+              {/* Signing out lives here, with the rest of the account — not on the Home header, where it was the
+                  only button and the wrong one to press by accident with a thumb. */}
+              <form action={async () => { 'use server'; await signOut({ redirectTo: '/signin' }); }}>
+                <button type="submit" className={row}>
+                  <Glyph name="logout" />
+                  <Words title="Sign out" sub="On this phone only" />
+                  <Chevron />
+                </button>
+              </form>
+              {/* The same page that sign-up points at, from inside: the terms are also the record of how the books
+                  are kept, and that is a question people ask months later, when the household has grown. */}
+              <Link href="/terms" className={row}>
+                <Glyph name="verified_user" />
+                <Words title="Terms, and how your data is kept" sub="Encrypted, checked on every request, source public" />
                 <Chevron />
               </Link>
             </Card>

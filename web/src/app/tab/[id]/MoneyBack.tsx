@@ -51,7 +51,7 @@ export default function MoneyBack({ tabId, ways, today, owing }: {
     <>
       <button type="button" disabled={owing.length === 0}
         onClick={() => { haptic('select'); setWho(0); setTicked(new Set()); setOpen(true); }}
-        className="press flex min-h-[54px] flex-1 items-center justify-center gap-2 rounded-2xl border border-border bg-card text-headline font-semibold text-foreground disabled:opacity-50">
+        className="press flex min-h-[54px] flex-1 items-center justify-center gap-2 rounded-2xl border border-border bg-card text-body font-semibold text-foreground disabled:opacity-50">
         <Icon name="receivable" size={18} />
         Money back
       </button>

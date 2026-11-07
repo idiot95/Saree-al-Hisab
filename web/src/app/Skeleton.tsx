@@ -132,7 +132,7 @@ function H2({ children, known = true, className = 'px-0.5' }: { children: string
 }
 
 /** One list row: a chip, two lines, an amount — the shape of an entry, a tab, an account. */
-function Row({ h = 'min-h-16 py-2.5', chip = 'size-10 rounded-xl', first = 'Groceries at the market', second = 'Card · HDFC Savings',
+function Row({ h = 'min-h-16 py-2.5', chip = 'size-10 rounded-[12px]', first = 'Groceries at the market', second = 'Card · HDFC Savings',
   amount = '₹1,250', last = false, i = 0, pad = '' }: {
   h?: string; chip?: string | null; first?: string; second?: string | null; amount?: string | null; last?: boolean; i?: number; pad?: string;
 }) {
@@ -158,7 +158,7 @@ function FigureCard({ tone = 'card', label = 'Owed to you', size = 'text-large-t
   tone?: 'card' | 'hero'; label?: string; size?: string; lines?: string[]; gap?: string; line?: string;
 }) {
   return (
-    <section aria-hidden className={`flex flex-col ${gap} rounded-[22px] p-[18px] ${tone === 'hero' ? 'bg-hero text-hero-foreground' : 'bg-card'}`}>
+    <section aria-hidden className={`flex flex-col ${gap} rounded-[22px] p-4 ${tone === 'hero' ? 'bg-hero text-hero-foreground' : 'bg-card shadow-card'}`}>
       <Ghost className="text-subhead" w="w-1/3">{label}</Ghost>
       <Ghost fig className={`${size} font-bold leading-none tracking-tight`} w="w-1/2">₹12,345</Ghost>
       {lines.map((l, i) => <Ghost key={i} className={line} w="w-3/5">{l}</Ghost>)}
@@ -166,7 +166,7 @@ function FigureCard({ tone = 'card', label = 'Owed to you', size = 'text-large-t
   );
 }
 
-const CARD = 'overflow-hidden rounded-[18px] bg-card';
+const CARD = 'overflow-hidden rounded-[20px] bg-card shadow-card';
 
 /* ---------- the frame around every screen ---------- */
 
@@ -196,7 +196,7 @@ function monthNow(style: 'long' | 'short') {
  *  figure, the pace bar, what is spent of what and the day. */
 function LeftToSpendStill({ size }: { size: string }) {
   return (
-    <div className="flex flex-col gap-3 rounded-[22px] bg-card p-[18px]">
+    <div className="flex flex-col gap-3 rounded-[22px] bg-card shadow-card p-4">
       <div className="flex items-center justify-between gap-3">
         <Ghost className="text-subhead" w="w-full">Left to spend</Ghost>
         <Ghost className="text-footnote font-semibold" w="w-full">On track</Ghost>
@@ -221,31 +221,31 @@ function Home({ stillBar }: Draw) {
           <Ghost as="p" className="text-subhead" w="w-1/3">Household</Ghost>
           <h1 className="text-large-title font-bold leading-tight tracking-tight">{monthNow('long')}</h1>
         </div>
-        <S className="size-11 rounded-full in-data-[platform=android]:size-12" />
+        <S className="size-10 rounded-full" />
       </header>
       <div className="flex flex-col gap-4 px-[var(--gutter)] pb-6 pt-2">
         {/* Left to spend, the card a household with a budget opens on. */}
         <LeftToSpendStill size="text-display" />
         <div className="grid grid-cols-2 gap-3">
           {['To review', 'Due this week'].map((t) => (
-            /* 104 and 72, not the page's minimums: a tile and the net-worth row are that tall once their figures are in. */
-            <span key={t} className="flex min-h-[104px] flex-col gap-1.5 rounded-[18px] bg-card p-3.5">
+            /* 109 and 73, not the page's minimums: a tile and the net-worth row are that tall once their figures are in. */
+            <span key={t} className="flex min-h-[109px] flex-col gap-1.5 rounded-[20px] bg-card shadow-card p-4">
               <S className="size-[22px] rounded-md" />
-              <Ghost className="text-footnote" w="w-1/2">{t}</Ghost>
+              <Ghost className="text-subhead" w="w-1/2">{t}</Ghost>
               <Ghost className="text-headline font-semibold leading-tight" w="w-3/4">All clear</Ghost>
             </span>
           ))}
         </div>
-        <div className="flex min-h-[72px] items-center gap-3 rounded-[18px] bg-hero px-4 py-3.5 text-hero-foreground">
-          <Icon name="trending_up" size={22} className="text-hero-4" />
+        <div className="flex min-h-[73px] items-center gap-3 rounded-[20px] bg-hero px-4 py-3.5 text-hero-foreground">
+          <span className="grid size-10 flex-none place-items-center"><Icon name="trending_up" size={22} className="text-hero-4" /></span>
           <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-            <span className="text-footnote text-hero-muted">Household net worth</span>
+            <span className="text-subhead text-hero-muted">Household net worth</span>
             <Ghost className="text-headline font-semibold leading-tight" w="w-2/5">₹12,34,567</Ghost>
           </span>
           <Icon name="chevron_right" size={22} className="text-hero-muted" />
         </div>
-        <div className="flex min-h-14 items-center gap-3 rounded-[18px] bg-card px-4">
-          <Icon name="group" size={20} className="text-primary" />
+        <div className="flex min-h-14 items-center gap-3 rounded-[20px] bg-card shadow-card px-4">
+          <span className="grid size-10 flex-none place-items-center"><Icon name="group" size={22} className="text-primary" /></span>
           <span className="flex-1 text-subhead text-muted-foreground">Owed to you</span>
           <Ghost fig className="text-headline font-semibold" w="w-full">₹5,000</Ghost>
           <Icon name="chevron_right" size={20} className="text-muted-foreground" />
@@ -279,14 +279,15 @@ function MonthPillStill() {
 
 /** Activity, by chip: the title, the line under it, the month pill on All, the four chips, then the view. */
 function Activity({ stillBar, view }: Draw & { view: View }) {
-  /* To review and From SMS carry a count on the real screen; the frame draws a ghost of it, so the row does not
-     reflow when the counts arrive. */
+  /* To review carries its count on the real screen (bills and duplicates are nearly always there); the frame draws a
+     ghost of it, so the row does not reflow when the count arrives (ux-audit O9). From SMS has one only while
+     messages wait, and a ghost there would wrap the row at 393px when there are none. */
   const chips = (
     <div aria-hidden className={chipRow}>
       {CHIPS.map((c) => (
         <span key={c.key} className={`${chip} ${c.key === view ? chipOn : chipOff}`}>
           {c.label}
-          {(c.key === 'review' || c.key === 'sms') && <span className={`${countBadge} ${c.key === view ? 'bg-primary-foreground/30' : 'bg-muted'}`} />}
+          {c.key === 'review' && <span className={`${countBadge} ${c.key === view ? 'bg-primary-foreground/30' : 'bg-muted'}`} />}
         </span>
       ))}
     </div>
@@ -323,13 +324,13 @@ function Activity({ stillBar, view }: Draw & { view: View }) {
                 <div className="mx-[var(--gutter)] flex min-h-6 items-center px-0.5">
                   <H2 known={false} className="">Card bills</H2>
                 </div>
-                <div className={`mx-[var(--gutter)] ${CARD} px-[var(--pad)]`}><Rows n={n} h={view === 'upcoming' ? 'h-[94px] py-2.5' : 'min-h-[72px] py-2.5'} /></div>
+                <div className={`mx-[var(--gutter)] ${CARD} px-[var(--pad)]`}><Rows n={n} h={view === 'upcoming' ? 'h-[94px] py-2.5' : 'min-h-[74px] py-2.5'} /></div>
               </section>
             ))}
             {view === 'sms' && (
-              <div className={`mx-[var(--gutter)] flex flex-col items-center gap-3 rounded-[18px] bg-card px-6 py-8`}>
+              <div className={`mx-[var(--gutter)] flex flex-col items-center gap-3 rounded-[20px] bg-card shadow-card px-6 py-8`}>
                 <S className="size-8 rounded-full" />
-                <Ghost as="p" className="max-w-[32ch] text-center text-body leading-relaxed" w="w-full">
+                <Ghost as="p" className="max-w-[32ch] text-center text-subhead leading-relaxed" w="w-full">
                   No bank messages waiting. Forward your bank’s messages from your phone and each one waits here until you add it or dismiss it.
                 </Ghost>
                 <S className="h-11 w-40 rounded-full" />
@@ -348,7 +349,7 @@ function Entry({ stillBar }: Draw) {
     <Frame name="the entry" current="/entry" space="bar" stillBar={stillBar} skip="skip-label">
       <Head back eyebrow="Activity" title={null} sub={null} />
       <div className="pt-[18px]">
-        <div className="mx-[var(--gutter)] mb-4 flex flex-col gap-3.5 rounded-[18px] bg-card p-[var(--pad)]">
+        <div className="mx-[var(--gutter)] mb-4 flex flex-col gap-3.5 rounded-[20px] bg-card shadow-card p-[var(--pad)]">
           {[88, 122, 80, 327, 74, 74].map((h, i) => (
             <span key={i} className="flex flex-col gap-1.5" style={{ height: h }}>
               <Ghost className="text-subhead font-medium" w="w-1/4">Amount</Ghost>
@@ -378,7 +379,7 @@ export function AddFrame({ sheet = false }: { sheet?: boolean }) {
           <span className="-ml-2.5 flex size-11 items-center justify-center in-data-[platform=android]:size-12"><Icon name="close" size={24} /></span>
           <div className="flex rounded-xl bg-muted p-[3px]">
             {['Expense', 'Income', 'Move'].map((k, i) => (
-              <span key={k} className={`grid min-h-11 place-items-center rounded-[10px] px-3.5 text-body ${i === 0 ? 'bg-raised font-semibold text-foreground shadow-sm' : 'font-medium text-muted-foreground'}`}>{k}</span>
+              <span key={k} className={`grid min-h-11 place-items-center rounded-[10px] px-3 text-body ${i === 0 ? 'bg-raised font-semibold text-foreground shadow-sm' : 'font-medium text-muted-foreground'}`}>{k}</span>
             ))}
           </div>
           <span className="-mr-2.5 size-11 in-data-[platform=android]:size-12" />
@@ -416,7 +417,7 @@ export function AddFrame({ sheet = false }: { sheet?: boolean }) {
         </div>
       </div>
       <div className="sticky bottom-0 z-10 flex-none border-t border-border bg-background px-[var(--gutter)] pb-[calc(10px+env(safe-area-inset-bottom))] pt-2.5">
-        <span className="flex h-14 w-full items-center justify-center rounded-2xl bg-primary text-headline font-semibold text-primary-foreground opacity-45">Save</span>
+        <span className="flex h-14 w-full items-center justify-center rounded-2xl bg-muted text-headline font-semibold text-muted-foreground">Save</span>
       </div>
     </main>
   );
@@ -431,7 +432,7 @@ function Loans({ stillBar }: Draw) {
         <FigureCard size="text-display" />
         <section aria-hidden className="flex flex-col gap-1.5">
           <H2>Open tabs</H2>
-          <div className={`${CARD} px-[var(--pad)]`}><Rows n={4} chip="size-10 rounded-full" second="2 costs · last cost 3 Nov" /></div>
+          <div className={`${CARD} px-[var(--pad)]`}><Rows n={4} chip="size-9 rounded-[11px]" second="2 costs · last cost 3 Nov" /></div>
         </section>
       </div>
     </Frame>
@@ -496,7 +497,7 @@ function Wealth({ stillBar }: Draw) {
             </span>
           ))}
         </div>
-        <section aria-hidden className="mx-[var(--gutter)] flex flex-col gap-3 rounded-[22px] bg-hero p-[18px] text-hero-foreground">
+        <section aria-hidden className="mx-[var(--gutter)] flex flex-col gap-3 rounded-[22px] bg-hero p-4 text-hero-foreground">
           <span className="text-subhead text-hero-muted">Household net worth</span>
           <Ghost fig className="text-display font-bold leading-none tracking-tight" w="w-1/2">₹12,34,567</Ghost>
           <S className="h-2.5 w-full rounded-full opacity-40" />
@@ -509,7 +510,7 @@ function Wealth({ stillBar }: Draw) {
         </section>
         <section aria-hidden className="mx-[var(--gutter)] flex flex-col gap-1.5">
           <div className="flex items-baseline justify-between gap-3 px-0.5"><H2 known={false} className="">Pots in other currencies</H2></div>
-          <div className={CARD}><Rows n={3} h="min-h-16 py-2.5" pad="px-3.5" chip="size-9 rounded-full" /></div>
+          <div className={CARD}><Rows n={3} h="min-h-16 py-2.5" pad="px-3.5" chip="size-10 rounded-[12px]" /></div>
         </section>
       </div>
     </Frame>
@@ -527,7 +528,7 @@ function Holding({ stillBar }: Draw) {
       </header>
       <div className="flex flex-col gap-4 px-[var(--gutter)]">
         <FigureCard tone="hero" label="Joint · Dirhams" lines={['1,000 AED on 6 Nov']} line="text-body" />
-        <div className="flex min-h-14 items-center gap-3 rounded-[18px] bg-card px-3.5 py-2.5">
+        <div className="flex min-h-14 items-center gap-3 rounded-[20px] bg-card shadow-card px-3.5 py-2.5">
           <S className="size-[22px] rounded-md" />
           <span className="flex min-w-0 flex-1 flex-col gap-0.5">
             <Ghost className="text-body" w="w-1/2">1 AED = ₹22.70</Ghost>
@@ -553,7 +554,7 @@ function Accounts({ stillBar }: Draw) {
     <Frame name="accounts" current="/accounts" space="bar" stillBar={stillBar}>
       <Head back title="Accounts" sub={null} subSample="Household" />
       <div className="flex flex-col gap-6 px-[var(--gutter)] pb-8">
-        <div className="flex flex-col gap-3 rounded-[22px] bg-card p-[18px]">
+        <div className="flex flex-col gap-3 rounded-[22px] bg-card shadow-card p-4">
           <span className="flex items-center justify-between">
             <span className="text-subhead text-muted-foreground">Net worth</span>
             <Icon name="chevron_right" size={20} className="text-muted-foreground" />
@@ -563,14 +564,14 @@ function Accounts({ stillBar }: Draw) {
             {['Held', 'Owed to you', 'You owe'].map((t) => (
               <span key={t} className="flex flex-col gap-0.5">
                 <span className="text-footnote text-muted-foreground">{t}</span>
-                <Ghost fig className="text-body font-semibold" w="w-4/5">₹1,23,456</Ghost>
+                <Ghost className="text-body font-semibold" w="w-4/5">₹1,23,456</Ghost>
               </span>
             ))}
           </div>
         </div>
         <section aria-hidden className="flex flex-col gap-1.5">
           <H2>Bank and cash</H2>
-          <div className={CARD}><Rows n={3} chip="size-[38px] rounded-full" h="min-h-[72px] py-3" pad="px-[var(--pad)]" second="UPI · Debit card" /></div>
+          <div className={CARD}><Rows n={3} chip="size-[38px] rounded-[11px]" h="min-h-[72px] py-3" pad="px-[var(--pad)]" second="UPI · Debit card" /></div>
         </section>
       </div>
     </Frame>
@@ -586,7 +587,7 @@ function ReconcileList({ stillBar }: Draw) {
       <section aria-hidden className="flex flex-col gap-1.5 px-[var(--gutter)] pb-8">
         <H2>Which account</H2>
         <div className={CARD}>
-          <Rows n={5} chip="size-[38px] rounded-full" h="h-[87px] py-3" pad="px-[var(--pad)]" second="Never matched · 12 entries to check" />
+          <Rows n={5} chip="size-[38px] rounded-[11px]" h="h-[87px] py-3" pad="px-[var(--pad)]" second="Never matched · 12 entries to check" />
         </div>
       </section>
     </Frame>
@@ -600,7 +601,7 @@ function Reconcile({ stillBar }: Draw) {
       <Head back eyebrow="Reconcile" title={null} sub={null} subLines={2} />
       <div className="flex flex-col gap-5 pb-8">
         <div className="mx-[var(--gutter)]"><FigureCard label="In the books today" size="text-large-title" lines={[]} gap="gap-1.5" /></div>
-        <div className="mx-[var(--gutter)] flex h-[224px] flex-col gap-3.5 rounded-[18px] bg-card p-[var(--pad)]">
+        <div className="mx-[var(--gutter)] flex h-[224px] flex-col gap-3.5 rounded-[20px] bg-card shadow-card p-[var(--pad)]">
           <Ghost className="text-subhead font-medium" w="w-1/3">Statement</Ghost>
           <S className="h-12 w-full rounded-xl" />
           <S className="h-12 w-full rounded-xl" />
@@ -620,7 +621,7 @@ function Plan({ stillBar }: Draw) {
           <LeftToSpendStill size="text-large-title" />
           <section aria-hidden className="flex flex-col gap-1.5">
             <H2>By category</H2>
-            <div className={CARD}><Rows n={4} chip="size-9 rounded-xl" pad="px-[var(--pad)]" /></div>
+            <div className={CARD}><Rows n={4} chip="size-9 rounded-[11px]" pad="px-[var(--pad)]" /></div>
           </section>
         </div>
       </div>
@@ -636,7 +637,7 @@ function Categories({ stillBar }: Draw) {
       <div className="flex flex-col gap-4 pb-8">
         <section aria-hidden className="flex flex-col gap-1.5 px-[var(--gutter)]">
           <H2>In use</H2>
-          <div className={CARD}><Rows n={10} chip="size-9 rounded-full" pad="px-[var(--pad)]" second={null} amount={null} h="min-h-[72px] py-2" /></div>
+          <div className={CARD}><Rows n={10} chip="size-[38px] rounded-[11px]" pad="px-[var(--pad)]" second={null} amount={null} h="min-h-[72px] py-2" /></div>
         </section>
       </div>
     </Frame>
@@ -650,12 +651,12 @@ function Household({ stillBar }: Draw) {
       <Head back title={null} sub={null} subSample="Household and settings · 2 members" />
       <div className="flex flex-col gap-6 px-[var(--gutter)] pb-8">
         <section aria-hidden className="flex flex-col gap-1.5">
-          <H2>Your account</H2>
+          <H2>Members</H2>
           <div className={`${CARD} [&>*+*]:border-t [&>*+*]:border-border`}>
-            {[66, 79, 59, 62, 70, 71].map((h, i) => (
-              <div key={h} className="flex flex-col justify-center" style={{ height: h }}>
-                <Row i={i} chip={i ? 'size-[38px] rounded-full' : 'size-[42px] rounded-full'} h="" pad="px-[var(--pad)]" amount={null}
-                  first={i ? 'Sign out' : 'Ammar'} second={i ? 'On this phone only' : 'ammar@example.com · Owner'} last />
+            {[MEMBER_H, MEMBER_H].map((h, i) => (
+              <div key={i} className="flex flex-col justify-center" style={{ height: h }}>
+                <Row i={i} chip="size-10 rounded-full" h="" pad="px-[var(--pad)]" amount={null}
+                  first={i ? 'Sara' : 'Ammar · you'} second="ammar@example.com" last />
               </div>
             ))}
           </div>
@@ -665,17 +666,23 @@ function Household({ stillBar }: Draw) {
   );
 }
 
+/* A member's row (household/MemberRow) as it measures at 393px: a name, the address, and, for the owner, whether
+   Google is linked. */
+const MEMBER_H = 112;
+
 /** SMS capture: how it works, then the phones, adding one, and the set-up guides. */
 function Capture({ stillBar }: Draw) {
   return (
     <Frame name="SMS capture" current="/household" space="bar" stillBar={stillBar}>
       <Head back title="SMS capture" sub="Bank messages become drafts to review" />
       <div className="flex flex-col gap-6 px-[var(--gutter)]">
-        <div className="flex h-[158px] flex-col gap-2.5 rounded-2xl border border-border bg-card p-4">
-          {[0, 1].map((i) => (
-            <span key={i} className="flex items-start gap-2.5">
+        {/* The page's two sentences as the ghosts' samples, so they wrap where the real ones do. */}
+        <div className="flex flex-col gap-2.5 rounded-2xl border border-border bg-card p-4">
+          {['Each message is a draft under To review. Nothing is recorded until you save it.',
+            'One-time passwords are never stored. The text of a message is deleted once it is handled, or after 30 days.'].map((t) => (
+            <span key={t} className="flex items-start gap-2.5">
               <S className="mt-0.5 size-[18px] rounded-full" />
-              <Ghost as="span" className="flex-1 text-body leading-relaxed" w="w-full">A phone forwards a bank message here and it becomes a draft.</Ghost>
+              <Ghost as="span" className="flex-1 text-body leading-relaxed" w="w-full">{t}</Ghost>
             </span>
           ))}
         </div>
@@ -697,8 +704,11 @@ function Scan({ stillBar }: Draw) {
       <Head back title="Scan a receipt"
         sub="It reads the total, the date and the shop. You check them and save; nothing is recorded on your behalf." />
       <div className="flex flex-col gap-4 px-[var(--gutter)] pb-8">
-        <div className="flex flex-col gap-3.5 rounded-[18px] bg-card p-[var(--pad)]">
-          <Ghost as="p" className="text-body leading-normal" w="w-full">Scanning needs a key from Google, which the household owner adds under Household. It is free for this many receipts.</Ghost>
+        <div className="flex flex-col gap-3.5 rounded-[20px] bg-card shadow-card p-[var(--pad)]">
+          <span className="flex items-start gap-2">
+            <S className="mt-px size-[18px] rounded-full" />
+            <Ghost as="span" className="flex-1 text-subhead leading-normal" w="w-full">Scanning needs a Google AI key, which is free and takes a minute to get. An owner adds it once under Household.</Ghost>
+          </span>
           <S className="h-[52px] w-full rounded-xl" />
         </div>
       </div>

@@ -101,12 +101,12 @@ export function RateLine({ base, subject, rate, stale, canWrite, fx }: {
     </span>
   );
   if (!canWrite) {
-    return <div className="flex min-h-14 items-center gap-3 rounded-[18px] bg-card px-3.5 py-2.5"><Icon name="currency_exchange" size={22} className="text-primary" />{body}</div>;
+    return <div className="flex min-h-14 items-center gap-3 rounded-[20px] bg-card shadow-card px-3.5 py-2.5"><Icon name="currency_exchange" size={22} className="text-primary" />{body}</div>;
   }
   return (
     <Sheet open={s.open} setOpen={s.setOpen} title={fx ? `Your rate for ${subject}` : `Your rate for ${subject.toLowerCase()}`}
       trigger={
-        <button type="button" className="press flex min-h-14 w-full items-center gap-3 rounded-[18px] bg-card px-3.5 py-2.5">
+        <button type="button" className="press flex min-h-14 w-full items-center gap-3 rounded-[20px] bg-card shadow-card px-3.5 py-2.5">
           <Icon name="currency_exchange" size={22} className="text-primary" />{body}<Icon name="edit" size={18} className="text-muted-foreground" />
         </button>
       }>

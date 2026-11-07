@@ -52,7 +52,7 @@ export default async function ReconcileAccount({ params, searchParams }: {
         <div className="flex flex-col gap-5 pb-8">
           {/* What the books say today: a Figure, so it rolls when a match records an adjustment or an Undo takes
               one away. */}
-          <section aria-label="In the books today" className="mx-[var(--gutter)] flex flex-col gap-1.5 rounded-[22px] bg-card p-[18px]">
+          <section aria-label="In the books today" className="mx-[var(--gutter)] flex flex-col gap-1.5 rounded-[22px] bg-card shadow-card p-4">
             <span className="text-subhead text-muted-foreground">
               {credit ? (bal < 0 ? 'Owed on the card today' : 'In credit today') : bal < 0 ? 'Overdrawn today' : 'In the books today'}
             </span>
@@ -87,7 +87,7 @@ export default async function ReconcileAccount({ params, searchParams }: {
           {history.length > 0 && (
             <section aria-labelledby="sec-matched" className="flex flex-col gap-1.5 px-[var(--gutter)]">
               <h2 id="sec-matched" className="px-0.5 text-subhead font-semibold text-muted-foreground">Statements matched</h2>
-              <ul className="overflow-hidden rounded-[18px] bg-card">
+              <ul className="overflow-hidden rounded-[20px] bg-card shadow-card">
                 {history.map((r, i) => (
                   <li key={r.id} className="flex min-h-16 items-center gap-3 border-b border-border px-[var(--pad)] py-2.5 last:border-b-0">
                     <span className="flex min-w-0 flex-1 flex-col gap-0.5">

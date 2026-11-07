@@ -26,7 +26,7 @@ export function AuthShell({ kicker, title, blurb, children }: {
 }) {
   return (
     <main className="flex min-h-dvh flex-col items-center justify-center bg-background px-[var(--gutter)] py-10 text-foreground">
-      <div className="flex w-full max-w-[440px] flex-col gap-6 rounded-[22px] bg-card p-5 min-[390px]:p-6">
+      <div className="flex w-full max-w-[440px] flex-col gap-6 rounded-[22px] bg-card shadow-card p-5 min-[390px]:p-6">
         <header className="flex flex-col gap-3">
           {/* The app's own icon — the letter ح traced once from Noto Naskh (scripts/make-icons.mjs) — not a font
               fallback's guess at it. */}
@@ -106,7 +106,7 @@ export function DeadEnd({ title, body, cta }: {
 }) {
   return (
     <main className="flex min-h-dvh flex-col items-center justify-center bg-background px-[var(--gutter)] py-10 text-foreground">
-      <div className="flex w-full max-w-[440px] flex-col items-center gap-3.5 rounded-[22px] bg-card px-5 py-8 text-center">
+      <div className="flex w-full max-w-[440px] flex-col items-center gap-3.5 rounded-[22px] bg-card shadow-card px-5 py-8 text-center">
         <span className="grid size-16 place-items-center rounded-full bg-muted text-muted-foreground">
           <Icon name="info" size={30} />
         </span>

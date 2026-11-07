@@ -19,7 +19,7 @@ export async function loadSms(hh: string, canWrite: boolean, dismissed: unknown)
         action={canWrite ? { href: '/household/capture', label: 'Set up SMS capture', icon: 'phone_iphone' } : undefined} />} />
   );
   return {
-    sub: sms.length === 0 ? 'No bank messages waiting' : `${sms.length} bank ${sms.length === 1 ? 'message' : 'messages'} to add`,
+    sub: sms.length === 0 ? 'Bank messages you forward land here' : `${sms.length} bank ${sms.length === 1 ? 'message' : 'messages'} to add`,
     body,
   };
 }

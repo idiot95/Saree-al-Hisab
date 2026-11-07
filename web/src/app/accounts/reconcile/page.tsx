@@ -36,7 +36,7 @@ export default async function ReconcilePicker() {
               text={canWrite ? 'No account to match yet. Add your bank account first.' : 'No account to match yet.'}
               action={canWrite ? { href: '/accounts', label: 'Add an account', icon: 'add' } : undefined} />
           )}
-          <ul className="overflow-hidden rounded-[18px] bg-card empty:hidden">
+          <ul className="overflow-hidden rounded-[20px] bg-card shadow-card empty:hidden">
             {accounts.map((a) => {
               const bal = Number(a.balance);
               const credit = a.kind === 'credit';
@@ -44,7 +44,7 @@ export default async function ReconcilePicker() {
                 <li key={a.id} className="border-b border-border last:border-b-0">
                   <Link href={`/accounts/${a.id}/reconcile`}
                     className="press flex min-h-[72px] items-center gap-3 px-[var(--pad)] py-3 text-foreground no-underline">
-                    <Chip icon={ACCOUNT_ICON[a.kind]} tint={ACCOUNT_TINT[a.kind]} size={38} radius={999} />
+                    <Chip icon={ACCOUNT_ICON[a.kind]} tint={ACCOUNT_TINT[a.kind]} size={38} />
                     <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                       <span className="text-body font-semibold leading-snug [overflow-wrap:anywhere]">
                         {a.name}{a.last4 ? <span className="font-medium text-muted-foreground"> · {a.last4}</span> : null}

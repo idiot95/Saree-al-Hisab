@@ -56,6 +56,9 @@ const TONE = {
   neutral: ['var(--background)', 'var(--foreground)'],
   primary: ['var(--primary)', 'var(--primary-foreground)'],
   danger: ['var(--destructive)', 'var(--destructive-foreground)'],
+  /* The once-only peek draws a destructive action in rose gold: the first thing a new household sees under a row
+     should say "there is more here", not a red Delete. */
+  peek: ['var(--attention)', 'var(--attention-foreground)'],
 } as const;
 
 /* The one open row, so opening another closes it. Module state on purpose:
@@ -89,6 +92,7 @@ export default function SwipeRow({ actions, commit = true, grip = true, flush = 
   const [drag, setDrag] = useState(false);
   const [open, setOpen] = useState(false);
   const [armed, setArmed] = useState(false);
+  const [peeking, setPeeking] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const s = useRef({
     id: -1, sx: 0, sy: 0, x0: 0, x: 0, axis: '' as '' | 'x' | 'y', moved: false, w: 0, armed: false,
@@ -149,9 +153,11 @@ export default function SwipeRow({ actions, commit = true, grip = true, flush = 
       localStorage.setItem(PEEK_KEY, '1');
     } catch { return; }
     peekedThisLoad = true;
-    const out = setTimeout(() => setX(-Math.min(W, 56)), 700);
+    const out = setTimeout(() => { setPeeking(true); setX(-Math.min(W, 56)); }, 700);
     const back = setTimeout(() => setX(0), 1500);
-    return () => { clearTimeout(out); clearTimeout(back); };
+    // Back to its own colour once it has slid home (the slide is --dur-3), so an opened row is never rose gold.
+    const done = setTimeout(() => setPeeking(false), 1900);
+    return () => { clearTimeout(out); clearTimeout(back); clearTimeout(done); };
   }, [actions.length, W]);
 
   if (actions.length === 0) return <>{children}</>;
@@ -239,7 +245,7 @@ export default function SwipeRow({ actions, commit = true, grip = true, flush = 
         transition: x === 0 && !drag ? 'visibility 0s linear var(--dur-3)' : 'none',
       }}>
         {actions.map((a, i) => {
-          const [bg, ink] = TONE[a.tone ?? 'neutral'];
+          const [bg, ink] = TONE[peeking && a.tone === 'danger' ? 'peek' : a.tone ?? 'neutral'];
           const fires = armed && i === last;
           return (
             <button key={a.label} type="button" tabIndex={open ? 0 : -1}

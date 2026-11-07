@@ -360,7 +360,7 @@ export default function CategoryEditor({ categories, canEdit }: {
       <section aria-labelledby="sec-in-use" className="flex flex-col gap-1.5 px-[var(--gutter)]">
         <h2 id="sec-in-use" className="px-0.5 text-subhead font-semibold text-muted-foreground">In use</h2>
         {/* px-[var(--pad)]: a swipe row's negative margin is --pad, so its actions stop at the rounded edge. */}
-        <div className="overflow-hidden rounded-[18px] bg-card px-[var(--pad)]">
+        <div className="overflow-hidden rounded-[20px] bg-card shadow-card px-[var(--pad)]">
           {live.map((c, i) => {
             const kids = kidsOf(c.id);
             const lastFamily = i === live.length - 1;
@@ -405,7 +405,7 @@ export default function CategoryEditor({ categories, canEdit }: {
             Not offered for new entries. Everything already filed under them is untouched, and
             they still appear in the months they were used.
           </p>
-          <div className="overflow-hidden rounded-[18px] bg-card px-[var(--pad)]">
+          <div className="overflow-hidden rounded-[20px] bg-card shadow-card px-[var(--pad)]">
             {retired.map((c, i) => (
               <RetiredRow key={c.id} cat={c} under={nameOf(c.parent_id)} last={i === retired.length - 1} canEdit={canEdit}
                 onBack={() => setHidden((h) => {
@@ -442,7 +442,7 @@ function Row({ cat, last, canEdit, lifted, onEdit, grip }: {
       {child && (
         <span aria-hidden className="mb-3.5 ml-3 h-[22px] w-3.5 flex-none rounded-bl-lg border-b-[1.5px] border-l-[1.5px] border-border" />
       )}
-      <Chip icon={cat.icon} tint={cat.tint} size={child ? 32 : 38} radius={999} />
+      <Chip icon={cat.icon} tint={cat.tint} size={child ? 32 : 38} />
       <span className="flex min-w-0 flex-1 flex-col gap-0.5 py-2">
         <span className={`${child ? 'text-body' : 'text-body'} font-semibold leading-snug [overflow-wrap:anywhere]`}>{cat.name}</span>
         <span className="text-subhead leading-snug text-muted-foreground">
@@ -574,7 +574,7 @@ function RetiredRow({ cat, under, last, canEdit, onBack }: {
   const [, restore] = useActionState(restoreCategory, null);
   return (
     <div className={`flex min-h-[68px] items-center gap-3 py-2.5 ${last ? '' : 'border-b border-border'}`}>
-      <span className="opacity-70"><Chip icon={cat.icon} tint={cat.tint} size={36} radius={999} /></span>
+      <span className="opacity-70"><Chip icon={cat.icon} tint={cat.tint} size={36} /></span>
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span className="text-body font-semibold leading-snug text-muted-foreground [overflow-wrap:anywhere]">{cat.name}</span>
         <span className="text-subhead leading-snug text-muted-foreground">

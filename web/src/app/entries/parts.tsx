@@ -21,7 +21,7 @@ export function Section({ title, action, foot, children }: {
 
 /** The small empty state, for a list inside a screen that has other things on it: the icon and the one line, on the
  *  list's own card. */
-export function EmptyLine({ icon, children, className = 'rounded-[18px] bg-card' }: {
+export function EmptyLine({ icon, children, className = 'rounded-[20px] bg-card shadow-card' }: {
   icon: string; children: React.ReactNode; className?: string;
 }) {
   return (
@@ -39,7 +39,7 @@ export function Empty({ icon, text, tone, action, inset = true }: {
   action?: { href: string; label: string; icon?: string; replace?: boolean };
 }) {
   return (
-    <div className={`${inset ? 'mx-[var(--gutter)] ' : ''}flex flex-col items-center gap-3 rounded-[18px] bg-card px-6 py-8 text-center`}>
+    <div className={`${inset ? 'mx-[var(--gutter)] ' : ''}flex flex-col items-center gap-3 rounded-[20px] bg-card shadow-card px-6 py-8 text-center`}>
       <Icon name={icon} size={32} className={tone === 'ok' ? 'text-money-in' : 'text-primary'} />
       <p className="max-w-[32ch] text-subhead leading-relaxed text-muted-foreground">{text}</p>
       {action && (

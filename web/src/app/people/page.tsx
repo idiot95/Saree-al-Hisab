@@ -1,5 +1,5 @@
 import Link from '@/app/NavLink';
-import { Empty } from '../entries/parts';
+import { Empty, EmptyLine } from '../entries/parts';
 import { redirect } from 'next/navigation';
 import { actorOrNull, claimsFor, peopleFor, receiptsByMonth, tabList, type TabRow } from '@/db/queries';
 import { withHousehold } from '@/db/client';
@@ -63,7 +63,7 @@ export default async function LoanCentre() {
         <div className="flex flex-col gap-5 px-[var(--gutter)] pb-6">
           {/* "Owed to you" is Home's figure exactly (owedToYou().owed, gross): money arriving, so money-in with a +.
               What you owe others is never netted against it; it is its own line, in plain ink, with the words. */}
-          <section aria-label="Owed to you" className="flex flex-col gap-2 rounded-[22px] bg-card p-[18px]">
+          <section aria-label="Owed to you" className="flex flex-col gap-2 rounded-[22px] bg-card shadow-card p-4">
             <span className="text-subhead text-muted-foreground">Owed to you</span>
             <Figure minor={owed} sign={owed > 0}
               className={`text-display font-bold leading-none tracking-tight tabular-nums ${owed > 0 ? 'text-money-in' : ''}`} />
@@ -92,14 +92,14 @@ export default async function LoanCentre() {
               <h2 className="px-0.5 text-subhead font-semibold text-muted-foreground">Open tabs</h2>
               {/* px-[var(--pad)] and overflow-hidden: the swipe row's negative margin is --pad, so its actions stop
                   at the card's rounded edge and the card never scrolls sideways. */}
-              <div className="overflow-hidden rounded-[18px] bg-card px-[var(--pad)]">
+              <div className="overflow-hidden rounded-[20px] bg-card shadow-card px-[var(--pad)]">
                 {open.map((t, i) => <TabItem key={t.id} t={t} last={i === open.length - 1} canWrite={canWrite} />)}
               </div>
             </section>
           )}
 
           {done.length > 0 && (
-            <details className="group overflow-hidden rounded-[18px] bg-card px-[var(--pad)]">
+            <details className="group overflow-hidden rounded-[20px] bg-card shadow-card px-[var(--pad)]">
               <summary className="flex min-h-14 cursor-pointer list-none items-center gap-3 text-body font-medium text-muted-foreground [&::-webkit-details-marker]:hidden">
                 <Icon name="check_circle" size={22} />
                 <span className="flex-1">{done.length} settled or closed {done.length === 1 ? 'tab' : 'tabs'}</span>
@@ -111,19 +111,27 @@ export default async function LoanCentre() {
             </details>
           )}
 
+          {/* With tabs but nobody lent to outside one, a quiet line says what else this screen holds, so a short list
+              does not read as an unfinished screen (ux-audit O16). */}
+          {tabs.length > 0 && lent.length === 0 && (
+            <EmptyLine icon="person" className="rounded-[20px] border border-dashed border-border">
+              Money lent to someone outside a tab shows here too, with what they still owe.
+            </EmptyLine>
+          )}
+
           {/* Money handed to someone outside any tab — the older khata. Only shown when there is some, so it never
               asks to be managed. */}
           {lent.length > 0 && (
             <section aria-label="Lent outside a tab" className="flex flex-col gap-1.5">
               <h2 className="px-0.5 text-subhead font-semibold text-muted-foreground">Lent outside a tab</h2>
-              <ul className="overflow-hidden rounded-[18px] bg-card">
+              <ul className="overflow-hidden rounded-[20px] bg-card shadow-card">
                 {lent.map((p) => {
                   const bal = Number(p.balance);
                   return (
                     <li key={p.id} className="border-b border-border last:border-b-0">
                       <Link href={`/people/${p.id}`}
                         className="press flex min-h-16 items-center gap-3 px-3.5">
-                        <Face name={p.name} tint={p.tint} size={36} />
+                        <Face name={p.name} tint={p.tint} size={40} />
                         <span className="min-w-0 flex-1 text-body font-medium leading-snug [overflow-wrap:anywhere]">{p.name}</span>
                         <span className="flex flex-col items-end gap-0.5">
                           <Figure minor={Math.abs(bal)} sign={bal > 0}
@@ -166,7 +174,7 @@ function TabItem({ t, last, canWrite, quiet = false }: { t: TabRow; last: boolea
     <Swipeable actions={actions} commit={false}>
       <Link href={`/tab/${t.id}`} draggable={false}
         className={`relative flex min-h-16 items-center gap-3 py-3 ${last ? '' : 'after:absolute after:right-0 after:bottom-0 after:left-12 after:h-px after:bg-border'} ${quiet ? 'opacity-75' : ''}`}>
-        <Chip icon="folder" tint={tabTint(t.id)} size={36} radius={999} />
+        <Chip icon="folder" tint={tabTint(t.id)} size={36} />
         <span className="flex min-w-0 flex-1 flex-col gap-1">
           <span className="text-body font-medium leading-snug [overflow-wrap:anywhere]">{t.name}</span>
           <span className="text-footnote leading-snug text-muted-foreground">{sub}</span>

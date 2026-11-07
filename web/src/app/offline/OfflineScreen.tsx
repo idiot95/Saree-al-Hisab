@@ -82,7 +82,7 @@ function Pending({ queue }: { queue: Queued[] }) {
   return (
     <section aria-label="Waiting to be sent" className="mx-[var(--gutter)] mb-3 flex flex-col gap-1.5">
       <h2 className="px-0.5 text-subhead font-semibold text-muted-foreground">Waiting for signal · {queue.length}</h2>
-      <ul className="overflow-hidden rounded-[18px] bg-card">
+      <ul className="overflow-hidden rounded-[20px] bg-card shadow-card">
         {queue.map((q) => (
           <li key={q.clientRef} className="flex min-h-[52px] items-center gap-2.5 border-b border-border pl-[var(--pad)] last:border-b-0">
             <span className="flex min-w-0 flex-1 flex-col gap-0.5 py-2">
@@ -114,7 +114,7 @@ function Pending({ queue }: { queue: Queued[] }) {
 function Bare({ queue }: { queue: Queued[] }) {
   return (
     <main className="flex min-h-dvh flex-col items-center justify-center bg-background px-[var(--gutter)] py-10 text-foreground">
-      <div className="flex w-full max-w-[440px] flex-col items-center gap-3.5 rounded-[22px] bg-card px-5 py-8 text-center">
+      <div className="flex w-full max-w-[440px] flex-col items-center gap-3.5 rounded-[22px] bg-card shadow-card px-5 py-8 text-center">
         <span className="grid size-16 place-items-center rounded-full bg-muted text-muted-foreground">
           <Icon name="wifi_off" size={30} />
         </span>

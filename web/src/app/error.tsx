@@ -13,7 +13,7 @@ export default function ScreenError({ retry }: { error: Error & { digest?: strin
     <main className="flex min-h-dvh flex-col bg-background px-[var(--gutter)] pb-10 pt-16 text-foreground">
       {/* This is what the tap landed on: the frame drawn for it comes down. */}
       <Landed />
-      <section role="alert" className="flex flex-col items-center gap-3 rounded-[22px] bg-card px-6 py-8 text-center">
+      <section role="alert" className="flex flex-col items-center gap-3 rounded-[22px] bg-card shadow-card px-6 py-8 text-center">
         <Icon name="sync_problem" size={36} className="text-primary" />
         <h1 className="text-large-title font-bold tracking-tight leading-tight">That screen didn’t load</h1>
         <p className="max-w-[32ch] text-subhead leading-relaxed text-muted-foreground">

@@ -43,7 +43,7 @@ export default function OwedFor({ txnId, entryAmount, people, claims, canEdit }:
   if (people.length === 0 && claims.length === 0) return null;
 
   return (
-    <section aria-labelledby="owed-for" className="mx-[var(--gutter)] mb-4 flex flex-col gap-3 rounded-[18px] bg-card p-[var(--pad)]">
+    <section aria-labelledby="owed-for" className="mx-[var(--gutter)] mb-4 flex flex-col gap-3 rounded-[20px] bg-card shadow-card p-[var(--pad)]">
       <h2 id="owed-for" className="text-body font-semibold">Owed back to you</h2>
       <Said>{state?.ok ? state.message : ''}</Said>
 

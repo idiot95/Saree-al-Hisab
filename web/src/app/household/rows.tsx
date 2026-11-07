@@ -17,9 +17,10 @@ export function Section({ label, children, note }: { label: string; children: Re
   );
 }
 
-/** One card of rows, hairlines between them. */
+/** One card of rows, hairlines between them: from where a row's words start (past its 40px glyph) to the card's
+ *  right edge, as every list draws them (form-bits rowRule). */
 export function Card({ children, className = '' }: { children: React.ReactNode; className?: string }) {
-  return <div className={`overflow-hidden rounded-[18px] bg-card [&>*+*]:border-t [&>*+*]:border-border ${className}`}>{children}</div>;
+  return <div className={`overflow-hidden rounded-[20px] bg-card shadow-card [&>*+*]:relative [&>*+*]:before:pointer-events-none [&>*+*]:before:absolute [&>*+*]:before:top-0 [&>*+*]:before:right-0 [&>*+*]:before:left-[calc(var(--pad)+52px)] [&>*+*]:before:h-px [&>*+*]:before:bg-border [&>*+*]:before:content-[''] ${className}`}>{children}</div>;
 }
 
 /** A row that is itself the button or link: the whole width is the target. */
@@ -33,7 +34,7 @@ export function Glyph({ name, tone = 'muted' }: { name: string; tone?: 'muted' |
     attention: 'bg-attention-soft text-attention-soft-foreground',
   }[tone];
   return (
-    <span className={`grid size-[38px] flex-none place-items-center rounded-full ${ground}`}>
+    <span className={`grid size-10 flex-none place-items-center rounded-full ${ground}`}>
       <Icon name={name} size={20} />
     </span>
   );
@@ -65,10 +66,10 @@ export function Done({ children }: { children: React.ReactNode }) {
 /** A person: their Google picture when there is one, else their initials on plum-soft. */
 export function Avatar({ name, image }: { name: string; image: string | null }) {
   return (
-    <span className="grid size-[42px] flex-none place-items-center overflow-hidden rounded-full bg-accent text-body font-bold text-accent-foreground">
+    <span className="grid size-10 flex-none place-items-center overflow-hidden rounded-full bg-accent text-body font-bold text-accent-foreground">
       {image
         /* eslint-disable-next-line @next/next/no-img-element */
-        ? <img src={image} alt="" width={42} height={42} className="size-[42px] rounded-full" />
+        ? <img src={image} alt="" width={40} height={40} className="size-10 rounded-full" />
         : (name || '?').slice(0, 2).toUpperCase()}
     </span>
   );

@@ -41,7 +41,7 @@ export default function Suggested({ have, canEdit, onResult }: {
   return (
     /* Folded shut: it is a library to browse once, not part of the household's own list, and open it was most of
        a 3,000px page. Native <details>, so it opens with no script. */
-    <details className="group mx-[var(--gutter)] overflow-hidden rounded-[18px] bg-card">
+    <details className="group mx-[var(--gutter)] overflow-hidden rounded-[20px] bg-card shadow-card">
       <summary className="flex min-h-16 cursor-pointer list-none items-center gap-3 px-[var(--pad)] py-2.5 [&::-webkit-details-marker]:hidden">
         <span className="grid size-[38px] flex-none place-items-center rounded-full bg-accent text-accent-foreground">
           <Icon name="add" size={20} />
@@ -65,7 +65,7 @@ export default function Suggested({ have, canEdit, onResult }: {
                 <button type="button" aria-expanded={isOpen}
                   onClick={() => { haptic('tap'); setOpen(isOpen ? null : g.name); }}
                   className="flex min-h-[52px] min-w-0 flex-1 items-center gap-3 py-1.5 text-left text-foreground">
-                  <Chip icon={g.icon} tint={g.tint} size={38} radius={999} />
+                  <Chip icon={g.icon} tint={g.tint} size={38} />
                   <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                     <span className="text-body font-semibold leading-snug [overflow-wrap:anywhere]">{g.name}</span>
                     <span className="text-subhead leading-snug text-muted-foreground">

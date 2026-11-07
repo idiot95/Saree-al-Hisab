@@ -45,7 +45,7 @@ export default function Claims({ claims, ways, canEdit, person, bills = [] }: {
         them — this is only what is coming back.
       </p>
 
-      <ul className="overflow-hidden rounded-[18px] bg-card">
+      <ul className="overflow-hidden rounded-[20px] bg-card shadow-card">
         {claims.map((c) => {
           const done = word(c.status);
           const live = c.status === 'open' || c.status === 'part_paid';

@@ -70,7 +70,7 @@ export default async function Person({ params }: { params: Promise<{ id: string 
         <PageHead back="/people" eyebrow="Loans" title={person.name} />
 
         <div className="flex flex-col gap-5 pb-6">
-          <section aria-label={label} className="mx-[var(--gutter)] flex flex-col gap-2 rounded-[22px] bg-card p-[18px]">
+          <section aria-label={label} className="mx-[var(--gutter)] flex flex-col gap-2 rounded-[22px] bg-card shadow-card p-4">
             <span className="text-subhead text-muted-foreground">{label}</span>
             {settled ? (
               <span className="flex items-center gap-2 text-large-title font-bold leading-none tracking-tight">
@@ -133,7 +133,7 @@ export default async function Person({ params }: { params: Promise<{ id: string 
             {ledger.length === 0 ? (
               <EmptyLine icon="handshake">Nothing lent or returned between you yet.</EmptyLine>
             ) : (
-              <ul className="overflow-hidden rounded-[18px] bg-card">
+              <ul className="overflow-hidden rounded-[20px] bg-card shadow-card">
                 {ledger.map((e) => {
                   const w = WORD[e.direction];
                   return (

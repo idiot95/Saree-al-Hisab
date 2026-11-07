@@ -60,7 +60,7 @@ export default function GettingStarted({ progress, budgetAskedAbove = false }: {
 
   return (
     <Link href={next.href}
-      className="press flex min-h-[62px] items-center gap-3 rounded-[18px] bg-card px-3.5 py-3 text-foreground">
+      className="press flex min-h-[62px] items-center gap-3 rounded-[20px] bg-card shadow-card px-3.5 py-3 text-foreground">
       {/* A ring rather than a bar: it takes a quarter of the width and reads as progress at a glance. */}
       <span className="relative size-9 flex-none">
         <svg width={36} height={36} viewBox="0 0 36 36" aria-hidden className="text-muted">

@@ -119,7 +119,7 @@ function Row({ budget, lines, spentBy, open, onToggle, onEdit }: {
   const problem = (madeState && !madeState.ok && madeState.error) || (dropState && !dropState.ok && dropState.error);
 
   return (
-    <div className={`overflow-hidden rounded-[18px] border-[1.5px] bg-card px-[var(--pad)] ${budget.current ? 'border-primary' : 'border-transparent'}`}>
+    <div className={`overflow-hidden rounded-[20px] border-[1.5px] bg-card shadow-card px-[var(--pad)] ${budget.current ? 'border-primary' : 'border-transparent'}`}>
       {/* The forms the swipe and the buttons fire. Kept out of the row's button so a tap on the row can never
           submit one by accident. */}
       <form ref={useForm} action={makeCurrent} hidden>
@@ -159,7 +159,7 @@ function Row({ budget, lines, spentBy, open, onToggle, onEdit }: {
             const over = cap > 0 && used > cap;
             return (
               <div key={l.category_id} className="flex items-center gap-3">
-                <Chip icon={l.icon} tint={l.tint} size={34} radius={10} iconSize={18} />
+                <Chip icon={l.icon} tint={l.tint} size={34} iconSize={18} />
                 <span className="flex min-w-0 flex-1 flex-col gap-1">
                   <span className="text-body font-medium [overflow-wrap:anywhere]">{l.name}</span>
                   {/* How the month is going, on the budget actually in use only: a bar on a budget nobody is
@@ -255,7 +255,7 @@ function BudgetForm({ categories, budget, lines, thisMonth, onDone, showCancel }
   const filled = chosen.filter((c) => minorOf(c.id) > 0).length;
 
   return (
-    <form onSubmit={keepFields(act)} className="flex flex-col gap-4 rounded-[18px] bg-card p-4">
+    <form onSubmit={keepFields(act)} className="flex flex-col gap-4 rounded-[20px] bg-card shadow-card p-4">
       {budget && <input type="hidden" name="id" value={budget.id} />}
       <div className="flex flex-col gap-1">
         <span className="text-footnote font-semibold text-muted-foreground">{budget ? 'Editing' : `Step ${step} of 2`}</span>
@@ -284,7 +284,7 @@ function BudgetForm({ categories, budget, lines, thisMonth, onDone, showCancel }
                   }}
                   className={`flex min-h-14 items-center gap-2.5 rounded-xl px-2.5 py-2 text-left text-body font-medium transition-colors ${on
                     ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground'}`}>
-                  <Chip icon={c.icon} tint={c.tint} size={30} radius={8} iconSize={16} />
+                  <Chip icon={c.icon} tint={c.tint} size={30} iconSize={16} />
                   <span className="min-w-0 flex-1 leading-tight [overflow-wrap:anywhere]">{c.name}</span>
                   {on && <Icon name="check" size={18} />}
                 </button>
@@ -306,7 +306,7 @@ function BudgetForm({ categories, budget, lines, thisMonth, onDone, showCancel }
           <div className="flex flex-col gap-2">
             {chosen.map((c) => (
               <label key={c.id} className="flex items-center gap-3">
-                <Chip icon={c.icon} tint={c.tint} size={36} radius={10} />
+                <Chip icon={c.icon} tint={c.tint} size={36} />
                 <span className="min-w-0 flex-1 text-body font-medium [overflow-wrap:anywhere]">{c.name}</span>
                 <Input name={`c_${c.id}`} inputMode="decimal" value={amounts[c.id] ?? ''}
                   onChange={(e) => setAmounts((a) => ({ ...a, [c.id]: e.target.value.replace(/[^\d.]/g, '') }))}

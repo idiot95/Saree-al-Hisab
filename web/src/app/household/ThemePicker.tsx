@@ -30,7 +30,7 @@ export default function ThemePicker({ current }: { current: Theme }) {
   }
 
   return (
-    <form action={act} className="flex flex-col gap-3 rounded-[18px] bg-card p-[var(--pad)]">
+    <form action={act} className="flex flex-col gap-3 rounded-[20px] bg-card shadow-card p-[var(--pad)]">
       <div role="group" aria-label="Appearance" className="flex gap-1 rounded-[14px] bg-muted p-1">
         {OPTIONS.map((o) => {
           const on = chosen === o.id;

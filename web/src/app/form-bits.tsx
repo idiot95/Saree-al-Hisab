@@ -9,17 +9,19 @@ export const fieldLabel = 'text-subhead font-medium text-muted-foreground';
 
 /** Buttons inside a form or an opened row: the filled one, the quiet one and the destructive one, 48px like the
  *  rest of the app's forms. Household's rows use them too. */
-export const solid = 'press flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-4 text-headline font-semibold text-primary-foreground disabled:opacity-60';
+export const solid = 'press flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-4 text-headline font-semibold text-primary-foreground transition-colors duration-(--dur-2) disabled:bg-muted disabled:text-muted-foreground';
 export const ghost = 'press flex min-h-12 items-center justify-center gap-2 rounded-xl bg-muted px-4 text-headline font-semibold text-muted-foreground disabled:opacity-60';
 export const danger = 'press flex min-h-12 items-center justify-center gap-2 rounded-xl bg-destructive/10 px-4 text-headline font-semibold text-destructive disabled:opacity-60';
 
 /* One chip, app-wide (v3.1 P3, ux-audit C1). What is drawn is 32px; what takes the tap is 44 (48 on Android): an
-   invisible ::after reaches 6px (8) past the border, so the shape stays small while the target stays honest. A row
-   of chips is `chipRow` — gap-y-3 is 32 + 12 = 44, so wrapped rows' targets meet but never overlap. Colours change
-   over --dur-2; the press is the global .press scale. */
+   invisible ::after reaches 6px (8) past the border, so the shape stays small while the target stays honest. A chip
+   is never narrower than 48px, so "All" is a short pill, not a dot. A row of chips is `chipRow`: gap-y-3 is
+   32 + 12 = 44, so wrapped rows' targets meet but never overlap. Colours change over --dur-2; the press is the
+   global .press scale. */
 /** The shape and the hit area. Add `chipOff`/`chipOn`, or a `choice()` style, for the colours. */
-export const chip = "press relative inline-flex h-8 max-w-full flex-none items-center justify-center gap-1.5 whitespace-nowrap rounded-full border px-3 text-subhead transition-colors duration-(--dur-2) after:absolute after:inset-x-0 after:-inset-y-[7px] after:content-[''] in-data-[platform=android]:after:-inset-y-[9px]";
-export const chipOff = 'border-border bg-card font-medium text-foreground';
+export const chip = "press relative inline-flex h-8 min-w-12 max-w-full flex-none items-center justify-center gap-1.5 whitespace-nowrap rounded-full border px-3 text-subhead transition-colors duration-(--dur-2) after:absolute after:inset-x-0 after:-inset-y-[7px] after:content-[''] in-data-[platform=android]:after:-inset-y-[9px]";
+/** Unchosen: white with a hairline in the field's ink (border-input), which is the darker of the two edges in dark. */
+export const chipOff = 'border-input bg-card font-medium text-foreground';
 export const chipOn = 'border-primary bg-primary font-semibold text-primary-foreground';
 /** The quiet weight of the same chip (Activity's kind filter): no ground until chosen, then plum soft. */
 export const chipQuiet = 'border-transparent bg-transparent px-2 font-medium text-muted-foreground';
@@ -39,11 +41,15 @@ export const monthStep = 'grid h-full w-10 place-items-center in-data-[platform=
 /** A header's action pill (New tab): drawn 36px, the same ::after making the target 44 (48). */
 export const headerPill = "press relative inline-flex h-9 flex-none items-center gap-1.5 rounded-full px-4 text-body font-semibold after:absolute after:inset-x-0 after:-inset-y-1 after:content-[''] in-data-[platform=android]:after:-inset-y-1.5";
 
+/** A list row's hairline, the iOS way (ux-audit O22): from where the text starts (past a 40px chip and its 12px gap)
+ *  to the card's right edge. On a relative row; the caller adds the right reach (after:-right-…) to the card's edge. */
+export const rowRule = "after:pointer-events-none after:absolute after:bottom-0 after:left-[52px] after:h-px after:bg-border after:content-['']";
+
 /** A native select dressed as the shadcn Input: 48px, the field size, the card ground. */
 export const selectCls = 'h-12 w-full appearance-auto rounded-xl border border-input bg-card px-3 text-[length:var(--field)] text-foreground';
 
 /** An in-place form on its own card. */
-export const formCard = 'flex flex-col gap-3.5 rounded-[18px] bg-card p-[var(--pad)]';
+export const formCard = 'flex flex-col gap-3.5 rounded-[20px] bg-card shadow-card p-[var(--pad)]';
 
 /** A quiet line that explains what saving will do: an icon and the words, on plum-soft. */
 export function Info({ children }: { children: React.ReactNode }) {
@@ -61,7 +67,7 @@ export function AddRow({ onClick, children, done, ref }: {
 }) {
   return (
     <button ref={ref} type="button" onClick={onClick}
-      className="press flex min-h-14 w-full items-center gap-3 rounded-[18px] border border-dashed border-input bg-card px-[var(--pad)] py-2 text-left text-body font-semibold text-foreground">
+      className="press flex min-h-14 w-full items-center gap-3 rounded-[20px] border border-dashed border-input bg-card px-[var(--pad)] py-2 text-left text-body font-semibold text-foreground">
       <span className="grid size-8 flex-none place-items-center rounded-full bg-accent text-accent-foreground"><Icon name="add" size={18} /></span>
       <span className="min-w-0 flex-1">{children}</span>
       {done}

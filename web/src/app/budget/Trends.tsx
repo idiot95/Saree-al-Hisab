@@ -64,9 +64,9 @@ export default function Trends({ month, partial, day, future, series, cats, tabs
   return (
     <section id="trends" aria-labelledby="trends-title" className="flex scroll-mt-4 flex-col gap-4">
       <div className="px-[var(--gutter)]">
-        <h2 id="trends-title" className="text-title font-semibold leading-tight">Trends</h2>
+        <h2 id="trends-title" className="px-0.5 text-subhead font-semibold text-muted-foreground">Trends</h2>
         {average > 0 && !future && (
-          <p className="text-subhead text-muted-foreground">
+          <p className="px-0.5 text-subhead text-muted-foreground">
             <span className="whitespace-nowrap">{format(average)} a month</span>{' '}
             <span className="whitespace-nowrap">on average</span>
           </p>
@@ -74,13 +74,13 @@ export default function Trends({ month, partial, day, future, series, cats, tabs
       </div>
 
       {nothing ? (
-        <EmptyLine icon="trending_flat" className="mx-[var(--gutter)] rounded-[18px] bg-card">
+        <EmptyLine icon="trending_flat" className="mx-[var(--gutter)] rounded-[20px] bg-card shadow-card">
           {future ? `Trends start when ${long(month)} does.` : 'Nothing to chart yet. Record a few entries and this fills in.'}
         </EmptyLine>
       ) : (
         <>
           {lastMonth > 0 && thisMonth > 0 && (
-            <p className="mx-[var(--gutter)] flex items-start gap-3 rounded-[18px] bg-card px-4 py-3.5 text-body leading-snug">
+            <p className="mx-[var(--gutter)] flex items-start gap-3 rounded-[20px] bg-card shadow-card px-4 py-3.5 text-body leading-snug">
               <Icon name={thisMonth > lastMonth ? 'trending_up' : thisMonth < lastMonth ? 'trending_down' : 'trending_flat'}
                 size={20} className="mt-px text-primary" />
               <span>
@@ -101,7 +101,7 @@ export default function Trends({ month, partial, day, future, series, cats, tabs
                   <li key={s.id}>
                     <Link href={`/entries?m=${month}&c=${s.id}`}
                       className="press flex min-h-14 items-center gap-3 py-2">
-                      <Chip icon={s.icon} tint={s.tint} size={34} radius={10} iconSize={18} />
+                      <Chip icon={s.icon} tint={s.tint} size={34} iconSize={18} />
                       <span className="flex min-w-0 flex-1 flex-col gap-1.5">
                         <span className="flex items-baseline justify-between gap-2 text-body">
                           <span className="font-medium [overflow-wrap:anywhere]">{s.name}</span>
@@ -128,7 +128,7 @@ export default function Trends({ month, partial, day, future, series, cats, tabs
                   <li key={m.id} className="border-b border-border last:border-b-0">
                     <Link href={`/entries?m=${month}&c=${m.id}`}
                       className="press flex min-h-14 items-center gap-3 py-2">
-                      <Chip icon={m.icon} tint={m.tint} size={34} radius={10} iconSize={18} />
+                      <Chip icon={m.icon} tint={m.tint} size={34} iconSize={18} />
                       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                         <span className="text-body font-medium [overflow-wrap:anywhere]">{m.name}</span>
                         <span className="text-footnote text-muted-foreground tabular-nums">
@@ -198,7 +198,7 @@ export default function Trends({ month, partial, day, future, series, cats, tabs
                     <li key={t.id}>
                       <Link href={`/tab/${t.id}`} className="press flex min-h-14 flex-col justify-center gap-1.5 py-2">
                         <span className="flex items-center gap-2.5 text-body">
-                          <Chip icon="folder" tint={tabTint(t.id)} size={28} radius={8} iconSize={15} />
+                          <Chip icon="folder" tint={tabTint(t.id)} size={28} iconSize={15} />
                           <span className="min-w-0 flex-1 font-medium [overflow-wrap:anywhere]">{t.name}</span>
                           <span className="font-semibold tabular-nums">{format(owed)}</span>
                         </span>
@@ -246,7 +246,7 @@ function Card({ title, children }: { title: string; children: React.ReactNode })
   return (
     <section aria-label={title} className="mx-[var(--gutter)] flex flex-col gap-1.5">
       <h3 className="px-0.5 text-subhead font-semibold text-muted-foreground">{title}</h3>
-      <div className="rounded-[18px] bg-card px-4 py-3">{children}</div>
+      <div className="rounded-[20px] bg-card shadow-card px-4 py-3">{children}</div>
     </section>
   );
 }
