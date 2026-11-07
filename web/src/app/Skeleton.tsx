@@ -230,10 +230,14 @@ const CARD = 'overflow-hidden rounded-[20px] bg-card shadow-card';
    tap's own answer and keeps its motion exactly: no delay, no fade of its own. */
 const STREAMED = 'transition-opacity duration-(--dur-2) ease-out delay-(--dur-1) starting:opacity-0 motion-reduce:transition-none';
 
-function Frame({ name, current, space, skip, stillBar, children }: {
+function Frame({ name, current, space, skip, stillBar, footer, children }: {
   name: string; current: string | null; space: 'bar' | 'back' | 'footer'; skip?: string;
   /** Streamed by the server (a still bar of its own, and the fade in); off for the frame a tap draws. */
   stillBar: boolean;
+  /** A fixed bar at the foot (a tab's two buttons). Drawn outside the body's shimmer, which it would sit over and
+   *  hide, so it carries a Shimmer of its own (P4 re-review): the band crosses it with the rest, both as wide as
+   *  the screen and on the same clock. */
+  footer?: React.ReactNode;
   children: React.ReactNode;
 }) {
   const bottom = space === 'bar' ? TAB_BAR_SPACE : space === 'back' ? BACK_SPACE : 'calc(112px + env(safe-area-inset-bottom, 0px))';
@@ -242,6 +246,7 @@ function Frame({ name, current, space, skip, stillBar, children }: {
       <main aria-busy="true" data-frame={skip} className={cn('min-h-dvh bg-background text-foreground', stillBar && STREAMED)} style={{ paddingBottom: bottom }}>
         <span className="sr-only" aria-live="polite">Loading {name}</span>
         <Shimmer>{children}</Shimmer>
+        {footer}
       </main>
       {current && stillBar && <StillTabBar current={current} />}
     </>
@@ -535,7 +540,14 @@ function Person({ stillBar }: Draw) {
 /** A tab: its name and menu, what is still to come back, the people on it, the costs by month, two buttons. */
 function Tab({ stillBar }: Draw) {
   return (
-    <Frame name="the tab" current={null} space="footer" stillBar={stillBar}>
+    <Frame name="the tab" current={null} space="footer" stillBar={stillBar} footer={
+      <div aria-hidden className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-background pb-[calc(14px+env(safe-area-inset-bottom,0px))] pt-3">
+        {/* The gutter inside the shimmer, so its band is the screen's width and lines up with the body's. */}
+        <Shimmer layer="flex gap-2 px-[var(--gutter)]">
+          <S className="h-[54px] flex-1 rounded-2xl" />
+          <S className="h-[54px] flex-[1.3] rounded-2xl" />
+        </Shimmer>
+      </div>}>
       <Head back eyebrow="Tab" title={null} right={<span className="-mr-2.5 grid size-11 flex-none place-items-center in-data-[platform=android]:size-12"><Icon name="more_horiz" size={24} /></span>} />
       <div className="flex flex-col gap-5 pb-6">
         <div className="flex flex-col gap-3 px-[var(--gutter)]">
@@ -548,10 +560,6 @@ function Tab({ stillBar }: Draw) {
           <H2 known={false}>November</H2>
           <div className={`${CARD} px-[var(--pad)] ${ruleSwipe} [--rule-x:48px]`}><Rows n={2} grip h="min-h-[72px] py-2.5" chip="size-9 rounded-[11px]" /></div>
         </section>
-      </div>
-      <div aria-hidden className="fixed inset-x-0 bottom-0 z-30 flex gap-2 border-t border-border bg-background px-[var(--gutter)] pb-[calc(14px+env(safe-area-inset-bottom,0px))] pt-3">
-        <S className="h-[54px] flex-1 rounded-2xl" />
-        <S className="h-[54px] flex-[1.3] rounded-2xl" />
       </div>
     </Frame>
   );
