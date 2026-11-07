@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import { tokenMs } from './motion';
 import { haptic } from './haptics';
 
 /* Swipe a row to the left and its actions come out from under it.
@@ -153,10 +154,12 @@ export default function SwipeRow({ actions, commit = true, grip = true, flush = 
       localStorage.setItem(PEEK_KEY, '1');
     } catch { return; }
     peekedThisLoad = true;
-    const out = setTimeout(() => { setPeeking(true); setX(-Math.min(W, 56)); }, 700);
+    /* Out far enough to show one whole action (its label never clipped), then home. */
+    const out = setTimeout(() => { setPeeking(true); setX(-Math.min(W, ACT_W)); }, 700);
     const back = setTimeout(() => setX(0), 1500);
-    // Back to its own colour once it has slid home (the slide is --dur-3), so an opened row is never rose gold.
-    const done = setTimeout(() => setPeeking(false), 1900);
+    // Back to its own colour once it has slid home (the slide is --dur-3, a beat of --dur-1 after), so an opened row
+    // is never rose gold.
+    const done = setTimeout(() => setPeeking(false), 1500 + tokenMs('--dur-3', 240) + tokenMs('--dur-1', 120));
     return () => { clearTimeout(out); clearTimeout(back); clearTimeout(done); };
   }, [actions.length, W]);
 

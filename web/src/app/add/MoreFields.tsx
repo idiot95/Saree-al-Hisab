@@ -136,7 +136,7 @@ export default function MoreFields({ kind, state, set, tabs, claims, minor, toda
                 <button key={t.id} type="button" aria-pressed={isOn}
                   onClick={() => { haptic('select'); set('tabId', isOn ? null : t.id); }}
                   style={choice(isOn)}
-                  className={cn(chip, 'pl-2.5 font-semibold')}>
+                  className={cn(chip, 'pl-2.5')}>
                   <Icon name="tab" size={16} />
                   <span className="truncate">{t.name}</span>
                 </button>

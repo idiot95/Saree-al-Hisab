@@ -116,7 +116,7 @@ export function WhenRow({ value, onChange, today }: {
             const on = iso === value;
             return (
               <button key={iso} type="button" role="radio" aria-checked={on} onClick={() => pick(iso)}
-                style={choice(on)} className={`${chip} font-semibold`}>
+                style={choice(on)} className={chip}>
                 {friendlyDay(iso, today)}
               </button>
             );

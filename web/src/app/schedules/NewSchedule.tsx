@@ -8,14 +8,14 @@ import { HIJRI_MONTHS_SHORT, formatHijri, toHijri } from '@/lib/hijri';
 import { DateChips, DayOfMonth, MonthOfYear, Segmented } from '../DatePick';
 import { createSchedule } from './actions';
 import { useFocusSoon, useKeepOnRefusal, useOnSuccess } from '../form-hooks';
-import PayPicker, { CHIP, CHIP_TEXT } from '../PayPicker';
+import PayPicker from '../PayPicker';
 import CategoryPick from '../CategoryPick';
 import type { Category } from '../CategoryFinder';
 import { defaultRef, type Way } from '@/lib/pay';
 import { fits } from '@/lib/scope';
 import { choice } from '../choice';
 import { Icon } from '../Icon';
-import { AddRow, Said, chip, fieldLabel, formCard, ghost, solid } from '../form-bits';
+import { AddRow, Said, chip, chipRow, fieldLabel, formCard, ghost, solid } from '../form-bits';
 
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -161,7 +161,7 @@ function ScheduleForm({ ways, categories, tabs, onClose }: {
             <span className="flex-1 text-body font-semibold">{endsLine}</span>
             <input type="hidden" name="ends" value="never" />
             <button type="button" onClick={() => setEndsOpen(true)}
-              className={cn(chip, 'gap-1 border-muted bg-muted font-semibold text-primary')}>
+              className={cn(chip, 'gap-1 border-muted bg-muted text-primary')}>
               <Icon name="edit" size={16} />Change
             </button>
           </div>
@@ -218,15 +218,16 @@ function ScheduleForm({ ways, categories, tabs, onClose }: {
         <div role="group" aria-label="On a tab (optional)" className="flex flex-col gap-1.5">
           <span className={fieldLabel}>On a tab (optional)</span>
           <input type="hidden" name="bookId" value={bookId ?? ''} />
-          <div className="flex flex-wrap gap-2">
+          {/* The same chip as Add's "Which tab" (MoreFields), so one choice looks one way in both forms. */}
+          <div className={chipRow}>
             {tabs.map((t) => {
               const on = t.id === bookId;
               return (
                 <button key={t.id} type="button" aria-pressed={on}
                   onClick={() => setBookId(on ? null : t.id)}
-                  style={{ ...CHIP, ...choice(on) }}>
+                  style={choice(on)} className={cn(chip, 'pl-2.5')}>
                   <Icon name="tab" size={16} />
-                  <span style={CHIP_TEXT}>{t.name}</span>
+                  <span className="truncate">{t.name}</span>
                 </button>
               );
             })}

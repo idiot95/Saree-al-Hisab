@@ -358,10 +358,10 @@ try {
   await form.getByRole('button', { name: 'Add it' }).click();
   const list = page.getByRole('region', { name: 'Every regular payment' });
   /* With something due in the next two weeks the full list opens folded to one line (the dues above would otherwise
-     be listed twice): unfold it. */
+     be listed twice): unfold it — by its open attribute, not a click, so focus stays where the saved form put it
+     (checked below). */
   await list.waitFor({ timeout: 20000 });
-  const fold = list.locator('details:not([open]) > summary');
-  if (await fold.count()) await fold.click();
+  await list.locator('details').evaluateAll((ds) => ds.forEach((d) => { d.open = true; }));
   await list.getByText(SCHEDULE, { exact: true }).waitFor({ timeout: 20000 });
   const [rule] = await sql`select rrule, hijri_rule from schedule where household_id = ${hh} and name = ${SCHEDULE}`;
   assert.equal(rule.rrule, null, 'no Gregorian rule');

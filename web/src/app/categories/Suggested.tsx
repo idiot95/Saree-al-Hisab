@@ -78,7 +78,7 @@ export default function Suggested({ have, canEdit, onResult }: {
                 {canEdit && (
                   <button type="button" onClick={() => adopt(g.name)} disabled={busy !== null}
                     aria-label={`Add ${g.name}`}
-                    className={cn(chip, chipOff, 'gap-1 pl-2.5 font-semibold text-primary disabled:cursor-default', busy && busy !== g.name && 'opacity-50')}>
+                    className={cn(chip, chipOff, 'gap-1 pl-2.5 text-primary disabled:cursor-default', busy && busy !== g.name && 'opacity-50')}>
                     <Icon name="add" size={18} />{busy === g.name ? 'Adding…' : 'Add'}
                   </button>
                 )}

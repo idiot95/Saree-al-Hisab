@@ -86,7 +86,8 @@ export async function loadUpcoming(hh: string, canWrite: boolean, startOpen: boo
         <section aria-label="Every regular payment" className="mx-[var(--gutter)]">
           <details className="group">
             <summary className="press flex min-h-14 cursor-pointer list-none items-center gap-3 rounded-[20px] bg-card shadow-card px-[var(--pad)] text-body font-medium text-muted-foreground group-open:mb-1.5 group-open:rounded-none group-open:bg-transparent group-open:px-0.5 [&::-webkit-details-marker]:hidden">
-              <Icon name="event_repeat" size={22} className="group-open:hidden" />
+              {/* In a chip's 40px slot, so the words sit on the list's text column. */}
+              <span className="grid size-10 flex-none place-items-center group-open:hidden"><Icon name="event_repeat" size={22} /></span>
               <span className="flex-1 group-open:text-subhead group-open:font-semibold">Every regular payment · {live.length}</span>
               <Icon name="expand_more" size={20} className="transition-transform duration-(--dur-2) group-open:rotate-180" />
             </summary>

@@ -108,7 +108,7 @@ async function ActivityScreen({ sp }: { sp: Params }) {
         /* One category, from a budget line: the chips would mean "all of Activity", so the way out is one chip. */
         <div className={chipRow}>
           <Link href={`/entries?m=${shown}`} replace data-replace
-            className={`${chip} border-accent bg-accent font-semibold text-accent-foreground`}>
+            className={`${chip} border-accent bg-accent text-accent-foreground`}>
             <Icon name="close" size={16} /> Showing one category
           </Link>
         </div>
@@ -145,7 +145,7 @@ function Search({ entries, words, canEdit, chips }: {
         {chips}
         <div className={chipRow}>
           <Link href="/entries" replace data-replace
-            className={`${chip} border-accent bg-accent font-semibold text-accent-foreground`}>
+            className={`${chip} border-accent bg-accent text-accent-foreground`}>
             <Icon name="close" size={16} /> Back to this month
           </Link>
         </div>

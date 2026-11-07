@@ -45,7 +45,7 @@ export default function TabContacts({ tabId, people, canEdit }: {
       <div className={chipRow}>
         {people.map((p) => (
           <button key={p.id} type="button" onClick={() => { haptic('tap'); setOpen(true); }}
-            className={cn(chip, chipOff, 'pl-1 font-semibold')}>
+            className={cn(chip, chipOff, 'pl-1')}>
             <Face name={p.name} tint={p.tint} size={24} />
             {first(p.name)}
             <span className="flex items-center gap-0.5 font-medium text-muted-foreground">
@@ -55,7 +55,7 @@ export default function TabContacts({ tabId, people, canEdit }: {
         ))}
         {canEdit && (
           <button type="button" onClick={() => { haptic('select'); setOpen(true); }}
-            className={cn(chip, 'border-dashed border-input bg-transparent font-semibold text-muted-foreground')}>
+            className={cn(chip, 'border-dashed border-input bg-transparent text-muted-foreground')}>
             <Icon name="plus" size={16} />
             {people.length === 0 ? 'Add a contact' : 'Contact'}
           </button>

@@ -28,7 +28,7 @@ export default function RemindShare({ person, what, amount, on, bills }: {
 
   return (
     <div className="flex flex-col gap-1">
-      <Button type="button" variant="secondary" onClick={go} disabled={busy} className="h-11 rounded-xl text-subhead font-semibold">
+      <Button type="button" variant="secondary" onClick={go} disabled={busy} className="h-11 rounded-xl text-body font-semibold">
         <Icon name="bell" size={16} />
         {busy ? 'Preparing…' : bills.length > 0 ? `Remind · ${bills.length} bill${bills.length === 1 ? '' : 's'}` : 'Remind'}
       </Button>

@@ -22,7 +22,7 @@ const PURITY: Record<'gold' | 'silver', { key: string; word: string }[]> = {
   gold: [{ key: '24k', word: '24k' }, { key: '22k', word: '22k' }, { key: '18k', word: '18k' }, { key: '14k', word: '14k' }],
   silver: [{ key: '999', word: 'Fine (999)' }, { key: 'sterling', word: 'Sterling (925)' }],
 };
-const pick = `${chip} ${chipOff} flex-auto data-[state=on]:border-primary data-[state=on]:bg-primary data-[state=on]:font-semibold data-[state=on]:text-primary-foreground`;
+const pick = `${chip} ${chipOff} flex-auto data-[state=on]:border-primary data-[state=on]:bg-primary data-[state=on]:text-primary-foreground`;
 
 /* The + on Wealth: a pot of foreign cash, or gold, or silver, with what there is of it today and, if wanted,
    a photo of it. The first figure is saved with the holding, so a new holding is never empty. */
