@@ -104,6 +104,9 @@ export default function AddEntry({
   const router = useRouter();
   const [pending, start] = useTransition();
   const [kept, setKept] = useState<string | null>(null);
+  /* A save with bills still on its way after SAVE_PATIENCE_MS: it is waited for (the phone's queue cannot hold bills),
+     and this says so rather than leaving "Saving…" alone. */
+  const [slow, setSlow] = useState(false);
   /* The bank message this entry is made from, until it has been saved or kept once: a second entry typed on the
      same screen afterwards is a different entry, and must not be mistaken for a retry of the first. */
   const smsRef = useRef(fromSms?.clientRef ?? null);
@@ -262,8 +265,12 @@ export default function AddEntry({
       try {
         /* With bills attached there is no race: the phone's queue cannot hold them, so the real answer is waited
            for and the bills go with the entry. */
-        r = d.attachments?.length ? await sending
-          : await Promise.race([sending, new Promise<'slow'>((res) => setTimeout(() => res('slow'), SAVE_PATIENCE_MS))]);
+        if (d.attachments?.length) {
+          const later = setTimeout(() => setSlow(true), SAVE_PATIENCE_MS);
+          try { r = await sending; } finally { clearTimeout(later); setSlow(false); }
+        } else {
+          r = await Promise.race([sending, new Promise<'slow'>((res) => setTimeout(() => res('slow'), SAVE_PATIENCE_MS))]);
+        }
       } catch { keep(); return; }  // the request itself failed: no signal, or it dropped mid-way
       if (r === 'slow') { keep(); dispatchEvent(new Event(DRAIN_EVENT)); return; }
       if (r.ok) {
@@ -467,11 +474,20 @@ export default function AddEntry({
           the page the keyboard covers. */}
       <div ref={footer} data-add-footer data-kb={kb > 0} style={{ '--kb': `${sheet ? 0 : kb}px` } as React.CSSProperties}
         className="sticky bottom-[var(--kb)] z-10 flex-none border-t border-border bg-background px-[var(--gutter)] pt-2.5 pb-[calc(10px+env(safe-area-inset-bottom))] data-[kb=true]:pb-2.5">
-        {kept && (
-          <p role="status" className="m-0 mb-2 flex items-center gap-2.5 rounded-xl bg-accent px-3.5 py-3 text-sm leading-snug font-semibold text-accent-foreground">
-            <Icon name="schedule" size={18} />{kept}
-          </p>
-        )}
+        {/* One polite status region, always in the page so what lands in it is read out: what was kept on the
+            phone, or that bills are still on their way. */}
+        <div role="status" aria-live="polite">
+          {kept && (
+            <p className="m-0 mb-2 flex items-center gap-2.5 rounded-xl bg-accent px-3.5 py-3 text-sm leading-snug font-semibold text-accent-foreground">
+              <Icon name="schedule" size={18} />{kept}
+            </p>
+          )}
+          {slow && (
+            <p data-still-sending className="m-0 mb-2 flex items-center gap-2.5 rounded-xl bg-accent px-3.5 py-3 text-sm leading-snug font-semibold text-accent-foreground">
+              <Icon name="schedule" size={18} />Still sending your bills — keep this open.
+            </p>
+          )}
+        </div>
 
         {error && (
           <p role="alert" className="m-0 mb-2 flex items-center gap-2.5 rounded-xl bg-destructive/10 px-3.5 py-3 text-sm font-semibold text-destructive">

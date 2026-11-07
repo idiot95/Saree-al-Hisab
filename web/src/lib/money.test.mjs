@@ -106,7 +106,6 @@ assert.equal(typed('.5'), '0.5');
 assert.equal(fromKeys(typed('Rs. 2,340.50')), 234050);
 assert.equal(typed('2340.555'), '2340.55');           // two paise digits at most
 assert.equal(typed('23.4.5'), '23.45');               // one point
-assert.equal(typed('.5'), '0.5');
 assert.equal(typed('007'), '7');
 assert.equal(typed('0'), '0');
 assert.equal(typed(''), '');

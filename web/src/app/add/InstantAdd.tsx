@@ -32,8 +32,11 @@ export default function InstantAdd({ householdId }: { householdId: string }) {
      own handler (the plus clears the mark itself, by opening). */
   useEffect(() => {
     const look = (e: MouseEvent) => {
+      /* Only a plain click replaces the pending navigation; a modified click or a link to another window leaves it
+         on its way (the same test as the tab bar's plus). */
+      if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
       const a = (e.target as Element | null)?.closest?.('a[href]');
-      if (!(a instanceof HTMLAnchorElement)) return;
+      if (!(a instanceof HTMLAnchorElement) || a.target) return;
       if (a.origin === location.origin && a.pathname === '/add') forgetCancel();
     };
     document.addEventListener('click', look, true);

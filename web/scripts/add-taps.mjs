@@ -917,6 +917,74 @@ try {
       ok('closed before landing, then Activity\'s "Add an entry" on the same screen: that /add opens and stays');
       await ctx.close();
     }
+
+    // Closed before landing, then a Ctrl-click on a link to /add (a new tab, which replaces nothing): the slow /add
+    // still lands here, and is still stepped back off.
+    {
+      const { ctx, page } = await context(ios);
+      await openDrawer(page);
+      await page.keyboard.press('Escape');
+      await page.waitForURL((u) => u.pathname === '/');
+      const origin = `${BASE}/entries?m=2001-01`;
+      await page.goto(origin);
+      const again = page.getByRole('link', { name: 'Add an entry' });
+      await again.waitFor();
+      const g = await held(page);
+      await plus(page);
+      await ahead(page);
+      await page.keyboard.press('Escape');
+      await page.locator('[data-add-drawer]').waitFor({ state: 'detached' });
+      const popup = ctx.waitForEvent('page', { timeout: 5000 }).catch(() => null);
+      await again.click({ modifiers: ['Control'] });
+      const other = await popup;
+      if (other) await other.close();
+      g.open();
+      await page.waitForTimeout(4000);
+      const u = new URL(page.url());
+      assert.equal(u.pathname + u.search, '/entries?m=2001-01', `back on the screen it was opened over (${page.url()})`);
+      await noDrawer(page);
+      ok('closed before landing, then a Ctrl-click on "Add an entry" (another tab): the slow /add is still stepped back off, no drawer');
+      await ctx.close();
+    }
+
+    // A save with a bill while the action is held: it is waited for (never kept on the phone), says so after the wait,
+    // and lands once as one row with its bill.
+    {
+      const { ctx, page } = await context(ios);
+      const [{ t: caseStart }] = await sql`select now() as t`;
+      let open; const gate = new Promise((r) => { open = r; });
+      await page.route('**/*', async (route) => {
+        const r = route.request();
+        if (r.method() === 'POST' && r.headers()['next-action']) await gate;
+        await route.continue().catch(() => {});
+      });
+      const drawer = await openDrawer(page);
+      await page.keyboard.type('447');
+      await drawer.locator('[data-category-tile]').first().click();
+      await drawer.getByRole('button', { name: /Note, bill, tab/ }).click();
+      await drawer.locator('input[type=file]').setInputFiles(path.join(ROOT, 'public', 'icons', 'icon-192.png'));
+      await drawer.getByRole('button', { name: /^Remove / }).first().waitFor({ timeout: 15000 });
+      await drawer.locator('[data-save]').click();
+      const t0 = Date.now();
+      const still = drawer.locator('[data-still-sending]');
+      await still.waitFor({ timeout: 12000 });
+      const after = Date.now() - t0;
+      assert.ok(after >= 7500, `the line comes after the wait (${after}ms)`);
+      assert.match(await still.innerText(), /Still sending your bills/);
+      assert.equal(await still.evaluate((el) => el.closest('[role=status]')?.getAttribute('aria-live')), 'polite', 'inside the polite status region');
+      assert.equal(await drawer.getByText(/kept on this phone/).count(), 0, 'never kept on the phone: the queue cannot hold the bill');
+      assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem('ql.queue.v1') ?? '[]').length), 0);
+      ok(`a save with a bill, held: after ${(after / 1000).toFixed(1)}s "Still sending your bills — keep this open." in the status region, nothing queued`);
+      open();
+      await page.getByText('Entry saved.').waitFor({ timeout: 20000 });
+      const rows = await sql`select t.id, (select count(*)::int from attachment a where a.txn_id = t.id) as bills
+        from txn t where t.household_id = ${HH} and t.created_by = ${user.id} and t.created_at >= ${caseStart} and t.amount = 44700`;
+      rows.forEach((r) => wrote.add(r.id));
+      assert.equal(rows.length, 1, `exactly one ₹447 row (${rows.length})`);
+      assert.equal(rows[0].bills, 1, 'with its bill attached');
+      ok('let go: one ₹447 row with its bill, and "Entry saved."');
+      await ctx.close();
+    }
   }
 
   /* ── screenshots ─────────────────────────────────────────────────────── */
