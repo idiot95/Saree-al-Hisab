@@ -42,7 +42,7 @@ export default async function ReconcilePicker() {
               const credit = a.kind === 'credit';
               return (
                 <li key={a.id} className="border-b border-border last:border-b-0">
-                  <Link href={`/accounts/${a.id}/reconcile`} transitionTypes={['nav-forward']}
+                  <Link href={`/accounts/${a.id}/reconcile`}
                     className="press flex min-h-[72px] items-center gap-3 px-[var(--pad)] py-3 text-foreground no-underline">
                     <Chip icon={ACCOUNT_ICON[a.kind]} tint={ACCOUNT_TINT[a.kind]} size={38} radius={999} />
                     <span className="flex min-w-0 flex-1 flex-col gap-0.5">

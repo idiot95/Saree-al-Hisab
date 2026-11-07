@@ -86,7 +86,7 @@ export default async function SmsDraft({ params }: { params: Promise<{ id: strin
 
           {d.status === 'open' && canWrite && (
             <div className="flex flex-col gap-2.5">
-              <Link href={`/add?draft=${d.id}`} transitionTypes={['nav-forward']}
+              <Link href={`/add?draft=${d.id}`}
                 className="press flex min-h-12 items-center justify-center gap-2 rounded-xl bg-primary text-base font-semibold text-primary-foreground">
                 <Icon name="add" size={20} /> Review and add
               </Link>

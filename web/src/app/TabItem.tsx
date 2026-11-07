@@ -8,7 +8,7 @@ import type { Tab } from './tabs';
    Anchored: the bar must not slide with the content during a page transition, so it carries its own
    view-transition name. */
 export const BAR_CLASS =
-  'fixed inset-x-0 bottom-0 z-40 flex h-[calc(76px+env(safe-area-inset-bottom,0px))] items-center border-t border-border bg-card pb-[env(safe-area-inset-bottom,0px)] [view-transition-name:tab-bar]';
+  'fixed inset-x-0 bottom-0 z-40 flex h-[calc(76px+env(safe-area-inset-bottom,0px))] items-center border-t border-border bg-card pb-[env(safe-area-inset-bottom,0px)]';
 
 /** One slot: a fifth of the bar, the whole height of it, so the target is generous. */
 export function slotClass(on: boolean) {

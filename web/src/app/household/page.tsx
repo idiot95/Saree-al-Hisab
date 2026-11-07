@@ -86,7 +86,7 @@ export default async function Household() {
               </form>
               {/* The same page that sign-up points at, from inside: the terms are also the record of how the books
                   are kept, and that is a question people ask months later, when the household has grown. */}
-              <Link href="/terms" transitionTypes={['nav-forward']} className={row}>
+              <Link href="/terms" className={row}>
                 <Glyph name="verified_user" />
                 <Words title="Terms, and how your data is kept" sub="Encrypted, checked on every request, source public" />
                 <Chevron />
@@ -157,7 +157,7 @@ export default async function Household() {
 
           <Section label="SMS capture">
             <Card>
-              <Link href="/household/capture" transitionTypes={['nav-forward']} className={row}>
+              <Link href="/household/capture" className={row}>
                 <Glyph name="sms" />
                 <Words title="SMS capture" sub="Bank messages from your phone, as drafts to review" />
                 <Chevron />

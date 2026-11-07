@@ -59,7 +59,7 @@ export default function GettingStarted({ progress, budgetAskedAbove = false }: {
   const next = ask[0];
 
   return (
-    <Link href={next.href} transitionTypes={['nav-forward']}
+    <Link href={next.href}
       className="press flex min-h-[62px] items-center gap-3 rounded-[18px] bg-card px-3.5 py-3 text-foreground">
       {/* A ring rather than a bar: it takes a quarter of the width and reads as progress at a glance. */}
       <span className="relative size-9 flex-none">

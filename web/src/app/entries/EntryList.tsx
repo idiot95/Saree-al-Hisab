@@ -107,7 +107,7 @@ export default function EntryList({ days, canEdit, tools = false, flat = false, 
             </label>
           </form>
           {!everyMonth && q.trim() && (
-            <Link href={`/entries?q=${encodeURIComponent(q.trim())}`} transitionTypes={['nav-forward']}
+            <Link href={`/entries?q=${encodeURIComponent(q.trim())}`}
               className="flex min-h-11 items-center gap-2 self-start px-1 text-sm font-semibold text-primary">
               <Icon name="search" size={16} /> Search every month for “{q.trim()}”
             </Link>
@@ -140,7 +140,7 @@ export default function EntryList({ days, canEdit, tools = false, flat = false, 
               {rows.map((e, i) => (
                 <SwipeRow key={e.id} actions={canEdit ? [
                   { label: 'Edit', tone: 'primary', icon: <Icon name="edit" size={20} />,
-                    act: () => { startPending(`/entries/${e.id}`); router.push(`/entries/${e.id}`, { transitionTypes: ['nav-forward'] }); } },
+                    act: () => { startPending(`/entries/${e.id}`); router.push(`/entries/${e.id}`); } },
                   { label: 'Delete', tone: 'danger', icon: <Icon name="delete" size={20} />, act: () => del(e) },
                 ] : []}>
                   <Entry e={e} last={i === rows.length - 1} />
@@ -165,7 +165,7 @@ function Entry({ e, last }: { e: Row; last: boolean }) {
   const carried = !move && !e.counts_as_spend;
   /* Names wrap rather than trail off: "Came back from Imran Qureshi" is the whole point of the row. */
   return (
-    <Link href={`/entries/${e.id}`} transitionTypes={['nav-forward']} draggable={false}
+    <Link href={`/entries/${e.id}`} draggable={false}
       className={`flex min-h-16 items-center gap-3 py-2.5 text-foreground no-underline ${last ? '' : 'border-b border-border'}`}>
       {move && !lent ? (
         <span className="grid size-10 flex-none place-items-center rounded-xl bg-muted text-muted-foreground">

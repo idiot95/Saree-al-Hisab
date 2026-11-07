@@ -121,7 +121,7 @@ export default async function LoanCentre() {
                   const bal = Number(p.balance);
                   return (
                     <li key={p.id} className="border-b border-border last:border-b-0">
-                      <Link href={`/people/${p.id}`} transitionTypes={['nav-forward']}
+                      <Link href={`/people/${p.id}`}
                         className="press flex min-h-16 items-center gap-3 px-3.5">
                         <Face name={p.name} tint={p.tint} size={36} />
                         <span className="min-w-0 flex-1 text-[15px] font-medium leading-snug [overflow-wrap:anywhere]">{p.name}</span>
@@ -164,7 +164,7 @@ function TabItem({ t, last, canWrite, quiet = false }: { t: TabRow; last: boolea
 
   return (
     <Swipeable actions={actions} commit={false}>
-      <Link href={`/tab/${t.id}`} transitionTypes={['nav-forward']} draggable={false}
+      <Link href={`/tab/${t.id}`} draggable={false}
         className={`relative flex min-h-16 items-center gap-3 py-3 ${last ? '' : 'after:absolute after:right-0 after:bottom-0 after:left-12 after:h-px after:bg-border'} ${quiet ? 'opacity-75' : ''}`}>
         <Chip icon="folder" tint={tabTint(t.id)} size={36} radius={999} />
         <span className="flex min-w-0 flex-1 flex-col gap-1">

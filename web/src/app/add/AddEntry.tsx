@@ -290,7 +290,7 @@ export default function AddEntry({
         if (d.tabId) {
           const bill = d.kind === 'expense' && (d.attachments?.length ?? 0) === 0 ? `?saved=${r.id}` : '';
           startPending(`/tab/${d.tabId}`);
-          router.push(`/tab/${d.tabId}${bill}`, { transitionTypes: ['nav-forward'] });
+          router.push(`/tab/${d.tabId}${bill}`);
         } else { startPending('/'); router.push(`/?saved=${r.id}`); }
       }
       else { haptic('warn'); setError(r.error); }
@@ -367,7 +367,7 @@ export default function AddEntry({
               className="-ml-2.5 flex size-11 items-center justify-center rounded-full in-data-[platform=android]:size-12"
               onClick={() => {
                 haptic('select');
-                if (onClose) onClose(); else if (sheet) router.back(); else router.push('/', { transitionTypes: ['nav-back'] });
+                if (onClose) onClose(); else if (sheet) router.back(); else { startPending('/', 'pop'); router.push('/'); }
               }}>
               <Icon name="close" size={24} />
             </button>
@@ -387,7 +387,7 @@ export default function AddEntry({
               })}
             </div>
             {!offline && canScan ? (
-              <Link href="/scan" transitionTypes={['nav-forward']} aria-label="Scan or upload a receipt"
+              <Link href="/scan" aria-label="Scan or upload a receipt"
                 className="-mr-2.5 flex size-11 items-center justify-center rounded-full text-foreground in-data-[platform=android]:size-12">
                 <Icon name="photo_camera" size={22} />
               </Link>

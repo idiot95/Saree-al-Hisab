@@ -150,7 +150,7 @@ export default async function Tab({ params, searchParams }: {
                 <Icon name="folder" size={18} />Closed
               </span>
             ) : (
-              <Link href={`/add?tab=${tab.id}`} transitionTypes={['nav-forward']}
+              <Link href={`/add?tab=${tab.id}`}
                 className="press flex min-h-[54px] flex-[1.3] items-center justify-center gap-2 rounded-2xl bg-primary text-base font-semibold text-primary-foreground">
                 <Icon name="plus" size={18} />
                 Add cost

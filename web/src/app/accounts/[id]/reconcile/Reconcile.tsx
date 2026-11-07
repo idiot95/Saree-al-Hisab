@@ -144,7 +144,7 @@ export default function Reconcile({ accountId, credit, today, lastOn, cleared, e
                 ? `The statement has ${shown(difference)} more than the books. Something that came in may be missing here, or something going out here is not on the statement yet.`
                 : `The books have ${shown(difference)} more than the statement. Something that went out may be missing here, or something coming in here is not on the statement yet.`}
             </p>
-            <Link href="/add" transitionTypes={['nav-forward']} className={primaryBtn}>
+            <Link href="/add" className={primaryBtn}>
               <Icon name="add" size={20} />
               Add the missing entry
             </Link>

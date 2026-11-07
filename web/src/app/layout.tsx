@@ -115,7 +115,8 @@ export default async function RootLayout({ children, modal }: { children: React.
           {/* The same drawer, opened on the tab bar's tap before /add has arrived (add/instant.ts). */}
           {actor?.household_id && <Suspense fallback={null}><InstantAdd householdId={actor.household_id} /></Suspense>}
           <SyncQueue />
-          <PendingSkeleton />
+          {/* It reads the query (a same-screen change is done when the query is), so it needs a boundary too. */}
+          <Suspense fallback={null}><PendingSkeleton /></Suspense>
           {/* useSearchParams needs a boundary of its own, or the whole tree would wait on it. */}
           <Suspense fallback={null}><NavTrail /></Suspense>
         </CurrencyProvider>

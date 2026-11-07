@@ -179,7 +179,7 @@ export default async function Guide() {
                   </summary>
                   <div className="flex flex-col gap-2.5 pr-[var(--pad)] pb-4 pl-[calc(var(--pad)+40px)]">
                     {s.lines.map((l) => <p key={l} className="text-[15px] leading-relaxed text-foreground">{l}</p>)}
-                    <Link href={s.href} transitionTypes={['nav-forward']}
+                    <Link href={s.href}
                       className="flex min-h-11 items-center gap-1 self-start text-sm font-semibold text-primary">
                       {s.link}<Icon name="chevron_right" size={18} />
                     </Link>

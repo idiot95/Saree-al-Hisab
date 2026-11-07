@@ -132,7 +132,7 @@ export default async function Plan({ searchParams }: {
                 </div>
               </details>
             )}
-            <Link transitionTypes={['nav-forward']} href="/categories"
+            <Link href="/categories"
               className="press flex min-h-14 items-center gap-3 px-4 text-[15px] font-medium">
               <Icon name="sell" size={22} className="text-primary" />
               <span className="flex-1">Edit categories</span>
@@ -205,7 +205,7 @@ function CategoryLine({ row, month }: { row: Row; month: string }) {
   const kids = (row.kids as { id: string; name: string; spent: string }[]).filter((k) => Number(k.spent) > 0);
   return (
     <li className="border-b border-border last:border-b-0">
-      <Link transitionTypes={['nav-forward']} href={`/entries?m=${month}&c=${row.category_id}`}
+      <Link href={`/entries?m=${month}&c=${row.category_id}`}
         className="press flex min-h-[68px] items-center gap-3 px-3.5 py-3">
         <Chip icon={row.icon} tint={row.tint} size={36} radius={10} />
         <span className="flex min-w-0 flex-1 flex-col gap-1.5">
@@ -237,7 +237,7 @@ function CategoryLine({ row, month }: { row: Row; month: string }) {
         <p className="-mt-1.5 flex flex-wrap gap-x-1 pb-3 pl-[62px] pr-4 text-xs leading-relaxed text-muted-foreground">
           <span>of which</span>
           {kids.map((k, j) => (
-            <Link key={k.id} transitionTypes={['nav-forward']} href={`/entries?m=${month}&c=${k.id}`} className="font-semibold">
+            <Link key={k.id} href={`/entries?m=${month}&c=${k.id}`} className="font-semibold">
               {k.name} {format(Number(k.spent))}{j < kids.length - 1 ? ' ·' : ''}
             </Link>
           ))}

@@ -43,7 +43,7 @@ export function Empty({ icon, text, tone, action, inset = true }: {
       <Icon name={icon} size={32} className={tone === 'ok' ? 'text-money-in' : 'text-primary'} />
       <p className="max-w-[32ch] text-sm leading-relaxed text-muted-foreground">{text}</p>
       {action && (
-        <Link href={action.href} replace={action.replace} data-replace={action.replace || undefined} transitionTypes={['nav-forward']}
+        <Link href={action.href} replace={action.replace} data-replace={action.replace || undefined}
           className="press flex min-h-11 items-center gap-1.5 rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground in-data-[platform=android]:min-h-12">
           {action.icon && <Icon name={action.icon} size={18} />}{action.label}
         </Link>

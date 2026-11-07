@@ -99,7 +99,7 @@ export default function Trends({ month, partial, day, future, series, cats, tabs
               <ul className="flex flex-col">
                 {slices.map((s) => (
                   <li key={s.id}>
-                    <Link transitionTypes={['nav-forward']} href={`/entries?m=${month}&c=${s.id}`}
+                    <Link href={`/entries?m=${month}&c=${s.id}`}
                       className="press flex min-h-14 items-center gap-3 py-2">
                       <Chip icon={s.icon} tint={s.tint} size={34} radius={10} iconSize={18} />
                       <span className="flex min-w-0 flex-1 flex-col gap-1.5">
@@ -126,7 +126,7 @@ export default function Trends({ month, partial, day, future, series, cats, tabs
               <ul className="flex flex-col">
                 {movers.map((m) => (
                   <li key={m.id} className="border-b border-border last:border-b-0">
-                    <Link transitionTypes={['nav-forward']} href={`/entries?m=${month}&c=${m.id}`}
+                    <Link href={`/entries?m=${month}&c=${m.id}`}
                       className="press flex min-h-14 items-center gap-3 py-2">
                       <Chip icon={m.icon} tint={m.tint} size={34} radius={10} iconSize={18} />
                       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
@@ -196,7 +196,7 @@ export default function Trends({ month, partial, day, future, series, cats, tabs
                   const owed = Number(t.outstanding);
                   return (
                     <li key={t.id}>
-                      <Link transitionTypes={['nav-forward']} href={`/tab/${t.id}`} className="press flex min-h-14 flex-col justify-center gap-1.5 py-2">
+                      <Link href={`/tab/${t.id}`} className="press flex min-h-14 flex-col justify-center gap-1.5 py-2">
                         <span className="flex items-center gap-2.5 text-sm">
                           <Chip icon="folder" tint={tabTint(t.id)} size={28} radius={8} iconSize={15} />
                           <span className="min-w-0 flex-1 font-medium [overflow-wrap:anywhere]">{t.name}</span>

@@ -44,7 +44,7 @@ export default function Swipeable({ actions, commit = true, grip = true, childre
     tone: a.tone,
     icon: <Icon name={a.icon} size={20} />,
     act: () => {
-      if (a.href) { startPending(a.href); router.push(a.href, { transitionTypes: ['nav-forward'] }); return; }
+      if (a.href) { startPending(a.href); router.push(a.href); return; }
       if (!a.act) return;
       const fd = new FormData();
       for (const [k, v] of Object.entries(a.fields ?? {})) fd.append(k, v);

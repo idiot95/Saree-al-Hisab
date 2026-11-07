@@ -91,6 +91,7 @@ async function setup(browser) {
     storageState: STATE, baseURL: BASE,
   });
   await ctx.addInitScript(instrument);
+  if (process.env.NAV_BLOCK_PREFETCH === '1') await ctx.route('**/*', (rt) => (rt.request().headers()['next-router-prefetch'] ? rt.abort() : rt.continue()));
   const page = await ctx.newPage();
   const cdp = await ctx.newCDPSession(page);
   await cdp.send('Emulation.setCPUThrottlingRate', { rate: CPU });
@@ -106,8 +107,9 @@ async function setup(browser) {
   const reqs = [];
   page.on('request', (r) => {
     const h = r.headers();
-    if (h.rsc || h['next-router-prefetch'] || /[?&]_rsc=/.test(r.url())) reqs.push({ pf: !!h['next-router-prefetch'], url: r.url().replace(BASE, '') });
+    if (h.rsc || h['next-router-prefetch'] || /[?&]_rsc=/.test(r.url())) reqs.push({ pf: !!h['next-router-prefetch'], url: r.url().replace(BASE, ''), at: Date.now(), r });
   });
+  page.on('requestfinished', (r) => { const q = reqs.find((x) => x.r === r); if (q) q.end = Date.now(); });
   return { ctx, page, cdp, frames, reqs };
 }
 
@@ -195,6 +197,7 @@ async function once(browser, r) {
         const k = `${s.url} ov=${s.overlay ? 1 : s.overlayAny ? 'L' : 0} main=${s.main} text=${s.text} shim=${s.shim ? 1 : 0} dim=${s.dim ? 1 : 0} dlg=${s.dialogTop}`;
         if (k !== last) { console.log(`   ${Math.round(s.t - up)}ms ${k}`); last = k; }
       }
+      for (const q of reqs) console.log(`   req ${q.pf ? 'PF ' : ''}${q.url.slice(0, 60)} ${Math.round(q.at - epoch(up))} → ${q.end ? Math.round(q.end - epoch(up)) : '?'}`);
     }
     const firstFrame = frames.find((x) => x > epoch(down) + 1);
     return {
@@ -213,6 +216,16 @@ async function once(browser, r) {
 const browser = await chromium.launch();
 const rows = [];
 console.log(`# nav-timing ${new Date().toISOString()} base ${BASE} · Pixel 7 412×915 · CPU ${CPU}× · +${LAT}ms · ${REPS} reps`);
+/* A freshly started server renders its first pages slowly: one untimed visit to every screen first, so the numbers
+   are the phone's, not a cold server's. */
+{
+  const ctx = await browser.newContext({ storageState: STATE, baseURL: BASE });
+  const page = await ctx.newPage();
+  for (const u of ['/', '/entries', '/people', '/worth', '/household', '/budget', '/accounts', '/entries?f=review', '/entries?f=upcoming']) {
+    await page.goto(u, { waitUntil: 'load' }).catch(() => {});
+  }
+  await ctx.close();
+}
 for (const r of ROUTES) {
   if (ONLY && !ONLY.test(r.name)) continue;
   const runs = [];

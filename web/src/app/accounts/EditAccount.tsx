@@ -57,9 +57,9 @@ export default function EditAccount({ account, canWrite, last, block = false, ch
         { label: 'Edit', icon: <Icon name="pencil" size={20} />, act: () => setOpen(true) },
         { label: credit ? 'Pay it' : 'Move', tone: 'primary',
           icon: <Icon name="move" size={20} />,
-          act: () => { startPending(move); router.push(move, { transitionTypes: ['nav-forward'] }); } },
+          act: () => { startPending(move); router.push(move); } },
         { label: 'Reconcile', icon: <Icon name="check" size={20} />,
-          act: () => { startPending(`/accounts/${account.id}/reconcile`); router.push(`/accounts/${account.id}/reconcile`, { transitionTypes: ['nav-forward'] }); } },
+          act: () => { startPending(`/accounts/${account.id}/reconcile`); router.push(`/accounts/${account.id}/reconcile`); } },
       ]} commit={false}>
         <button type="button" onClick={() => { haptic('select'); setOpen(true); }}
           aria-label={`Edit ${account.name}`} className={`${shape} w-full text-left text-foreground`}>

@@ -123,7 +123,7 @@ export default function MoreFields({ kind, state, set, tabs, claims, minor, toda
           <p className="m-0 text-sm leading-normal text-muted-foreground">
             {kind === 'income' ? 'Money that comes in against a trip, a person or the office rides on a tab. '
               : 'Money someone owes you back rides on a tab — a cousin, the office, a trip. '}
-            <Link href="/people" transitionTypes={['nav-forward']} className="font-semibold text-primary">
+            <Link href="/people" className="font-semibold text-primary">
               Open one in Loans</Link>{' '}and it will be offered here.
           </p>
         )}
@@ -211,7 +211,7 @@ export default function MoreFields({ kind, state, set, tabs, claims, minor, toda
       </label>
 
       {canScan && !offline && (
-        <Link href="/scan" transitionTypes={['nav-forward']}
+        <Link href="/scan"
           className="flex min-h-11 items-center gap-2 text-sm font-semibold text-primary">
           <Icon name="photo_camera" size={18} /> Scan or upload a receipt instead
         </Link>

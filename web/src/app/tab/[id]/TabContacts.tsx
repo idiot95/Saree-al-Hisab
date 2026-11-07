@@ -68,7 +68,7 @@ export default function TabContacts({ tabId, people, canEdit }: {
               {people.map((p) => (
                 <li key={p.id} className="flex min-h-15 items-center gap-3 border-b border-border last:border-b-0">
                   <Face name={p.name} tint={p.tint} />
-                  <Link href={`/people/${p.id}`} transitionTypes={['nav-forward']}
+                  <Link href={`/people/${p.id}`}
                     className="flex min-h-11 min-w-0 flex-1 flex-col justify-center gap-0.5 text-foreground">
                     <span className="text-[15px] font-semibold">
                       {p.name}{!p.onTab && <span className="font-medium text-muted-foreground"> · left the tab</span>}

@@ -52,16 +52,23 @@ export default function TabBar({ current }: { current: string }) {
           );
         }
         const { on, here } = tabLook(t, showing);
-        const motion = litAt < 0 || i === litAt ? 'nav-lateral' : i > litAt ? 'nav-tab-right' : 'nav-tab-left';
+        /* Which way the frame comes on: towards the tab chosen, measured from the one lit now; from a screen no tab
+           owns, a plain fade. Sideways between tabs — never a push or a pop. */
+        const motion = litAt < 0 || i === litAt ? 'fade' : i > litAt ? 'tab-right' : 'tab-left';
+        const take = () => { if (!here) setTapped({ from: current, href: t.href }); };
         return (
           <Link
-            key={t.href} href={t.href}
-            /* Sideways between tabs — never a forward or back slide. */
-            transitionTypes={[motion]}
+            key={t.href} href={t.href} motion={motion}
+            /* Tapped all day, so each other tab is fetched whole as the bar comes into view: the tap then needs no
+               server render at all (NavLink). Not the tab of the screen already here. */
+            prefetch={!tabLook(t, current).here}
             aria-current={here ? 'page' : on ? 'true' : undefined}
-            /* A tick under the thumb as the tab is taken — the moment of the
-               tap, not the moment the screen arrives. */
-            onClick={() => { if (!here) { haptic('tap'); setTapped({ from: current, href: t.href }); } }}
+            /* Lit as the finger lands, before the screen has arrived; a touch the browser takes back (a drag off the
+               bar) puts it back. */
+            onPointerDown={(e) => { if (e.button === 0) take(); }}
+            onPointerCancel={() => setTapped(null)}
+            /* A tick under the thumb as the tab is taken — the moment of the tap, not the moment the screen arrives. */
+            onClick={() => { if (!here) { haptic('tap'); take(); } }}
             className={`press ${slotClass(on)}`}
           >
             <TabFace t={t} on={on} here={here} live />

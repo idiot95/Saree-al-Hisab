@@ -57,7 +57,7 @@ export default function SmsDrafts({ rows, canWrite, justDismissed = null, empty 
   const review = (id: string) => {
     const href = `/add?draft=${id}`;
     startPending(href);
-    router.push(href, { transitionTypes: ['nav-forward'] });
+    router.push(href);
   };
 
   function dismiss(r: SmsRow) {
@@ -87,7 +87,7 @@ export default function SmsDrafts({ rows, canWrite, justDismissed = null, empty 
         <h2 className="text-[13px] font-semibold text-muted-foreground">
           {shown.length} bank {shown.length === 1 ? 'message' : 'messages'} waiting
         </h2>
-        <Link href="/household/capture" transitionTypes={['nav-forward']}
+        <Link href="/household/capture"
           className="-my-2.5 -mr-2 flex min-h-11 min-w-11 items-center justify-center px-2 text-sm font-medium text-primary in-data-[platform=android]:min-h-12 in-data-[platform=android]:min-w-12">Set up</Link>
       </div>
       <div className="overflow-hidden rounded-[18px] bg-card px-[var(--pad)]">
@@ -117,7 +117,7 @@ function Row({ r, last, canWrite }: { r: SmsRow; last: boolean; canWrite: boolea
   const where = r.account ?? (r.last4 ? `Account ending ${r.last4}` : null);
   return (
     <div className={`flex min-h-[76px] items-center gap-3 py-2.5 ${last ? '' : 'border-b border-border'}`}>
-      <Link href={`/inbox/sms/${r.id}`} transitionTypes={['nav-forward']} draggable={false}
+      <Link href={`/inbox/sms/${r.id}`} draggable={false}
         className="flex min-h-11 min-w-0 flex-1 items-center gap-3 text-foreground no-underline in-data-[platform=android]:min-h-12">
         <span className={`grid size-10 flex-none place-items-center rounded-xl ${d.tone}`}>
           <Icon name={d.icon} size={20} />
@@ -137,7 +137,7 @@ function Row({ r, last, canWrite }: { r: SmsRow; last: boolean; canWrite: boolea
         </span>
       </Link>
       {canWrite && (
-        <Link href={`/add?draft=${r.id}`} transitionTypes={['nav-forward']}
+        <Link href={`/add?draft=${r.id}`}
           className="press flex min-h-11 flex-none items-center rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground in-data-[platform=android]:min-h-12">
           Review
         </Link>

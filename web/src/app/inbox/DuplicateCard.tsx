@@ -38,7 +38,7 @@ export default function DuplicateCard({ low, high, reason, canWrite = true }: {
       <ul className="flex flex-col gap-2">
         {[low, high].map((s) => (
           <li key={s.id} className="flex items-center gap-2 rounded-[14px] border border-border bg-background py-1 pl-3 pr-1.5">
-            <Link transitionTypes={['nav-forward']} href={`/entries/${s.id}?from=${encodeURIComponent('/entries?f=review')}`}
+            <Link href={`/entries/${s.id}?from=${encodeURIComponent('/entries?f=review')}`}
               className="flex min-h-14 min-w-0 flex-1 flex-col justify-center gap-0.5 py-1.5 text-foreground">
               <span className="text-[15px] font-medium [overflow-wrap:anywhere]">{s.merchant || s.category || 'Entry'}</span>
               <span className="text-xs text-muted-foreground [overflow-wrap:anywhere]">

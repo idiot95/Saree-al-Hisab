@@ -102,7 +102,7 @@ async function HomeScreen({ saved }: { saved?: string }) {
             <p className="truncate text-[13px] text-muted-foreground">{name}</p>
             <h1 className="text-[32px] font-bold leading-tight tracking-tight">{monthName}</h1>
           </div>
-          <Link href="/household" transitionTypes={['nav-forward']} aria-label="Household and settings"
+          <Link href="/household" prefetch aria-label="Household and settings"
             className="press grid size-11 flex-none place-items-center rounded-full bg-accent text-[15px] font-semibold text-accent-foreground in-data-[platform=android]:size-12">
             {(actor.user_name || '?').slice(0, 2).toUpperCase()}
           </Link>
@@ -117,7 +117,7 @@ async function HomeScreen({ saved }: { saved?: string }) {
 
           {/* Decisions waiting, and what comes round this week (or the bank messages, when nothing does). */}
           <div className="grid grid-cols-2 gap-3">
-            <Link href={reviewHref} transitionTypes={['nav-lateral']}
+            <Link href={reviewHref} motion="fade"
               className={`press flex min-h-[96px] flex-col gap-1.5 rounded-[18px] p-3.5 ${review > 0
                 ? 'bg-attention-soft text-attention-soft-foreground' : 'bg-card'}`}>
               <Icon name="rule" size={22} className={review > 0 ? '' : 'text-primary'} />
@@ -127,7 +127,7 @@ async function HomeScreen({ saved }: { saved?: string }) {
               </span>
             </Link>
             {fromSms ? (
-              <Link href="/entries?f=sms" transitionTypes={['nav-lateral']}
+              <Link href="/entries?f=sms" motion="fade"
                 className="press flex min-h-[96px] flex-col gap-1.5 rounded-[18px] bg-card p-3.5">
                 <Icon name="sms" size={22} className="text-primary" />
                 <span className="text-xs text-muted-foreground">From SMS</span>
@@ -136,7 +136,7 @@ async function HomeScreen({ saved }: { saved?: string }) {
                 </span>
               </Link>
             ) : (
-              <Link href="/entries?f=upcoming" transitionTypes={['nav-lateral']}
+              <Link href="/entries?f=upcoming" motion="fade"
                 className="press flex min-h-[96px] flex-col gap-1.5 rounded-[18px] bg-card p-3.5">
                 <Icon name="event_upcoming" size={22} className="text-primary" />
                 <span className="text-xs text-muted-foreground">Due this week</span>
@@ -148,7 +148,7 @@ async function HomeScreen({ saved }: { saved?: string }) {
           </div>
 
           {/* The household's net worth, dark, into Wealth. */}
-          <Link href="/worth" transitionTypes={['nav-lateral']}
+          <Link href="/worth" motion="fade" prefetch
             className="press flex min-h-[68px] items-center gap-3 rounded-[18px] bg-hero px-4 py-3.5 text-hero-foreground">
             <Icon name="trending_up" size={22} className="text-hero-4" />
             <span className="flex min-w-0 flex-1 flex-col gap-0.5">
@@ -159,7 +159,7 @@ async function HomeScreen({ saved }: { saved?: string }) {
           </Link>
 
           {owed > 0 && (
-            <Link href="/people" transitionTypes={['nav-lateral']}
+            <Link href="/people" motion="fade" prefetch
               className="press flex min-h-14 items-center gap-3 rounded-[18px] bg-card px-4">
               <Icon name="group" size={20} className="text-primary" />
               <span className="flex-1 text-sm text-muted-foreground">Owed to you</span>
@@ -174,7 +174,7 @@ async function HomeScreen({ saved }: { saved?: string }) {
                 <h2 className="py-1 text-[13px] font-semibold text-muted-foreground">
                   {dueNow.some((d) => d.daysAway < 0) ? 'Due now' : 'Due today'} · paid, or moved?
                 </h2>
-                <Link href="/entries?f=upcoming" transitionTypes={['nav-lateral']} className="-my-3 flex min-h-11 flex-none items-center px-1 text-sm font-medium text-primary">See all</Link>
+                <Link href="/entries?f=upcoming" motion="fade" className="-my-3 flex min-h-11 flex-none items-center px-1 text-sm font-medium text-primary">See all</Link>
               </div>
               <div className="overflow-hidden rounded-[18px] bg-card px-[var(--pad)]">
                 {dueNow.map((d) => {
@@ -197,13 +197,13 @@ async function HomeScreen({ saved }: { saved?: string }) {
             <section aria-label={todays.length ? 'Today' : 'Latest'} className="flex flex-col gap-1">
               <div className="flex items-baseline justify-between px-0.5">
                 <h2 className="py-1 text-[13px] font-semibold text-muted-foreground">{todays.length ? 'Today' : 'Latest'}</h2>
-                <Link href="/entries" transitionTypes={['nav-lateral']} className="-my-3 flex min-h-11 items-center px-1 text-sm font-medium text-primary">See all</Link>
+                <Link href="/entries" motion="fade" className="-my-3 flex min-h-11 items-center px-1 text-sm font-medium text-primary">See all</Link>
               </div>
               <EntryList days={[{ on: todayIso, label: '', rows: latest.map(toRow) }]} canEdit={canAct} flat />
             </section>
           )}
 
-          <Link href="/guide" transitionTypes={['nav-forward']} className="flex min-h-11 items-center self-center px-2 text-sm text-muted-foreground underline-offset-4 hover:underline">
+          <Link href="/guide" className="flex min-h-11 items-center self-center px-2 text-sm text-muted-foreground underline-offset-4 hover:underline">
             How the app works
           </Link>
         </div>
@@ -218,7 +218,7 @@ async function HomeScreen({ saved }: { saved?: string }) {
    door to setting one. */
 function NoBudgetYet({ spent, entries }: { spent: number; entries: number }) {
   return (
-    <Link href="/budget" transitionTypes={['nav-forward']}
+    <Link href="/budget" prefetch
       className="press flex min-h-[72px] items-center gap-3 rounded-[22px] bg-card p-[18px] text-card-foreground">
       <span className="grid size-10 flex-none place-items-center rounded-xl bg-accent text-accent-foreground">
         <Icon name="calendar_month" size={22} />

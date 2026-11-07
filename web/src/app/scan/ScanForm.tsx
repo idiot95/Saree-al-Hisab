@@ -23,7 +23,7 @@ export default function ScanForm({ canScan }: { canScan: boolean }) {
             adds it once under Household.
           </span>
         </p>
-        <Link transitionTypes={['nav-forward']} href="/household" className={primaryBtn}>Go to Household</Link>
+        <Link href="/household" className={primaryBtn}>Go to Household</Link>
       </div>
     );
   }

@@ -30,7 +30,10 @@ const nextConfig: NextConfig = {
        instead of another round trip. Every write goes through a Server Action
        that calls revalidatePath, which empties this cache, so a figure you
        just changed is never served stale. */
-    staleTimes: { dynamic: 30 },
+    staleTimes: { dynamic: 30, static: 30 },
+    /* `static` is also how long a whole prefetch is trusted (`<Link prefetch>`: the tabs and Home's doors, see
+       NavLink). Left at its 5-minute default, a tab could open on what another member's phone changed minutes
+       ago; 30 seconds is the same promise as a screen just visited. */
     /* The largest honest body: an entry's five bills of 2 MB each travel as
        base64 (about 13.4 MB with the other fields); a holding's five photos go
        as files and are smaller. The default is 1 MB, which refused a single

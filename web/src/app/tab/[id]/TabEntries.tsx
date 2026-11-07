@@ -100,7 +100,7 @@ export default function TabEntries({
   const edit = (id: string) => `/entries/${id}?from=/tab/${tabId}`;
   const actionsFor = (e: TabEntry): SwipeAction[] => [
     { label: 'Edit', icon: glyph('pencil'), tone: 'neutral' as const,
-      act: () => { startPending(edit(e.id)); router.push(edit(e.id), { transitionTypes: ['nav-forward'] }); } },
+      act: () => { startPending(edit(e.id)); router.push(edit(e.id)); } },
     ...(!e.incoming && owedOn(e.id).length > 0
       ? [{ label: 'Remind', icon: glyph('bell'), tone: 'neutral' as const,
            act: () => setOpen({ kind: 'remind', txnId: e.id }) }]
@@ -141,7 +141,7 @@ export default function TabEntries({
           <div className="overflow-hidden rounded-[18px] bg-card px-[var(--pad)]">
             {m.rows.map((e, i) => (
               <SwipeRow key={e.id} commit={false} actions={canEdit ? actionsFor(e) : []}>
-                <Link href={edit(e.id)} transitionTypes={['nav-forward']} draggable={false}
+                <Link href={edit(e.id)} draggable={false}
                   className={`flex min-h-16 items-center gap-3 py-2.5 text-foreground ${i === m.rows.length - 1 ? '' : 'border-b border-border'}`}>
                   {e.incoming ? <Chip icon="receivable" tint="green" size={36} /> : <Chip icon={e.icon} tint={e.tint} size={36} />}
                   <span className="flex min-w-0 flex-1 flex-col gap-0.5">
@@ -246,7 +246,7 @@ function BillBody({ entry, bills, fresh, tabName, editHref, onDone, onSkip }: {
                 {entry.outstanding > 0 ? ` · ${format(entry.outstanding)} to come back` : ''}
               </span>
             </span>
-            <Link href={editHref} transitionTypes={['nav-forward']}
+            <Link href={editHref}
               className="press flex min-h-11 flex-none items-center gap-1.5 rounded-xl bg-muted px-3.5 text-[13px] font-semibold text-foreground">
               <Icon name="pencil" size={15} />
               Edit

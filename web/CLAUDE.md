@@ -106,7 +106,8 @@ capture_token, sms_draft). Where an older section disagrees, this wins.
   click) and every `router.replace` / `history.replaceState` calls `replacing(url)` first. The mark applies only to
   the address it names, once. The month pill and a search push, so Back walks them. `scripts/back.test.mjs` proves
   the trail and fails if any replacing navigation in `src` is unmarked.
-- **A tapped tab lights at once**, before its screen arrives, so the bar agrees with the loading frame.
+- **A tapped tab lights as the finger lands** (pointerdown; a touch the browser takes back puts it back), before its
+  screen arrives, so the bar agrees with the frame drawn for it.
 
 **The screens.**
 - **Activity is one screen** (`/entries`, Task 24): under the title a wrapping row of link chips (`ActivityChips.tsx`;
@@ -433,8 +434,7 @@ before landing (Back, another tab, a redirect to sign-in), Next has dropped the 
 abandoned with it. **Save never waits on a pending route**: a Server Action queues behind a navigation still on its
 way, so `saveEntry` gets 8s, after which the entry is kept on the phone and `SyncQueue` is asked to send it
 (`ql:drain`); every save now carries a `clientRef`, so the two deliveries are one row (add-taps §12). The drawer slides in over
-240ms on `cubic-bezier(.22,1,.36,1)` (vaul's 500ms stays for drags and closing), and the plus carries no view
-transition. Other ways into /add (a card's Pay, a tab's Add cost, a bank message's Review) open the route's own
+`--dur-3` (240ms) on `ease-out` (vaul's 500ms stays for drags and closing). Other ways into /add (a card's Pay, a tab's Add cost, a bank message's Review) open the route's own
 drawer as before. The
 common entry is amount, tile, Save (`scripts/add-taps.mjs` counts the three).
 More opens itself when a tab is chosen on an expense, or when money coming in
@@ -1822,34 +1822,41 @@ A card holding swipe rows uses `padding: 0 var(--pad)` with `overflow:
 hidden`, because the row slides out past the card's own padding and the
 revealed actions must stop at its rounded corner.
 
-**Motion is an iPhone's** (`globals.css`, `Screen.tsx`). Going deeper
-(`nav-forward`) is a push: the new screen slides in from the right over the
-old, which drifts a quarter left and dims. Coming back (`nav-back`) is a pop:
-the top screen slides off right and the one beneath is uncovered — the
-arriving group is always the top layer (groups stack in capture order), so it
-is clip-pathed to exactly what the departing screen has uncovered. Tabs
-(`nav-tab-left` / `nav-tab-right`, chosen in TabBar by index against the lit
-tab) glide 36px towards the tab picked and fade through; the bar never moves.
-Root's own cross-fade is off. Curves are `--ease-ios` (UIKit's
-`cubic-bezier(.32,.72,0,1)`) and `--ease-spring` (a `linear()` spring for small
-things). Sheets spring up, slide back down on any close (they stay mounted for
-the exit, worked out during render so no effect sets state), and follow a drag
-on the handle — past a third, or a flick, closes. The live tab icon bounces
-when its screen arrives; success lines draw their check in (`.check-draw`).
-Reduced motion shortens all of it to nothing.
+**Motion moves on the tap, not on the commit** (v3.1 P2, `p2-report.md`). The view transitions are gone: they ran
+from the router's commit, usually before the content had streamed, and React held the content until they ended
+(perf-findings §4). Now a link says how its screen comes on with `motion` on `NavLink` (`push` deeper, the default;
+`pop` back out, which `goBack` uses for Back and the edge swipe; `fade` sideways from Home; `tab-left`/`tab-right`,
+chosen in TabBar by index against the lit tab), and `startPending(href, motion)` draws the destination's frame in
+the next frame, moving that way: a push slides in from the right over the old screen, a pop comes in from a quarter
+left, a tab crossfades with a 16px nudge; the bar never moves. A same-screen change (the month pill, a chip) draws
+no frame: the screen dims below its header (`html[data-pending-same]`) until the new state lands. **One set of
+timings**, in `ql.css`: `--dur-press` 90ms, `--dur-1` 120 (fades, small state; Tailwind's default transition),
+`--dur-2` 180 (tabs, chips, crossfades), `--dur-3` 240 (push, pop, a sheet in), `--dur-4` 300 (the ceiling for
+anything waited through), `--dur-flourish` 420 (after arrival only: the tab icon's pop, `.check-draw`); curves as
+Tailwind easings — `ease-out` (enters), `ease-in` (exits), `ease-press`, `ease-ios` (drags, follow-through),
+`ease-spring`. Use them; no one-off durations. Drawers keep vaul's own timing for drags and closing; the Add drawer
+opens on `--dur-3`. NumberFlow rolls in about 600ms. **Press feedback is drawn at pointerdown**: NavLink sets
+`data-pressed` (a phone paints `:active` only around the release) and drops it when the finger lifts, leaves, or
+drags past 10px; `.press` scales on it and every link dims (`data-pressed:opacity-75`). Reduced motion shortens all
+of it to nothing. `scripts/nav-timing.mjs` measures tap → first changed pixel and tap → content for every route at
+Pixel 7, 4× CPU, +150ms, and fails on feedback over 50ms, any blank frame, or Home → profile content over 450ms.
 
-**A tap draws the destination's skeleton at once** (`PendingSkeleton` in the
-root layout, `pending.ts`). Links prefetch only on intent (`NavLink`), so a
-route's loading.tsx is not on the phone ahead of the tap; without this the old
-screen sat unchanged until the server streamed the loading shell. `NavLink`
-and every `router.push` that navigates (swipe actions, Add Entry after Save,
-the saved snack) call `startPending(href)`; the overlay waits 120ms (a cached
-screen is faster and a one-frame flash reads as flicker), draws
-`SkeletonFor(path)` under the real tab bar (the path keeps its query, so an
-Activity chip draws its own frame), and comes down when the pathname changes or after 10s. `frameFor` in `Skeleton.tsx` is the one map from a path
-to its frame — a list, a form, a tab with its figure, people and two buttons,
-Home's deck and tiles — and every loading.tsx draws from it, so the frame on
-tap and the frame the server streams are the same picture.
+**A tap draws the destination's frame at once** (`PendingSkeleton` in the root layout, `pending.ts`). `NavLink`,
+`goBack` and every `router.push` that navigates (swipe actions, Add Entry after Save, the saved snack) call
+`startPending(href, motion)`; the overlay draws `SkeletonFor(path)` with no grace period under the real tab bar (the
+path keeps its query), and comes down when the destination's `<Screen>` lands (`Landed`, a layout effect;
+`error.tsx` and `not-found.tsx` carry it too), when the address goes somewhere else (a redirect, another tab), or
+after 10s — so a route whose loading frame the phone did not know never shows a blank page. It then dissolves over
+`--dur-1` while the screen underneath is already live: content never waits for an animation. `frameFor` in
+`Skeleton.tsx` is the one map from a path to its frame, and every loading.tsx draws from it, so the frame on tap and
+the frame the server streams are the same picture.
+
+**Prefetch is deliberate** (`NavLink`). A link does not prefetch, except the five tabs (not the one you are on) and
+Home's four doors (the avatar, the month card, net worth, owed to you), which pass `prefetch` and are fetched whole
+as they come into view, so their tap needs no server render. `prefetch="auto"` (down to the loading frame) was
+measured and was worse: the frame committed first and React held the content for its 300ms reveal throttle. Whole
+prefetches are trusted 30s (`staleTimes.static`, the same as a visited screen) and every write empties them. A Home
+view costs about six such renders, ~100KB uncompressed.
 
 **Undo instead of "Are you sure"** (`src/app/Snack.tsx`): delete and retire
 happen at once and can be taken back for fifteen minutes — `removeEntry` sets

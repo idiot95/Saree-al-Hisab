@@ -129,7 +129,7 @@ function CardBlock({ card, canWrite }: { card: CardInfo; canWrite: boolean }) {
           {payable > 0 && (
             <Link className="flex min-h-[46px] text-center min-w-0 flex-1 items-center justify-center gap-[7px] rounded-[13px] bg-primary text-sm font-bold text-primary-foreground no-underline"
               href={`/add?kind=transfer&to=${account.id}&amount=${payable}`}
-              transitionTypes={['nav-forward']} onClick={() => haptic('select')}
+              onClick={() => haptic('select')}
               aria-label={`Pay ${format(payable)} to ${account.name}`}>
               <Icon name="move" size={17} />
               Pay {format(payable)}
@@ -140,7 +140,7 @@ function CardBlock({ card, canWrite }: { card: CardInfo; canWrite: boolean }) {
             <Icon name="pencil" size={16} />
             Edit
           </button>
-          <Link href={`/accounts/${account.id}/reconcile`} transitionTypes={['nav-forward']}
+          <Link href={`/accounts/${account.id}/reconcile`}
             aria-label={`Reconcile ${account.name} with its statement`} className={cn(quiet, 'px-3.5')}>
             <Icon name="check" size={16} />
             Match

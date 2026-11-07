@@ -1,5 +1,7 @@
 'use client';
 
+import { startPending } from './pending';
+
 /* Where Back should go: to where you actually were, the way an iPhone's Back does — the same month, the same
    filter, the same scroll — and only to a screen's fixed parent when there is nowhere in the app to return to
    (opened from a link, a bookmark, or a fresh launch). A fixed parent alone sent an entry opened from Home's
@@ -69,8 +71,10 @@ export function canGoBack() {
   return read().length >= 2;
 }
 
-/** Back: history when there is somewhere in the app to return to, else the screen's fixed parent. */
-export function goBack(router: { back: () => void; push: (href: string, o?: { transitionTypes?: string[] }) => void }, fallback: string) {
-  if (canGoBack()) router.back();
-  else router.push(fallback, { transitionTypes: ['nav-back'] });
+/** Back: history when there is somewhere in the app to return to, else the screen's fixed parent. Either way the
+ *  screen being returned to is drawn coming back in (a pop) from the tap, through pending.ts. */
+export function goBack(router: { back: () => void; push: (href: string) => void }, fallback: string) {
+  const trail = read();
+  if (trail.length >= 2) { startPending(trail[trail.length - 2], 'pop'); router.back(); }
+  else { startPending(fallback, 'pop'); router.push(fallback); }
 }

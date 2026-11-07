@@ -95,7 +95,10 @@ function measure() {
   const cardish = /(^|\s)bg-(card|hero|attention-soft)(\s|$)/;
   const hero = [...main.querySelectorAll('*')].find((e) => {
     if (header && header.contains(e)) return false;
-    if (e.closest('[class*="fixed"]') && e.closest('[class*="fixed"]') !== main) return false;
+    /* Not inside something fixed over the page (the tab bar, a drawer) — the tap's frame itself (PendingSkeleton's
+       [data-pending-frame], fixed over the screen it stands for) is the page being measured, not something on it. */
+    const fixedBox = e.closest('[class*="fixed"]:not([data-pending-frame])');
+    if (fixedBox && fixedBox !== main) return false;
     const c = typeof e.className === 'string' ? e.className : '';
     if (!cardish.test(c) || !/rounded/.test(c) || /rounded-full/.test(c)) return false;
     const b = e.getBoundingClientRect();

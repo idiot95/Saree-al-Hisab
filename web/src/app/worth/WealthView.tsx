@@ -135,7 +135,7 @@ function Section({ title, rates, children }: { title: string; rates: RateNote; c
 
 function Row({ href, icon, word, value, lateral }: { href: string; icon: string; word: string; value: string; lateral?: boolean }) {
   return (
-    <Link href={href} transitionTypes={[lateral ? 'nav-lateral' : 'nav-forward']}
+    <Link href={href} motion={lateral ? 'fade' : 'push'}
       className="press flex min-h-14 items-center gap-3 border-b border-border px-3.5 last:border-b-0">
       <Icon name={icon} size={22} className="text-primary" />
       <span className="flex-1 text-[15px]">{word}</span>

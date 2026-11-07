@@ -52,7 +52,7 @@ export default function Claims({ claims, ways, canEdit, person, bills = [] }: {
           return (
             <li key={c.id} className="flex flex-col gap-2.5 border-b border-border px-3.5 py-3 last:border-b-0">
               <div className="flex items-center gap-3">
-                <Link transitionTypes={['nav-forward']} href={`/entries/${c.txn_id}`}
+                <Link href={`/entries/${c.txn_id}`}
                   className="flex min-h-11 min-w-0 flex-1 flex-col justify-center gap-0.5 text-foreground">
                   <span className="text-[15px] font-medium leading-snug [overflow-wrap:anywhere]">{c.merchant || c.category || 'Entry'}</span>
                   <span className="flex items-center gap-1 text-xs text-muted-foreground">

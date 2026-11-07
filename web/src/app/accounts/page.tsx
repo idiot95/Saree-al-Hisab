@@ -85,7 +85,7 @@ export default async function Accounts() {
         <div className="flex flex-col gap-6 pb-8">
           <div className="flex flex-col gap-6 px-[var(--gutter)]">
             {/* The same figure Wealth shows, from the same helper; a tap goes there. */}
-            <Link href="/worth" transitionTypes={['nav-lateral']} aria-label="Net worth, open Wealth"
+            <Link href="/worth" motion="fade" aria-label="Net worth, open Wealth"
               className="press flex flex-col gap-3 rounded-[22px] bg-card p-[18px] text-foreground no-underline">
               <span className="flex items-center justify-between">
                 <span className="text-[13px] text-muted-foreground">Net worth</span>
@@ -146,7 +146,7 @@ export default async function Accounts() {
 
           <div className="flex flex-col gap-3 px-[var(--gutter)]">
             {canWrite && accounts.length > 0 && (
-              <Link href="/accounts/reconcile" transitionTypes={['nav-forward']}
+              <Link href="/accounts/reconcile"
                 className="press flex min-h-16 items-center gap-3 rounded-[18px] bg-card px-[var(--pad)] py-3 text-foreground no-underline">
                 <span className="grid size-[38px] flex-none place-items-center rounded-full bg-accent text-accent-foreground">
                   <Icon name="done_all" size={20} />

@@ -14,7 +14,7 @@ import { Icon } from '../Icon';
 export default function LeftToSpend({ month, budget, spent }: { month: string; budget: number; spent: number }) {
   const { day, days, throughMonth, throughMoney, over, status, fill } = paceOf(month, budget, spent);
   return (
-    <Link href="/budget" transitionTypes={['nav-forward']}
+    <Link href="/budget" prefetch
       className="press flex flex-col gap-3 rounded-[22px] bg-card p-[18px] text-card-foreground">
       <div className="flex items-center justify-between gap-3">
         <span className="text-[13px] text-muted-foreground">{over ? 'Over budget by' : 'Left to spend'}</span>

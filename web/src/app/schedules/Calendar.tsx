@@ -228,7 +228,7 @@ export default function Calendar({ schedules, canWrite, today }: {
                       {it.status === 'paid' ? (income ? 'Came in' : 'Paid') : it.status === 'skipped' ? 'Skipped'
                         : it.status === 'overdue' ? 'Overdue' : it.status === 'today' ? 'Due today' : 'Coming'}
                       {it.status === 'paid' && it.txn && (
-                        <Link href={`/entries/${it.txn}?from=${encodeURIComponent('/entries?f=upcoming')}`} transitionTypes={['nav-forward']}
+                        <Link href={`/entries/${it.txn}?from=${encodeURIComponent('/entries?f=upcoming')}`}
                           className="ml-1.5 inline-flex min-h-11 items-center font-semibold text-primary">
                           See the entry
                         </Link>

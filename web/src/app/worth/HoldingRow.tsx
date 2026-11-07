@@ -11,7 +11,7 @@ export default function HoldingRow({ h, value }: { h: HoldingItem; value: string
   const sub = [h.ownerName, ...amount, ...(h.kind === 'metal' ? [h.badge] : [])].join(' · ');
   return (
     <li className="border-b border-border last:border-b-0">
-      <Link href={`/worth/${h.id}`} transitionTypes={['nav-forward']}
+      <Link href={`/worth/${h.id}`}
         className="press flex min-h-16 items-center gap-3 px-3.5 py-2.5">
         {h.kind === 'fx_cash' ? (
           <span className="grid size-10 flex-none place-items-center rounded-xl bg-accent text-xs font-bold text-accent-foreground">
