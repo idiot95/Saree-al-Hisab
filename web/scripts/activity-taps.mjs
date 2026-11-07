@@ -85,6 +85,12 @@ try {
 
   /* ── 3. a duplicate opens from To review and Save returns there ──── */
   await page.goto(`${BASE}/entries?f=review`);
+  /* The view streams in behind Activity's frame (a <main aria-busy>), so whether there is a duplicate is asked only
+     once the real screen has landed: its <main>, without aria-busy, holding the To review chip lit. Asked before
+     that, a book with duplicates read as one without (the step skipped, or not, by timing). */
+  await page.locator('main:not([aria-busy])').getByRole('navigation', { name: 'Activity' }).getByRole('link', { name: /^To review/ })
+    .and(page.locator('[aria-current=page]')).waitFor();
+  await page.locator('main[aria-busy]').waitFor({ state: 'detached' });
   const dupLink = page.getByRole('region', { name: 'Possibly recorded twice' }).locator('a[href^="/entries/"]').first();
   if (await dupLink.count()) {
     const href = await dupLink.getAttribute('href');
