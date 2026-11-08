@@ -359,7 +359,7 @@ function Activity({ stillBar, view }: Draw & { view: View }) {
     </div>
   );
   return (
-    <Frame name="activity" current="/entries" space="bar" stillBar={stillBar}>
+    <Frame name="activity" current="/entries" space="bar" stillBar={stillBar} skip={view === 'upcoming' ? 'hero-top' : undefined}>
       <TabHead title="Activity" line="10 entries · ₹11,609 spent" right={view === 'all' ? <MonthPillStill /> : undefined} rightOnTitle below={chips} />
       <div className="pb-6">
         {view === 'all' && (

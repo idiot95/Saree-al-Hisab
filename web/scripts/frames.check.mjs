@@ -30,7 +30,9 @@
    title is measured from the title's foot, not the top of the screen, and the line says so ("name N lines"): the
    frame is answerable for what it can know. The title's top is still compared as it is.
    `[data-frame=skip-hero]` / `skip-label` on the frame's main marks a screen
-   whose real page has no such thing at all (it is reported, not compared).
+   whose real page has no such thing at all (it is reported, not compared). `hero-top` keeps the hero's top
+   compared but not its height: Upcoming's first card words its dues by today's date ("Due tomorrow" against
+   "Due Mon 9 Nov · in 2 days"), which the frame cannot know.
 
    With --routes, a route may name a link to follow instead of an address: `@/people>^/tab/` opens /people and
    takes the first link whose href matches ^/tab/. */
@@ -242,7 +244,7 @@ for (const [w, h] of SIZES) for (const os of OSES) for (const theme of THEMES) {
     /* A hero that runs past the fold on both is clipped to the same height by construction: only its top is compared,
        and the line says so. */
     const pastFold = frame.hero?.past && real.hero?.past;
-    if (!frame.skip.includes('skip-hero')) { cmp('hero', frame.hero, real.hero, 'top'); if (!pastFold) cmp('hero', frame.hero, real.hero, 'h'); }
+    if (!frame.skip.includes('skip-hero')) { cmp('hero', frame.hero, real.hero, 'top'); if (!pastFold && !frame.skip.includes('hero-top')) cmp('hero', frame.hero, real.hero, 'h'); }
     if (!frame.skip.includes('skip-label')) cmp('heading', frame.label, real.label, 'top');
     const dd = (a, b, f) => (a && b ? a[f] - b[f] : null);
     rows.push({ size: `${W}x${H}`, os: OS, theme: THEME, route: raw === route ? route : `${raw} → ${route}`, held: frame.held ?? 'server', frame, real,

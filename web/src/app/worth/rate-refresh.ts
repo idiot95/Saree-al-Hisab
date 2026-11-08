@@ -42,7 +42,8 @@ export function useRateRefresh(due: string[]) {
       if (!answered) for (const b of bases) mine.delete(b);
     };
   }, [key, router]);
-  return (base: string): RateStatus => (failed.has(base) ? 'failed' : due.includes(base) ? 'updating' : 'updated');
+  // A base no longer due was refreshed by someone: it reads updated even if this screen's own ask failed.
+  return (base: string): RateStatus => (!due.includes(base) ? 'updated' : failed.has(base) ? 'failed' : 'updating');
 }
 
 /** Every rate line a screen has shown since it mounted, newest props first in place: a line whose base was
