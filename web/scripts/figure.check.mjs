@@ -8,6 +8,8 @@
  *
  *   node scripts/sweep.mjs --login email:password   # writes the session state
  *   node scripts/figure.check.mjs [--engine chromium|webkit] [--email ammar@example.com]
+ *   (webkit cannot run against a local http build: the CSP's upgrade-insecure-requests sends its script loads to
+ *   https://localhost, which Chromium exempts and WebKit does not. Run webkit against an https deploy.)
  *
  * Env: SWEEP_BASE (default http://localhost:3000), SWEEP_STATE (as the sweep).
  * Reads OWNER_DATABASE_URL from .env.local (local only), and picks two members

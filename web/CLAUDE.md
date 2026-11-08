@@ -507,7 +507,7 @@ the drawer at once from `ql.pickers.v1` when they are this household's and under
 inside the drawer), while the link fetches `@modal/(.)add`; its page (`AddSheet`) hands the server's props to the open
 drawer instead of opening another, and the form follows them (the way to pay, the day) until the person chooses, so
 nothing typed is lost. Offline the plus does not open it (the worker's /offline answers as before). A close before
-the route lands steps back off it when it does — only a plain `/add` arriving on the same screen within 10s; any move
+the route lands steps back off it when it does — only a plain `/add` arriving on the same screen, with no time limit; any move
 elsewhere forgets the close, so a later Pay or Add cost is never bounced. If the address moves anywhere but `/add`
 before landing (Back, another tab, a redirect to sign-in), Next has dropped the navigation and the drawer is
 abandoned with it. **Save never waits on a pending route**: a Server Action queues behind a navigation still on its
@@ -872,7 +872,7 @@ region (bom1 for the owner), a round trip — or a new TLS connection — from N
 session with `proxyAuth` from `src/auth.config.ts`: the shared Auth.js settings with no providers and a jwt callback
 that only decrypts and checks expiry. A forged or expired cookie is still sent to `/signin` by the proxy; a revoked
 one passes it and is refused one step later by **contextFor**, which every page and Server Action reaches through
-`src/db/queries.ts` (`actorOrNull`/`currentActor`) and so do both route handlers that read the actor
+`src/db/queries.ts` (`actorOrNull`/`currentActor`) and so do the four route handlers that read the actor
 (`/attachment/[id]`, `/attachment/h/[id]`: a plain 404; `/api/rates` and `/api/sms/purge`: a 401, through
 `screenCaller`). The matcher's exclusions `icons/`, `brands/` and `fonts/` carry their slash, so a page that only
 starts with the word keeps the proxy and its CSP. `/api/auth/[...nextauth]` is Auth.js with the full jwt
