@@ -57,12 +57,12 @@ export default function EditEntry({ entry, categories, ways, canEdit, back = '/e
         <label className="flex flex-col gap-1.5">
           <span className={fieldLabel}>Amount</span>
           <span className="flex min-h-[62px] items-center gap-1.5 rounded-xl border border-input bg-card px-3.5">
-            <span className="text-[26px] text-muted-foreground">{symbol}</span>
+            <span className="text-title-2 text-muted-foreground">{symbol}</span>
             {/* Grouped as it is typed, the way Add Entry does it: one figure, not a raw one with a caption under it. */}
             <input
               name="amount" inputMode="decimal" value={keysDisplay(amount)} disabled={!canEdit}
               onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ''))}
-              className="min-h-[58px] w-full flex-1 border-0 bg-transparent text-[30px] font-semibold tracking-tight tabular-nums text-foreground outline-none"
+              className="min-h-[58px] w-full flex-1 border-0 bg-transparent text-large-title font-semibold tracking-tight tabular-nums text-foreground outline-none"
             />
           </span>
         </label>
@@ -72,7 +72,7 @@ export default function EditEntry({ entry, categories, ways, canEdit, back = '/e
           <input type="hidden" name="occurred_on" value={on} />
           {canEdit
             ? <DateChips value={on} onChange={setOn} today={today} dir="past" max={today} label="Which day was it" />
-            : <span className="text-base">{on}</span>}
+            : <span className="text-headline">{on}</span>}
         </div>
 
         {wantsCategory && (
@@ -91,7 +91,7 @@ export default function EditEntry({ entry, categories, ways, canEdit, back = '/e
             <PayPicker name="paid_with" ways={ways}
               defaultValue={entry.payment_method_id ? railRef(entry.payment_method_id) : accountRef(entry.account_id)}
               disabled={!canEdit} />
-            <span className="text-xs leading-snug text-muted-foreground">
+            <span className="text-footnote leading-snug text-muted-foreground">
               Changing this moves the money to the account it names.
             </span>
           </div>
@@ -107,8 +107,8 @@ export default function EditEntry({ entry, categories, ways, canEdit, back = '/e
             <input type="checkbox" name="counts_as_spend" defaultChecked={entry.counts_as_spend}
               disabled={!canEdit} className="mt-0.5 size-5 flex-none accent-primary" />
             <span className="flex flex-col gap-0.5">
-              <span className="text-[15px] font-semibold">Counts as my spending</span>
-              <span className="text-xs leading-snug text-muted-foreground">
+              <span className="text-body font-semibold">Counts as my spending</span>
+              <span className="text-footnote leading-snug text-muted-foreground">
                 Ticked, it sits in the month and the charts even though it comes back. Unticked,
                 it was never yours — money fronted, owed back, counted nowhere.
               </span>
@@ -119,7 +119,7 @@ export default function EditEntry({ entry, categories, ways, canEdit, back = '/e
         <label className="flex min-h-12 items-center gap-3 px-0.5">
           <input type="checkbox" name="is_shared" defaultChecked={entry.is_shared}
             disabled={!canEdit} className="size-5 flex-none accent-primary" />
-          <span className="text-[15px] font-semibold">Shared with the household</span>
+          <span className="text-body font-semibold">Shared with the household</span>
         </label>
 
         {entry.reconciled_on && (
@@ -140,14 +140,14 @@ export default function EditEntry({ entry, categories, ways, canEdit, back = '/e
         <div className="mx-[var(--gutter)]">
           {!confirming ? (
             <button type="button" onClick={() => setConfirming(true)}
-              className="press flex min-h-12 w-full items-center justify-center gap-2 rounded-xl text-base font-semibold text-destructive">
+              className="press flex min-h-12 w-full items-center justify-center gap-2 rounded-xl text-headline font-semibold text-destructive">
               <Icon name="delete" size={20} />Delete this entry
             </button>
           ) : (
             <form action={remove} className="flex flex-col gap-2.5">
               <input type="hidden" name="id" value={entry.id} />
               <input type="hidden" name="back" value={back} />
-              <p className="text-sm leading-normal text-muted-foreground">
+              <p className="text-subhead leading-normal text-muted-foreground">
                 The month&rsquo;s totals and the account balance change straight away.
               </p>
               {del && !del.ok && <ErrorNote>{del.error}</ErrorNote>}

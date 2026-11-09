@@ -41,7 +41,7 @@ function ChoiceSet({ legend, name, value, choices }: {
                 ? <Image src={choice.logo} alt="" width={42} height={34} unoptimized className="block size-full object-contain" />
                 : <Icon name="bank" size={20} />}
             </span>
-            <span className="min-w-0 flex-1 text-sm font-semibold leading-tight [overflow-wrap:anywhere]">
+            <span className="min-w-0 flex-1 text-body font-semibold leading-tight [overflow-wrap:anywhere]">
               {choice.short ?? choice.label}
             </span>
             {/* Chosen is said by a check as well as the ground and the edge, never by colour alone. */}

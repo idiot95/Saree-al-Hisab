@@ -1,5 +1,6 @@
 import Link from '@/app/NavLink';
 import { EmptyLine } from '../entries/parts';
+import { rowRule, rulePad } from '../form-bits';
 import { redirect } from 'next/navigation';
 import { Chip, RAIL_ICON, RAIL_TINT, ACCOUNT_ICON, ACCOUNT_TINT } from '../Icon';
 import {
@@ -40,7 +41,7 @@ export default async function Accounts() {
     openCyclesFor(hh),
     /* Read the way Wealth and Home read it — worthInput, holdings included — without waiting on a rate provider:
        holdings are valued at the last stored rates, as on Home. */
-    worthInput(hh, actor.currency, { refreshRates: false }),
+    worthInput(hh, actor.currency),
   ]));
   const members = wi.members;
   /* The same figure Wealth and Home show, from the same inputs and the same helper. */
@@ -85,14 +86,14 @@ export default async function Accounts() {
         <div className="flex flex-col gap-6 pb-8">
           <div className="flex flex-col gap-6 px-[var(--gutter)]">
             {/* The same figure Wealth shows, from the same helper; a tap goes there. */}
-            <Link href="/worth" transitionTypes={['nav-lateral']} aria-label="Net worth, open Wealth"
-              className="press flex flex-col gap-3 rounded-[22px] bg-card p-[18px] text-foreground no-underline">
+            <Link href="/worth" motion="fade" aria-label="Net worth, open Wealth"
+              className="press flex flex-col gap-3 rounded-[22px] bg-card shadow-card p-4 text-foreground no-underline">
               <span className="flex items-center justify-between">
-                <span className="text-[13px] text-muted-foreground">Net worth</span>
+                <span className="text-subhead text-muted-foreground">Net worth</span>
                 <Icon name="chevron_right" size={20} className="text-muted-foreground" />
               </span>
               <Figure minor={worth}
-                className={`text-[38px] font-bold leading-none tracking-tight tabular-nums ${worth < 0 ? 'text-destructive' : ''}`} />
+                className={`text-large-title font-bold leading-none tracking-tight tabular-nums ${worth < 0 ? 'text-destructive' : ''}`} />
               <dl className="grid grid-cols-3 gap-2 border-t border-border pt-3">
                 {/* The three parts of the headline, so they add up to it: held, plus owed to you, less what you owe. */}
                 <Mini term="Held" value={assetTotal} />
@@ -127,7 +128,7 @@ export default async function Accounts() {
 
           {cards.length > 0 && (
             <section aria-labelledby="sec-cards" className="flex flex-col gap-1.5">
-              <h2 id="sec-cards" className="px-[calc(var(--gutter)+2px)] text-[13px] font-semibold text-muted-foreground">Credit cards</h2>
+              <h2 id="sec-cards" className="px-[calc(var(--gutter)+2px)] text-subhead font-semibold text-muted-foreground">Credit cards</h2>
               <CardDeck canWrite={canWrite} cards={cards.map((a): CardInfo => {
                 const cyc = cycleFor(a.id);
                 return {
@@ -146,21 +147,21 @@ export default async function Accounts() {
 
           <div className="flex flex-col gap-3 px-[var(--gutter)]">
             {canWrite && accounts.length > 0 && (
-              <Link href="/accounts/reconcile" transitionTypes={['nav-forward']}
-                className="press flex min-h-16 items-center gap-3 rounded-[18px] bg-card px-[var(--pad)] py-3 text-foreground no-underline">
+              <Link href="/accounts/reconcile"
+                className="press flex min-h-16 items-center gap-3 rounded-[20px] bg-card shadow-card px-[var(--pad)] py-3 text-foreground no-underline">
                 <span className="grid size-[38px] flex-none place-items-center rounded-full bg-accent text-accent-foreground">
                   <Icon name="done_all" size={20} />
                 </span>
                 <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-                  <span className="text-[15px] font-semibold">Reconcile with a statement</span>
-                  <span className="text-[13px] leading-snug text-muted-foreground">Match an account or card to what its statement says</span>
+                  <span className="text-body font-semibold">Reconcile with a statement</span>
+                  <span className="text-subhead leading-snug text-muted-foreground">Match an account or card to what its statement says</span>
                 </span>
                 <Icon name="chevron_right" size={20} className="flex-none text-muted-foreground" />
               </Link>
             )}
             {canWrite && <AddAccount startOpen={needsAccounts} />}
             {canWrite && (
-              <p className="px-0.5 text-[13px] leading-snug text-muted-foreground">
+              <p className="px-0.5 text-subhead leading-snug text-muted-foreground">
                 Tap an account to rename it, correct its starting balance, or archive it. Swipe it to move money or reconcile.
               </p>
             )}
@@ -171,12 +172,12 @@ export default async function Accounts() {
               note="GPay, PhonePe, net banking, a debit card — each is linked to the account it takes money from, so what you spend through it comes off the right balance. Cash and credit cards are ways to pay on their own.">
               <List>
                 {methods.map((m, i) => (
-                  <div key={m.id} className={`flex min-h-[68px] items-start gap-3 py-3 ${i === methods.length - 1 ? '' : 'border-b border-border'}`}>
-                    <Chip icon={RAIL_ICON[m.kind] ?? 'tag'} tint={RAIL_TINT[m.kind] ?? 'neutral'} size={38} radius={999} />
+                  <div key={m.id} className={`relative flex min-h-[68px] items-start gap-3 py-3 ${i === methods.length - 1 ? '' : `${rowRule} ${rulePad} [--rule-x:50px]`}`}>
+                    <Chip icon={RAIL_ICON[m.kind] ?? 'tag'} tint={RAIL_TINT[m.kind] ?? 'neutral'} size={38} />
                     <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                      <span className="text-[15px] font-semibold leading-snug [overflow-wrap:anywhere]">{m.name}</span>
+                      <span className="text-body font-semibold leading-snug [overflow-wrap:anywhere]">{m.name}</span>
                       {/* Which balance it spends, in as few words as the row has space for. */}
-                      <span className="text-[13px] leading-snug text-muted-foreground [overflow-wrap:anywhere]">
+                      <span className="text-subhead leading-snug text-muted-foreground [overflow-wrap:anywhere]">
                         {(m.kind === 'card' && m.funds_kind === 'credit') || (m.kind === 'cash' && m.funds_kind === 'cash')
                           ? `The ${m.kind === 'card' ? 'card' : 'cash'} itself`
                           : `From ${m.funds}`}
@@ -194,7 +195,7 @@ export default async function Accounts() {
           </div>
 
           {!canWrite && (
-            <p className="mx-[var(--gutter)] flex items-start justify-center gap-1.5 text-center text-sm text-muted-foreground">
+            <p className="mx-[var(--gutter)] flex items-start justify-center gap-1.5 text-center text-subhead text-muted-foreground">
               <Icon name="lock" size={16} className="mt-px" />
               Only owners and contributing members can change accounts.
             </p>
@@ -209,8 +210,8 @@ export default async function Accounts() {
 function Mini({ term, value }: { term: string; value: number }) {
   return (
     <div className="flex min-w-0 flex-col gap-0.5">
-      <dt className="text-xs text-muted-foreground">{term}</dt>
-      <dd className="text-sm font-semibold tabular-nums [overflow-wrap:anywhere]"><Figure minor={value} /></dd>
+      <dt className="text-footnote text-muted-foreground">{term}</dt>
+      <dd className="text-body font-semibold tabular-nums [overflow-wrap:anywhere]"><Figure minor={value} /></dd>
     </div>
   );
 }
@@ -220,8 +221,8 @@ function Section({ title, note, children }: { title: string; note?: string; chil
   const id = `sec-${title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
   return (
     <section aria-labelledby={id} className="flex flex-col gap-1.5">
-      <h2 id={id} className="px-0.5 text-[13px] font-semibold text-muted-foreground">{title}</h2>
-      {note && <p className="px-0.5 pb-0.5 text-[13px] leading-snug text-muted-foreground">{note}</p>}
+      <h2 id={id} className="px-0.5 text-subhead font-semibold text-muted-foreground">{title}</h2>
+      {note && <p className="px-0.5 pb-0.5 text-subhead leading-snug text-muted-foreground">{note}</p>}
       {children}
     </section>
   );
@@ -230,7 +231,7 @@ function Section({ title, note, children }: { title: string; note?: string; chil
 /* One list card. px-[var(--pad)] and overflow-hidden: a swipe row's negative margin is --pad, so its actions stop
    at the rounded edge and the card never scrolls sideways. */
 function List({ children }: { children: React.ReactNode }) {
-  return <div className="overflow-hidden rounded-[18px] bg-card px-[var(--pad)]">{children}</div>;
+  return <div className="overflow-hidden rounded-[20px] bg-card shadow-card px-[var(--pad)]">{children}</div>;
 }
 
 type AccountRow = Awaited<ReturnType<typeof accountsWithBalances>>[number];
@@ -241,18 +242,18 @@ function AccountLine({ a, rails }: { a: AccountRow; rails: string[] }) {
   const bal = Number(a.balance);
   return (
     <>
-      <Chip icon={ACCOUNT_ICON[a.kind]} tint={ACCOUNT_TINT[a.kind]} size={38} radius={999} />
+      <Chip icon={ACCOUNT_ICON[a.kind]} tint={ACCOUNT_TINT[a.kind]} size={38} />
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <span className="text-[15px] font-semibold leading-snug [overflow-wrap:anywhere]">{a.name}</span>
-        <span className="text-[13px] leading-snug text-muted-foreground">
+        <span className="text-body font-semibold leading-snug [overflow-wrap:anywhere]">{a.name}</span>
+        <span className="text-subhead leading-snug text-muted-foreground">
           {KIND_LABEL[a.kind]}{a.last4 && ` · ends ${a.last4}`}
           {a.reconciled_on && <> · <Icon name="check" size={13} className="align-[-2px]" /> matched {new Date(`${a.reconciled_on}T00:00:00`).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</>}
         </span>
-        {rails.length > 0 && <span className="text-[13px] leading-snug text-muted-foreground [overflow-wrap:anywhere]">Paid through {rails.join(', ')}</span>}
+        {rails.length > 0 && <span className="text-subhead leading-snug text-muted-foreground [overflow-wrap:anywhere]">Paid through {rails.join(', ')}</span>}
       </span>
       <span className="flex flex-none flex-col items-end gap-0.5">
-        <Figure minor={bal} className={`text-[16px] font-semibold tabular-nums ${bal < 0 ? 'text-destructive' : ''}`} />
-        {bal < 0 && <span className="flex items-center gap-0.5 text-xs font-medium text-destructive"><Icon name="warning" size={13} />Overdrawn</span>}
+        <Figure minor={bal} className={`text-body font-semibold tabular-nums ${bal < 0 ? 'text-destructive' : ''}`} />
+        {bal < 0 && <span className="flex items-center gap-0.5 text-footnote font-medium text-destructive"><Icon name="warning" size={13} />Overdrawn</span>}
       </span>
     </>
   );

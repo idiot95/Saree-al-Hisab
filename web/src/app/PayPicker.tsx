@@ -24,8 +24,8 @@ import { choice } from './choice';
  *  the edge of the screen. */
 export const CHIP: React.CSSProperties = {
   minHeight: 44, maxWidth: '100%', padding: '0 13px 0 10px', display: 'flex', alignItems: 'center',
-  gap: 7, borderRadius: 999, fontSize: 'var(--step--1)', fontWeight: 600,
-  transition: 'background .15s, color .15s',
+  gap: 7, borderRadius: 999, fontSize: 'var(--text-subhead)', fontWeight: 600,
+  transition: 'background var(--dur-1) var(--ease-out), color var(--dur-1) var(--ease-out)',
 };
 export const CHIP_TEXT: React.CSSProperties = { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' };
 
@@ -52,7 +52,7 @@ const TWO_LINES: React.CSSProperties = { overflowWrap: 'anywhere' };
 
 export const TILE: React.CSSProperties = {
   minHeight: 56, padding: '8px 10px', borderRadius: 14, display: 'flex', alignItems: 'center', gap: 10,
-  minWidth: 0, textAlign: 'left', transition: 'background .15s, color .15s',
+  minWidth: 0, textAlign: 'left', transition: 'background var(--dur-1) var(--ease-out), color var(--dur-1) var(--ease-out)',
 };
 
 /** One answer to "how did you pay?": icon, name, and what stands behind it. */
@@ -70,10 +70,10 @@ export function WayTile({ icon, ink, title, sub, on, onClick, disabled }: {
         <Icon name={icon} size={18} />
       </span>
       <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1 }}>
-        <span style={{ fontSize: 'var(--step--1)', fontWeight: 700, lineHeight: 1.2, ...TWO_LINES }}>{title}</span>
+        <span style={{ fontSize: 'var(--text-subhead)', fontWeight: 700, lineHeight: 1.2, ...TWO_LINES }}>{title}</span>
         {sub && (
           <span style={{
-            fontSize: 'var(--step--2)', lineHeight: 1.2, fontWeight: 500,
+            fontSize: 'var(--text-footnote)', lineHeight: 1.2, fontWeight: 500,
             color: on ? 'inherit' : 'var(--muted-foreground)', opacity: on ? 0.82 : 1, ...TWO_LINES,
           }}>{sub}</span>
         )}
@@ -101,7 +101,7 @@ export default function PayPicker({ ways, value, onChange, name, defaultValue, d
   const hit = findRef(ways, cur);
   if (ways.length === 0) {
     return (
-      <p style={{ margin: 0, fontSize: 'var(--step--1)', color: 'var(--muted-foreground)' }}>
+      <p style={{ margin: 0, fontSize: 'var(--text-subhead)', color: 'var(--muted-foreground)' }}>
         No accounts yet — add one under Accounts first.
       </p>
     );

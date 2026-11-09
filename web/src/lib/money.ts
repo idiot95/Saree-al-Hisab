@@ -223,15 +223,30 @@ export function settleKeys(keys: string, currency: string = resolver()): string 
   return d === 0 ? whole : `${whole}.${(f + '0'.repeat(d)).slice(0, d)}`;
 }
 
+/** What an amount field shows once it is left, the way Save says it (`paise: 'auto'`): the minor digits only when
+ *  there are some — "2340" and "2340." and "2340.00" all become "2340", "2340.5" becomes "2340.50" — and nothing at
+ *  all stays nothing. The minor units are exactly what was typed: fromKeys(tidyKeys(k)) === fromKeys(k). Add Entry
+ *  uses this rather than settleKeys, so a whole amount is not lengthened by ".00" it never needed. */
+export function tidyKeys(keys: string, currency: string = resolver()): string {
+  const clean = typed(keys, currency);
+  return clean === '' ? '' : toKeys(fromKeys(clean, currency), currency);
+}
+
 /** What the phone's own keyboard produced, tidied into keys: anything that is
- *  not a digit or the first point is dropped (a comma the person typed, a
+ *  not a digit or the first point is dropped (a comma the person typed, "Rs."'s point, a
  *  symbol pasted in, a second point), at most `digits` minor digits are kept,
  *  a currency with no minor unit takes no point at all, and the whole part
  *  is capped at nine digits so a stuck thumb cannot produce a ten-crore
  *  grocery bill. */
 export function typed(raw: string, currency: string = resolver()): string {
   const d = digitsOf(currency);
-  const s = raw.replace(/[^0-9.]/g, '');
+  /* A point before the first digit that closes a word is an abbreviation, not a decimal point: "Rs. 2,340.50" is
+     two thousand rupees, not 0.23, and "Rs.2340" is 2340. A point that follows no letter (".5", "Rs. .5") is still a
+     decimal point: half a rupee. */
+  const first = raw.search(/\d/);
+  const head = first === -1 ? raw : raw.slice(0, first);
+  const lead = head.replace(/([A-Za-z])\./g, '$1');  // no lookbehind: older iOS Safari cannot parse one
+  const s = (lead + (first === -1 ? '' : raw.slice(first))).replace(/[^0-9.]/g, '');
   const dot = s.indexOf('.');
   let whole = (dot === -1 ? s : s.slice(0, dot)).replace(/^0+(?=\d)/, '');
   if (whole.length > 9) whole = whole.slice(0, 9);

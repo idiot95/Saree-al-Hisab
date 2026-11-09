@@ -6,6 +6,7 @@ import { TAB_BAR_SPACE } from '../tabs';
 import PageHead from '../PageHead';
 import Screen from '../Screen';
 import { Icon } from '../Icon';
+import { liRule } from '../form-bits';
 
 export const metadata = { title: 'How it works · Saree al-Hisab' };
 export const dynamic = 'force-dynamic';
@@ -168,19 +169,19 @@ export default async function Guide() {
             open cards were a 5,000px scroll to find one of them. Native <details>, so it opens with no script.
             pb-8 is the breathing gap, so the last topic, open, never ends flush under the tab bar. */}
         <div className="px-[var(--gutter)] pb-8">
-          <ol className="overflow-hidden rounded-[18px] bg-card">
+          <ol className="overflow-hidden rounded-[20px] bg-card shadow-card">
             {SECTIONS.map((s, i) => (
-              <li key={s.title} className={i === 0 ? '' : 'border-t border-border'}>
+              <li key={s.title} className={`${liRule} [--rule-x:calc(var(--pad)+40px)]`}>
                 <details className="group">
                   <summary className="flex min-h-14 cursor-pointer list-none items-center gap-3 px-[var(--pad)] py-2.5 [&::-webkit-details-marker]:hidden">
-                    <span className="grid size-7 flex-none place-items-center rounded-full bg-accent text-xs font-bold text-accent-foreground tabular-nums">{i + 1}</span>
-                    <span className="flex-1 text-[15px] font-semibold leading-snug">{s.title}</span>
+                    <span className="grid size-7 flex-none place-items-center rounded-full bg-accent text-footnote font-bold text-accent-foreground tabular-nums">{i + 1}</span>
+                    <span className="flex-1 text-body font-semibold leading-snug">{s.title}</span>
                     <Icon name="expand_more" size={20} className="flex-none text-muted-foreground transition-transform group-open:rotate-180" />
                   </summary>
                   <div className="flex flex-col gap-2.5 pr-[var(--pad)] pb-4 pl-[calc(var(--pad)+40px)]">
-                    {s.lines.map((l) => <p key={l} className="text-[15px] leading-relaxed text-foreground">{l}</p>)}
-                    <Link href={s.href} transitionTypes={['nav-forward']}
-                      className="flex min-h-11 items-center gap-1 self-start text-sm font-semibold text-primary">
+                    {s.lines.map((l) => <p key={l} className="text-body leading-relaxed text-foreground">{l}</p>)}
+                    <Link href={s.href}
+                      className="flex min-h-11 items-center gap-1 self-start text-body font-semibold text-primary">
                       {s.link}<Icon name="chevron_right" size={18} />
                     </Link>
                   </div>

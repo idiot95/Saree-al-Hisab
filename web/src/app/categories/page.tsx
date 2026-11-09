@@ -26,7 +26,7 @@ export default async function Categories() {
 
         <div className="flex flex-col gap-4 pb-8">
           <CategoryEditor categories={categories} canEdit={actor.role !== 'viewer'} />
-          <p className="mx-[var(--gutter)] flex items-start gap-1.5 px-0.5 text-[13px] leading-snug text-muted-foreground">
+          <p className="mx-[var(--gutter)] flex items-start gap-1.5 px-0.5 text-subhead leading-snug text-muted-foreground">
             <Icon name="info" size={16} className="mt-px flex-none" />
             Renaming is safe: every entry points at the category itself, so they all follow the
             new name and no month changes value.

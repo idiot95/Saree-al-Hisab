@@ -31,6 +31,11 @@ const url = process.env.DATABASE_URL
   ?? /^APP_DATABASE_URL="?([^"\n]+)/m.exec(envFile)?.[1]
   ?? /^DATABASE_URL="?([^"\n]+)/m.exec(envFile)[1];
 const sql = postgres(url, { ssl: 'require', max: 1, onnotice: () => {} });
+/* Expiries are set by the database's clock, never this process's (CLAUDE.md: timestamps are written with now()):
+   the rows are compared against now() in Postgres, so a Date from here made the invitation checks depend on the two
+   clocks agreeing — a database dated a week on read every "open" invitation as expired (v3.1 P5). */
+const [{ inWeek, inDay, dayAgo }] = await sql`
+  select now() + interval '7 days' as "inWeek", now() + interval '1 day' as "inDay", now() - interval '1 day' as "dayAgo"`;
 
 let pass = 0, fail = 0;
 const ok = (cond, what) => { if (cond) pass++; else fail++; console.log(`  ${cond ? 'ok  ' : 'FAIL'} ${what}`); };
@@ -658,7 +663,7 @@ const invited = EMAILS[0];
 const mkInvite = (o = {}) => sql`insert into invite ${sql({
   household_id: hh.id, email: invited, role: 'adult', invited_by: user.id,
   token_hash: 'hash-' + Math.random().toString(36).slice(2),
-  expires_at: new Date(Date.now() + 7 * 864e5), ...o })} returning id, token_hash`;
+  expires_at: inWeek, ...o })} returning id, token_hash`;
 
 await refuses('an invite marked accepted with no time on it is refused',
   () => mkInvite({ status: 'accepted' }));
@@ -715,11 +720,11 @@ const [joiner] = await sql`insert into app_user ${sql({ email: invited, name: 'I
 await allows('a reset link can be issued for a member',
   () => sql`insert into password_reset ${sql({ user_id: joiner.id, issued_by: user.id,
     token_hash: 'reset-' + Math.random().toString(36).slice(2),
-    expires_at: new Date(Date.now() + 864e5) })}`);
+    expires_at: inDay })}`);
 await refuses('two reset links cannot share a token',
   () => sql`insert into password_reset ${sql([
-    { user_id: joiner.id, issued_by: user.id, token_hash: 'twin', expires_at: new Date(Date.now() + 864e5) },
-    { user_id: joiner.id, issued_by: user.id, token_hash: 'twin', expires_at: new Date(Date.now() + 864e5) }])}`);
+    { user_id: joiner.id, issued_by: user.id, token_hash: 'twin', expires_at: inDay },
+    { user_id: joiner.id, issued_by: user.id, token_hash: 'twin', expires_at: inDay }])}`);
 const resetsBefore = (await sql`select count(*)::int as n from password_reset where user_id = ${joiner.id}`)[0].n;
 ok(resetsBefore > 0, 'the reset link is on record');
 await sql`insert into member ${sql({ household_id: hh.id, user_id: joiner.id, role: 'adult' })}`;
@@ -741,7 +746,7 @@ await refuses('an account that has recorded entries cannot be deleted',
 const [passer] = await sql`insert into app_user ${sql({ email: EMAILS[2], name: 'Passing' })} returning id`;
 await sql`insert into password_reset ${sql({ user_id: passer.id, issued_by: user.id,
   token_hash: 'passer-' + Math.random().toString(36).slice(2),
-  expires_at: new Date(Date.now() + 864e5) })}`;
+  expires_at: inDay })}`;
 await sql`delete from app_user where id = ${passer.id}`;
 const orphanResets = (await sql`select count(*)::int as n from password_reset where user_id = ${passer.id}`)[0].n;
 ok(orphanResets === 0, 'deleting an account with no entries takes its reset links with it');
@@ -767,7 +772,7 @@ console.log('\nINVITED WITH GOOGLE — one transaction, one use, one place');
   const mk = async (email, extra = {}) => {
     const { token, hash } = newLinkToken();
     await sql`insert into invite ${sql({ household_id: hh.id, email, role: 'viewer', invited_by: user.id,
-      token_hash: hash, expires_at: new Date(Date.now() + 7 * 864e5), ...extra })}`;
+      token_hash: hash, expires_at: inWeek, ...extra })}`;
     return token;
   };
   const token = await mk(address);
@@ -811,7 +816,7 @@ console.log('\nINVITED WITH GOOGLE — one transaction, one use, one place');
   const [people] = await sql`select count(*)::int as n from app_user where email = ${address}`;
   ok(people.n === 1, 'and made nobody');
 
-  const late = await mk('google.late@invariant.test', { expires_at: new Date(Date.now() - 864e5) });
+  const late = await mk('google.late@invariant.test', { expires_at: dayAgo });
   ok(await createFromInviteGoogleIn(sql, late, 'inv-sub-3', 'google.late@invariant.test', 'Late') === null,
     'an expired invitation admits nobody');
   const withdrawn = await mk('google.late@invariant.test', { status: 'revoked' });
@@ -1075,8 +1080,13 @@ try {
   await upsert(xts, 100, yesterday);
   ok(await at(xts, yesterday) === '400', 'on yesterday, the override dated yesterday is the rate: 100 × 4 = 400 (today\'s quote is not yet known)');
   ok(await at(xts, today) === '300', 'on today, the override dated today beats the quote dated today');
-  ok((await sql`select value_minor from holding_value_at(${hh.id}, ${yesterday}::date) where id = ${kwd}`)[0].value_minor === null,
+  /* On a day no real quote can have: price_quote is global, and the app caches real KWD rates (yesterday's among
+     them), so asking about yesterday passed or failed by whether the app had fetched one (P1 review). The snapshot
+     is taken away again at once, so nothing after this sees it. */
+  await upsert(kwd, 1700, '2001-01-02');
+  ok((await sql`select value_minor from holding_value_at(${hh.id}, '2001-01-02'::date) where id = ${kwd}`)[0].value_minor === null,
     'a holding with a figure but no rate yet that day is valued NULL, not zero');
+  await sql`delete from holding_snapshot where holding_id = ${kwd} and as_of = '2001-01-02'`;
   ok((await sql`select value_minor from holding_value_at(${hh.id}, '2000-01-01'::date) where id = ${gold.id}`)[0].value_minor === null,
     'before its first snapshot a holding has no value');
   ok((await sql`select count(*)::int as n from holding_value_at(${elsewhere.id}, current_date)`)[0].n === 0,

@@ -66,6 +66,10 @@ function write(key: string, value: unknown) {
 
 const CHANGED = 'ql:device-changed';
 
+/** Asks SyncQueue to send the queue now: an entry was kept because the server was slow, not because the phone was
+ *  offline, so no `online` event will come for it. */
+export const DRAIN_EVENT = 'ql:drain';
+
 /** For useSyncExternalStore: wakes on any write here, or one in another tab. */
 export function subscribe(fn: () => void) {
   addEventListener(CHANGED, fn);

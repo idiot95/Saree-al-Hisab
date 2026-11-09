@@ -1,10 +1,12 @@
 'use client';
 
+import { cn } from '@/lib/utils';
 import { useState, useTransition } from 'react';
 import { Chip, Icon, tintOf } from '../Icon';
-import { ghost } from '../form-bits';
+import { ghost, rowRule, rulePad } from '../form-bits';
 import { haptic } from '../haptics';
 import { adoptSuggested } from './actions';
+import { chip, chipOff } from '../form-bits';
 import { LIBRARY, alreadyHave } from '@/lib/taxonomy';
 
 /* The library, offered a group at a time. Each row is a parent with its
@@ -39,18 +41,18 @@ export default function Suggested({ have, canEdit, onResult }: {
   return (
     /* Folded shut: it is a library to browse once, not part of the household's own list, and open it was most of
        a 3,000px page. Native <details>, so it opens with no script. */
-    <details className="group mx-[var(--gutter)] overflow-hidden rounded-[18px] bg-card">
+    <details className="group mx-[var(--gutter)] overflow-hidden rounded-[20px] bg-card shadow-card">
       <summary className="flex min-h-16 cursor-pointer list-none items-center gap-3 px-[var(--pad)] py-2.5 [&::-webkit-details-marker]:hidden">
         <span className="grid size-[38px] flex-none place-items-center rounded-full bg-accent text-accent-foreground">
           <Icon name="add" size={20} />
         </span>
         <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-          <span className="text-[15px] font-semibold">Suggested categories</span>
-          <span className="text-[13px] leading-snug text-muted-foreground">{groups.length} groups you could add, each with its subcategories</span>
+          <span className="text-body font-semibold">Suggested categories</span>
+          <span className="text-subhead leading-snug text-muted-foreground">{groups.length} groups you could add, each with its subcategories</span>
         </span>
         <Icon name="expand_more" size={20} className="flex-none text-muted-foreground transition-transform group-open:rotate-180" />
       </summary>
-      <p className="border-t border-border px-[var(--pad)] py-3 text-[13px] leading-snug text-muted-foreground">
+      <p className="border-t border-border px-[var(--pad)] py-3 text-subhead leading-snug text-muted-foreground">
         Add a group and it is yours to rename or retire. Nothing you already have is changed.
       </p>
       <div className="border-t border-border px-[var(--pad)]">
@@ -58,15 +60,15 @@ export default function Suggested({ have, canEdit, onResult }: {
           const isOpen = open === g.name;
           const own = children + (parent ? 1 : 0);
           return (
-            <div key={g.name} className={i === groups.length - 1 ? '' : 'border-b border-border'}>
+            <div key={g.name} className={i === groups.length - 1 ? 'relative' : `relative ${rowRule} ${rulePad} [--rule-x:50px]`}>
               <div className="flex min-h-[60px] items-center gap-2.5">
                 <button type="button" aria-expanded={isOpen}
                   onClick={() => { haptic('tap'); setOpen(isOpen ? null : g.name); }}
                   className="flex min-h-[52px] min-w-0 flex-1 items-center gap-3 py-1.5 text-left text-foreground">
-                  <Chip icon={g.icon} tint={g.tint} size={38} radius={999} />
+                  <Chip icon={g.icon} tint={g.tint} size={38} />
                   <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-                    <span className="text-[15px] font-semibold leading-snug [overflow-wrap:anywhere]">{g.name}</span>
-                    <span className="text-[13px] leading-snug text-muted-foreground">
+                    <span className="text-body font-semibold leading-snug [overflow-wrap:anywhere]">{g.name}</span>
+                    <span className="text-subhead leading-snug text-muted-foreground">
                       {g.children.length} within{own ? ` · ${own} already yours` : ''}
                       {g.scope === 'income' ? ' · income' : ''}
                     </span>
@@ -76,7 +78,7 @@ export default function Suggested({ have, canEdit, onResult }: {
                 {canEdit && (
                   <button type="button" onClick={() => adopt(g.name)} disabled={busy !== null}
                     aria-label={`Add ${g.name}`}
-                    className={`press flex min-h-11 flex-none items-center gap-1 rounded-full border border-border bg-card px-3.5 text-sm font-semibold text-primary disabled:cursor-default ${busy && busy !== g.name ? 'opacity-50' : ''}`}>
+                    className={cn(chip, chipOff, 'gap-1 pl-2.5 text-primary disabled:cursor-default', busy && busy !== g.name && 'opacity-50')}>
                     <Icon name="add" size={18} />{busy === g.name ? 'Adding…' : 'Add'}
                   </button>
                 )}
@@ -89,7 +91,7 @@ export default function Suggested({ have, canEdit, onResult }: {
                     return (
                       /* Already yours wears the group's tint (data, so a style) and a check; the rest are plain. */
                       <span key={c.name}
-                        className={`inline-flex min-h-8 items-center gap-1 rounded-full px-2.5 text-xs font-semibold ${has ? '' : 'border border-border bg-card text-foreground'}`}
+                        className={`inline-flex min-h-8 items-center gap-1 rounded-full px-2.5 text-footnote font-semibold ${has ? '' : 'border border-border bg-card text-foreground'}`}
                         style={has ? { background: bg, color: ink } : undefined}>
                         <Icon name={has ? 'check' : c.icon} size={14} />
                         {c.name}

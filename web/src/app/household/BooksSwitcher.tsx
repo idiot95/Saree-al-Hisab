@@ -52,20 +52,20 @@ export default function BooksSwitcher({ books, canRename, currency, currencyFixe
     <Card>
       {books.map((b) => (
         <div key={b.id} className="flex min-h-16 items-center gap-3 px-[var(--pad)] py-2.5">
-          <span className={`grid size-[38px] flex-none place-items-center rounded-[10px] text-sm font-bold ${b.active
+          <span className={`grid size-10 flex-none place-items-center rounded-[12px] text-body font-bold ${b.active
             ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
             {b.name.slice(0, 2).toUpperCase()}
           </span>
           <Words title={b.name} sub={`${ROLE[b.role]} · ${b.people} ${b.people === 1 ? 'person' : 'people'}`} />
           {b.active ? (
-            <span className="inline-flex flex-none items-center gap-1 rounded-lg bg-accent px-2.5 py-1.5 text-xs font-bold text-accent-foreground">
+            <span className="inline-flex flex-none items-center gap-1 rounded-lg bg-accent px-2.5 py-1.5 text-footnote font-bold text-accent-foreground">
               <Icon name="check" size={15} />Current
             </span>
           ) : (
             <form action={switchAct} className="flex-none">
               <input type="hidden" name="householdId" value={b.id} />
               <button type="submit"
-                className="press flex min-h-11 items-center rounded-xl bg-muted px-3.5 text-sm font-semibold text-foreground in-data-[platform=android]:min-h-12">
+                className="press flex min-h-11 items-center rounded-xl bg-muted px-3.5 text-body font-semibold text-foreground in-data-[platform=android]:min-h-12">
                 Open
               </button>
             </form>
@@ -154,7 +154,7 @@ export default function BooksSwitcher({ books, canRename, currency, currencyFixe
 
 /** "done" after a save, with its check. */
 const DoneWord = () => (
-  <span className="inline-flex flex-none items-center gap-1 text-[13px] font-semibold text-primary">
+  <span className="inline-flex flex-none items-center gap-1 text-subhead font-semibold text-primary">
     <Icon name="check" size={15} />Done
   </span>
 );

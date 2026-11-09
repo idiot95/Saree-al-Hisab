@@ -4,12 +4,15 @@ import { useState } from 'react';
 import { Icon, ACCOUNT_ICON } from '../Icon';
 import PayPicker, { WayTile, describe } from '../PayPicker';
 import { MonthGrid } from '../DatePick';
+import { opensCalendar, useCalendarSoon } from '../LazyCalendar';
 import BottomDrawer, { InDrawer } from '../BottomDrawer';
 import { findRef, payLabel, type Way } from '@/lib/pay';
 import { friendlyDay, shiftDay } from '@/lib/recur';
 import { formatHijri, toHijri } from '@/lib/hijri';
 import { haptic } from '../haptics';
 import { cn } from '@/lib/utils';
+import { choice } from '../choice';
+import { chip, chipRow } from '../form-bits';
 
 /* The answers that nearly always stay as they are — how it was paid, which day, where a move lands — as one row
    each that says the current answer and opens a drawer to change it. The full choices (every way to pay as a
@@ -33,21 +36,23 @@ export function PickDrawer({ open, onClose, title, children }: {
 
 /** One row of the stack: icon, what it is, the answer, and a chevron. A long answer ("HDFC Regalia · UPI · …") wraps
  *  onto a second line rather than losing its end to an ellipsis. */
-export function Row({ icon, caption, value, tag, onClick, muted = false, expanded, controls, id }: {
+export function Row({ icon, caption, value, tag, onClick, muted = false, expanded, controls, id, opens }: {
   icon: React.ReactNode; caption?: string; value: React.ReactNode; tag?: string; onClick: () => void;
   muted?: boolean; expanded?: boolean; controls?: string; id?: string;
+  /** Handlers that start loading what the row opens as the finger lands (the month grid's `opensCalendar`). */
+  opens?: { onPointerDown: () => void; onFocus: () => void };
 }) {
   return (
-    <button type="button" id={id} onClick={() => { haptic('tap'); onClick(); }}
+    <button type="button" id={id} {...opens} onClick={() => { haptic('tap'); onClick(); }}
       aria-expanded={expanded} aria-controls={controls} aria-haspopup={expanded === undefined ? 'dialog' : undefined}
       className={cn('flex min-h-14 w-full items-center gap-3 px-3.5 py-2 text-left',
         muted ? 'text-muted-foreground' : 'text-foreground')}>
       <span className="flex size-6 shrink-0 items-center justify-center text-muted-foreground">{icon}</span>
       <span className="flex min-w-0 flex-1 flex-col">
-        {caption && <span className="text-xs font-medium text-muted-foreground">{caption}</span>}
-        <span className="text-[15px] leading-snug font-medium [overflow-wrap:anywhere]">{value}</span>
+        {caption && <span className="text-footnote font-medium text-muted-foreground">{caption}</span>}
+        <span className="text-body leading-snug font-medium [overflow-wrap:anywhere]">{value}</span>
       </span>
-      {tag && <span className="shrink-0 text-xs text-muted-foreground">{tag}</span>}
+      {tag && <span className="shrink-0 text-footnote text-muted-foreground">{tag}</span>}
       <Icon name={expanded ? 'expand_less' : 'expand_more'} size={20} className="text-muted-foreground" />
     </button>
   );
@@ -102,27 +107,27 @@ export function WhenRow({ value, onChange, today }: {
   value: string; onChange: (iso: string) => void; today: string;
 }) {
   const [open, setOpen] = useState(false);
+  useCalendarSoon();  // the Add drawer is open: the month under When is parsed before it is tapped
   const quick = [0, 1, 2, 3].map((i) => shiftDay(today, -i));
   const pick = (iso: string) => { haptic('select'); onChange(iso); setOpen(false); };
   return (
     <>
       <Row icon={<Icon name="calendar_month" size={22} />} caption="When" value={friendlyDay(value, today)}
-        onClick={() => setOpen(true)} />
+        opens={opensCalendar} onClick={() => setOpen(true)} />
       <PickDrawer open={open} onClose={() => setOpen(false)} title="Which day was it">
-        <div role="radiogroup" aria-label="Which day was it" className="mb-3 flex flex-wrap gap-2">
+        <div role="radiogroup" aria-label="Which day was it" className={`mb-3 ${chipRow}`}>
           {quick.map((iso) => {
             const on = iso === value;
             return (
               <button key={iso} type="button" role="radio" aria-checked={on} onClick={() => pick(iso)}
-                className={cn('min-h-11 rounded-full border px-4 text-sm font-semibold',
-                  on ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-card text-foreground')}>
+                style={choice(on)} className={chip}>
                 {friendlyDay(iso, today)}
               </button>
             );
           })}
         </div>
         <MonthGrid value={value} today={today} max={today} onPick={pick} />
-        <p className="mt-2.5 mb-1 text-xs leading-snug text-muted-foreground">
+        <p className="mt-2.5 mb-1 text-footnote leading-snug text-muted-foreground">
           Chosen: {friendlyDay(value, today)} · {formatHijri(toHijri(civil(value)), true)}
         </p>
       </PickDrawer>

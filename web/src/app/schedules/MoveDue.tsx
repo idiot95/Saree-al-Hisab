@@ -50,7 +50,7 @@ export default function MoveDue({ scheduleId, name, dueOn, on, rule, cal, today,
         <DateChips value={to} onChange={setTo} today={today} from={on > today ? on : today} dir="future"
           min={shiftDay(dueOn, -30)} max={shiftDay(dueOn, 90)} label={`Move ${name} to`} />
         <input type="hidden" name="to" value={to} />
-        <span className="text-sm text-muted-foreground">
+        <span className="text-subhead text-muted-foreground">
           {valid ? `${friendlyDay(to, today)} · ${hijri} · ${inWords(today, to)}` : 'Pick a day.'}
         </span>
       </div>
@@ -60,10 +60,10 @@ export default function MoveDue({ scheduleId, name, dueOn, on, rule, cal, today,
           onChange={(e) => setPermanent(e.target.checked)}
           className="mt-0.5 size-[22px] flex-none accent-primary" />
         <span className="flex flex-col gap-0.5">
-          <span className="text-sm font-semibold">
+          <span className="text-body font-semibold">
             Make this the day, every {yearly ? 'year' : cal === 'hijri' ? 'Hijri month' : 'month'}
           </span>
-          <span className="text-[13px] leading-snug text-muted-foreground">
+          <span className="text-subhead leading-snug text-muted-foreground">
             {!valid ? ''
               : next
                 ? permanent

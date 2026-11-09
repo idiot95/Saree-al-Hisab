@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { haptic } from '../haptics';
+import { chip, chipOff, chipOn, chipRow } from '../form-bits';
 
 /* Whose net worth: Household · Me · each other member · Joint.
 
@@ -12,7 +13,7 @@ export default function OwnerChips({ chips, current, onPick }: {
   chips: { key: string; chip: string }[]; current: string; onPick: (key: string) => void;
 }) {
   return (
-    <nav aria-label="Whose net worth" className="flex flex-wrap gap-2 px-[var(--gutter)]">
+    <nav aria-label="Whose net worth" className={`${chipRow} px-[var(--gutter)]`}>
       {chips.map((c) => {
         const on = c.key === current;
         const href = c.key === 'household' ? '/worth' : `/worth?o=${encodeURIComponent(c.key)}`;
@@ -27,9 +28,7 @@ export default function OwnerChips({ chips, current, onPick }: {
               onPick(c.key);
               window.history.replaceState(null, '', href);
             }}
-            className={`press flex min-h-11 items-center rounded-full border px-4 text-sm transition-colors ${on
-              ? 'border-primary bg-primary font-semibold text-primary-foreground'
-              : 'border-border bg-card font-medium text-foreground'}`}>
+            className={`${chip} ${on ? chipOn : chipOff}`}>
             {c.chip}
           </Link>
         );

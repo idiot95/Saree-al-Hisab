@@ -5,6 +5,7 @@ import { Chip, Icon } from '../Icon';
 import { haptic } from '../haptics';
 import CategoryFinder, { type Category } from '../CategoryFinder';
 import { cn } from '@/lib/utils';
+import { choice } from '../choice';
 
 /* The category, as one tap: the household's most-used categories for this kind of entry as a 4×2 grid, the last
    seat "All", which opens the finder over every category.
@@ -42,14 +43,14 @@ export default function TopCategories({ categories, top, value, onChange, label 
 
   if (categories.length === 0) {
     return (
-      <p className="m-0 text-sm leading-normal text-muted-foreground">
+      <p className="m-0 text-subhead leading-normal text-muted-foreground">
         No categories take this kind of entry yet. Set them up under Categories.
       </p>
     );
   }
 
   const tile = 'flex min-h-[72px] min-w-0 flex-col items-center justify-center gap-1 rounded-2xl border px-0.5 py-2 '
-    + 'text-xs leading-tight transition-colors';
+    + 'text-footnote leading-tight transition-colors';
 
   return (
     <>
@@ -59,10 +60,11 @@ export default function TopCategories({ categories, top, value, onChange, label 
           return (
             <button key={c.id} type="button" role="radio" aria-checked={isOn} data-category-tile
               onClick={() => { haptic('select'); onChange(c.id); }}
-              className={cn(tile, isOn
-                ? 'border-2 border-primary bg-accent font-semibold text-accent-foreground'
-                : 'border-border bg-card font-medium text-foreground')}>
-              <Chip icon={c.icon} tint={c.tint} size={32} radius={10} />
+              /* The one selected look (choice.ts): primary plum, a 1px edge either way so choosing moves nothing;
+                 the category's own colour stays on its icon chip. */
+              style={choice(isOn)}
+              className={cn(tile, 'bg-card', isOn ? 'font-semibold' : 'font-medium')}>
+              <Chip icon={c.icon} tint={c.tint} size={32} />
               <span className="line-clamp-2 w-full break-words text-center">{c.name}</span>
             </button>
           );

@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import { tokenMs } from './motion';
 import { haptic } from './haptics';
 
 /* Swipe a row to the left and its actions come out from under it.
@@ -56,6 +57,9 @@ const TONE = {
   neutral: ['var(--background)', 'var(--foreground)'],
   primary: ['var(--primary)', 'var(--primary-foreground)'],
   danger: ['var(--destructive)', 'var(--destructive-foreground)'],
+  /* The once-only peek draws a destructive action in rose gold: the first thing a new household sees under a row
+     should say "there is more here", not a red Delete. */
+  peek: ['var(--attention)', 'var(--attention-foreground)'],
 } as const;
 
 /* The one open row, so opening another closes it. Module state on purpose:
@@ -89,6 +93,7 @@ export default function SwipeRow({ actions, commit = true, grip = true, flush = 
   const [drag, setDrag] = useState(false);
   const [open, setOpen] = useState(false);
   const [armed, setArmed] = useState(false);
+  const [peeking, setPeeking] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const s = useRef({
     id: -1, sx: 0, sy: 0, x0: 0, x: 0, axis: '' as '' | 'x' | 'y', moved: false, w: 0, armed: false,
@@ -149,9 +154,13 @@ export default function SwipeRow({ actions, commit = true, grip = true, flush = 
       localStorage.setItem(PEEK_KEY, '1');
     } catch { return; }
     peekedThisLoad = true;
-    const out = setTimeout(() => setX(-Math.min(W, 56)), 700);
+    /* Out far enough to show one whole action (its label never clipped), then home. */
+    const out = setTimeout(() => { setPeeking(true); setX(-Math.min(W, ACT_W)); }, 700);
     const back = setTimeout(() => setX(0), 1500);
-    return () => { clearTimeout(out); clearTimeout(back); };
+    // Back to its own colour once it has slid home (the slide is --dur-3, a beat of --dur-1 after), so an opened row
+    // is never rose gold.
+    const done = setTimeout(() => setPeeking(false), 1500 + tokenMs('--dur-3', 240) + tokenMs('--dur-1', 120));
+    return () => { clearTimeout(out); clearTimeout(back); clearTimeout(done); };
   }, [actions.length, W]);
 
   if (actions.length === 0) return <>{children}</>;
@@ -236,10 +245,10 @@ export default function SwipeRow({ actions, commit = true, grip = true, flush = 
         position: 'absolute', top: 0, bottom: 0, right: 0, display: 'flex',
         width: Math.max(W, -x),
         visibility: x === 0 && !drag ? 'hidden' : 'visible',
-        transition: x === 0 && !drag ? 'visibility 0s linear .24s' : 'none',
+        transition: x === 0 && !drag ? 'visibility 0s linear var(--dur-3)' : 'none',
       }}>
         {actions.map((a, i) => {
-          const [bg, ink] = TONE[a.tone ?? 'neutral'];
+          const [bg, ink] = TONE[peeking && a.tone === 'danger' ? 'peek' : a.tone ?? 'neutral'];
           const fires = armed && i === last;
           return (
             <button key={a.label} type="button" tabIndex={open ? 0 : -1}
@@ -250,8 +259,8 @@ export default function SwipeRow({ actions, commit = true, grip = true, flush = 
                 alignItems: 'center', justifyContent: 'center', gap: 4,
                 paddingLeft: fires ? 26 : 0, alignSelf: 'stretch',
                 background: bg, color: ink, opacity: armed && !fires ? 0 : 1,
-                fontSize: 'var(--step--2)', fontWeight: 600, letterSpacing: '.01em',
-                transition: 'flex .16s ease, opacity .12s ease, padding .16s ease',
+                fontSize: 'var(--text-footnote)', fontWeight: 600, letterSpacing: '.01em',
+                transition: 'flex var(--dur-2) var(--ease-out), opacity var(--dur-1) var(--ease-out), padding var(--dur-2) var(--ease-out)',
                 ...(fires ? { alignItems: 'flex-start' } : {}),
               }}>
               {a.icon}
@@ -270,7 +279,7 @@ export default function SwipeRow({ actions, commit = true, grip = true, flush = 
           padding: flush ? 0 : grip ? '0 calc(var(--pad) + 28px) 0 var(--pad)' : '0 var(--pad)',
           touchAction: 'pan-y',
           transform: `translateX(${x}px)`,
-          transition: drag ? 'none' : 'transform .24s cubic-bezier(.2,.8,.2,1)',
+          transition: drag ? 'none' : 'transform var(--dur-3) var(--ease-out)',
         }}
       >
         {children}
@@ -285,7 +294,7 @@ export default function SwipeRow({ actions, commit = true, grip = true, flush = 
             }}>
             {/* "More": the one icon everybody reads as "this has actions". A left chevron read as Back. */}
             <svg width={18} height={18} viewBox="0 0 24 24" fill="currentColor" aria-hidden
-              style={{ transform: open ? 'rotate(90deg)' : 'none', transition: 'transform .2s ease' }}>
+              style={{ transform: open ? 'rotate(90deg)' : 'none', transition: 'transform var(--dur-2) var(--ease-out)' }}>
               <circle cx="12" cy="5.5" r="1.7" /><circle cx="12" cy="12" r="1.7" /><circle cx="12" cy="18.5" r="1.7" />
             </svg>
           </button>

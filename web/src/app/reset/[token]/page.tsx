@@ -53,7 +53,7 @@ export default async function Reset({ params, searchParams }: {
         {e === 'wait' && <ErrorNote>Too many attempts. Try again in a few minutes.</ErrorNote>}
         {e === '1' && <ErrorNote>That did not work. Try again in a moment.</ErrorNote>}
         <GoogleButton action={linkGoogleWithReset} fields={{ token }} />
-        <Small className="text-xs">
+        <Small className="text-footnote">
           This uses up the link and signs you out everywhere else. If you stop
           partway, ask the owner of your household for a new one.
         </Small>
@@ -64,7 +64,7 @@ export default async function Reset({ params, searchParams }: {
   return (
     <AuthShell kicker={`For ${reset.name}`} title="Set a new password">
       <ResetForm token={token} />
-      <Small className="text-xs">This signs you in and cancels the link.</Small>
+      <Small className="text-footnote">This signs you in and cancels the link.</Small>
     </AuthShell>
   );
 }

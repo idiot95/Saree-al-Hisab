@@ -21,7 +21,7 @@ export default async function SignUp() {
       blurb="You, first. Your household — its name and its currency — is the next screen."
     >
       <GoogleButton action={signUpWithGoogle} />
-      <Small className="text-xs">
+      <Small className="text-footnote">
         Continuing means agreeing to the{' '}
         <Link href="/terms" className="font-semibold text-primary underline underline-offset-[3px]">
           terms, and how your data is kept

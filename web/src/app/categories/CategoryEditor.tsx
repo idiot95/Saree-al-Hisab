@@ -3,7 +3,7 @@
 import { useActionState, useCallback, useId, useRef, useState, useTransition } from 'react';
 import { Icon, Chip, tintOf } from '../Icon';
 import { ErrorNote, Field } from '../auth-ui';
-import { fieldLabel, formCard, ghost, selectCls, solid, AddRow as AddButton, Said } from '../form-bits';
+import { fieldLabel, formCard, ghost, selectCls, solid, AddRow as AddButton, Said, rowRule, rulePad, ruleSwipe } from '../form-bits';
 import SwipeRow from '../SwipeRow';
 import Snack, { type SnackState } from '../Snack';
 import { haptic } from '../haptics';
@@ -104,12 +104,12 @@ function Picker({ icon, tint, onIcon, onTint }: {
           placeholder="Find an icon" aria-label="Find an icon" autoComplete="off"
           className="h-12 w-full rounded-xl border border-input bg-card px-3.5 text-[length:var(--field)] text-foreground" />
         {matches.length === 0 && (
-          <span className="py-2 text-sm text-muted-foreground">Nothing called that. Try another word.</span>
+          <span className="py-2 text-subhead text-muted-foreground">Nothing called that. Try another word.</span>
         )}
         {slot && (
           <div className="flex items-center gap-3">
             <div className="grid w-[calc((100%_-_2rem)/5)] flex-none">{tile(slot, slotNote)}</div>
-            <span id={slotNote} className="text-sm text-muted-foreground">{chosenOutside ? 'Chosen now' : 'Chosen before'}</span>
+            <span id={slotNote} className="text-subhead text-muted-foreground">{chosenOutside ? 'Chosen now' : 'Chosen before'}</span>
           </div>
         )}
         <div className="grid grid-cols-5 gap-2">{head.map((n) => tile(n))}</div>
@@ -118,7 +118,7 @@ function Picker({ icon, tint, onIcon, onTint }: {
             {chosenHidden && <div className="grid w-[calc((100%_-_2rem)/5)] flex-none">{tile(icon)}</div>}
             {rest.length > 0 && (
               <button type="button" aria-expanded={all} aria-controls={allId} onClick={() => setAll((o) => !o)}
-                className="press flex min-h-11 items-center gap-1.5 text-sm font-semibold text-primary in-data-[platform=android]:min-h-12">
+                className="press flex min-h-11 items-center gap-1.5 text-body font-semibold text-primary in-data-[platform=android]:min-h-12">
                 <Icon name={all ? 'expand_less' : 'expand_more'} size={18} />
                 {all ? 'Fewer icons' : q ? `Show all ${matches.length} matches` : `Show all ${matches.length} icons`}
               </button>
@@ -149,7 +149,7 @@ function UnderField({ parents, value, onChange, locked }: {
     <label className="flex flex-col gap-1.5">
       <span className={fieldLabel}>Under</span>
       {locked ? (
-        <span className="py-1 text-sm leading-snug text-muted-foreground">
+        <span className="py-1 text-subhead leading-snug text-muted-foreground">
           It has categories under it, so it stays at the top level.
         </span>
       ) : (
@@ -175,7 +175,7 @@ function ScopeField({ value, onChange, parent }: {
     <div role="group" aria-label="Files" className="flex flex-col gap-1.5">
       <span className={fieldLabel}>Files</span>
       {parent ? (
-        <span className="py-1 text-sm leading-snug text-muted-foreground">
+        <span className="py-1 text-subhead leading-snug text-muted-foreground">
           {SCOPE_LABEL[parent.scope].toLowerCase()}, the same as {parent.name}.
         </span>
       ) : (
@@ -259,7 +259,7 @@ function useReorder(ids: string[], onCommit: (ids: string[]) => void) {
   });
 
   const shift = (id: string): React.CSSProperties => {
-    const ease = 'transform .18s cubic-bezier(.2,.8,.2,1)';
+    const ease = 'transform var(--dur-2) var(--ease-out)';
     if (!drag) return { transition: ease };
     const i = ids.indexOf(id);
     if (id === drag.id) {
@@ -358,9 +358,9 @@ export default function CategoryEditor({ categories, canEdit }: {
   return (
     <div className="flex flex-col gap-6">
       <section aria-labelledby="sec-in-use" className="flex flex-col gap-1.5 px-[var(--gutter)]">
-        <h2 id="sec-in-use" className="px-0.5 text-[13px] font-semibold text-muted-foreground">In use</h2>
+        <h2 id="sec-in-use" className="px-0.5 text-subhead font-semibold text-muted-foreground">In use</h2>
         {/* px-[var(--pad)]: a swipe row's negative margin is --pad, so its actions stop at the rounded edge. */}
-        <div className="overflow-hidden rounded-[18px] bg-card px-[var(--pad)]">
+        <div className="overflow-hidden rounded-[20px] bg-card shadow-card px-[var(--pad)]">
           {live.map((c, i) => {
             const kids = kidsOf(c.id);
             const lastFamily = i === live.length - 1;
@@ -373,7 +373,7 @@ export default function CategoryEditor({ categories, canEdit }: {
           })}
         </div>
         {canEdit && (
-          <p className="px-0.5 pt-0.5 text-[13px] leading-snug text-muted-foreground">
+          <p className="px-0.5 pt-0.5 text-subhead leading-snug text-muted-foreground">
             Tap a row to edit it, swipe it left to retire it, and drag by the grip to change the order.
             A category can sit under another — Milk under Groceries — and counts towards its line.
           </p>
@@ -386,7 +386,7 @@ export default function CategoryEditor({ categories, canEdit }: {
           {adding
             ? <AddRow parents={parents} takes={takes} onDone={(message) => { setAdding(false); setAdded(message ?? ''); focusAddOpener(); }} />
             : <AddButton ref={addOpener} onClick={() => { setAdded(''); setAdding(true); }}
-                done={added ? <span className="flex items-center gap-1 text-sm font-semibold text-primary"><Icon name="check" size={16} />Added</span> : null}>
+                done={added ? <span className="flex items-center gap-1 text-body font-semibold text-primary"><Icon name="check" size={16} />Added</span> : null}>
                 Add a category
               </AddButton>}
         </div>
@@ -400,12 +400,12 @@ export default function CategoryEditor({ categories, canEdit }: {
 
       {retired.length > 0 && (
         <section aria-labelledby="sec-retired" className="flex flex-col gap-1.5 px-[var(--gutter)]">
-          <h2 id="sec-retired" className="px-0.5 text-[13px] font-semibold text-muted-foreground">Retired</h2>
-          <p className="px-0.5 pb-0.5 text-[13px] leading-snug text-muted-foreground">
+          <h2 id="sec-retired" className="px-0.5 text-subhead font-semibold text-muted-foreground">Retired</h2>
+          <p className="px-0.5 pb-0.5 text-subhead leading-snug text-muted-foreground">
             Not offered for new entries. Everything already filed under them is untouched, and
             they still appear in the months they were used.
           </p>
-          <div className="overflow-hidden rounded-[18px] bg-card px-[var(--pad)]">
+          <div className="overflow-hidden rounded-[20px] bg-card shadow-card px-[var(--pad)]">
             {retired.map((c, i) => (
               <RetiredRow key={c.id} cat={c} under={nameOf(c.parent_id)} last={i === retired.length - 1} canEdit={canEdit}
                 onBack={() => setHidden((h) => {
@@ -442,10 +442,10 @@ function Row({ cat, last, canEdit, lifted, onEdit, grip }: {
       {child && (
         <span aria-hidden className="mb-3.5 ml-3 h-[22px] w-3.5 flex-none rounded-bl-lg border-b-[1.5px] border-l-[1.5px] border-border" />
       )}
-      <Chip icon={cat.icon} tint={cat.tint} size={child ? 32 : 38} radius={999} />
+      <Chip icon={cat.icon} tint={cat.tint} size={child ? 32 : 38} />
       <span className="flex min-w-0 flex-1 flex-col gap-0.5 py-2">
-        <span className={`${child ? 'text-sm' : 'text-[15px]'} font-semibold leading-snug [overflow-wrap:anywhere]`}>{cat.name}</span>
-        <span className="text-[13px] leading-snug text-muted-foreground">
+        <span className={`${child ? 'text-body' : 'text-body'} font-semibold leading-snug [overflow-wrap:anywhere]`}>{cat.name}</span>
+        <span className="text-subhead leading-snug text-muted-foreground">
           {cat.entries === 0 ? 'nothing filed here yet'
             : `${cat.entries} ${cat.entries === 1 ? 'entry' : 'entries'}`}
           {cat.budgeted_months > 0 && ` · budgeted in ${cat.budgeted_months} ${cat.budgeted_months === 1 ? 'month' : 'months'}`}
@@ -456,7 +456,7 @@ function Row({ cat, last, canEdit, lifted, onEdit, grip }: {
     </>
   );
   return (
-    <div className={`flex items-center ${h} ${last || lifted ? '' : 'border-b border-border'}`}>
+    <div className={`relative flex items-center ${h} ${last || lifted ? '' : `${rowRule} ${child ? '[--rule-x:82px]' : '[--rule-x:50px]'} ${child && canEdit ? ruleSwipe : rulePad}`}`}>
       {canEdit ? (
         <button type="button" onClick={onEdit} aria-label={`Edit ${cat.name}`}
           className={`flex min-w-0 flex-1 items-center gap-3 text-left text-foreground ${h}`}>{body}</button>
@@ -486,7 +486,7 @@ function EditRow({ cat, first, last, parents, onDone }: {
   const parent = parents.find((p) => p.id === parentId) ?? null;
 
   return (
-    <div className="flex flex-col gap-3.5 border-b border-border py-4 last:border-b-0">
+    <div className={`relative flex flex-col gap-3.5 py-4 ${rowRule} ${rulePad} [--rule-x:0px] last:after:hidden`}>
       {/* JS-only (opened by a tap): keepFields, so a refusal never resets Under or the scope back. */}
       <form onSubmit={keepFields(act)} aria-label={`Edit ${cat.name}`} className="flex flex-col gap-3.5">
         <input type="hidden" name="id" value={cat.id} />
@@ -520,11 +520,11 @@ function EditRow({ cat, first, last, parents, onDone }: {
       <form action={retire} className="flex flex-col gap-1.5">
         <input type="hidden" name="id" value={cat.id} />
         <button type="submit" disabled={retiring}
-          className="press flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold text-destructive disabled:opacity-60">
+          className="press flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 text-body font-semibold text-destructive disabled:opacity-60">
           <Icon name="archive" size={18} />{retiring ? 'Retiring…' : 'Retire this category'}
         </button>
         {retireState && !retireState.ok && <ErrorNote>{retireState.error}</ErrorNote>}
-        <span className="text-xs leading-snug text-muted-foreground">
+        <span className="text-footnote leading-snug text-muted-foreground">
           It stops being offered for new entries{cat.children > 0 && ', and so do the ones under it'}.
           Nothing already filed under it moves, and no month changes value.
         </span>
@@ -573,11 +573,11 @@ function RetiredRow({ cat, under, last, canEdit, onBack }: {
 }) {
   const [, restore] = useActionState(restoreCategory, null);
   return (
-    <div className={`flex min-h-[68px] items-center gap-3 py-2.5 ${last ? '' : 'border-b border-border'}`}>
-      <span className="opacity-70"><Chip icon={cat.icon} tint={cat.tint} size={36} radius={999} /></span>
+    <div className={`relative flex min-h-[68px] items-center gap-3 py-2.5 ${last ? '' : `${rowRule} ${rulePad} [--rule-x:48px]`}`}>
+      <span className="opacity-70"><Chip icon={cat.icon} tint={cat.tint} size={36} /></span>
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <span className="text-[15px] font-semibold leading-snug text-muted-foreground [overflow-wrap:anywhere]">{cat.name}</span>
-        <span className="text-[13px] leading-snug text-muted-foreground">
+        <span className="text-body font-semibold leading-snug text-muted-foreground [overflow-wrap:anywhere]">{cat.name}</span>
+        <span className="text-subhead leading-snug text-muted-foreground">
           {cat.entries} {cat.entries === 1 ? 'entry' : 'entries'} kept{under && ` · under ${under}`}
         </span>
       </span>
@@ -585,7 +585,7 @@ function RetiredRow({ cat, under, last, canEdit, onBack }: {
         <form action={restore} onSubmit={() => { haptic('select'); onBack(); }}>
           <input type="hidden" name="id" value={cat.id} />
           <button type="submit" aria-label={`Bring back ${cat.name}`}
-            className="press flex min-h-11 items-center gap-1.5 rounded-xl bg-muted px-3 text-sm font-semibold text-foreground">
+            className="press flex min-h-11 items-center gap-1.5 rounded-xl bg-muted px-3 text-body font-semibold text-foreground">
             <Icon name="restore" size={18} />Bring back
           </button>
         </form>

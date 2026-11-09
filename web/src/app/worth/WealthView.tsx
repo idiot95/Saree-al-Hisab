@@ -1,7 +1,11 @@
 'use client';
 
 import { EmptyLine } from '../entries/parts';
+import { liRule } from '../form-bits';
 import { useState } from 'react';
+import { useRateLines, useRateRefresh, type RateStatus } from './rate-refresh';
+import { cn } from '@/lib/utils';
+import { revealChildren, useArrival } from '../Reveal';
 import Link from '@/app/NavLink';
 import { Figure } from '../Figure';
 import { Icon } from '../Icon';
@@ -25,9 +29,12 @@ const CLASSES = [
   { key: 'owed', word: 'Owed to you', swatch: 'bg-hero-4' },
 ] as const;
 
-export default function WealthView({ views, initial, items, potRates, metalRates, series }: {
+export default function WealthView({ views, initial, items, potRates, metalRates, series, due }: {
   views: View[]; initial: string; items: HoldingItem[]; potRates: RateNote; metalRates: RateNote; series: SeriesPoint[];
+  /** Bases whose rate is over a day old: refreshed once the screen is up (useRateRefresh). */
+  due: string[];
 }) {
+  const status = useRateRefresh(due);
   const [key, setKey] = useState(initial);
   const v = views.find((x) => x.key === key) ?? views[0];
   const { format } = useMoney();
@@ -40,21 +47,24 @@ export default function WealthView({ views, initial, items, potRates, metalRates
   const whole = parts.reduce((n, p) => n + p.value, 0);
   const inBar = parts.filter((p) => p.value > 0);
 
+  /* The chips, the net-worth card and the lists arrive in turn on a navigation here or a cold load (Reveal); a chip
+     only redraws, so it never replays them. */
+  const arrive = useArrival();
   return (
-    <div className="flex flex-col gap-4">
+    <div className={cn('flex flex-col gap-4', arrive && revealChildren)}>
       <OwnerChips chips={views} current={v.key} onPick={setKey} />
 
-      <section aria-label={v.title} className="mx-[var(--gutter)] flex flex-col gap-3 rounded-[22px] bg-hero p-[18px] text-hero-foreground">
-        <span className="text-[13px] text-hero-muted">{v.title}</span>
-        <Figure minor={v.worth} className="text-[38px] font-bold leading-none tracking-tight tabular-nums" />
+      <section aria-label={v.title} className="mx-[var(--gutter)] flex flex-col gap-3 rounded-[22px] bg-hero p-4 text-hero-foreground">
+        <span className="text-subhead text-hero-muted">{v.title}</span>
+        <Figure minor={v.worth} className="text-display font-bold leading-none tracking-tight tabular-nums" />
         {/* The bar is the shape; the legend under it is the record, word and figure for each class. */}
         <div aria-hidden="true" className="flex h-2.5 gap-0.5 overflow-hidden rounded-full bg-hero-foreground/15">
           {whole > 0 && inBar.map((p) => (
-            <span key={p.key} className={`${p.swatch} basis-0 transition-[flex-grow] duration-500 ease-out`}
+            <span key={p.key} className={`${p.swatch} basis-0 transition-[flex-grow] duration-(--dur-flourish) ease-out`}
               style={{ flexGrow: p.value }} />
           ))}
         </div>
-        <dl className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs">
+        <dl className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-footnote">
           {parts.map((p) => (
             <div key={p.key} className="flex min-w-0 items-center gap-1.5">
               <span aria-hidden="true" className={`size-2.5 flex-none rounded-[3px] ${p.swatch}`} />
@@ -64,13 +74,13 @@ export default function WealthView({ views, initial, items, potRates, metalRates
           ))}
         </dl>
         {v.debt !== 0 && (
-          <p className="flex items-center justify-between border-t border-hero-foreground/15 pt-2 text-xs">
+          <p className="flex items-center justify-between border-t border-hero-foreground/15 pt-2 text-footnote">
             <span className="text-hero-muted">{v.counted ? 'Less cards and money you owe' : 'Less cards and money owed'}</span>
             <span className="font-semibold tabular-nums"><Figure minor={v.debt} /></span>
           </p>
         )}
         {v.unvalued > 0 && (
-          <p className="flex items-center gap-1.5 text-xs text-hero-muted">
+          <p className="flex items-center gap-1.5 text-footnote text-hero-muted">
             <Icon name="info" size={15} />
             {v.unvalued === 1 ? 'One holding is' : `${v.unvalued} holdings are`} not valued yet and not counted.
           </p>
@@ -78,34 +88,34 @@ export default function WealthView({ views, initial, items, potRates, metalRates
       </section>
 
       {pots.length > 0 && (
-        <Section title="Pots in other currencies" rates={potRates}>
+        <Section title="Pots in other currencies" rates={potRates} status={status}>
           <ul>{pots.map((h) => <HoldingRow key={h.id} h={h} value={h.value === null ? null : format(h.value)} />)}</ul>
         </Section>
       )}
       {metals.length > 0 && (
-        <Section title="Gold & silver" rates={metalRates}>
+        <Section title="Gold & silver" rates={metalRates} status={status}>
           <ul>{metals.map((h) => <HoldingRow key={h.id} h={h} value={h.value === null ? null : format(h.value)} />)}</ul>
         </Section>
       )}
 
-      <section aria-label="Accounts and what is owed to you" className="mx-[var(--gutter)] rounded-[18px] bg-card">
+      <section aria-label="Accounts and what is owed to you" className="mx-[var(--gutter)] rounded-[20px] bg-card shadow-card">
         <Row href="/accounts" icon="account_balance" word="Accounts & cards" value={format(v.accounts)} />
         {v.counted && <Row href="/people" icon="handshake" word="Owed to you" value={format(v.owed)} lateral />}
       </section>
 
       {pots.length === 0 && metals.length === 0 && (
-        <EmptyLine icon="currency_exchange" className="mx-[var(--gutter)] rounded-[18px] bg-card">
+        <EmptyLine icon="currency_exchange" className="mx-[var(--gutter)] rounded-[20px] bg-card shadow-card">
           Keep a pot in another currency, or gold and silver, with + above. Each is priced in your currency every day.
         </EmptyLine>
       )}
 
       {v.key === 'household' && series.length > 1 && (
         <section aria-label="Month by month" className="mx-[var(--gutter)] flex flex-col gap-2">
-          <h2 className="px-0.5 text-[13px] font-semibold text-muted-foreground">Month by month</h2>
-          <div className="rounded-[18px] bg-card p-4">
+          <h2 className="px-0.5 text-subhead font-semibold text-muted-foreground">Month by month</h2>
+          <div className="rounded-[20px] bg-card shadow-card p-4">
             <figure className="flex flex-col gap-2">
               <WhenNear className="h-36"><WorthChart series={series} /></WhenNear>
-              <figcaption className="text-xs leading-relaxed text-muted-foreground">
+              <figcaption className="text-footnote leading-relaxed text-muted-foreground">
                 {heldChange(series, format)} What people owe you is in the figure above but not in this line.
               </figcaption>
             </figure>
@@ -116,30 +126,40 @@ export default function WealthView({ views, initial, items, potRates, metalRates
   );
 }
 
-function Section({ title, rates, children }: { title: string; rates: RateNote; children: React.ReactNode }) {
+function Section({ title, rates, status, children }: {
+  title: string; rates: RateNote; status: (base: string) => RateStatus; children: React.ReactNode;
+}) {
+  const lines = useRateLines(rates.stale);
   return (
     <section aria-label={title} className="mx-[var(--gutter)] flex flex-col gap-1.5">
       <div className="flex items-baseline justify-between gap-3 px-0.5">
-        <h2 className="text-[13px] font-semibold text-muted-foreground">{title}</h2>
-        {rates.asOf && <span className="text-xs text-muted-foreground">Rates {rates.asOf}</span>}
+        <h2 className="text-subhead font-semibold text-muted-foreground">{title}</h2>
+        {rates.asOf && <span className="text-footnote text-muted-foreground">Rates {rates.asOf}</span>}
       </div>
-      {rates.stale.map((s) => (
-        <p key={s} className="flex items-center gap-1.5 px-0.5 text-xs text-attention-soft-foreground">
-          <Icon name="sync_problem" size={15} />{s}
-        </p>
-      ))}
-      <div className="overflow-hidden rounded-[18px] bg-card">{children}</div>
+      {lines.map((s) => <RateStale key={s.base} label={s.label} from={s.from} status={status(s.base)} />)}
+      <div className="overflow-hidden rounded-[20px] bg-card shadow-card">{children}</div>
     </section>
+  );
+}
+
+/** "Gold rate from 5 Nov — updating", then "Gold rate updated" (or "— couldn't update"), in one line's room. */
+export function RateStale({ label, from, status }: { label: string; from: string; status: RateStatus }) {
+  return (
+    <p role="status" data-rate-line={status}
+      className={cn('flex items-center gap-1.5 px-0.5 text-footnote', status === 'updated' ? 'text-muted-foreground' : 'text-attention-soft-foreground')}>
+      <Icon name={status === 'updated' ? 'check' : 'sync_problem'} size={15} />
+      {status === 'updated' ? `${label} rate updated` : `${label} rate from ${from} — ${status === 'failed' ? 'couldn’t update' : 'updating'}`}
+    </p>
   );
 }
 
 function Row({ href, icon, word, value, lateral }: { href: string; icon: string; word: string; value: string; lateral?: boolean }) {
   return (
-    <Link href={href} transitionTypes={[lateral ? 'nav-lateral' : 'nav-forward']}
-      className="press flex min-h-14 items-center gap-3 border-b border-border px-3.5 last:border-b-0">
+    <Link href={href} motion={lateral ? 'fade' : 'push'}
+      className={`press flex min-h-14 items-center gap-3 px-3.5 ${liRule} [--rule-x:48px]`}>
       <Icon name={icon} size={22} className="text-primary" />
-      <span className="flex-1 text-[15px]">{word}</span>
-      <span className="text-sm font-semibold tabular-nums">{value}</span>
+      <span className="flex-1 text-body">{word}</span>
+      <span className="text-body font-semibold tabular-nums">{value}</span>
       <Icon name="chevron_right" size={18} className="text-muted-foreground" />
     </Link>
   );

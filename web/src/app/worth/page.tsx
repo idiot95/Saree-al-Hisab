@@ -29,11 +29,13 @@ export default async function Worth({ searchParams }: { searchParams: Promise<{ 
   if (!actor.household_id) redirect('/no-household');
   const hh = actor.household_id;
 
-  /* Rates first, then the inputs netWorth() reads — worthInput is the one path, shared with Home's row, so the
-     two figures cannot disagree. A provider that fails leaves the last known rate in place, named in `stale`. */
-  const { input, members, holdings, stale } = await worthInput(hh, actor.currency);
-  // After the rates, so the line's last point is valued at today's rates too.
-  const [allSeries, months] = await withHousehold(hh, () => Promise.all([worthSeries(hh, 6), monthlySeries(hh, 6)]));
+  /* The inputs netWorth() reads — worthInput is the one path, shared with Home's row, so the two figures cannot
+     disagree — and the line, in one transaction, at the last stored rates. Nothing is fetched or written here
+     (v3.1 P5), so this render is safe to prefetch: `stale` names the rates over a day old, drawn as older rates,
+     and the screen asks POST /api/rates to refresh them once it is on the phone (RefreshRates). */
+  const [{ input, members, holdings, stale }, allSeries, months] = await withHousehold(hh, () => Promise.all([
+    worthInput(hh, actor.currency, { due: true }), worthSeries(hh, 6), monthlySeries(hh, 6),
+  ]));
   const memberIds = input.members;
   const fx = holdings.filter((h) => h.kind === 'fx_cash');
   const metal = holdings.filter((h) => h.kind === 'metal');
@@ -80,15 +82,16 @@ export default async function Worth({ searchParams }: { searchParams: Promise<{ 
     };
   });
 
-  /* "Rates 6 Nov" is the newest rate a section's values use. A rate that could not be refreshed is said
-     with its date; one the household set itself is theirs to keep, and is not called out of date. */
+  /* "Rates 6 Nov" is the newest rate a section's values use. A rate over a day old is said with its date (the
+     screen adds whether it is updating or could not); one the household set itself is theirs to keep, and is not
+     called out of date. */
   const note = (rows: typeof holdings, label: (h: (typeof holdings)[number]) => string): RateNote => {
     const dates = rows.map((h) => h.rate_as_of).filter((d): d is string => !!d).sort();
-    const lines = new Map<string, string>();
+    const lines = new Map<string, { base: string; label: string; from: string }>();
     for (const h of rows) {
       const base = h.kind === 'fx_cash' ? h.currency! : h.metal === 'gold' ? 'XAU' : 'XAG';
       if (!stale.includes(base) || !h.rate_as_of || h.rate_source === 'override') continue;
-      lines.set(base, `${label(h)} rate from ${dayLabel(h.rate_as_of)} — couldn’t update`);
+      lines.set(base, { base, label: label(h), from: dayLabel(h.rate_as_of) });
     }
     return { asOf: dates.length ? dayLabel(dates[dates.length - 1]) : null, stale: [...lines.values()] };
   };
@@ -110,8 +113,8 @@ export default async function Worth({ searchParams }: { searchParams: Promise<{ 
       <main className="min-h-dvh bg-background text-foreground" style={{ paddingBottom: TAB_BAR_SPACE }}>
         <header className="flex items-end justify-between gap-3 px-[var(--gutter)] pb-3 pt-4">
           <div className="min-w-0">
-            <p className="text-sm text-muted-foreground">{actor.household_name}</p>
-            <h1 className="text-[32px] font-bold leading-tight tracking-tight">Wealth</h1>
+            <p className="text-subhead text-muted-foreground">{actor.household_name}</p>
+            <h1 className="text-large-title font-bold leading-tight tracking-tight">Wealth</h1>
           </div>
           {canWrite && (
             <AddHolding base={actor.currency}
@@ -119,7 +122,7 @@ export default async function Worth({ searchParams }: { searchParams: Promise<{ 
           )}
         </header>
         <WealthView views={views} initial={initial} items={items} potRates={potRates} metalRates={metalRates}
-          series={series} />
+          series={series} due={stale} />
         <TabBar current="/worth" />
       </main>
     </Screen>

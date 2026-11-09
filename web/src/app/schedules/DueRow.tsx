@@ -1,18 +1,18 @@
 'use client';
 
 import { useActionState, useCallback, useState, useTransition } from 'react';
-import { Icon } from '../Icon';
+import { Chip, Icon } from '../Icon';
 import SwipeRow from '../SwipeRow';
 import { recordDue, skipDue } from './actions';
 import MoveDue from './MoveDue';
 import { ErrorNote, Field } from '../auth-ui';
-import { ghost, solid } from '../form-bits';
+import { ghost, solid, rowRule, rulePad } from '../form-bits';
 import { friendlyDay, type Calendar } from '@/lib/recur';
 import { useMoney } from '@/app/currency';
 
 export default function DueRow({
   scheduleId, name, kind = 'expense', dueOn, on = dueOn, movedFrom, daysAway, amount, category,
-  icon, rule, cal = 'gregorian', today, canRecord = true,
+  icon, tint, rule, cal = 'gregorian', today, canRecord = true,
 }: {
   scheduleId: string; name: string; kind?: 'expense' | 'income';
   /** The rule's date — what the occurrence is keyed by. */
@@ -21,6 +21,8 @@ export default function DueRow({
   on?: string; movedFrom?: string;
   daysAway: number;
   amount: number; category: string | null; icon?: string | null;
+  /** The category's tint: a due wears the same chip as the payment does in every other list. */
+  tint?: string | null;
   /** With the rule and today's date the row can offer to move the due. */
   rule?: string; cal?: Calendar; today?: string;
   /** A due months away can be moved or skipped, but not recorded yet. */
@@ -47,7 +49,7 @@ export default function DueRow({
   });
 
   return (
-    <div className="flex flex-col gap-2.5 border-b border-border py-2.5 last:border-b-0">
+    <div className={`relative flex flex-col gap-2.5 py-2.5 ${rowRule} ${rulePad} last:after:hidden`}>
       <SwipeRow actions={open ? [] : [
         { label: 'Skip', icon: <Icon name="skip" size={20} />, act: skipNow },
         ...(canMove ? [{ label: 'Move', icon: <Icon name="move" size={20} />,
@@ -56,19 +58,19 @@ export default function DueRow({
           icon: <Icon name="check" size={20} />, act: () => setMode('record') }] : []),
       ]}>
       <div className="flex min-h-[52px] items-center gap-3">
-        <span className={`grid size-10 flex-none place-items-center rounded-xl ${overdue
-          ? 'bg-destructive/10 text-destructive' : 'bg-attention-soft text-attention-soft-foreground'}`}>
-          <Icon name={icon ?? 'autodebit'} size={20} />
-        </span>
+        {/* The payment's own chip, as under Every regular payment; whether it is late is said in the line under its
+            name, with an icon and the word (ux-audit O5). */}
+        <Chip icon={icon ?? 'autodebit'} tint={tint} size={40} />
         <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-          <span className="text-[15px] font-medium [overflow-wrap:anywhere]">{name}</span>
-          <span className={`text-xs [overflow-wrap:anywhere] ${overdue ? 'text-destructive' : 'text-muted-foreground'}`}>
+          <span className="text-body font-medium [overflow-wrap:anywhere]">{name}</span>
+          <span className={`text-footnote [overflow-wrap:anywhere] ${overdue ? 'font-semibold text-destructive' : 'text-muted-foreground'}`}>
+            {overdue && <Icon name="warning" size={13} className="mr-1 align-[-2px]" />}
             {whenLine(income, on, daysAway, today)}
             {movedFrom && ` · moved from ${friendlyDay(movedFrom, today)}`}
             {category && ` · ${category}`}
           </span>
         </span>
-        <span className={`flex-none text-[15px] font-semibold tabular-nums ${income ? 'text-money-in' : ''}`}>
+        <span className={`flex-none text-body font-semibold tabular-nums ${income ? 'text-money-in' : ''}`}>
           {income ? '+' : ''}{format(amount)}
         </span>
       </div>

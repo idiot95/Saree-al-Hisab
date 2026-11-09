@@ -1,43 +1,17 @@
-import { ViewTransition } from 'react';
+import Landed from './Landed';
 
-/* Every screen is wrapped in this, and it is what makes navigation legible.
+/* Every screen is wrapped in this. It used to be a React <ViewTransition> that slid screens in and out by
+   direction; that animation ran from the moment the router committed — usually before the content had streamed —
+   and React held the content back until it ended, which was most of "the app feels slow" (perf-findings.md §4).
 
-   The complaint it answers was "I cannot tell where I am". Half of that was
-   the tab bar lighting nothing on seven screens, fixed in TabBar. The other
-   half is that every route change was an instant swap: forward and back looked
-   identical, so nothing told you whether you had gone deeper into the app or
-   come back out of it.
-
-   Horizontal direction is the oldest convention there is for this — a page
-   turns left to go forward and right to come back — and it is strong enough
-   that violating it reads as a bug. So a link that goes deeper is tagged
-   `nav-forward` and slides the old screen out to the left; a link that comes
-   back is tagged `nav-back` and slides it right.
-
-   Moving between tabs is neither of those — it is sideways, at the same
-   depth — so a slide would be a lie about the shape of the app. Those get a
-   fade-through with a slight lift instead, which reads as "same level, new
-   place". Tabs slide a short way towards the tab chosen, so the bar and the
-   motion agree about where you went. Each motion means one thing.
-
-   `default: 'none'` matters. Without it, every untyped transition — the
-   browser's own back button, a router.refresh(), a Suspense boundary
-   resolving — would fire a directional slide in whichever direction was last
-   used, which is worse than no animation because it is confidently wrong. */
-
-const DIRECTIONAL = {
-  'nav-forward': 'nav-forward',
-  'nav-back': 'nav-back',
-  'nav-lateral': 'nav-lateral',
-  'nav-tab-left': 'nav-tab-left',
-  'nav-tab-right': 'nav-tab-right',
-  default: 'none',
-} as const;
-
+   The direction is still told, but on the tap: PendingSkeleton draws the destination's frame moving the way the
+   navigation goes (push, pop, sideways between tabs), and this screen takes its place the moment it arrives.
+   What is left here is the signal that it has arrived. */
 export default function Screen({ children }: { children: React.ReactNode }) {
   return (
-    <ViewTransition enter={DIRECTIONAL} exit={DIRECTIONAL} default="none">
+    <>
+      <Landed />
       {children}
-    </ViewTransition>
+    </>
   );
 }

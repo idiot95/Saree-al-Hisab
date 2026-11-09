@@ -1,5 +1,6 @@
 import { categoriesFor, schedulesFor, tabsForEntry, type ScheduleRow } from '@/db/queries';
 import { withHousehold } from '@/db/client';
+import { rowRule, rulePad, ruleSwipe } from '../form-bits';
 import { waysToPay } from '@/db/payment';
 import { format } from '@/lib/money';
 import { daysBetween, describeRule, isFinished, nextUnsettled, outstandingDues, parseRule, ruleOf } from '@/lib/recur';
@@ -8,7 +9,7 @@ import Calendar, { type CalSchedule } from '../schedules/Calendar';
 import DueRow from '../schedules/DueRow';
 import { archiveSchedule } from '../schedules/actions';
 import Swipeable from '../Swipeable';
-import { Chip } from '../Icon';
+import { Chip, Icon } from '../Icon';
 import { Empty, Section } from './parts';
 
 /* Activity › Upcoming: what comes round anyway — rent, fees, an EMI, a salary. What is due in the next fortnight
@@ -58,7 +59,7 @@ export async function loadUpcoming(hh: string, canWrite: boolean, startOpen: boo
       )}
       {dues.length > 0 && (
         <Section title="Due in the next two weeks">
-          <div className="overflow-hidden rounded-[18px] bg-card px-[var(--pad)]">
+          <div className="overflow-hidden rounded-[20px] bg-card shadow-card px-[var(--pad)]">
             {dues.map((d) => {
               const s = byId.get(d.scheduleId)!;
               return (
@@ -66,7 +67,7 @@ export async function loadUpcoming(hh: string, canWrite: boolean, startOpen: boo
                   scheduleId={d.scheduleId} name={s.name} kind={s.kind} dueOn={d.dueOn}
                   on={d.on} movedFrom={d.movedFrom}
                   daysAway={d.daysAway} amount={Number(s.amount ?? 0)} category={s.category}
-                  icon={s.icon} rule={ruleOf(s)?.rule} cal={ruleOf(s)?.cal} today={todayIso} />
+                  icon={s.icon} tint={s.tint} rule={ruleOf(s)?.rule} cal={ruleOf(s)?.cal} today={todayIso} />
               );
             })}
           </div>
@@ -75,12 +76,27 @@ export async function loadUpcoming(hh: string, canWrite: boolean, startOpen: boo
 
       {schedules.length > 0 && (
         <section aria-label="The month" className="flex flex-col gap-1.5">
-          <h2 className="mx-[var(--gutter)] px-0.5 text-[13px] font-semibold text-muted-foreground">The month</h2>
+          <h2 className="mx-[var(--gutter)] px-0.5 text-subhead font-semibold text-muted-foreground">The month</h2>
           <Calendar schedules={forCalendar} canWrite={canWrite} today={todayIso} />
         </section>
       )}
 
-      {live.length > 0 && (
+      {/* When some are due soon they are already above, so the full list opens folded to one line rather than
+          showing the same payments twice (ux-audit O5); with nothing due it is the screen's list, open. */}
+      {live.length > 0 && dues.length > 0 && (
+        <section aria-label="Every regular payment" className="mx-[var(--gutter)]">
+          <details className="group">
+            <summary className="press flex min-h-14 cursor-pointer list-none items-center gap-3 rounded-[20px] bg-card shadow-card px-[var(--pad)] text-body font-medium text-muted-foreground group-open:mb-1.5 group-open:rounded-none group-open:bg-transparent group-open:px-0.5 [&::-webkit-details-marker]:hidden">
+              {/* In a chip's 40px slot, so the words sit on the list's text column. */}
+              <span className="grid size-10 flex-none place-items-center group-open:hidden"><Icon name="event_repeat" size={22} /></span>
+              <span className="flex-1 group-open:text-subhead group-open:font-semibold">Every regular payment · {live.length}</span>
+              <Icon name="expand_more" size={20} className="transition-transform duration-(--dur-2) group-open:rotate-180" />
+            </summary>
+            <Rows schedules={live} canWrite={canWrite} today={today} todayIso={todayIso} />
+          </details>
+        </section>
+      )}
+      {live.length > 0 && dues.length === 0 && (
         <Section title="Every regular payment">
           <Rows schedules={live} canWrite={canWrite} today={today} todayIso={todayIso} />
         </Section>
@@ -98,7 +114,7 @@ export async function loadUpcoming(hh: string, canWrite: boolean, startOpen: boo
       )}
 
       {schedules.length > 0 && (
-        <p className="mx-[var(--gutter)] -mt-2 px-0.5 text-xs leading-relaxed text-muted-foreground">
+        <p className="mx-[var(--gutter)] -mt-2 px-0.5 text-footnote leading-relaxed text-muted-foreground">
           Nothing is recorded until you say so. A regular payment is a reminder with the details already filled in,
           not a standing instruction that writes entries behind your back.
         </p>
@@ -112,7 +128,7 @@ function Rows({ schedules, canWrite, today, todayIso, done = false }: {
   schedules: ScheduleRow[]; canWrite: boolean; today: Date; todayIso: string; done?: boolean;
 }) {
   return (
-    <div className={`overflow-hidden rounded-[18px] bg-card px-[var(--pad)] ${done ? 'opacity-75' : ''}`}>
+    <div className={`overflow-hidden rounded-[20px] bg-card shadow-card px-[var(--pad)] ${done ? 'opacity-75' : ''}`}>
       {schedules.map((s, i) => {
         const r = ruleOf(s);
         const next = done ? null : nextUnsettled(s, s.settled, today);
@@ -123,21 +139,21 @@ function Rows({ schedules, canWrite, today, todayIso, done = false }: {
             { label: done ? 'Remove' : 'Stop', icon: 'stop', tone: 'danger', act: archiveSchedule,
               fields: { scheduleId: s.id }, done: `${s.name} ${done ? 'removed' : 'stopped'}.` },
           ] : []}>
-            <div className={`flex min-h-[72px] items-center gap-3 py-2.5 ${i === schedules.length - 1 ? '' : 'border-b border-border'}`}>
-              <Chip icon={s.icon ?? 'autodebit'} tint={s.tint} size={40} radius={12} />
+            <div className={`relative flex min-h-[72px] items-center gap-3 py-2.5 ${i === schedules.length - 1 ? '' : `${rowRule} ${canWrite ? ruleSwipe : rulePad}`}`}>
+              <Chip icon={s.icon ?? 'autodebit'} tint={s.tint} size={40} />
               <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-                <span className="text-[15px] font-medium [overflow-wrap:anywhere]">{s.name}</span>
-                <span className="text-xs text-muted-foreground [overflow-wrap:anywhere]">
+                <span className="text-body font-medium [overflow-wrap:anywhere]">{s.name}</span>
+                <span className="text-footnote text-muted-foreground [overflow-wrap:anywhere]">
                   {r ? cap(describeRule(r.rule, r.cal)) : 'No schedule'}
                   {s.category ? ` · ${s.category}` : ''}
                 </span>
                 {r && !done && (
-                  <span className={`text-xs ${next ? 'font-semibold' : ''} ${late ? 'text-destructive' : next ? 'text-foreground' : 'text-muted-foreground'}`}>
+                  <span className={`text-footnote ${next ? 'font-semibold' : ''} ${late ? 'text-destructive' : next ? 'text-foreground' : 'text-muted-foreground'}`}>
                     {next ? nextIn(todayIso, next) : 'Nothing more to come'}
                   </span>
                 )}
               </span>
-              <span className={`flex-none text-[15px] font-semibold tabular-nums ${s.kind === 'income' ? 'text-money-in' : ''}`}>
+              <span className={`flex-none text-body font-semibold tabular-nums ${s.kind === 'income' ? 'text-money-in' : ''}`}>
                 {s.kind === 'income' ? '+' : ''}{format(Number(s.amount ?? 0))}
               </span>
             </div>

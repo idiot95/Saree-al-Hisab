@@ -7,6 +7,7 @@ import { Field } from '../../worth/fields';
 import { keepFields } from '../../form-hooks';
 import { Icon } from '../../Icon';
 import { haptic } from '../../haptics';
+import { chip, chipOff, chipOn, chipRow } from '../../form-bits';
 import BottomDrawer from '../../BottomDrawer';
 import PayPicker from '../../PayPicker';
 import { DateChips } from '../../DatePick';
@@ -50,7 +51,7 @@ export default function MoneyBack({ tabId, ways, today, owing }: {
     <>
       <button type="button" disabled={owing.length === 0}
         onClick={() => { haptic('select'); setWho(0); setTicked(new Set()); setOpen(true); }}
-        className="press flex min-h-[54px] flex-1 items-center justify-center gap-2 rounded-2xl border border-border bg-card text-base font-semibold text-foreground disabled:opacity-50">
+        className="press flex min-h-[54px] flex-1 items-center justify-center gap-2 rounded-2xl border border-border bg-card text-body font-semibold text-foreground disabled:opacity-50">
         <Icon name="receivable" size={18} />
         Money back
       </button>
@@ -65,12 +66,12 @@ export default function MoneyBack({ tabId, ways, today, owing }: {
 
             {owing.length > 1 && (
               <div role="group" aria-label="From" className="flex flex-col gap-2">
-                <span className="text-sm font-medium text-muted-foreground">From</span>
-                <div className="flex flex-wrap gap-2">
+                <span className="text-subhead font-medium text-muted-foreground">From</span>
+                <div className={chipRow}>
                   {owing.map((o, i) => (
                     <button key={o.id ?? 'tab'} type="button" aria-pressed={i === who}
                       onClick={() => { haptic('select'); setWho(i); setTicked(new Set()); }}
-                      className="press flex min-h-11 items-center gap-1.5 rounded-full border border-border bg-card px-3.5 text-sm font-semibold aria-pressed:border-primary aria-pressed:bg-primary aria-pressed:text-primary-foreground">
+                      className={`${chip} ${i === who ? chipOn : chipOff}`}>
                       {o.name}
                       <span className="font-medium opacity-90">{format(o.owed)}</span>
                     </button>
@@ -81,11 +82,11 @@ export default function MoneyBack({ tabId, ways, today, owing }: {
 
             {from.claims.length > 1 && (
               <fieldset className="flex flex-col gap-0.5">
-                <legend className="mb-1.5 text-sm font-medium text-muted-foreground">
+                <legend className="mb-1.5 text-subhead font-medium text-muted-foreground">
                   For which costs — none ticked means all of them
                 </legend>
                 {from.claims.map((c) => (
-                  <label key={c.id} className="flex min-h-11 cursor-pointer items-center gap-2.5 text-sm">
+                  <label key={c.id} className="flex min-h-11 cursor-pointer items-center gap-2.5 text-body">
                     <input type="checkbox" name="claimId" value={c.id} checked={ticked.has(c.id)}
                       onChange={(e) => setTicked((s) => {
                         const n = new Set(s); if (e.target.checked) n.add(c.id); else n.delete(c.id); return n;
@@ -103,17 +104,17 @@ export default function MoneyBack({ tabId, ways, today, owing }: {
             <Field label={`Amount — blank is all ${format(target)}`} name="amount"
               inputMode="decimal" placeholder={format(target)} />
             <div role="group" className="flex flex-col gap-1.5">
-              <span className="text-sm font-medium text-muted-foreground">Where it arrived</span>
+              <span className="text-subhead font-medium text-muted-foreground">Where it arrived</span>
               <PayPicker name="paidWith" ways={ways} defaultValue={defaultRef(ways)} />
             </div>
             <DateChips value={on} onChange={setOn} today={today} dir="past" label="When did it come back" />
 
             {state && !state.ok && <Problem>{state.error}</Problem>}
-            <Button type="submit" disabled={pending} className="h-12 rounded-xl text-base font-semibold">
+            <Button type="submit" disabled={pending} className="h-12 rounded-xl text-headline font-semibold">
               <Icon name="check" size={18} />
               {pending ? 'Recording…' : 'Record what came back'}
             </Button>
-            <p className="text-xs leading-snug text-muted-foreground">
+            <p className="text-footnote leading-snug text-muted-foreground">
               {chosen.length ? 'Goes against the costs ticked, oldest first.' : 'Goes against the oldest costs first.'}
               {' '}Recorded as money coming back, not income — the spending stays in the month it happened.
             </p>

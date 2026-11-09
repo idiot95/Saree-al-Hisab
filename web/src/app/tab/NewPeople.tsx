@@ -1,10 +1,12 @@
 'use client';
 
+import { cn } from '@/lib/utils';
 import { useState, useSyncExternalStore } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Icon } from '../Icon';
 import { haptic } from '../haptics';
+import { chip, chipOn, chipRow } from '../form-bits';
 
 /* People who are not in the khata yet, named right here on the form rather
    than on a detour through /people. Each one becomes a chip and a pair of
@@ -76,16 +78,16 @@ export default function NewPeople() {
   return (
     <div className="flex flex-col gap-2">
       {people.length > 0 && (
-        <div className="flex flex-wrap gap-2">
+        <div className={chipRow}>
           {people.map((p) => (
             <span key={p.name.toLowerCase()}
-              className="flex min-h-11 items-center gap-1 rounded-full bg-primary pl-3.5 pr-0.5 text-sm font-semibold text-primary-foreground">
+              className={cn(chip, chipOn, 'cursor-default gap-1 pr-0.5')}>
               <input type="hidden" name="newName" value={p.name} />
               <input type="hidden" name="newPhone" value={p.phone ?? ''} />
               {p.name}
               <button type="button" aria-label={`Remove ${p.name}`}
                 onClick={() => { haptic('select'); setPeople((h) => h.filter((q) => q !== p)); }}
-                className="grid size-10 place-items-center rounded-full">
+                className="relative grid size-7 place-items-center rounded-full after:absolute after:-inset-2 after:content-[''] in-data-[platform=android]:after:-inset-2.5">
                 <Icon name="close" size={16} />
               </button>
             </span>
@@ -113,7 +115,7 @@ export default function NewPeople() {
           </Button>
         )}
       </div>
-      {note && <p role="status" className="text-xs leading-snug text-muted-foreground">{note}</p>}
+      {note && <p role="status" className="text-footnote leading-snug text-muted-foreground">{note}</p>}
     </div>
   );
 }

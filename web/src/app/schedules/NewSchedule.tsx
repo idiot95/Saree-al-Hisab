@@ -1,5 +1,6 @@
 'use client';
 
+import { cn } from '@/lib/utils';
 import { useActionState, useState } from 'react';
 import { Field, ErrorNote } from '../auth-ui';
 import { buildRule, describeRule, friendlyDay, maxDay, nextDates, type Calendar } from '@/lib/recur';
@@ -7,14 +8,14 @@ import { HIJRI_MONTHS_SHORT, formatHijri, toHijri } from '@/lib/hijri';
 import { DateChips, DayOfMonth, MonthOfYear, Segmented } from '../DatePick';
 import { createSchedule } from './actions';
 import { useFocusSoon, useKeepOnRefusal, useOnSuccess } from '../form-hooks';
-import PayPicker, { CHIP, CHIP_TEXT } from '../PayPicker';
+import PayPicker from '../PayPicker';
 import CategoryPick from '../CategoryPick';
 import type { Category } from '../CategoryFinder';
 import { defaultRef, type Way } from '@/lib/pay';
 import { fits } from '@/lib/scope';
 import { choice } from '../choice';
 import { Icon } from '../Icon';
-import { AddRow, Said, fieldLabel, formCard, ghost, solid } from '../form-bits';
+import { AddRow, Said, chip, chipRow, fieldLabel, formCard, ghost, solid } from '../form-bits';
 
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -105,7 +106,7 @@ function ScheduleForm({ ways, categories, tabs, onClose }: {
           const on = kind === id;
           return (
             <label key={id}
-              className={`relative flex min-h-11 flex-1 cursor-pointer items-center justify-center rounded-full text-sm font-semibold ${on ? 'bg-card text-foreground shadow-xs' : 'text-muted-foreground'}`}>
+              className={`relative flex min-h-11 flex-1 cursor-pointer items-center justify-center rounded-full text-body font-semibold ${on ? 'bg-card text-foreground shadow-xs' : 'text-muted-foreground'}`}>
               <input type="radio" name="kind" value={id} checked={on} onChange={() => setKind(id)}
                 className="absolute size-px opacity-0" />
               {label}
@@ -140,10 +141,10 @@ function ScheduleForm({ ways, categories, tabs, onClose }: {
         <p className="mt-0.5 flex items-start gap-2 rounded-xl bg-accent px-3.5 py-3 text-accent-foreground">
           <Icon name="event_repeat" size={18} className="mt-px" />
           <span className="flex min-w-0 flex-col gap-0.5">
-            <span className="text-[15px] font-semibold leading-snug">
+            <span className="text-body font-semibold leading-snug">
               {sentence.charAt(0).toUpperCase()}{sentence.slice(1)}
             </span>
-            <span className="text-[13px] leading-snug">
+            <span className="text-subhead leading-snug">
               {first ? `First on ${friendlyDay(first, iso)}` : 'No date ahead'}
               {cal === 'hijri' && first && ` · ${formatHijri(toHijri(civil(first)), true)}`}
               {cal === 'hijri'
@@ -157,10 +158,10 @@ function ScheduleForm({ ways, categories, tabs, onClose }: {
       <div className="flex flex-col gap-2">
         {!endsOpen ? (
           <div className={row}>
-            <span className="flex-1 text-sm font-semibold">{endsLine}</span>
+            <span className="flex-1 text-body font-semibold">{endsLine}</span>
             <input type="hidden" name="ends" value="never" />
             <button type="button" onClick={() => setEndsOpen(true)}
-              className="press flex min-h-11 items-center gap-1 rounded-full bg-muted px-3.5 text-sm font-semibold text-primary">
+              className={cn(chip, 'gap-1 border-muted bg-muted text-primary')}>
               <Icon name="edit" size={16} />Change
             </button>
           </div>
@@ -183,7 +184,7 @@ function ScheduleForm({ ways, categories, tabs, onClose }: {
                 <button type="button" aria-label="One more" onClick={() => setTimes(Math.min(600, times + 1))} className={stepBtn}>
                   <Icon name="add" size={20} />
                 </button>
-                <span className="flex-1 text-sm leading-snug text-muted-foreground">
+                <span className="flex-1 text-subhead leading-snug text-muted-foreground">
                   {times === 1 ? 'once' : `${times} times`}{last ? `, the last on ${friendlyDay(last, iso)}` : ''}
                 </span>
               </div>
@@ -194,7 +195,7 @@ function ScheduleForm({ ways, categories, tabs, onClose }: {
                   quick={later.map(([n, text]) => ({ iso: addMonths(iso, n), label: text }))}
                   onChange={setUntilDate} />
                 <input type="hidden" name="untilDate" value={untilDate || addMonths(iso, 12)} />
-                <span className="text-sm leading-snug text-muted-foreground">
+                <span className="text-subhead leading-snug text-muted-foreground">
                   {last ? `The last is ${friendlyDay(last, iso)}.` : 'None before then.'}
                 </span>
               </>
@@ -217,15 +218,16 @@ function ScheduleForm({ ways, categories, tabs, onClose }: {
         <div role="group" aria-label="On a tab (optional)" className="flex flex-col gap-1.5">
           <span className={fieldLabel}>On a tab (optional)</span>
           <input type="hidden" name="bookId" value={bookId ?? ''} />
-          <div className="flex flex-wrap gap-2">
+          {/* The same chip as Add's "Which tab" (MoreFields), so one choice looks one way in both forms. */}
+          <div className={chipRow}>
             {tabs.map((t) => {
               const on = t.id === bookId;
               return (
                 <button key={t.id} type="button" aria-pressed={on}
                   onClick={() => setBookId(on ? null : t.id)}
-                  style={{ ...CHIP, ...choice(on) }}>
+                  style={choice(on)} className={cn(chip, 'pl-2.5')}>
                   <Icon name="tab" size={16} />
-                  <span style={CHIP_TEXT}>{t.name}</span>
+                  <span className="truncate">{t.name}</span>
                 </button>
               );
             })}
@@ -250,8 +252,8 @@ function ScheduleForm({ ways, categories, tabs, onClose }: {
                 className={`flex min-h-14 flex-1 items-center gap-2 rounded-xl border px-3 py-2 text-left ${counts === v ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-card text-foreground'}`}>
                 <Icon name={icon} size={18} />
                 <span className="flex min-w-0 flex-col gap-px">
-                  <span className="text-sm font-semibold">{label}</span>
-                  <span className="text-xs leading-snug opacity-80">{what}</span>
+                  <span className="text-body font-semibold">{label}</span>
+                  <span className="text-footnote leading-snug opacity-80">{what}</span>
                 </span>
               </button>
             ))}

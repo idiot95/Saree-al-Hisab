@@ -56,11 +56,36 @@ capture_token, sms_draft). Where an older section disagrees, this wins.
   the active tab, bars); plum soft `#F0E4EE` (chosen chips, the Android tab pill); hero `#3A1D36` (the net-worth
   card); rose gold `#D9A38C` with dark ink for **Add only**, `#9A5B45` when drawn on paper; attention a blush ground
   `#FBEDE6` with `#8A4A2E` ink; money in `#157F3C` with a +, money out plain ink; danger `#B91C1C`. Dark: ground
-  `#130E12`, card `#1D161C`, primary `#D9A9D0`, hero `#2D1729`, rose gold `#E3B5A0`. Classes: `bg-background`,
+  `#130E12`, card `#1D161C`, primary `#D9A9D0`, hero `#3F2139` (lifted in v3.1 P3 to stand off the ground at 1.35:1), rose gold `#E3B5A0`. Classes: `bg-background`,
   `bg-card`, `text-muted-foreground`, `bg-primary`, `bg-accent`, `bg-attention` (Add), `bg-attention-soft`,
   `text-money-in`, `bg-hero`. Dark is written twice (system setting, and `data-theme="dark"`); `test:contrast`
-  checks the two say the same, that the stylesheet carries exactly the chosen palette, and every pair (412 checks).
+  checks the two say the same, that the stylesheet carries exactly the chosen palette, and every pair, and that the dark hero stands off its ground (415 checks).
   The manifest's `theme_color` is the hero plum, its `background_color` the ground.
+- **Surfaces** (v3.1 P3, ux-audit O2/O7): a card is `rounded-[20px] bg-card shadow-card` with 16px inside (`p-4` or
+  `--pad`); a screen's hero card (Left to spend, Owed to you, net worth) is `rounded-[22px]`. `shadow-card` is
+  `--card-shadow` in ql.css — a hairline and a pixel of shadow in light, a faint light edge in dark — because white on
+  the paper ground is 1.08:1. A bottom drawer has a `border-t`. Every `Chip` (category, account, rail, tab folder) is
+  one shape, a rounded square whose corner is 0.3 of its side (12px at 40); people keep round initials (40 in rows,
+  24 inside a chip). **One rule on every list** (v3.1 P4, p3-review M1): a list's hairline runs from where the row's
+  words start to the card's right edge, iOS-style — `form-bits` `rowRule` on a relative row, which reads `--rule-x`
+  (where the words start, from the row's left edge; default 52px, a 40px chip and its gap) and `--rule-r` (how far
+  the card's edge is past the row's: `rulePad` for a row on the card's padding, `ruleSwipe` inside a swipe row, whose
+  grip column is 28px more); `liRule` is the same for an `<li>` that pads itself (`last:` drops it). Household's
+  `Card` draws the same line from the card. No `border-b` between rows anywhere; the loading frames draw the same
+  rule from the same variables. Disabled filled buttons are `bg-muted text-muted-foreground` (button.tsx's
+  default variant, `solid`, Add's Save), never a faded plum.
+- **One chip** (v3.1 P3, ux-audit C1; `form-bits.tsx`): `chip` is drawn 32px (`h-8`, `px-3`, `text-subhead`,
+  `min-w-12`, `rounded-full`, 1px border) and takes the tap over 44px (48 on Android) through an invisible absolute
+  `::after`; every chip is `font-medium`, lit or not (a bolder lit chip would widen and rewrap its row); `chipOff`
+  (card, `border-input`), `chipOn` (primary), `chipQuiet`/`chipQuietOn` (Activity's kind filter: no ground until chosen, then plum soft), `chipRow`
+  (`gap-x-1.5 gap-y-3`, so wrapped rows' targets meet but never overlap), `countBadge` (18px; a chip that carries a
+  count only sometimes — To review, From SMS — takes `badgeRoom` when it has none, `px-[22px]`, so it is one width
+  either way and its loading frame's ghost badge matches it), `statusPill` (24px,
+  every read-only status: Owner, In use, Possibly the same thing, Retired, Exact match), `headerPill` (36px drawn,
+  New tab), `monthPill`/`monthStep` (MonthPill and its frame, at a chip's height). Combine with `cn()` when adding
+  classes that compete. Colours change over `--dur-2`. `PageHead`'s `right` (a month pill, New tab, a menu) sits on
+  the title's line, centred on it; Activity's header does the same. The sweep measures a target as the element's
+  box joined with its `::after`.
 - **No hand-written CSS.** Tailwind utilities and shadcn components. `ql.css` token values may change; `globals.css`
   only shrinks (Task 30 took out `.cta`, `.t`, `.n`, `.amt`, its own `.sr-only`, the gradients and the unused
   aliases, and no class name in `src` still asks for them: `tabular-nums` where a figure wants it). `tokens.css` is generated and now read only for the category tints (`--cat-*`) and the legacy contrast
@@ -72,23 +97,38 @@ capture_token, sms_draft). Where an older section disagrees, this wins.
 - **Figures: `<Figure minor currency? sign? paise? />`** (`src/app/Figure.tsx`) is the only way a changing amount
   is drawn: NumberFlow rolls the digits when the value changes after first paint (never on load), the text is exactly
   `format()`'s, reduced motion is respected, and a screen reader gets the whole figure from its label (`role="img"`).
-  Rolling only where someone watches a figure change (Add's amount and Save label, Left to spend, net worth, a
-  holding, Owed to you, a balance an edit moves); lists stay static.
+  **Rolling only on read surfaces, after a change the person caused elsewhere; never while typing** (the owner, v3.1:
+  "the digits rotating should be on the main home screen, not when I'm making any data entries"): Home (Left to spend
+  and the month's figures), Wealth's net worth and holdings, Loans' "Owed to you", a balance an edit moves. Add's
+  amount, Save label and every figure on a form (BudgetForm's total and rows) are static `format()` text, and lists
+  stay static (SMS draft rows included). `grep -n "<Figure" src/app/add src/app/budget/BudgetForm.tsx` finds
+  nothing; `scripts/figure.check.mjs` watches Wealth's headline roll under the CSP.
 - **Platform: `data-platform="ios|android|other"` on `<html>`**, from the User-Agent and `Sec-CH-UA-Platform` on the
   server (`lib/platform.ts`), so the first paint is right. Variants are `in-data-[platform=android]:…` — the
   attribute is on `<html>` and the group class on `<body>`, so `group-data-[…]` never matches. Tap targets are 44px,
   Android icon buttons 48px (`in-data-[platform=android]:min-h-12 min-w-12`); fields are at least 16px.
-- **Type: Inter only.** Instrument Serif is gone (spec §3.2): every title, pushed or tab, is Inter bold with
-  `tracking-tight` (`PageHead` and auth-ui at 30/34px, the tabs at 32px). There is no `font-display` utility.
+- **Type: Inter only, on one scale** (v3.1 P3, ux-audit O6). The sizes are role tokens in ql.css's `@theme static`
+  with their line heights: `text-caption` 11, `text-footnote` 12, `text-subhead` 13, `text-body` 15 (the body's own
+  size), `text-headline` 17, `text-title` 20, `text-title-2` 28, `text-large-title` 34 (every screen's title, pushed
+  or tab, and a pushed screen's hero figure), `text-display` 40 (a tab's hero figure), `text-amount` 52 (Add's amount
+  only, stepping to `text-amount-2` 42, then 34 and 28). Nothing is under 11px, no arbitrary `text-[Npx]` and no
+  Tailwind `text-xs/sm/lg/xl` remain; inline styles read `var(--text-*)`. Fields stay 16px (`text-base`, `--field`).
+  `cn()`'s tailwind-merge knows the names as font sizes. Titles are Inter bold with `tracking-tight`; Instrument Serif
+  is gone (spec §3.2). There is no `font-display` utility. **Inter is self-hosted as one file**
+  (`src/app/fonts/inter.woff2`, ~59KB, `next/font/local`, preloaded; v3.1 P5): Google's own Inter cut to its `latin`
+  subset plus ₹, → and every other currency sign `lib/money.ts` writes, by `npm run fonts:inter`
+  (`scripts/inter-font.mjs`). ₹ is outside Google's `latin`, so it used to draw in the fallback face and then pull the
+  83KB latin-ext file late and reflow every figure. A new character the screens draw goes into the script's `EXTRA`.
 
 **Navigation.**
 - **Five slots, Add among them**: Home · Activity · **+** · Loans · Wealth (`TABS` in tabs.ts). Add is the middle
-  slot, a 52px rose-gold tile (`bg-attention`) into `/add` — still the drawer over the current screen — so nothing
+  slot, a rose-gold tile (`bg-attention`, 48px in iOS's bar and 52 in Android's, with a `ring-attention-ink/30` edge) into `/add` — still the drawer over the current screen — so nothing
   floats over the bar and `ADD_FAB` is gone. Loans has its own tab because the owner uses it daily; Home carries
   one "Owed to you" line into it (`owedToYou()` in lib/worth.ts). Plan (`/budget`, `/trends`), Categories and the
   household belong to Home (`OWNED_BY` lights it) and open as pushed screens with a back arrow; `/accounts` is
   pushed from Wealth (`/worth`). The active tab is a filled icon with a `text-primary` label on iOS, and a 56x30
-  `bg-accent` pill on Android. Every page leaves a breathing gap above the bar.
+  `bg-accent` pill on Android. The bar is `--tab-bar` tall above the safe area — 64px on iOS, 80 on Android (ql.css,
+  by `data-platform`; v3.1 P3) — and `TAB_BAR_SPACE` and the snack follow it. Every page leaves a breathing gap above the bar.
 - **One name per thing**, the same on the tab, the switch, the page and the browser title: **Home**, **Activity**
   (was Entries), **Loans** (was Loan centre, then People), **Wealth** (was Money, before that Accounts; "Net worth"
   is the figure, "Pots" are foreign-currency holdings, "Gold & silver" metal holdings), **Plan** (Budget and Trends
@@ -102,7 +142,8 @@ capture_token, sms_draft). Where an older section disagrees, this wins.
   click) and every `router.replace` / `history.replaceState` calls `replacing(url)` first. The mark applies only to
   the address it names, once. The month pill and a search push, so Back walks them. `scripts/back.test.mjs` proves
   the trail and fails if any replacing navigation in `src` is unmarked.
-- **A tapped tab lights at once**, before its screen arrives, so the bar agrees with the loading frame.
+- **A tapped tab lights as the finger lands** (pointerdown; a touch the browser takes back puts it back), before its
+  screen arrives, so the bar agrees with the frame drawn for it.
 
 **The screens.**
 - **Activity is one screen** (`/entries`, Task 24): under the title a wrapping row of link chips (`ActivityChips.tsx`;
@@ -112,14 +153,24 @@ capture_token, sms_draft). Where an older section disagrees, this wins.
   bills + duplicates and From SMS's is open drafts, so the two add up to Home's tile. The month pill and search
   belong to All (`?m=`, `?q=`, `?c=` as before); Upcoming keeps its own calendar month; review and SMS are not
   month-filtered. `/inbox` and `/schedules` are redirects that keep every param (`/inbox?dismissed=` goes to
-  `?f=sms`); `/inbox/sms/[id]` stays the message screen and returns to `/entries?f=sms`. `purgeSmsBodies`, the
-  badge counts and the chip's reads run in one transaction on every render. Chips replace the address, and the
+  `?f=sms`); `/inbox/sms/[id]` stays the message screen and returns to `/entries?f=sms`. The badge counts and the chip's
+  reads run in one transaction on every render; `purgeSmsBodies` runs on From SMS only, after the response. Chips replace the address, and the
   Back trail replaces its last `/entries` step to match. An entry opened from a chip carries `from=` (duplicates →
   `?f=review`, the calendar drawer → `?f=upcoming`), and Back, Save and Delete return there: `entries/back.ts`
   `safeBack` is the one exact list of where they may go (`scripts/activity-taps.mjs` drives chips, redirects
   and both returns against a running build). `Segments`/`ActivityNav` are gone. A card holding swipe rows keeps
   `px-[var(--pad)]`: SwipeRow's negative margin is `--pad`, and any other padding makes the card scrollable, so
-  opening a row scrolls it and the scroll closes the row again.
+  opening a row scrolls it and the scroll closes the row again. All's kind filter (Every kind · Spending · Income ·
+  Moves · Shared) is the same chip at its quiet weight, set edge to edge on the gutter, so the screen has one chip
+  language (v3.1 P3; the kinds read *All kinds · Spending · Income · Moves · Shared* since P4). Below 390px wide the
+  long words are short — Review, All (kinds), Spend — and From SMS is "SMS" below 414 (with both counts' room the four
+  chips need 372px in full), so each row is one line at every width: two spans swapped by `max-[389px]:` /
+  `max-[413px]:` (form-bits `Words` and its `wide`, `ACTIVITY_CHIPS`, `KIND_SHORT`). A short word is always inside its
+  long one and the chip's name is the long one, so the name contains what is on screen (WCAG 2.5.3); the Activity
+  frame draws the same words; search says
+  "Search this month". On Upcoming, when something is due in the next two weeks, *Every regular payment* opens
+  folded to one line ("Every regular payment · n", a `<details>`), since the dues above already list them; a due row
+  wears the payment's own category chip and says late with an icon and the word.
 - **To review is decisions only** — card bills, possible duplicates and open
   SMS drafts. Home's tile and Activity's badge count exactly those three
   (`inboxCount` → `reviewCount`). What is merely due lives under Upcoming.
@@ -127,7 +178,9 @@ capture_token, sms_draft). Where an older section disagrees, this wins.
   current screen (`@modal/(.)add`); the type/scan/upload fan-out was removed.
   The camera in the drawer's header appears only when a scanning key is set.
 - **One selected state**: `choice.ts` `on()` is the primary plum for every chosen chip or
-  tile; a category's colour stays on its icon, never on a selection or a bar.
+  tile (Add's category tiles, day chips, tab chips and "was this your spending" too, since v3.1); a category's colour
+  stays on its icon, never on a selection or a bar. The one documented exception is Add's kind switch, a segmented
+  control (raised white on the grey track), which is a radio group with arrow keys (`role=radiogroup`, roving tabindex).
 - **Money's direction**: arriving is green with a +; leaving is plain ink.
   Red means over budget (with an icon and the word).
 - **Card bills are derived, not marked.** Nothing sets `card_cycle.status` to
@@ -135,7 +188,7 @@ capture_token, sms_draft). Where an older section disagrees, this wins.
   after newer cycles — payments clear the oldest bills first, and a card in
   credit owes no bill. `billsDue` and `inboxCount` read it. Four invariants.
 - **Net worth has one definition**, `lib/worth.ts` `netWorth()`, fed by one read,
-  `db/worth.ts` `worthInput()` (rates first, then accounts, owed, members, holdings),
+  `db/worth.ts` `worthInput()` (accounts, owed, members, holdings, at the last stored rates; Wealth also asks which are due),
   used by Wealth and Home's dark net-worth row alike. (Home's old figure counted money lent twice.)
 - **Plan is one screen** (`/budget`, Task 25), pushed from Home's month card (back arrow to `/`). Top to bottom:
   the month's figures (`?m=`; Left to spend / Over budget by as a `Figure`, the pace tick and status from
@@ -166,7 +219,7 @@ capture_token, sms_draft). Where an older section disagrees, this wins.
   swipes a row open and shut with real touch events, creates, renames, closes and deletes a throwaway tab, and
   lends to and takes a repayment from a person, watching their figure move each time.
 - **Accounts, Reconcile, Categories, Scan and the Upcoming forms** (Task 27b) follow the same section-and-card
-  structure: a pushed `PageHead`, 13px section labels over one `bg-card` list, chips in circles, names and rails that
+  structure: a pushed `PageHead`, 13px section labels over one `bg-card` list, chips in one rounded-square shape, names and rails that
   wrap instead of truncating. Balances that an edit or a match moves are `Figure`s (the account row, Net worth on
   `/accounts`, "In the books today" on a reconciliation). The in-place forms share `src/app/form-bits.tsx`
   (`fieldLabel`, `selectCls`, `formCard`, `Info`, `AddRow`, and the `solid`/`ghost`/`danger` buttons household's rows re-export)
@@ -192,21 +245,39 @@ capture_token, sms_draft). Where an older section disagrees, this wins.
   `scripts/sweep.mjs` takes `route|tap=<regex>` steps, so a drawer can be swept open; with a dialog open the overlap
   check measures that dialog only, and a bar outside it only where it really paints on top.
 - **Loading frames are the screens' own shapes** (Task 29). Each frame in `Skeleton.tsx` is the finished screen's
-  structure in Tailwind: PageHead's header (or a tab's bold 32px one), the hero card, the section headings and the row
+  structure in Tailwind: PageHead's header (or a tab's bold 34px one), the hero card, the section headings and the row
   heights. Text not known yet is a `Ghost` — a sample of the line in the same type, hidden under a shimmer — so it is
   exactly as tall, and wraps where the real line will; a Figure's ghost is half an em taller (NumberFlow's mask).
+  Words the frame does know are drawn as words (Wealth's legend, the Lend / Got money back buttons' widths, hidden),
+  and a row in a swipe row keeps the grip's 28px, so lines wrap at 360 where the real ones do; where a row's wrap
+  depends on data (a due's name, an account's), the samples are a household's ordinary ones, and no row has a
+  fixed height per width. **Premium, v3.1 P4 (ux-audit C4):** one shimmer for the whole screen, left to right, the
+  band entering wholly off the left edge and leaving wholly past the right, linear over 1.6s. The blocks are still
+  (`GHOST`, `bg-muted`; `data-shim` marks one); the band is `Shimmer` — a see-through copy of the frame over itself,
+  in which only the blocks are painted, masked by one moving gradient as wide as the screen, so it is one sweep on
+  every engine (fix round 1: `bg-fixed` on each block drew as `bg-scroll` on iOS Safari). globals.css keeps only
+  `@keyframes shim` (`mask-position`); `.shim` is gone. On the plum hero the block is the hero's ink at 10% and the
+  band at 18% (`GHOST_HERO`, `data-shim="hero"`, Ghost/S `hero`), never a pale slab. A frame the **server
+  streams** (loading.tsx, Home's and Activity's Suspense fallback; `stillBar` on) fades in from `@starting-style`
+  after `--dur-1` over `--dur-2`, so a load quicker than that shows none; its still bar sits outside it and never
+  fades. The frame a **tap** draws (PendingSkeleton, `stillBar` off) is the tap's answer and keeps P2's motion
+  exactly. Activity's frame draws To review's and From SMS's badges (the real chips keep the room, `badgeRoom`);
+  Wealth's draws its "+" as the real white circle; ghost chips are the real Chip's radius per screen.
   `frameFor(href)` reads Activity's `?f=` too: loading.tsx cannot see a query, so Activity and Home render their own
   `<Suspense>` with the frame as fallback after the sign-in redirects (Home has no loading.tsx: one at the root would
   stand in front of sign-in), and `startPending` keeps the query for PendingSkeleton. Home and Plan draw Left to
   spend, the budgeted month. `node scripts/frames.check.mjs` holds the server (it locks every table but the three the
   layout reads) so the streamed frame is on screen, measures it, lets go and measures the page: the title, the hero's
-  top and height (to the fold) and the first heading agree within 4px at 393×852, and the still bar lights the same
-  slot. Lists show an empty state with an icon and a line (`entries/parts` `Empty`, or `EmptyLine` inside a busier
+  top and height (to the fold) and the first heading agree within 4px at 360×780, 375×667 and 393×852 (all three by
+  default since P4; `--os all --theme all` adds Android and dark), and the still bar lights the same slot. A pushed
+  screen titled by a name (person, tab, account, holding, household) draws a one-line ghost: when the name takes two
+  lines, what is under it is measured from the title's foot and the line says so. Lists show an empty state with an icon and a line (`entries/parts` `Empty`, or `EmptyLine` inside a busier
   screen), and the primary action where there is one. `app/error.tsx` says the screen did not load, that nothing saved
   is lost, and offers Try again (`retry`) and Home — never the error's text; `app/not-found.tsx` is "Nothing here".
 
 **Drawers and calendars.** Every bottom drawer is shadcn's Drawer (vaul). `components/ui/drawer.tsx` gives every
-one the same frame: capped at **86dvh**, 24px corners, and the grip across the top is a real **Close** button
+one the same frame: capped at **86dvh** (the Add drawer and a `BottomDrawer` with `typing` — the category finder —
+are **79dvh on an iPhone**, so vaul lifts them clear of the keyboard; see `/add` below), 24px corners, and the grip across the top is a real **Close** button
 (`DrawerGrip`, 44px / 48 on Android, a drag that ends on it is not a click). `src/app/BottomDrawer.tsx` is the one to
 use (`open`, `onClose`, `label`, `showTitle`, `focus`, `repositionInputs`): it takes focus (the Close grip, or the
 `focus` ref), notes its opener as it is asked to open and gives focus back there on close (a field with `autoFocus`
@@ -215,7 +286,17 @@ and nests (`InDrawer`). Add's pickers (`PickDrawer`), Wealth's drawers, New tab,
 finder all use it; only the Add drawer itself, being the route `@modal/(.)add`, uses `DrawerContent` directly and
 gets the same cap and grip from it. Every month grid is `src/app/HijriCalendar.tsx` (react-day-picker): Monday
 first, the Hijri day under each date, `min`/`max` as disabled days and paging bounds, 44px cells (48 on Android),
-`marksFor` for Upcoming's dots.
+`marksFor` for Upcoming's dots. **It is loaded on open** (v3.1 P5, perf row 9): screens import
+`src/app/LazyCalendar.tsx`, never HijriCalendar itself (its date helpers are in `calendar-dates.ts`), so
+react-day-picker (~23KB gz) is in no route's first load — it was in every one, through the root layout's Add drawer.
+A screen that can open a grid loads it in idle time once mounted (`useCalendarSoon`: Add's When row, `DateChips`,
+Upcoming's month), and an opener spreads `opensCalendar` (the import also starts on pointerdown/focus); the drawer
+draws at once, and until the grid renders its room holds `GridGhost` — the same month drawn still (caption,
+weekdays, day numbers) at the grid's exact height. A failed import is never kept, and the grid's own boundary says
+"The month needs a signal…" with Try again in its room, so the drawer and what was typed stay (P5 fix round 1).
+Upcoming's month renders the grid only while unfolded; `/offline` bundles it and `primeCalendar`s the loader, so the
+worker's snapshot has it with no signal. `scripts/calendar.check.mjs` blocks the chunk to prove the boundary, and
+checks the ghost.
 
 **Form state after an action** (`src/app/form-hooks.tsx`; it was in worth/fields until the final review). React resets a `<form action>` after it settles —
 refusals and successes alike — which put radios and selects back to their defaults while the component's state kept
@@ -244,21 +325,31 @@ is no override. Each cleanup deletes only rows the run made, by id or by a run-u
 - `npm run sweep -- [--routes /,/add] [--engine chromium|webkit|all] [--out dir] [--csp] [--signed-in-links]
   [--note text]`: every route at 360×780, 375×667, 393×852, 412×915 and 430×932 (iPhone and Pixel emulation), light
   and dark: no sideways scroll, no fixed bar over text at rest, no ellipsis unless opted in (`data-truncate-ok`), tap
-  targets 44px (48 for Android icon buttons). A route can carry taps, `/categories|tap=^Add a category$`, so a
-  drawer or form is swept open; with a dialog open, overlap is measured inside it. The default routes include the
+  targets 44px (48 for Android icon buttons). A route can carry taps, `/categories|tap=^Add a category$` (a button;
+  `link=` for a link, so `/|link=^Add an entry$` sweeps the Add drawer over Home), so a drawer or form is swept open; with a dialog open, overlap is measured inside it. The default routes include the
   category add form open. One line per failure; non-zero exit on any. WebKit needs its own Playwright browser, which
   is not installed here — `--engine all` runs what is there and the run says what was not.
-- `node scripts/frames.check.mjs [--routes …] [--size 393x852] [--os ios|android] [--theme …]`: each loading frame
-  against the screen it stands in for (it locks tables on localhost only, so the frame is caught on screen): title,
-  hero and first heading within 4px, and the still tab bar lights the same slot.
+- `node scripts/frames.check.mjs [--routes …] [--size 360x780,375x667,393x852] [--os ios|android|all] [--theme …|all]`
+  (a phase's verification runs `--os all --theme all`, 264 measurements; the default is iOS light only, 66):
+  each loading frame against the screen it stands in for (it locks tables on localhost only, so the frame is caught
+  on screen): title, hero and first heading within 4px, and the still tab bar lights the same slot; the three widths
+  by default.
 - Tap scripts, each one screen's thumb path: `add-taps.mjs` (three taps, claims, a move, a tab, offline, the old
-  queue shape, nested pickers; every drawer has Close and the 86dvh cap; a long Paid with wraps), `plan-taps.mjs`
+  queue shape, nested pickers; every drawer has Close and its cap — 86dvh, the Add drawer 79 on an iPhone; a long Paid
+  with wraps; the keyboard simulated on an iPhone and on Android with the amount and More's fields clear of Save; the
+  amount's type steps and 2340.5 saved as 234050 paise; Add open on the tap with the route held back; the kind
+  switch's arrow keys; a held /add abandoned by Back, a tab or a redirect to sign-in, and a Save made while it is held
+  kept on the phone and landing as one row; `--only 9 --tag before` runs the keyboard checks against an older build), `plan-taps.mjs`
   (the Trends redirect, a two-step budget, Make current, Adjust this month), `loans-taps.mjs` (Money back, swipe
   rows, a throwaway tab, lend and repay), `activity-taps.mjs` (chips, redirects, returns from an entry),
   `sms-taps.mjs` (a forwarded message to a draft, Review, Save, Dismiss and Undo), `accounts-taps.mjs` (a balance
   and a reconciliation Figure, cards after a refusal, a way to pay, a regular payment, categories, an invitation, a
   claim — each success's focus and announcement), `offline-taps.mjs` (the worker, /offline, a queued entry draining
-  into one row), and `drawers.check.mjs` (Wealth's drawers: Close, 86dvh, focus back). Run any as `node
+  into one row), `drawers.check.mjs` (Wealth's drawers: Close, 86dvh, focus back), `nav-taps.mjs` (the tap frame, the dim and the
+  press under real touches) and `prefetch-writes.check.mjs` (no write while prefetched screens load; it switches the
+  local cluster's statement logging on and back off). `nav-timing.mjs` times every navigation (see Motion); `reveal.check.mjs` (P4) watches the arrival: a cold
+/worth through its streamed frame, a tab into Activity, and a Save in the Add drawer that must replay nothing on Home
+(`--shots dir` writes frame strips, a frame every 50ms). Run any as `node
   scripts/<name>.mjs` (most take `--state`, some `--shots dir`; add, plan, loans, activity, sms and offline take
   `--keep`, accounts and drawers.check do not). The sweep's summary line says how many screen-states it measured,
   per engine pass.
@@ -400,12 +491,30 @@ there takes the seventh seat), then a stack of rows that each open a vaul drawer
 (`PickRows.tsx`: *Paid with* → `PayPicker`, *When* → quick days and `MonthGrid`;
 on a Move, *From* and *To* replace the tiles), a collapsed *More* row
 (`MoreFields.tsx`: Clears what is owed, the tab and its two answers, where,
-remarks, bills, shared, scan), the duplicate line, and a sticky **Save · ₹amount
-Category** (its figure a `<Figure paise="auto">` — minor units only when there
-are some, `paise: 'auto'` in `format`/`figureParts`; the echo under the field shows
-only while it is typed; what was kept, a refusal and the duplicate line sit in the
-footer above Save so none scrolls out of view; lifted above the iPhone keyboard by
-`keyboard.ts` through `visualViewport`, while vaul resizes the drawer). The
+remarks, bills, shared, scan), the duplicate line, and a pinned **Save · ₹amount
+Category** (its figure static `format(minor, { paise: 'auto' })` — minor units only when there
+are some; nothing in Add rolls, and the echo line under the field is gone (v3.1); what was kept, a refusal and the
+duplicate line sit in the footer above Save so none scrolls out of view). **The keyboard** (v3.1, ux-audit C2): the
+Add drawer is capped at 79dvh on an iPhone, because vaul's `repositionInputs` lifts a drawer of at most 80% of the
+window to 26px from the top and keeps a taller one's top edge, squeezing it (Save landed on the amount in a Safari
+tab); Android keeps 86dvh, since Chrome resizes the page (`interactive-widget=resizes-content`). In the drawer the
+form scrolls above Save (`data-add-scroll`) instead of under a sticky footer, a focused field is scrolled clear of
+Save again once the keyboard has resized things, and the footer drops its home-indicator padding while
+`keyboard.ts` reads a keyboard; on the full page Save is lifted by `keyboard.ts`. The amount's type steps down as it
+grows (52px to 8 characters, 42 to 11, 34 to 14, then 28) so it is never clipped. **Add opens on the tap**
+(perf fix 5): the tab bar's plus calls `openInstant()` (`add/instant.ts`) and `InstantAdd` in the root layout draws
+the drawer at once from `ql.pickers.v1` when they are this household's and under a week old (else the form's frame
+inside the drawer), while the link fetches `@modal/(.)add`; its page (`AddSheet`) hands the server's props to the open
+drawer instead of opening another, and the form follows them (the way to pay, the day) until the person chooses, so
+nothing typed is lost. Offline the plus does not open it (the worker's /offline answers as before). A close before
+the route lands steps back off it when it does — only a plain `/add` arriving on the same screen, with no time limit; any move
+elsewhere forgets the close, so a later Pay or Add cost is never bounced. If the address moves anywhere but `/add`
+before landing (Back, another tab, a redirect to sign-in), Next has dropped the navigation and the drawer is
+abandoned with it. **Save never waits on a pending route**: a Server Action queues behind a navigation still on its
+way, so `saveEntry` gets 8s, after which the entry is kept on the phone and `SyncQueue` is asked to send it
+(`ql:drain`); every save now carries a `clientRef`, so the two deliveries are one row (add-taps §12). The drawer slides in over
+`--dur-3` (240ms) on `ease-out` (vaul's 500ms stays for drags and closing). Other ways into /add (a card's Pay, a tab's Add cost, a bank message's Review) open the route's own
+drawer as before. The
 common entry is amount, tile, Save (`scripts/add-taps.mjs` counts the three).
 More opens itself when a tab is chosen on an expense, or when money coming in
 equals a claim to the paisa. *Paid with* opens on `app_user.last_paid_with`
@@ -421,8 +530,10 @@ last paid BY would make its own Pay unsaveable. Pick drawers are vaul's
 keypad**: the amount is a plain `<input inputMode="decimal">` that takes the
 phone's own keyboard and formats as it is typed — `typed()` tidies what the
 keyboard gave, `keysDisplay()` groups the rupees and leaves the paise exactly
-as typed (`2,340.5` mid-entry), `settle()` fills the minor digits on blur
-(`2,340.50`). Every choice is a wrapping row of chips — nothing scrolls
+as typed (`2,340.5` mid-entry; a point before the digits that ends a word, as in "Rs. 2,340.50", is not a decimal point), and `tidy()` (`tidyKeys`) writes the field the way Save says it on blur — no
+`.00` a whole amount never needed (`2,340`), the paise once there are some (`2,340.50`); the minor units are
+exactly the ones typed (`fromKeys(tidyKeys(k)) === fromKeys(k)`, held by `money.test`). `settle()` still fills the
+minor digits for the forms that want the accounting form. Every choice is a wrapping row of chips — nothing scrolls
 sideways, so what is offered can be counted. "How did you pay" is
 `PayPicker`, **one question with one flat list of concrete answers** in the
 words a person uses. It used to be two rows — accounts (a credit card beside a
@@ -488,7 +599,7 @@ hidden input; there is no `<select>` of payment modes anywhere, because one
 listing every rail under every account showed "ICICI Amazon Pay" twice and
 read as nonsense. Wrap it in a `<div role="group">`, never a `<label>` — a
 label around buttons activates the first chip. The entries list shows the
-rail when there is one and the account when there is not. `sw.js` is v41 (v41: Instrument Serif dropped, the offline title is Inter bold; v37, Task 28: the offline Add's When drawer is shadcn Calendar now; v36 was the icon font gaining the Accounts, Categories and Scan glyphs).
+rail when there is one and the account when there is not. `sw.js` is v44 (v44, P5 fix round 1: every navigation answered from its preload, `/api/*` never the worker's; v43, v3.1 P5: static routes and navigation preload, see "The service worker does not cache pages"; v41: Instrument Serif dropped, the offline title is Inter bold; v37, Task 28: the offline Add's When drawer is shadcn Calendar now; v36 was the icon font gaining the Accounts, Categories and Scan glyphs).
 Before Save, a debounced
 `checkDuplicate` shows what a household member already recorded within ±1% and
 ±2 days, which is the prevention half of the duplicate rule; the Inbox card is
@@ -623,8 +734,12 @@ Removed from your only household? `/no-household` offers the way out that
 matters — start your own — rather than leaving you stranded waiting to be
 re-invited.
 
-`/api/auth`, `/signin`, `/signup`, `/join`, `/reset` and `/terms` are let
-through by the proxy without a session (`NO_REDIRECT`) — they have to open for
+All of `/api/*`, `/signin`, `/signup`, `/join`, `/reset`, `/offline` and `/terms` are let
+through by the proxy without a session (`NO_REDIRECT`; everywhere else the proxy only checks that the cookie is
+ours and unexpired, see "The proxy asks the database nothing"). **So every route handler under `/api` judges its
+caller itself** — `currentActor`, or `screenCaller` in `src/app/api/guard.ts` for the POSTs the screens make (same
+origin by `Sec-Fetch-Site`/`Origin`, then `currentActor` with only its redirect read as 401 and anything else a 500,
+then a per-household limit in `rate_limit`: `/api/rates` and `/api/sms/purge`, six a minute, 429 past it) — they have to open for
 someone not signed in yet, and a redirect on `/api/auth` would break the
 round trip to Google. The CSP's `form-action` includes
 `https://accounts.google.com`, because the sign-in form posts to us and the
@@ -751,6 +866,22 @@ cosmetic. One rule, `staleAgainst`, judges it in whole seconds, and the `jwt`
 callback applies it too: a revoked session ends there, so refreshing it through
 `/api/auth/session` no longer revives it. (Judging by `iat` let exactly that
 work, and it predated the Google change.)
+
+**The proxy asks the database nothing** (v3.1 P5, perf row 3). In production `src/proxy.ts` runs in the edge
+region (bom1 for the owner), a round trip — or a new TLS connection — from Neon in Singapore, so it reads the
+session with `proxyAuth` from `src/auth.config.ts`: the shared Auth.js settings with no providers and a jwt callback
+that only decrypts and checks expiry. A forged or expired cookie is still sent to `/signin` by the proxy; a revoked
+one passes it and is refused one step later by **contextFor**, which every page and Server Action reaches through
+`src/db/queries.ts` (`actorOrNull`/`currentActor`) and so do the four route handlers that read the actor
+(`/attachment/[id]`, `/attachment/h/[id]`: a plain 404; `/api/rates` and `/api/sms/purge`: a 401, through
+`screenCaller`). The matcher's exclusions `icons/`, `brands/` and `fonts/` carry their slash, so a page that only
+starts with the word keeps the proxy and its CSP. `/api/auth/[...nextauth]` is Auth.js with the full jwt
+callback; `/api/capture/sms` is outside the proxy and answers to its bearer key alone. A page with a `loading.tsx`
+streams its frame before it runs, so a revoked cookie there sees the frame and then the in-stream redirect to
+`/signin`, never data. `src/auth.config.ts` must never import `src/db` — the built proxy
+(`.next/server/middleware.js` and its chunks) carries no postgres.js. `scripts/revocation.check.mjs` proves all of
+it: one cookie reads a page, a Server Action (`checkDuplicate`) and a bill while fresh and none of them once revoked,
+and a forged or expired cookie is turned away at the proxy.
 
 **One round trip decides everything about the caller.** `contextFor(userId,
 authAt)` returns household, role, household name and staleness in a single query —
@@ -1195,8 +1326,12 @@ draft statements live in `src/lib/sms-draft.ts` (handle-taking, so the
 invariants run them): accept and dismiss null the body at once and stamp
 `decided_at` (0039); `restoreDraftIn` is Undo for 15 minutes;
 `purgeSmsBodiesIn` nulls the text of anything decided or older than 30 days,
-called as `/entries` and the message screen render and on every
-arrival at the endpoint — there is no scheduler. Dismissing on the message
+called after From SMS (`/entries?f=sms`) renders, as the message screen renders, on every
+arrival at the endpoint, and **on every app open** — there is no scheduler. The last is the reliable one (v3.1 P5,
+p2-review N1): `Housekeeping` in the root layout POSTs `/api/sms/purge` 2.5s after each page load for anyone in a
+household (a POST, so never prefetched; currentActor first), because a household can go weeks without opening From
+SMS and Activity, which everyone opens, is prefetched and may not write. `/terms` says the text goes the next time
+anyone opens the app after the 30 days. Dismissing on the message
 screen redirects to `/entries?f=sms&dismissed=<id>`, which offers the Undo. The address a phone is given is `AUTH_URL` when set (production must set it), else the request's host;
 `lib/capture-origin.ts` decides, and on a Vercel preview host (a `vercel.app` host that is not
 `VERCEL_PROJECT_PRODUCTION_URL`, or `VERCEL_ENV=preview`) the screen warns that the address and keys made there die
@@ -1545,7 +1680,17 @@ has to come off the home screen and go back on.
 server-rendered from a household's books, so a cached page is somebody's
 finances sitting on disk for whoever picks the phone up next. Navigations go to
 the network every time and fall back to `/offline`. Content-hashed assets are
-cached, which is what makes a return visit instant.
+cached, which is what makes a return visit instant. **It wakes only for what it handles** (v3.1 P5): where the
+browser has static routing (`InstallEvent.addRoutes`, Chromium) only navigations and `/_next/static`, `/icons`,
+`/brands` and the manifest are routed to it, and every RSC fetch, Server Action and `/api` call goes straight to the
+network without waking an idle worker (25–45ms, more on a cheap phone); navigation preload starts a document's
+request while it boots. **With preload on, the handler answers every GET navigation from `event.preloadResponse`
+before any early return, and never fetches it again** (P5 fix round 1): v43 returned early for `/api/*` first, so
+Chromium sent such a navigation twice — and Google's callback, `/api/auth/callback/google`, carries a code that
+works once. `/api/*` is also the first static rule (`network`), and an `/api/*` navigation gets no `/offline`
+stand-in. Safari ignores `addRoutes`: every request reaches the handler, GET navigations take the preload branch
+first (one request each), and preload is never made for anything else. `scripts/sw-preload.check.mjs` counts what
+reaches the server through a proxy with the worker in control. Nothing new is cached.
 
 ### Recording without signal
 
@@ -1570,7 +1715,8 @@ storage after it opens. The design, in the order the pieces matter:
   reconnect without asking "did it go?". A `householdId` that is not the
   signed-in household is refused outright: an entry typed under one sign-in
   never lands in another's books.
-- **`SyncQueue`** in the root layout drains the queue on mount and on
+- **`SyncQueue`** in the root layout drains the queue on mount, on `ql:drain` (an entry kept because the server was
+  slow, not offline) and on
   `online`, single-flight, and never on the auth or offline screens. A
   network failure stops the drain and keeps everything; a server refusal
   ("that category was retired") marks the entry *stuck* with the reason, and
@@ -1578,7 +1724,7 @@ storage after it opens. The design, in the order the pieces matter:
   person decides. Stuck entries are never retried on their own.
 - **`/offline` is `force-dynamic`** though it reads nothing, because every
   script tag carries the request's CSP nonce and a prerendered page ships
-  with none. The worker (`public/sw.js`, `VERSION = 'v41'`) fetches it once at
+  with none. The worker (`public/sw.js`, `VERSION = 'v44'`) fetches it once at
   install, `credentials: 'omit'`, together with every `/_next/static/` script
   and stylesheet the markup names, so the cached copy is a self-consistent
   snapshot: the nonce in its cached headers is the nonce in its cached
@@ -1644,7 +1790,7 @@ triad: over-budget red is an alarm and an ordinary expense is not, so these are
 quieter than `--c-danger` and `--c-ok`. Both live in `globals.css`, not the
 generated `tokens.css`.
 
-**`npm run test:contrast` measured 82 pairs in both themes when it was written** (412 checks now, Plum & Rose Gold included) rather than
+**`npm run test:contrast` measured 82 pairs in both themes when it was written** (415 checks now, Plum & Rose Gold included) rather than
 taking anyone's word for it, and it found four real faults on its first run.
 The primary button was dark ink on the brand green at **3.56:1**, so the ground
 went darker and its label went white (`--c-on-primary`). The raised Add button
@@ -1701,7 +1847,7 @@ They live in `options.ts` now.
 
 - **Jakob** — a bottom tab bar, because every finance app people already use has
   one. Before it, you had to walk back to home to get anywhere.
-- **Fitts** — tab targets are 60px in the thumb zone and Add is centre and
+- **Fitts** — tab targets are 64px (80 on Android) in the thumb zone and Add is centre and
   raised. The budget's Save is sticky at the TOP, not the bottom, because a
   bottom bar sits under the phone keyboard the moment someone types a number.
 - **Hick** — five tabs and no more. The home tiles were deleted once navigation
@@ -1764,7 +1910,8 @@ also the twin — tapping it opens the actions, tapping again closes — so
 nothing is gesture-only and a row needs no second set of buttons repeating
 what the swipe offers. The first swipe row a device sees peeks its actions
 out and back once (`localStorage 'swipe-peeked'`, coarse pointers only,
-reduced motion respected). Shut and at rest, the action layer is `visibility: hidden` (after
+reduced motion respected), with a destructive action drawn in rose gold while it peeks, so a new household's first
+sight is not a red Delete. Shut and at rest, the action layer is `visibility: hidden` (after
 the slide home), because a row on a fractional pixel showed a sliver of a filled action
 at its edge on the dark ground. Where a row's every action is in the swipe (a due
 row, a schedule row), there are no buttons under it.
@@ -1789,34 +1936,77 @@ A card holding swipe rows uses `padding: 0 var(--pad)` with `overflow:
 hidden`, because the row slides out past the card's own padding and the
 revealed actions must stop at its rounded corner.
 
-**Motion is an iPhone's** (`globals.css`, `Screen.tsx`). Going deeper
-(`nav-forward`) is a push: the new screen slides in from the right over the
-old, which drifts a quarter left and dims. Coming back (`nav-back`) is a pop:
-the top screen slides off right and the one beneath is uncovered — the
-arriving group is always the top layer (groups stack in capture order), so it
-is clip-pathed to exactly what the departing screen has uncovered. Tabs
-(`nav-tab-left` / `nav-tab-right`, chosen in TabBar by index against the lit
-tab) glide 36px towards the tab picked and fade through; the bar never moves.
-Root's own cross-fade is off. Curves are `--ease-ios` (UIKit's
-`cubic-bezier(.32,.72,0,1)`) and `--ease-spring` (a `linear()` spring for small
-things). Sheets spring up, slide back down on any close (they stay mounted for
-the exit, worked out during render so no effect sets state), and follow a drag
-on the handle — past a third, or a flick, closes. The live tab icon bounces
-when its screen arrives; success lines draw their check in (`.check-draw`).
-Reduced motion shortens all of it to nothing.
+**Motion moves on the tap, not on the commit** (v3.1 P2, `p2-report.md`). The view transitions are gone: they ran
+from the router's commit, usually before the content had streamed, and React held the content until they ended
+(perf-findings §4). Now a link says how its screen comes on with `motion` on `NavLink` (`push` deeper, the default;
+`pop` back out, which `goBack` uses for Back and the edge swipe; `fade` sideways from Home; `tab-left`/`tab-right`,
+chosen in TabBar by index against the lit tab), and `startPending(href, motion)` draws the destination's frame in
+the next frame, moving that way: a push slides in from the right over the old screen, a pop comes in from a quarter
+left, a tab crossfades with a 16px nudge; the bar never moves. A same-screen change (the month pill, a chip) draws
+no frame: the screen dims below its header (`html[data-pending-same]`) until the new state lands. **One set of
+timings**, in `ql.css`: `--dur-press` 90ms, `--dur-1` 120 (fades, small state; Tailwind's default transition),
+`--dur-2` 180 (tabs, chips, crossfades), `--dur-3` 240 (push, pop, a sheet in), `--dur-4` 300 (the ceiling for
+anything waited through), `--dur-flourish` 420 (after arrival only: the tab icon's pop, `.check-draw`); curves as
+Tailwind easings — `ease-out` (enters), `ease-in` (exits), `ease-press`, `ease-ios` (drags, follow-through),
+`ease-spring`. Use them; no one-off durations. Drawers keep vaul's own timing for drags and closing; the Add drawer
+opens on `--dur-3`. NumberFlow rolls in about 600ms. **Press feedback is drawn by hand**: NavLink sets
+`data-pressed` (a phone paints `:active` only around the release) 50ms after the finger lands if it has stayed
+within 3px, else on the lift for a tap (held 100ms); a touch the browser takes for a scroll, a 10px drift or a leave
+never draws it. The tab bar, where nothing scrolls, presses at once (`pressNow`), and the frame is rendered the frame
+after the tap so the press is painted first. `.press` scales on it and every link dims (`data-pressed:opacity-75`). A tab lights as the
+finger lands and is put back if the touch ends anywhere but on it. Reduced motion shortens all
+of it to nothing. `scripts/nav-timing.mjs` measures tap → first changed pixel and tap → content for every route at
+Pixel 7, 4× CPU, +150ms, and fails on feedback over 50ms, any blank frame, or Home → profile content over 450ms; a leaving frame
+counts as gone only below 0.1 opacity (P4; it was 0.5), and `settled` reports when the arrival reveal ended.
 
-**A tap draws the destination's skeleton at once** (`PendingSkeleton` in the
-root layout, `pending.ts`). Links prefetch only on intent (`NavLink`), so a
-route's loading.tsx is not on the phone ahead of the tap; without this the old
-screen sat unchanged until the server streamed the loading shell. `NavLink`
-and every `router.push` that navigates (swipe actions, Add Entry after Save,
-the saved snack) call `startPending(href)`; the overlay waits 120ms (a cached
-screen is faster and a one-frame flash reads as flicker), draws
-`SkeletonFor(path)` under the real tab bar (the path keeps its query, so an
-Activity chip draws its own frame), and comes down when the pathname changes or after 10s. `frameFor` in `Skeleton.tsx` is the one map from a path
-to its frame — a list, a form, a tab with its figure, people and two buttons,
-Home's deck and tiles — and every loading.tsx draws from it, so the frame on
-tap and the frame the server streams are the same picture.
+**Content arrives, it does not cut in** (v3.1 P4, ux-audit C4.4; `src/app/Reveal.tsx`). On a screen's arrival — a
+cold load, or a navigation to another screen — its sections below the header come up 4px out of 40% opacity, one
+after another: Home's cards (`<Reveal>` around them), Wealth's chips, hero and lists (`revealChildren`), Activity's
+first four day groups (`revealItem(i)`). `--dur-2` each, `--stagger` (40ms, ql.css) apart, the fourth and later at
+3 × `--stagger`, so all of it ends by `--dur-4`; content is readable from the first frame; the header never moves;
+`fill-mode-backwards`, so nothing is held after. **Never on a redraw:** `Landed` notes the path each `<Screen>`
+mounted at, and a screen mounting where the last one did (Home under `/?saved=…` after the Add drawer's Save, the
+saved snack's replace, an Undo, a chip, the month pill, `router.refresh`) is not arriving. The server never notes
+(effects do not run there), so SSR and hydration agree. Reduced motion: none of it. **Nothing fixed inside a
+revealed section**: the entrance sets a transform and a filter for up to `--dur-4`, which would carry a fixed child
+off its place; a fixed thing (a snack, a bar) is portalled or sits outside the section, and `reveal.check` fails on
+one that is revealed in place.
+
+**A tap draws the destination's frame at once** (`PendingSkeleton` in the root layout, `pending.ts`). `NavLink`,
+`goBack` and every `router.push` that navigates (swipe actions, Add Entry after Save, the saved snack) call
+`startPending(href, motion)`; the overlay draws `SkeletonFor(path)` with no grace period under the real tab bar (the
+path keeps its query), and comes down when the destination's `<Screen>` lands (`Landed`, a layout effect;
+`error.tsx` and `not-found.tsx` carry it too), when the address goes somewhere else (a redirect, another tab), or
+after 10s — so a route whose loading frame the phone did not know never shows a blank page. In that commit it stops
+where its entry had got to (never moving on over the arrived screen), takes no taps, and fades over `--dur-1` on
+`ease-out`: content never waits for an animation. A tap to the address already on screen supersedes whatever was
+pending (Next drops that navigation, so nothing would land to clear it); a same-screen dim ends when the query
+leaves the one it started on; the Add drawer put away before its /add landed clears that /add's frame.
+`scripts/nav-taps.mjs` holds these: a superseded push and chip, no ghost over a prefetched push at 1×, no press on a
+scroll, a tab lit then slid off, `?saved=`. `frameFor` in
+`Skeleton.tsx` is the one map from a path to its frame, and every loading.tsx draws from it, so the frame on tap and
+the frame the server streams are the same picture.
+
+**Prefetch is deliberate** (`NavLink`). A link does not prefetch, except the tabs (not the one you are on) and Home's
+doors (the avatar, the month card, owed to you), which pass `prefetch` and are fetched whole as they come into view,
+so their tap needs no server render. `prefetch="auto"` (down to the loading frame) was measured and was worse: the
+frame committed first and React held the content for its 300ms reveal throttle. Whole prefetches are trusted 30s
+(`staleTimes.static`, the same as a visited screen) and every write empties them. **A prefetched render only
+reads**: Next sends a whole prefetch's data request without any prefetch header, so a render cannot tell it from a
+visit; anything that writes stays off prefetched screens. Wealth renders with the last stored rates and names those
+over a day old (read in its one transaction, `dueRateBases`); once on screen it POSTs `/api/rates`
+(`src/app/api/rates/route.ts`: `screenCaller`, the due bases in one query, then `ensureRates`, the provider calls
+and the `price_quote` write) and redraws when ANY rendered base is no longer stale, whoever refreshed it
+(`worth/rate-refresh.ts` `useRateRefresh`; each base asked once per screen). The lines say "updating", then
+"<Gold> rate updated" (kept in their room, so nothing below moves) or "couldn't update" — so its render writes
+nothing and it is prefetched like the other tabs (v3.1 P5; it was not, while `ensureRates` ran in the render). The
+holding page (`/worth/[id]`) does the same for its one rate since P5 fix round 1. `scripts/rates.check.mjs` holds
+the POST while the rates are refreshed elsewhere and fails if a line is left saying "updating". Activity's
+`purgeSmsBodies` runs only on From SMS, in `after()` (the message screen and the capture endpoint purge too).
+`scripts/prefetch-writes.check.mjs` logs every data-changing statement on the local cluster while Home, Loans, the
+household and Activity load with all their prefetches (Wealth's among them, with every stored rate aged two days for
+the run so a render that refreshed would write), and fails on any (with From SMS's purge as the control that
+the log sees writes). A Home view costs five whole prefetches (Activity, Loans, Wealth, the household, Plan).
 
 **Undo instead of "Are you sure"** (`src/app/Snack.tsx`): delete and retire
 happen at once and can be taken back for fifteen minutes — `removeEntry` sets
@@ -1888,7 +2078,8 @@ wear the brand green, not seagrass (white on seagrass was 3.2:1).
 and every ink on its own wash, in both themes.
 
 **Settings has a door**: the Home header — your initials, the household, a
-cog — opens `/household`, and Sign out lives there under "Your account". A
+cog — opens `/household`, and Sign out lives there under "Your account", the last section (v3.1 P3: Members,
+Invite, Books, Appearance, Scanning key, SMS capture, then Your account; Sign out everywhere in destructive ink). A
 tile at the bottom of the grid wearing Lending's icon was not a door.
 
 ## Teaching the app

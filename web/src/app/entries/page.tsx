@@ -2,6 +2,7 @@ import { Suspense } from 'react';
 import { SkeletonFor } from '../Skeleton';
 import Link from '@/app/NavLink';
 import { redirect } from 'next/navigation';
+import { after } from 'next/server';
 import { actorOrNull, budgetFor, entriesFor, inboxCount, monthTotals, purgeSmsBodies, searchEntries } from '@/db/queries';
 import { withHousehold } from '@/db/client';
 import { digitsOf, format, monthKey } from '@/lib/money';
@@ -14,6 +15,7 @@ import { byDay } from './rows';
 import MonthPill from '../MonthPill';
 import { Icon } from '../Icon';
 import { Empty } from './parts';
+import { chip, chipRow } from '../form-bits';
 import { loadReview } from './ReviewView';
 import { loadUpcoming } from './UpcomingView';
 import { loadSms } from './SmsView';
@@ -58,12 +60,15 @@ async function ActivityScreen({ sp }: { sp: Params }) {
   const words = typeof sp.q === 'string' ? sp.q.trim().slice(0, 60) : '';
   const shown = month ?? monthKey(new Date());
   const categoryId = sp.c && /^[0-9a-f-]{36}$/.test(sp.c) ? sp.c : null;
-  /* One transaction for the screen: forwarded bank messages lose their text once handled or after thirty days
-     (there is no scheduler, so the screen that lists them does it as it opens, whichever chip), the counts for the
-     chips' badges — card bills and duplicates on To review, open drafts on From SMS, together Home's tile — and
-     the reads of the one view on screen. The loaders' own withHousehold joins this scope. */
+  /* Forwarded bank messages lose their text once handled or after thirty days, and there is no scheduler, so the
+     screen that lists them does it — From SMS, after the response has gone (`after`), so it never holds the screen
+     up. Not on the other chips: All is prefetched whole by the tab bar (NavLink), and a prefetch must never write.
+     The message screen (which shows a body) and every arrival at the capture endpoint purge too. */
+  if (f === 'sms') after(() => purgeSmsBodies(hh));
+  /* One transaction for the screen: the counts for the chips' badges — card bills and duplicates on To review, open
+     drafts on From SMS, together Home's tile — and the reads of the one view on screen. The loaders' own
+     withHousehold joins this scope. */
   const { inbox, view, all, found } = await withHousehold(hh, async () => {
-    await purgeSmsBodies(hh);
     const inbox = await inboxCount(hh);
     const view = f === 'review' ? await loadReview(hh, canWrite, inbox.sms)
       : f === 'upcoming' ? await loadUpcoming(hh, canWrite, sp.new === '1')
@@ -101,10 +106,12 @@ async function ActivityScreen({ sp }: { sp: Params }) {
       right={<MonthPill month={shown} path="/entries" keep={keep} />}
       chips={filtered ? (
         /* One category, from a budget line: the chips would mean "all of Activity", so the way out is one chip. */
-        <Link href={`/entries?m=${shown}`} replace data-replace
-          className="press flex min-h-11 items-center gap-1.5 self-start rounded-full bg-accent px-3.5 text-sm font-semibold text-accent-foreground">
-          <Icon name="close" size={16} /> Showing one category
-        </Link>
+        <div className={chipRow}>
+          <Link href={`/entries?m=${shown}`} replace data-replace
+            className={`${chip} border-accent bg-accent text-accent-foreground`}>
+            <Icon name="close" size={16} /> Showing one category
+          </Link>
+        </div>
       ) : chips}>
       {entries.length === 0 ? (
         <div className="pt-3">
@@ -136,10 +143,12 @@ function Search({ entries, words, canEdit, chips }: {
     <Shell sub={`${entries.length === 0 ? 'Nothing found' : `${entries.length}${entries.length >= 200 ? '+' : ''} found`} in every month`}
       chips={<>
         {chips}
-        <Link href="/entries" replace data-replace
-          className="press flex min-h-11 items-center gap-1.5 self-start rounded-full bg-accent px-3.5 text-sm font-semibold text-accent-foreground">
-          <Icon name="close" size={16} /> Back to this month
-        </Link>
+        <div className={chipRow}>
+          <Link href="/entries" replace data-replace
+            className={`${chip} border-accent bg-accent text-accent-foreground`}>
+            <Icon name="close" size={16} /> Back to this month
+          </Link>
+        </div>
       </>}>
       <EntryList days={days} canEdit={canEdit} tools initialQ={words} everyMonth />
     </Shell>
@@ -155,12 +164,13 @@ function Shell({ title = 'Activity', sub, right, chips, children }: {
     <Screen>
       <main className="min-h-dvh bg-background text-foreground" style={{ paddingBottom: TAB_BAR_SPACE }}>
         <header className="flex flex-col gap-3 px-[var(--gutter)] pb-3 pt-4">
-          <div className="flex items-end justify-between gap-3">
-            <div className="min-w-0">
-              <h1 className="text-[32px] font-bold leading-tight tracking-tight [overflow-wrap:anywhere]">{title}</h1>
-              <p className="text-sm text-muted-foreground">{sub}</p>
+          {/* The month pill sits on the title's line, centred on it, at the chips' height. */}
+          <div>
+            <div className="flex items-center justify-between gap-3">
+              <h1 className="min-w-0 text-large-title font-bold leading-tight tracking-tight [overflow-wrap:anywhere]">{title}</h1>
+              {right}
             </div>
-            {right}
+            <p className="text-subhead text-muted-foreground">{sub}</p>
           </div>
           {chips}
         </header>

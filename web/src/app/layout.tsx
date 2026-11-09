@@ -8,25 +8,32 @@ import { Suspense } from 'react';
 import NavTrail from './NavTrail';
 import RegisterSW from './RegisterSW';
 import SyncQueue from './SyncQueue';
+import Housekeeping from './Housekeeping';
 import PendingSkeleton from './PendingSkeleton';
-import { Inter } from 'next/font/google';
+import InstantAdd from './add/InstantAdd';
 import localFont from 'next/font/local';
 import './globals.css';
 
 /* Inter, for a ledger, for two reasons that are not taste.
 
-   Numbers: it carries true tabular figures (tnum) and a slashed zero (zero).
-   Without fixed-width digits a column of amounts does not line up, which is
-   the one thing a column of amounts is for — and 0 against O matters when the
-   figure is money.
+   Numbers: it carries true tabular figures (tnum). Without fixed-width digits
+   a column of amounts does not line up, which is the one thing a column of
+   amounts is for. (Google's build of Inter has no slashed-zero `zero`
+   feature, so the stylesheet's request for one draws the plain zero; P5
+   review M6.)
 
    Text: it was drawn for screens rather than adapted to them. A tall x-height
    keeps 12px labels legible, and the ink traps stop counters filling in at the
    sizes this app actually uses. It is variable, so weight carries hierarchy
    without loading six files, and its optical size axis handles the jump from a
    11px label to a 38px balance. */
-const inter = Inter({
-  subsets: ['latin'],
+const inter = localFont({
+  /* Google's Inter, cut to the `latin` subset plus ₹ and → (scripts/inter-font.mjs, npm run fonts:inter): the one
+     text file preloaded with the page. ₹ is outside Google's `latin`, so with next/font/google's subsets every
+     amount drew its sign in the fallback face, then fetched the 83KB latin-ext file late and laid the figures out
+     again (perf-findings §3, row 7). It carries every currency sign lib/money.ts writes that Inter has, too. */
+  src: './fonts/inter.woff2',
+  weight: '100 900',
   variable: '--font-ui-loaded',
   display: 'swap',
   /* No `axes: ['opsz']`. The optical-size axis is a genuinely nice thing to
@@ -36,7 +43,6 @@ const inter = Inter({
      version of most of what opsz was doing, so the axis was being paid for
      twice. */
 });
-
 /* One face: v3 dropped Instrument Serif (spec §3.2). Titles are Inter bold, like everything else. */
 
 /* The icon font: Material Symbols Rounded, subset to the glyphs the app names
@@ -111,8 +117,12 @@ export default async function RootLayout({ children, modal }: { children: React.
           {children}
           {/* Add Entry as a drawer over the screen it was opened from (app/@modal). */}
           {modal}
+          {/* The same drawer, opened on the tab bar's tap before /add has arrived (add/instant.ts). */}
+          {actor?.household_id && <Suspense fallback={null}><InstantAdd householdId={actor.household_id} /></Suspense>}
+          {actor?.household_id && <Housekeeping />}
           <SyncQueue />
-          <PendingSkeleton />
+          {/* It reads the query (a same-screen change is done when the query is), so it needs a boundary too. */}
+          <Suspense fallback={null}><PendingSkeleton /></Suspense>
           {/* useSearchParams needs a boundary of its own, or the whole tree would wait on it. */}
           <Suspense fallback={null}><NavTrail /></Suspense>
         </CurrencyProvider>

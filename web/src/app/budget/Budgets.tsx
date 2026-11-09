@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { statusPill } from '../form-bits';
 import { Icon, Chip } from '../Icon';
 import { haptic } from '../haptics';
 import { useMoney } from '@/app/currency';
@@ -54,7 +55,7 @@ export default function Budgets({ budgets, lines, categories, thisMonth, spentBy
   if (editing === 'new' || (budgets.length === 0 && editing === null)) {
     return (
       <section aria-label={budgets.length ? 'New budget' : 'Your budget'} className="mx-[var(--gutter)] flex flex-col gap-1.5">
-        <h2 className="px-0.5 text-[13px] font-semibold text-muted-foreground">{budgets.length ? 'New budget' : 'Your budget'}</h2>
+        <h2 className="px-0.5 text-subhead font-semibold text-muted-foreground">{budgets.length ? 'New budget' : 'Your budget'}</h2>
         <BudgetForm key="new" categories={categories} budget={null} lines={[]} thisMonth={thisMonth}
           onDone={() => setEditing(null)} showCancel={budgets.length > 0} />
       </section>
@@ -63,8 +64,8 @@ export default function Budgets({ budgets, lines, categories, thisMonth, spentBy
 
   return (
     <section aria-label="Your budgets" className="mx-[var(--gutter)] flex flex-col gap-1.5">
-      <h2 className="px-0.5 text-[13px] font-semibold text-muted-foreground">Your budgets</h2>
-      <p className="px-0.5 text-xs leading-snug text-muted-foreground">
+      <h2 className="px-0.5 text-subhead font-semibold text-muted-foreground">Your budgets</h2>
+      <p className="px-0.5 text-footnote leading-snug text-muted-foreground">
         {budgets.length === 1
           ? 'Tap it to see what each category gets.'
           : 'Tap one to see what each category gets, or to make it current.'}
@@ -80,7 +81,7 @@ export default function Budgets({ budgets, lines, categories, thisMonth, spentBy
         )))}
       </div>
       <button type="button" onClick={() => { haptic('select'); setEditing('new'); }}
-        className="flex min-h-11 items-center gap-1.5 self-start px-0.5 text-sm font-semibold text-primary">
+        className="flex min-h-11 items-center gap-1.5 self-start px-0.5 text-body font-semibold text-primary">
         <Icon name="add" size={18} />
         Create another budget
       </button>
@@ -118,7 +119,7 @@ function Row({ budget, lines, spentBy, open, onToggle, onEdit }: {
   const problem = (madeState && !madeState.ok && madeState.error) || (dropState && !dropState.ok && dropState.error);
 
   return (
-    <div className={`overflow-hidden rounded-[18px] border-[1.5px] bg-card px-[var(--pad)] ${budget.current ? 'border-primary' : 'border-transparent'}`}>
+    <div className={`overflow-hidden rounded-[20px] border-[1.5px] bg-card shadow-card px-[var(--pad)] ${budget.current ? 'border-primary' : 'border-transparent'}`}>
       {/* The forms the swipe and the buttons fire. Kept out of the row's button so a tap on the row can never
           submit one by accident. */}
       <form ref={useForm} action={makeCurrent} hidden>
@@ -133,19 +134,19 @@ function Row({ budget, lines, spentBy, open, onToggle, onEdit }: {
           className="flex min-h-[72px] w-full items-center gap-3 py-2.5 text-left text-foreground">
           <span className="flex min-w-0 flex-1 flex-col gap-1">
             <span className="flex flex-wrap items-center gap-2">
-              <span className="text-[15px] font-semibold [overflow-wrap:anywhere]">{budget.name}</span>
+              <span className="text-body font-semibold [overflow-wrap:anywhere]">{budget.name}</span>
               {budget.current && (
-                <span className="flex items-center gap-1 rounded-full bg-accent px-2 py-0.5 text-[11px] font-semibold text-accent-foreground">
+                <span className={`${statusPill} bg-accent text-accent-foreground`}>
                   <Icon name="check_circle" size={13} />In use
                 </span>
               )}
             </span>
-            <span className="text-xs text-muted-foreground">
+            <span className="text-footnote text-muted-foreground">
               {budget.lines} {budget.lines === 1 ? 'category' : 'categories'} ·{' '}
               {monthName(budget.from_month)} to {monthName(budget.to_month)}
             </span>
           </span>
-          <span className="flex-none text-[15px] font-semibold tabular-nums">{format(Number(budget.total))}</span>
+          <span className="flex-none text-body font-semibold tabular-nums">{format(Number(budget.total))}</span>
           <Icon name="expand_more" size={20} className={`flex-none text-muted-foreground transition-transform ${open ? 'rotate-180' : ''}`} />
         </button>
       </SwipeRow>
@@ -158,9 +159,9 @@ function Row({ budget, lines, spentBy, open, onToggle, onEdit }: {
             const over = cap > 0 && used > cap;
             return (
               <div key={l.category_id} className="flex items-center gap-3">
-                <Chip icon={l.icon} tint={l.tint} size={34} radius={10} iconSize={18} />
+                <Chip icon={l.icon} tint={l.tint} size={34} iconSize={18} />
                 <span className="flex min-w-0 flex-1 flex-col gap-1">
-                  <span className="text-sm font-medium [overflow-wrap:anywhere]">{l.name}</span>
+                  <span className="text-body font-medium [overflow-wrap:anywhere]">{l.name}</span>
                   {/* How the month is going, on the budget actually in use only: a bar on a budget nobody is
                       spending against would measure against a figure that does not apply. */}
                   {budget.current && (
@@ -169,27 +170,27 @@ function Row({ budget, lines, spentBy, open, onToggle, onEdit }: {
                         <span className={`block h-full rounded-full ${over ? 'bg-destructive' : 'bg-primary'}`}
                           style={{ width: `${cap > 0 ? Math.min(100, (used / cap) * 100) : 0}%` }} />
                       </span>
-                      <span className={`flex items-center gap-1 text-xs ${over ? 'font-semibold text-destructive' : 'text-muted-foreground'}`}>
+                      <span className={`flex items-center gap-1 text-footnote ${over ? 'font-semibold text-destructive' : 'text-muted-foreground'}`}>
                         {over && <Icon name="warning" size={13} />}
                         {over ? `Over budget · ${format(used)} spent` : used > 0 ? `${format(used)} spent` : 'Nothing spent yet'}
                       </span>
                     </>
                   )}
                 </span>
-                <span className="flex-none text-sm font-semibold tabular-nums">{format(cap)}</span>
+                <span className="flex-none text-body font-semibold tabular-nums">{format(cap)}</span>
               </div>
             );
           })}
 
           <div className="mt-1 flex gap-2">
             <Button type="button" variant="secondary" onClick={onEdit}
-              className="h-11 flex-1 rounded-xl text-sm font-semibold in-data-[platform=android]:h-12">
+              className="h-11 flex-1 rounded-xl text-body font-semibold in-data-[platform=android]:h-12">
               <Icon name="edit" size={18} />Edit
             </Button>
             {!budget.current && (
               <Button type="button" disabled={using}
                 onClick={() => { haptic('select'); useForm.current?.requestSubmit(); }}
-                className="h-11 flex-1 rounded-xl text-sm font-semibold in-data-[platform=android]:h-12">
+                className="h-11 flex-1 rounded-xl text-body font-semibold in-data-[platform=android]:h-12">
                 <Icon name="check" size={18} />{using ? 'Switching…' : 'Make current'}
               </Button>
             )}
@@ -199,12 +200,12 @@ function Row({ budget, lines, spentBy, open, onToggle, onEdit }: {
                 if (!sure) { setSure(true); return; }
                 dropForm.current?.requestSubmit();
               }}
-              className={`h-11 flex-1 rounded-xl text-sm font-semibold text-destructive hover:text-destructive in-data-[platform=android]:h-12 ${sure ? 'bg-destructive/10' : ''}`}>
+              className={`h-11 flex-1 rounded-xl text-body font-semibold text-destructive hover:text-destructive in-data-[platform=android]:h-12 ${sure ? 'bg-destructive/10' : ''}`}>
               <Icon name="trash" size={18} />{dropping ? 'Deleting…' : sure ? 'Tap again' : 'Delete'}
             </Button>
           </div>
           {problem && <Problem>{problem}</Problem>}
-          <p className="text-xs leading-relaxed text-muted-foreground">
+          <p className="text-footnote leading-relaxed text-muted-foreground">
             {budget.current
               ? 'Deleting clears the months ahead. Every month already gone stays as it was.'
               : 'Making it current writes its figures from this month on. Months already gone stay as they were.'}
@@ -254,15 +255,15 @@ function BudgetForm({ categories, budget, lines, thisMonth, onDone, showCancel }
   const filled = chosen.filter((c) => minorOf(c.id) > 0).length;
 
   return (
-    <form onSubmit={keepFields(act)} className="flex flex-col gap-4 rounded-[18px] bg-card p-4">
+    <form onSubmit={keepFields(act)} className="flex flex-col gap-4 rounded-[20px] bg-card shadow-card p-4">
       {budget && <input type="hidden" name="id" value={budget.id} />}
       <div className="flex flex-col gap-1">
-        <span className="text-xs font-semibold text-muted-foreground">{budget ? 'Editing' : `Step ${step} of 2`}</span>
-        <h3 className="text-lg font-semibold leading-snug [overflow-wrap:anywhere]">
+        <span className="text-footnote font-semibold text-muted-foreground">{budget ? 'Editing' : `Step ${step} of 2`}</span>
+        <h3 className="text-headline font-semibold leading-snug [overflow-wrap:anywhere]">
           {budget ? budget.name : step === 1 ? 'What do you want to watch?' : 'How much a month?'}
         </h3>
         {!budget && (
-          <p className="text-sm leading-snug text-muted-foreground">
+          <p className="text-subhead leading-snug text-muted-foreground">
             {step === 1
               ? 'Pick the categories that matter. Everything filed under one of them counts towards it.'
               : 'Give each a figure, name the budget, and say how long it runs.'}
@@ -281,9 +282,9 @@ function BudgetForm({ categories, budget, lines, thisMonth, onDone, showCancel }
                     haptic('select');
                     setPicked((s) => { const n = new Set(s); if (n.has(c.id)) n.delete(c.id); else n.add(c.id); return n; });
                   }}
-                  className={`flex min-h-14 items-center gap-2.5 rounded-xl px-2.5 py-2 text-left text-sm font-medium transition-colors ${on
+                  className={`flex min-h-14 items-center gap-2.5 rounded-xl px-2.5 py-2 text-left text-body font-medium transition-colors ${on
                     ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground'}`}>
-                  <Chip icon={c.icon} tint={c.tint} size={30} radius={8} iconSize={16} />
+                  <Chip icon={c.icon} tint={c.tint} size={30} iconSize={16} />
                   <span className="min-w-0 flex-1 leading-tight [overflow-wrap:anywhere]">{c.name}</span>
                   {on && <Icon name="check" size={18} />}
                 </button>
@@ -292,10 +293,10 @@ function BudgetForm({ categories, budget, lines, thisMonth, onDone, showCancel }
           </div>
           <div className="flex gap-2">
             {showCancel && (
-              <Button type="button" variant="secondary" onClick={onDone} className="h-12 rounded-xl px-5 text-base font-semibold">Cancel</Button>
+              <Button type="button" variant="secondary" onClick={onDone} className="h-12 rounded-xl px-5 text-headline font-semibold">Cancel</Button>
             )}
             <Button type="button" disabled={picked.size === 0} onClick={() => { haptic('select'); setStep(2); }}
-              className="h-12 flex-1 rounded-xl text-base font-semibold">
+              className="h-12 flex-1 rounded-xl text-headline font-semibold">
               {picked.size === 0 ? 'Pick at least one' : `Next · ${picked.size} chosen`}
             </Button>
           </div>
@@ -305,8 +306,8 @@ function BudgetForm({ categories, budget, lines, thisMonth, onDone, showCancel }
           <div className="flex flex-col gap-2">
             {chosen.map((c) => (
               <label key={c.id} className="flex items-center gap-3">
-                <Chip icon={c.icon} tint={c.tint} size={36} radius={10} />
-                <span className="min-w-0 flex-1 text-sm font-medium [overflow-wrap:anywhere]">{c.name}</span>
+                <Chip icon={c.icon} tint={c.tint} size={36} />
+                <span className="min-w-0 flex-1 text-body font-medium [overflow-wrap:anywhere]">{c.name}</span>
                 <Input name={`c_${c.id}`} inputMode="decimal" value={amounts[c.id] ?? ''}
                   onChange={(e) => setAmounts((a) => ({ ...a, [c.id]: e.target.value.replace(/[^\d.]/g, '') }))}
                   placeholder="0" aria-label={`Budget for ${c.name}`}
@@ -316,10 +317,10 @@ function BudgetForm({ categories, budget, lines, thisMonth, onDone, showCancel }
           </div>
 
           <label className="flex flex-col gap-1.5">
-            <span className="text-sm font-medium text-muted-foreground">Name this budget</span>
+            <span className="text-subhead font-medium text-muted-foreground">Name this budget</span>
             <Input name="name" required maxLength={60} value={name} onChange={(e) => setName(e.target.value)}
               placeholder="Normal months" className="h-12 rounded-xl bg-card px-3.5 text-[length:var(--field)]" />
-            <span className="text-xs leading-snug text-muted-foreground">
+            <span className="text-footnote leading-snug text-muted-foreground">
               Whatever you would call it out loud: Ramadan, School year, After the wedding.
             </span>
           </label>
@@ -328,12 +329,12 @@ function BudgetForm({ categories, budget, lines, thisMonth, onDone, showCancel }
               share the row rather than the second running off the card. */}
           <div className="flex gap-2.5">
             <label className="flex min-w-0 flex-1 flex-col gap-1.5">
-              <span className="text-sm font-medium text-muted-foreground">From</span>
+              <span className="text-subhead font-medium text-muted-foreground">From</span>
               <Input type="month" name="from" value={from} onChange={(e) => setFrom(e.target.value)} required
                 className="h-12 min-w-0 rounded-xl bg-card px-2.5 text-[length:var(--field)]" />
             </label>
             <label className="flex min-w-0 flex-1 flex-col gap-1.5">
-              <span className="text-sm font-medium text-muted-foreground">Until</span>
+              <span className="text-subhead font-medium text-muted-foreground">Until</span>
               <Input type="month" name="to" value={to} onChange={(e) => setTo(e.target.value)} required
                 className="h-12 min-w-0 rounded-xl bg-card px-2.5 text-[length:var(--field)]" />
             </label>
@@ -345,8 +346,8 @@ function BudgetForm({ categories, budget, lines, thisMonth, onDone, showCancel }
                 onChange={(e) => { haptic('select'); setCurrent(e.target.checked); }}
                 className="size-5 flex-none accent-primary" />
               <span className="flex flex-col gap-0.5">
-                <span className="text-sm font-semibold">Make this my current budget</span>
-                <span className="text-xs opacity-80">
+                <span className="text-body font-semibold">Make this my current budget</span>
+                <span className="text-footnote opacity-80">
                   {current ? 'The months it covers start reporting against it.'
                     : 'Kept for later. You can switch to it any time.'}
                 </span>
@@ -355,7 +356,7 @@ function BudgetForm({ categories, budget, lines, thisMonth, onDone, showCancel }
           )}
 
           {total > 0 && (
-            <p className="text-sm text-muted-foreground">
+            <p className="text-subhead text-muted-foreground">
               <b className="font-semibold text-foreground tabular-nums">{format(total)}</b> a month across{' '}
               {filled} {filled === 1 ? 'category' : 'categories'}.
             </p>
@@ -364,10 +365,10 @@ function BudgetForm({ categories, budget, lines, thisMonth, onDone, showCancel }
           {state && !state.ok && <Problem>{state.error}</Problem>}
           <div className="flex gap-2">
             <Button type="button" variant="secondary" onClick={() => (budget ? onDone() : setStep(1))}
-              className="h-12 rounded-xl px-5 text-base font-semibold">
+              className="h-12 rounded-xl px-5 text-headline font-semibold">
               {budget ? 'Cancel' : 'Back'}
             </Button>
-            <Button type="submit" disabled={pending || filled === 0} className="h-12 flex-1 rounded-xl text-base font-semibold">
+            <Button type="submit" disabled={pending || filled === 0} className="h-12 flex-1 rounded-xl text-headline font-semibold">
               {pending ? 'Saving…' : budget ? 'Save changes' : 'Create the budget'}
             </Button>
           </div>

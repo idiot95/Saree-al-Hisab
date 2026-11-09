@@ -36,7 +36,7 @@ export const OWNED_BY: Record<string, string> = {
 };
 
 /** Room for the bar, so the last row of a screen is never under it. */
-export const TAB_BAR_SPACE = 'calc(76px + env(safe-area-inset-bottom, 0px))';
+export const TAB_BAR_SPACE = 'calc(var(--tab-bar) + env(safe-area-inset-bottom, 0px))';
 
 /** Room at the foot of a screen WITHOUT the bar for the floating Back pill
  *  (Back.tsx), which sits 18px above the safe area and is 44px tall. */

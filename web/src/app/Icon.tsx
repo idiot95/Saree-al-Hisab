@@ -51,14 +51,16 @@ export function tintOf(tint: string | null | undefined): [string, string] {
 
 /** An icon in its tinted tile — the shape every list row uses, so categories,
  *  accounts and rails all read as the same kind of thing. */
-export function Chip({ icon, tint, size = 40, radius = 11, iconSize }: {
+export function Chip({ icon, tint, size = 40, iconSize }: {
   icon: string | null | undefined; tint?: string | null;
-  size?: number; radius?: number; iconSize?: number;
+  size?: number; iconSize?: number;
 }) {
   const [bg, ink] = tintOf(tint);
   return (
+    /* One shape for every chip, category, account, rail or tab alike (v3.1 P3, ux-audit O5): a rounded square whose
+       corner is three tenths of its side, 12px at 40. People are not chips; they keep their round initials. */
     <span style={{
-      width: size, height: size, flex: 'none', borderRadius: radius, display: 'flex',
+      width: size, height: size, flex: 'none', borderRadius: Math.round(size * 0.3), display: 'flex',
       alignItems: 'center', justifyContent: 'center', background: bg, color: ink,
     }}>
       <Icon name={icon} size={iconSize ?? Math.round(size * 0.5)} />

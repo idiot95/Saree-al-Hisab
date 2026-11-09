@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { CURRENCIES } from '@/lib/money';
 import { Icon } from '../Icon';
 import { haptic } from '../haptics';
+import { chip, chipOff, chipRow } from '../form-bits';
 import { createHolding, type Result } from './actions';
 import { PhotoField, withPhotos } from './PhotoField';
 import { Field, OwnerSelect, Problem } from './fields';
@@ -21,7 +22,7 @@ const PURITY: Record<'gold' | 'silver', { key: string; word: string }[]> = {
   gold: [{ key: '24k', word: '24k' }, { key: '22k', word: '22k' }, { key: '18k', word: '18k' }, { key: '14k', word: '14k' }],
   silver: [{ key: '999', word: 'Fine (999)' }, { key: 'sterling', word: 'Sterling (925)' }],
 };
-const chip = 'press min-h-11 flex-auto rounded-full border border-border bg-card px-4 text-sm font-medium data-[state=on]:border-primary data-[state=on]:bg-primary data-[state=on]:text-primary-foreground';
+const pick = `${chip} ${chipOff} flex-auto data-[state=on]:border-primary data-[state=on]:bg-primary data-[state=on]:text-primary-foreground`;
 
 /* The + on Wealth: a pot of foreign cash, or gold, or silver, with what there is of it today and, if wanted,
    a photo of it. The first figure is saved with the holding, so a new holding is never empty. */
@@ -49,10 +50,10 @@ export default function AddHolding({ base, members }: { base: string; members: {
       <BottomDrawer open={open} onClose={() => setOpen(false)} label="Add to Wealth" showTitle>
         {/* JS-only on purpose: the drawer cannot open without script, so wrapping the action in a client closure loses no no-JS path. */}
         <form noValidate onSubmit={keepFields(act)} className="flex flex-col gap-4 pt-4">
-          <ToggleGroup type="single" value={kind} aria-label="What is it"
+          <ToggleGroup type="single" spacing={2} value={kind} aria-label="What is it"
             onValueChange={(v) => { if (v) { setKind(v as Kind); setPurity(v === 'silver' ? 'sterling' : '22k'); } }}
-            className="flex w-full flex-wrap gap-2">
-            {KINDS.map((k) => <ToggleGroupItem key={k.key} value={k.key} className={chip}>{k.word}</ToggleGroupItem>)}
+            className={`${chipRow} w-full`}>
+            {KINDS.map((k) => <ToggleGroupItem key={k.key} value={k.key} className={pick}>{k.word}</ToggleGroupItem>)}
           </ToggleGroup>
           <input type="hidden" name="kind" value={metal ? 'metal' : 'fx_cash'} />
           {metal && <input type="hidden" name="metal" value={metal} />}
@@ -63,11 +64,11 @@ export default function AddHolding({ base, members }: { base: string; members: {
           {metal ? (
             <>
               <div className="flex flex-col gap-1.5">
-                <span className="text-sm font-medium text-muted-foreground">Purity</span>
+                <span className="text-subhead font-medium text-muted-foreground">Purity</span>
                 <input type="hidden" name="purity" value={purity} />
-                <ToggleGroup type="single" value={purity} aria-label="Purity"
-                  onValueChange={(v) => v && setPurity(v)} className="flex w-full flex-wrap gap-2">
-                  {PURITY[metal].map((p) => <ToggleGroupItem key={p.key} value={p.key} className={chip}>{p.word}</ToggleGroupItem>)}
+                <ToggleGroup type="single" spacing={2} value={purity} aria-label="Purity"
+                  onValueChange={(v) => v && setPurity(v)} className={`${chipRow} w-full`}>
+                  {PURITY[metal].map((p) => <ToggleGroupItem key={p.key} value={p.key} className={pick}>{p.word}</ToggleGroupItem>)}
                 </ToggleGroup>
               </div>
               <Field label="Weight in grams" name="quantity" inputMode="decimal" required placeholder="50"
@@ -76,7 +77,7 @@ export default function AddHolding({ base, members }: { base: string; members: {
           ) : (
             <>
               <label className="flex flex-col gap-1.5">
-                <span className="text-sm font-medium text-muted-foreground">Currency</span>
+                <span className="text-subhead font-medium text-muted-foreground">Currency</span>
                 {/* Native on purpose, like the household's own currency field: fifty-odd options are a wheel on a phone. */}
                 <select name="currency" required defaultValue={base === 'USD' ? 'EUR' : 'USD'}
                   className="h-12 rounded-xl border border-input bg-card px-3 text-[length:var(--field)] text-foreground">
@@ -92,7 +93,7 @@ export default function AddHolding({ base, members }: { base: string; members: {
           <OwnerSelect members={members} />
           <PhotoField files={files} onChange={setFiles} />
           {state && !state.ok && <Problem>{state.error}</Problem>}
-          <Button type="submit" disabled={pending} className="h-12 rounded-xl text-base font-semibold">
+          <Button type="submit" disabled={pending} className="h-12 rounded-xl text-headline font-semibold">
             {pending ? 'Adding…' : 'Add'}
           </Button>
         </form>

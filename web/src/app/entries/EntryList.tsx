@@ -1,5 +1,6 @@
 'use client';
 
+import { cn } from '@/lib/utils';
 import Link from '@/app/NavLink';
 import { useRouter } from 'next/navigation';
 import { useCallback, useMemo, useState, useTransition } from 'react';
@@ -8,7 +9,9 @@ import Snack, { type SnackState } from '../Snack';
 import { useMoney } from '@/app/currency';
 import { removeEntry, restoreEntry } from './actions';
 import { startPending } from '../pending';
+import { revealItem, useArrival } from '../Reveal';
 import { Chip, Icon } from '../Icon';
+import { KIND_SHORT, KIND_WORDS, Words, chip, chipQuiet, chipQuietOn, chipQuietRow, rowRule, rulePad, ruleSwipe } from '../form-bits';
 
 export type Row = {
   id: string; kind: string; amount: string; merchant: string | null;
@@ -31,13 +34,13 @@ const INCOMING = new Set(['income', 'claim_receipt', 'refund', 'adjust_in']);
    one gesture with no dialog in front of it. */
 /* Activity's All can narrow the month by what kind of money it was, and find a line by any word on it. Both run
    over the month already on screen, so they answer as you type. (The chips above — All, To review, Upcoming,
-   From SMS — choose the view; these only narrow the list, so they are drawn smaller and lead with "Every kind".) */
+   From SMS — choose the view; these only narrow the list, so they are drawn at the same chip's quiet weight and lead with "Every kind".) */
 const FILTERS = [
-  { key: 'all', label: 'Every kind', test: () => true },
-  { key: 'spending', label: 'Spending', test: (e: Row) => e.kind === 'expense' },
-  { key: 'income', label: 'Income', test: (e: Row) => INCOMING.has(e.kind) },
-  { key: 'moves', label: 'Moves', test: (e: Row) => MOVES.has(e.kind) },
-  { key: 'shared', label: 'Shared', test: (e: Row) => e.is_shared },
+  { key: 'all', label: KIND_WORDS.all, test: () => true },
+  { key: 'spending', label: KIND_WORDS.spending, test: (e: Row) => e.kind === 'expense' },
+  { key: 'income', label: KIND_WORDS.income, test: (e: Row) => INCOMING.has(e.kind) },
+  { key: 'moves', label: KIND_WORDS.moves, test: (e: Row) => MOVES.has(e.kind) },
+  { key: 'shared', label: KIND_WORDS.shared, test: (e: Row) => e.is_shared },
 ] as const;
 
 export default function EntryList({ days, canEdit, tools = false, flat = false, initialQ = '', everyMonth = false }: {
@@ -61,6 +64,7 @@ export default function EntryList({ days, canEdit, tools = false, flat = false, 
   }, [days, q, filter, everyMonth, initialQ]);
   const { format } = useMoney();
   const router = useRouter();
+  const arrive = useArrival();
   const [gone, setGone] = useState<Set<string>>(() => new Set());
   const [snack, setSnack] = useState<SnackState>(null);
   const [, start] = useTransition();
@@ -100,50 +104,51 @@ export default function EntryList({ days, canEdit, tools = false, flat = false, 
             <label className="flex min-h-11 items-center gap-2 rounded-xl border border-border bg-card px-3 text-muted-foreground focus-within:border-ring in-data-[platform=android]:min-h-12">
               <Icon name="search" size={18} />
               <input type="search" name="q" value={q} onChange={(e) => setQ(e.target.value)}
-                placeholder={everyMonth ? 'Search every month' : 'Search, or press Enter for every month'}
+                placeholder={everyMonth ? 'Search every month' : 'Search this month'}
                 aria-label="Search entries" enterKeyHint="search"
                 className="min-w-0 flex-1 bg-transparent py-2 text-foreground outline-none placeholder:text-muted-foreground" />
               {q && <button type="button" onClick={() => setQ('')} aria-label="Clear search" className="-mr-2 grid size-11 flex-none place-items-center rounded-full in-data-[platform=android]:size-12"><span className="grid size-7 place-items-center rounded-full bg-muted"><Icon name="close" size={15} /></span></button>}
             </label>
           </form>
           {!everyMonth && q.trim() && (
-            <Link href={`/entries?q=${encodeURIComponent(q.trim())}`} transitionTypes={['nav-forward']}
-              className="flex min-h-11 items-center gap-2 self-start px-1 text-sm font-semibold text-primary">
+            <Link href={`/entries?q=${encodeURIComponent(q.trim())}`}
+              className="flex min-h-11 items-center gap-2 self-start px-1 text-body font-semibold text-primary">
               <Icon name="search" size={16} /> Search every month for “{q.trim()}”
             </Link>
           )}
-          <div role="group" aria-label="Kind of entry" className="-mx-2 flex flex-wrap">
+          {/* The same chip as the views above, at its quiet weight: one chip language on the screen, two weights. */}
+          <div role="group" aria-label="Kind of entry" className={`pt-1.5 ${chipQuietRow}`}>
             {FILTERS.map((f) => (
               <button key={f.key} type="button" aria-pressed={filter === f.key} onClick={() => setFilter(f.key)}
-                className={`flex min-h-11 flex-none items-center gap-1 whitespace-nowrap rounded-full px-2 text-[13px] ${filter === f.key
-                  ? 'font-semibold text-primary' : 'font-medium text-muted-foreground'}`}>
-                {filter === f.key && <Icon name="check" size={16} />}{f.label}
+                aria-label={f.label} className={cn(chip, filter === f.key ? chipQuietOn : chipQuiet)}>
+                <Words label={f.label} short={KIND_SHORT[f.key]} />
               </button>
             ))}
           </div>
         </div>
       )}
       {tools && nothing && (
-        <p className="mx-[var(--gutter)] rounded-[18px] bg-card px-6 py-8 text-center text-sm text-muted-foreground">
+        <p className="mx-[var(--gutter)] rounded-[20px] bg-card shadow-card px-6 py-8 text-center text-subhead text-muted-foreground">
           {q ? `Nothing ${everyMonth ? 'here' : 'this month'} matches “${q.trim()}”.` : `Nothing of that kind ${everyMonth ? 'here' : 'this month'}.`}
         </p>
       )}
-      {shown.map((d) => {
+      {shown.map((d, i) => {
         const rows = d.rows.filter((e) => !gone.has(e.id));
         if (rows.length === 0) return null;
         return (
-          <section key={d.on} aria-label={flat ? undefined : d.label} className={flat ? '' : 'mb-4 flex flex-col gap-1.5'}>
+          /* The first day groups arrive in turn on a navigation here or a cold load, never on a redraw (Reveal). */
+          <section key={d.on} aria-label={flat ? undefined : d.label} className={cn(flat ? '' : 'mb-4 flex flex-col gap-1.5', arrive && !flat && i < 4 && revealItem(i))}>
             {!flat && (
-              <h2 className="mx-[var(--gutter)] px-0.5 text-[13px] font-semibold text-muted-foreground">{d.label}</h2>
+              <h2 className="mx-[var(--gutter)] px-0.5 text-subhead font-semibold text-muted-foreground">{d.label}</h2>
             )}
-            <div className={`${flat ? '' : 'mx-[var(--gutter)]'} overflow-hidden rounded-[18px] bg-card px-[var(--pad)]`}>
+            <div className={`${flat ? '' : 'mx-[var(--gutter)]'} overflow-hidden rounded-[20px] bg-card shadow-card px-[var(--pad)]`}>
               {rows.map((e, i) => (
                 <SwipeRow key={e.id} actions={canEdit ? [
                   { label: 'Edit', tone: 'primary', icon: <Icon name="edit" size={20} />,
-                    act: () => { startPending(`/entries/${e.id}`); router.push(`/entries/${e.id}`, { transitionTypes: ['nav-forward'] }); } },
+                    act: () => { startPending(`/entries/${e.id}`); router.push(`/entries/${e.id}`); } },
                   { label: 'Delete', tone: 'danger', icon: <Icon name="delete" size={20} />, act: () => del(e) },
                 ] : []}>
-                  <Entry e={e} last={i === rows.length - 1} />
+                  <Entry e={e} last={i === rows.length - 1} swipe={canEdit} />
                 </SwipeRow>
               ))}
             </div>
@@ -155,7 +160,7 @@ export default function EntryList({ days, canEdit, tools = false, flat = false, 
   );
 }
 
-function Entry({ e, last }: { e: Row; last: boolean }) {
+function Entry({ e, last, swipe }: { e: Row; last: boolean; swipe: boolean }) {
   const { format } = useMoney();
   const move = MOVES.has(e.kind);
   const incoming = INCOMING.has(e.kind);
@@ -165,22 +170,22 @@ function Entry({ e, last }: { e: Row; last: boolean }) {
   const carried = !move && !e.counts_as_spend;
   /* Names wrap rather than trail off: "Came back from Imran Qureshi" is the whole point of the row. */
   return (
-    <Link href={`/entries/${e.id}`} transitionTypes={['nav-forward']} draggable={false}
-      className={`flex min-h-16 items-center gap-3 py-2.5 text-foreground no-underline ${last ? '' : 'border-b border-border'}`}>
+    <Link href={`/entries/${e.id}`} draggable={false}
+      className={`relative flex min-h-16 items-center gap-3 py-2.5 text-foreground no-underline ${last ? '' : `${rowRule} ${swipe ? ruleSwipe : rulePad}`}`}>
       {move && !lent ? (
-        <span className="grid size-10 flex-none place-items-center rounded-xl bg-muted text-muted-foreground">
+        <span className="grid size-10 flex-none place-items-center rounded-[12px] bg-muted text-muted-foreground">
           <Icon name="swap_horiz" size={20} />
         </span>
       ) : (
-        <Chip icon={e.icon} tint={e.tint} size={40} radius={12} />
+        <Chip icon={e.icon} tint={e.tint} size={40} />
       )}
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <span className="text-[15px] font-medium [overflow-wrap:anywhere]">
+        <span className="text-body font-medium [overflow-wrap:anywhere]">
           {cameBack
             ? `Came back from ${e.people ?? 'them'}`
             : e.merchant || e.category || (lent ? 'Laid out' : move ? 'Transfer' : 'Entry')}
         </span>
-        <span className="text-xs text-muted-foreground [overflow-wrap:anywhere]">
+        <span className="text-footnote text-muted-foreground [overflow-wrap:anywhere]">
           {lent
             ? `lent to ${e.people ?? 'them'}`
             : cameBack
@@ -194,7 +199,7 @@ function Entry({ e, last }: { e: Row; last: boolean }) {
       </span>
       {/* Money in is green with a +; money out is plain ink; a move between your own accounts is muted — the same
           money in a different pocket. */}
-      <span className={`flex-none text-[15px] font-semibold tabular-nums ${incoming || cameBack
+      <span className={`flex-none text-body font-semibold tabular-nums ${incoming || cameBack
         ? 'text-money-in' : move ? 'text-muted-foreground' : 'text-foreground'}`}>
         {incoming || cameBack ? '+' : ''}{format(Number(e.amount))}
       </span>

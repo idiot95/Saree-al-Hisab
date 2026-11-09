@@ -14,7 +14,7 @@ export const dynamic = 'force-dynamic';
    signing up, which is why the proxy lets it through without a session. */
 
 const REPO = 'https://github.com/idiot95/Saree-al-Hisab';
-const DATED = '6 November 2026';
+const DATED = '7 November 2026';
 const link = 'font-semibold text-primary underline underline-offset-[3px] [overflow-wrap:anywhere]';
 
 const SECTIONS: { title: string; lines: React.ReactNode[] }[] = [
@@ -57,7 +57,7 @@ const SECTIONS: { title: string; lines: React.ReactNode[] }[] = [
     lines: [
       'SMS capture is off until you turn it on, phone by phone, under Household. A phone you set up sends the bank messages you chose to this app’s own server, with a key only that phone holds. The server keeps only a hash of the key, and you can revoke it at any time.',
       'A one-time password is recognised and dropped as it arrives: it is never stored. Every other message becomes a draft under To review, and nothing is recorded in your books until someone saves it.',
-      'What is kept from a message is the figures read from it — amount, money in or out, the last four digits of the account, where, the date — and the sender’s name. Its full text is kept only until the draft is added or dismissed, or for 30 days if nobody does either; then it is deleted, and only those figures remain.',
+      'What is kept from a message is the figures read from it — amount, money in or out, the last four digits of the account, where, the date — and the sender’s name. Its full text is kept only until the draft is added or dismissed, or for 30 days if nobody does either; then it is deleted the next time anyone in the household opens the app (or another message arrives), and only those figures remain.',
       'The message is read on the app’s own server. Only when that cannot tell whether money came in or went out, and only if your household has added its own Gemini key, is the text also sent to Google’s Gemini API, under that key, to be read.',
     ],
   },
@@ -99,11 +99,11 @@ export default async function Terms() {
         <div className="flex flex-col gap-4 px-[var(--gutter)] pb-8">
           <ol className="flex flex-col gap-3">
             {SECTIONS.map((s) => (
-              <li key={s.title} className="flex flex-col gap-2.5 rounded-[18px] bg-card p-[var(--pad)]">
-                <h2 className="text-base font-semibold">{s.title}</h2>
+              <li key={s.title} className="flex flex-col gap-2.5 rounded-[20px] bg-card shadow-card p-[var(--pad)]">
+                <h2 className="text-headline font-semibold">{s.title}</h2>
                 <ul className="flex flex-col gap-2">
                   {s.lines.map((line, i) => (
-                    <li key={i} className="flex gap-2.5 text-[15px] leading-relaxed">
+                    <li key={i} className="flex gap-2.5 text-body leading-relaxed">
                       <span aria-hidden className="mt-[0.7em] size-[5px] flex-none rounded-full bg-muted-foreground" />
                       <span className="min-w-0">{line}</span>
                     </li>
@@ -113,7 +113,7 @@ export default async function Terms() {
             ))}
           </ol>
 
-          <p className="px-0.5 text-sm leading-normal text-muted-foreground">
+          <p className="px-0.5 text-subhead leading-normal text-muted-foreground">
             Using the app means agreeing to these. Questions go to whoever sent you the link.
           </p>
         </div>

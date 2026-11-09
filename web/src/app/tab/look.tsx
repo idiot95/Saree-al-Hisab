@@ -27,7 +27,7 @@ export function Face({ name, tint, size = 40, ring }: {
     <span aria-hidden style={{
       width: size, height: size, flex: 'none', borderRadius: 999, display: 'flex',
       alignItems: 'center', justifyContent: 'center', background: bg, color: ink,
-      fontSize: size >= 34 ? 'var(--step--1)' : 10, fontWeight: 700,
+      fontSize: size >= 34 ? 'var(--text-subhead)' : 'var(--text-caption)', fontWeight: 700,
       boxShadow: ring ? `0 0 0 2px ${ring}` : undefined,
     }}>{initials(name)}</span>
   );
@@ -40,7 +40,7 @@ export function Faces({ people, size = 22, max = 4 }: {
 }) {
   if (people.length === 0) {
     return (
-      <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 'var(--step--2)', color: 'var(--muted-foreground)' }}>
+      <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 'var(--text-footnote)', color: 'var(--muted-foreground)' }}>
         <span aria-hidden style={{
           width: size, height: size, flex: 'none', borderRadius: 999, border: '1.5px dashed var(--input)',
         }} />
@@ -57,7 +57,7 @@ export function Faces({ people, size = 22, max = 4 }: {
         </span>
       ))}
       {people.length > max && (
-        <span style={{ marginLeft: 5, fontSize: 'var(--step--2)', color: 'var(--muted-foreground)' }}>
+        <span style={{ marginLeft: 5, fontSize: 'var(--text-footnote)', color: 'var(--muted-foreground)' }}>
           +{people.length - max}
         </span>
       )}

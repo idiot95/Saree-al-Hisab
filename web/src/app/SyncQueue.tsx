@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Snack, { type SnackState } from './Snack';
 import { saveEntry } from './add/actions';
-import { drain, dequeue, readQueue } from './add/queue';
+import { DRAIN_EVENT, drain, dequeue, readQueue } from './add/queue';
 import { useMoney } from '@/app/currency';
 
 /* Sends what the phone kept while it had no signal.
@@ -50,7 +50,8 @@ export default function SyncQueue() {
     };
     go();
     addEventListener('online', go);
-    return () => { live = false; removeEventListener('online', go); };
+    addEventListener(DRAIN_EVENT, go);
+    return () => { live = false; removeEventListener('online', go); removeEventListener(DRAIN_EVENT, go); };
   }, [router, format]);
 
   return <Snack snack={snack} onClose={closeSnack} ttl={snack?.tone === 'error' ? 12000 : 6000} />;

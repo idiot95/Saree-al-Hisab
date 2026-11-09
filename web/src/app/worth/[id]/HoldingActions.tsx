@@ -13,6 +13,7 @@ import { PhotoField, withPhotos } from '../PhotoField';
 import { Field, Problem } from '../fields';
 import { keepFields } from '../../form-hooks';
 import { replacing } from '../../backStack';
+import { useRateRefresh } from '../rate-refresh';
 
 /* What can be done to one holding. Each drawer posts to its server action, says what went wrong in a
    sentence if it did, and on success closes and refreshes the page — so the value on the card rolls to its new
@@ -43,7 +44,7 @@ function Sheet({ open, setOpen, trigger, title, children }: {
   );
 }
 
-const action = 'press flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl px-3 text-[15px] font-semibold';
+const action = 'press flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl px-3 text-body font-semibold';
 
 export function UpdateBalance({ id, fx, currency }: { id: string; fx: boolean; currency: string | null }) {
   const [files, setFiles] = useState<File[]>([]);
@@ -58,7 +59,7 @@ export function UpdateBalance({ id, fx, currency }: { id: string; fx: boolean; c
           autoFocus hint={fx ? 'The whole balance, not the change.' : 'The whole weight, not the change. Up to three decimals.'} />
         <PhotoField files={files} onChange={setFiles} />
         {s.state && !s.state.ok && <Problem>{s.state.error}</Problem>}
-        <Button type="submit" disabled={s.pending} className="h-12 rounded-xl text-base font-semibold">
+        <Button type="submit" disabled={s.pending} className="h-12 rounded-xl text-headline font-semibold">
           {s.pending ? 'Saving…' : 'Save'}
         </Button>
       </form>
@@ -75,10 +76,10 @@ export function AddPhotos({ holdingId }: { holdingId: string }) {
       {/* JS-only on purpose: the drawer cannot open without script, so wrapping the action in a client closure loses no no-JS path. */}
       <form noValidate onSubmit={keepFields(s.act)} className="flex flex-col gap-4 pt-4">
         <input type="hidden" name="holdingId" value={holdingId} />
-        <p className="text-sm text-muted-foreground">Kept with the holding itself. A photo for one day’s figure goes in with Update balance.</p>
+        <p className="text-subhead text-muted-foreground">Kept with the holding itself. A photo for one day’s figure goes in with Update balance.</p>
         <PhotoField files={files} onChange={setFiles} />
         {s.state && !s.state.ok && <Problem>{s.state.error}</Problem>}
-        <Button type="submit" disabled={s.pending || files.length === 0} className="h-12 rounded-xl text-base font-semibold">
+        <Button type="submit" disabled={s.pending || files.length === 0} className="h-12 rounded-xl text-headline font-semibold">
           {s.pending ? 'Attaching…' : 'Attach'}
         </Button>
       </form>
@@ -88,25 +89,37 @@ export function AddPhotos({ holdingId }: { holdingId: string }) {
 
 /* "1 USD = ₹84.00 · 6 Nov · Tap to override". A rate the household sets wins over the fetched one for that
    day and after, until a newer fetched one arrives. Viewers see the line without the tap. */
-export function RateLine({ base, subject, rate, stale, canWrite, fx }: {
-  base: string; subject: string; rate: string | null; stale: string | null; canWrite: boolean; fx: boolean;
+export function RateLine({ base, subject, rate, due, from, quiet, canWrite, fx }: {
+  base: string; subject: string; rate: string | null; canWrite: boolean; fx: boolean;
+  /** The fetched rate is over a day old (or there is none): asked for once the screen is up (rate-refresh). */
+  due: boolean;
+  /** The day of the fetched rate in use, or null (none, or the household's own). */
+  from: string | null;
+  /** The household's own rate is in use: refreshed behind it, but not called out of date. */
+  quiet: boolean;
 }) {
   const { symbol } = useMoney();
   const s = useSheet(setRateOverride);
+  const status = useRateRefresh(due ? [base] : [])(base);
+  const [shown] = useState(due && !quiet);  // the line keeps its room once shown (review M2)
+  const stale = !shown ? null
+    : status === 'updated' ? 'Rate updated'
+    : from ? `Rate from ${from} — ${status === 'failed' ? 'couldn’t update' : 'updating'}`
+    : status === 'failed' ? 'Couldn’t get a rate' : 'Getting today’s rate…';
   const body = (
     <span className="flex min-w-0 flex-1 flex-col items-start gap-0.5 text-left">
-      <span className="text-[15px] tabular-nums [overflow-wrap:anywhere]">{rate ?? 'No rate yet'}</span>
-      {stale && <span className="flex items-center gap-1 text-xs text-attention-soft-foreground"><Icon name="sync_problem" size={15} />{stale}</span>}
-      {canWrite && <span className="text-xs text-muted-foreground">{rate ? 'Tap to override' : 'Tap to set one'}</span>}
+      <span className="text-body tabular-nums [overflow-wrap:anywhere]">{rate ?? 'No rate yet'}</span>
+      {stale && <span role="status" data-rate-line={status} className={`flex items-center gap-1 text-footnote ${status === 'updated' ? 'text-muted-foreground' : 'text-attention-soft-foreground'}`}><Icon name={status === 'updated' ? 'check' : 'sync_problem'} size={15} />{stale}</span>}
+      {canWrite && <span className="text-footnote text-muted-foreground">{rate ? 'Tap to override' : 'Tap to set one'}</span>}
     </span>
   );
   if (!canWrite) {
-    return <div className="flex min-h-14 items-center gap-3 rounded-[18px] bg-card px-3.5 py-2.5"><Icon name="currency_exchange" size={22} className="text-primary" />{body}</div>;
+    return <div className="flex min-h-14 items-center gap-3 rounded-[20px] bg-card shadow-card px-3.5 py-2.5"><Icon name="currency_exchange" size={22} className="text-primary" />{body}</div>;
   }
   return (
     <Sheet open={s.open} setOpen={s.setOpen} title={fx ? `Your rate for ${subject}` : `Your rate for ${subject.toLowerCase()}`}
       trigger={
-        <button type="button" className="press flex min-h-14 w-full items-center gap-3 rounded-[18px] bg-card px-3.5 py-2.5">
+        <button type="button" className="press flex min-h-14 w-full items-center gap-3 rounded-[20px] bg-card shadow-card px-3.5 py-2.5">
           <Icon name="currency_exchange" size={22} className="text-primary" />{body}<Icon name="edit" size={18} className="text-muted-foreground" />
         </button>
       }>
@@ -117,7 +130,7 @@ export function RateLine({ base, subject, rate, stale, canWrite, fx }: {
           name="rate" inputMode="decimal" required autoFocus
           hint={fx ? 'Used from today until a newer rate is fetched.' : 'Per gram of pure metal; purity is applied for you. Used from today until a newer rate is fetched.'} />
         {s.state && !s.state.ok && <Problem>{s.state.error}</Problem>}
-        <Button type="submit" disabled={s.pending} className="h-12 rounded-xl text-base font-semibold">
+        <Button type="submit" disabled={s.pending} className="h-12 rounded-xl text-headline font-semibold">
           {s.pending ? 'Saving…' : 'Save rate'}
         </Button>
       </form>
@@ -140,14 +153,14 @@ export function ArchiveHolding({ id, name }: { id: string; name: string }) {
       className="flex flex-col gap-1.5 pt-2">
       <input type="hidden" name="id" value={id} />
       <button type="submit" disabled={pending}
-        className={`press flex min-h-12 items-center justify-center gap-2 rounded-xl text-[15px] font-semibold text-destructive ${sure ? 'bg-destructive/10' : ''}`}>
+        className={`press flex min-h-12 items-center justify-center gap-2 rounded-xl text-body font-semibold text-destructive ${sure ? 'bg-destructive/10' : ''}`}>
         <Icon name="archive" size={19} />{pending ? 'Archiving…' : sure ? `Yes, archive ${name}` : 'Archive'}
       </button>
       {sure && !pending && (
-        <button type="button" onClick={() => setSure(false)} className="min-h-11 text-sm text-muted-foreground">Keep it</button>
+        <button type="button" onClick={() => setSure(false)} className="min-h-11 text-subhead text-muted-foreground">Keep it</button>
       )}
       {state && !state.ok && <Problem>{state.error}</Problem>}
-      <p className="text-center text-xs text-muted-foreground">It stops counting. Its figures and photos are kept.</p>
+      <p className="text-center text-footnote text-muted-foreground">It stops counting. Its figures and photos are kept.</p>
     </form>
   );
 }

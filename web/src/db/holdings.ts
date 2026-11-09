@@ -3,6 +3,7 @@ import type { TransactionSql } from 'postgres';
 import { sql, withHousehold } from './client';
 import type { Bill } from '@/lib/bills';
 import type { HoldingValue } from '@/lib/worth';
+import { priceableBases } from './prices';
 
 /* Holdings, read. Money figures arrive as strings, as postgres.js returns
    bigints. A value is null — never zero — when there is no snapshot or no
@@ -117,6 +118,24 @@ export async function holdingBases(householdId: string): Promise<string[]> {
       from holding
       where household_id = ${householdId} and archived_at is null`;
     return rows.map((r) => String(r.base)).filter(Boolean);
+  });
+}
+
+/** The bases the household's live holdings are priced in whose newest fetched rate in `quote` is more than a day
+ *  old (or missing): what Wealth renders at the last known rate and then asks POST /api/rates to refresh. One
+ *  read, inside the caller's household transaction (price_quote is the market's, readable by the app role). */
+export async function dueRateBases(householdId: string, quote: string): Promise<string[]> {
+  return withHousehold(householdId, async () => {
+    const rows = await sql`
+      select b.base from (
+        select distinct case when kind = 'fx_cash' then currency
+                             when metal = 'gold' then 'XAU' else 'XAG' end as base
+        from holding
+        where household_id = ${householdId} and archived_at is null) b
+      where b.base is not null and not exists (
+        select 1 from price_quote q
+        where q.base = b.base and q.quote = ${quote} and q.fetched_at > now() - interval '24 hours')`;
+    return priceableBases(rows.map((r) => String(r.base)), quote);
   });
 }
 

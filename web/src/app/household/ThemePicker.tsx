@@ -30,14 +30,14 @@ export default function ThemePicker({ current }: { current: Theme }) {
   }
 
   return (
-    <form action={act} className="flex flex-col gap-3 rounded-[18px] bg-card p-[var(--pad)]">
+    <form action={act} className="flex flex-col gap-3 rounded-[20px] bg-card shadow-card p-[var(--pad)]">
       <div role="group" aria-label="Appearance" className="flex gap-1 rounded-[14px] bg-muted p-1">
         {OPTIONS.map((o) => {
           const on = chosen === o.id;
           return (
             <button key={o.id} type="submit" name="theme" value={o.id} aria-pressed={on}
               onClick={() => pick(o.id)} disabled={pending && on}
-              className={`flex min-h-12 flex-1 items-center justify-center gap-1.5 rounded-[10px] text-sm font-semibold transition-colors ${on
+              className={`flex min-h-12 flex-1 items-center justify-center gap-1.5 rounded-[10px] text-body font-semibold transition-colors ${on
                 ? 'bg-primary text-primary-foreground'
                 : 'text-muted-foreground'}`}>
               <Icon name={o.icon} size={18} filled={on} />
@@ -46,7 +46,7 @@ export default function ThemePicker({ current }: { current: Theme }) {
           );
         })}
       </div>
-      <p className="text-[13px] leading-snug text-muted-foreground">
+      <p className="text-subhead leading-snug text-muted-foreground">
         {chosen === 'system'
           ? 'Follows the phone: light by day, dark when it is.'
           : 'Set for this device only. Other phones keep their own choice.'}

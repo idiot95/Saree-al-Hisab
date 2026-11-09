@@ -15,6 +15,7 @@
     "test:lib": "node scripts/lib.test.mjs",
     "icons": "node scripts/make-icons.mjs",
     "icons:font": "node scripts/icons-font.mjs",
+    "fonts:inter": "node scripts/inter-font.mjs",
     "sweep": "node scripts/sweep.mjs"
   },
   "dependencies": {

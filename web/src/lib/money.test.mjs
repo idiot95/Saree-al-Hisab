@@ -96,9 +96,16 @@ assert.equal(toKeys(0), '0');
 assert.equal(typed('2340'), '2340');
 assert.equal(typed('2,340'), '2340');                 // a comma the person typed
 assert.equal(typed('₹2,340.5'), '2340.5');            // a symbol pasted in
+assert.equal(typed('Rs. 2,340.50'), '2340.50');       // "Rs."'s point is not a decimal point
+assert.equal(typed('Rs.2340'), '2340');
+assert.equal(typed('INR 2,340.50'), '2340.50');
+assert.equal(typed('₹2,340.50'), '2340.50');
+assert.equal(typed('₹.5'), '0.5');                    // a bare point before the digits is still one
+assert.equal(typed('Rs. .5'), '0.5');                 // "Rs."'s point goes, the one before the 5 stays
+assert.equal(typed('.5'), '0.5');
+assert.equal(fromKeys(typed('Rs. 2,340.50')), 234050);
 assert.equal(typed('2340.555'), '2340.55');           // two paise digits at most
 assert.equal(typed('23.4.5'), '23.45');               // one point
-assert.equal(typed('.5'), '0.5');
 assert.equal(typed('007'), '7');
 assert.equal(typed('0'), '0');
 assert.equal(typed(''), '');
@@ -116,6 +123,33 @@ assert.equal(settleKeys('1.5', 'KWD'), '1.500');
 assert.equal(settleKeys('1250', 'JPY'), '1250');
 assert.equal(keysDisplay(settleKeys('215600.5')), '2,15,600.50');
 assert.equal(fromKeys(settleKeys('2340.5')), 234050);
+
+// Leaving Add Entry's amount tidies it the way Save says it: no ".00" a whole amount never needed, and the minor
+// units stored are exactly the ones typed (2340.5 is still 234050 paise).
+{
+  const { tidyKeys } = await import(`${process.env.LIB}/money.js`);
+  assert.equal(tidyKeys('2340'), '2340');
+  assert.equal(tidyKeys('2340.'), '2340');
+  assert.equal(tidyKeys('2340.00'), '2340');
+  assert.equal(tidyKeys('2340.5'), '2340.50');
+  assert.equal(tidyKeys('2340.05'), '2340.05');
+  assert.equal(tidyKeys('.5'), '0.50');
+  assert.equal(tidyKeys('0'), '0');
+  assert.equal(tidyKeys(''), '');
+  assert.equal(tidyKeys('1.5', 'KWD'), '1.500');
+  assert.equal(tidyKeys('2.000', 'KWD'), '2');
+  assert.equal(tidyKeys('1250', 'JPY'), '1250');
+  assert.equal(fromKeys(tidyKeys('2340.5')), 234050);
+  assert.equal(keysDisplay(tidyKeys('2340.5')), '2,340.50');
+  assert.equal(keysDisplay(tidyKeys('234050')), '2,34,050');
+  for (const k of ['2340', '2340.', '2340.5', '2340.55', '.5', '0.05', '999999999.99', '12345678.5']) {
+    assert.equal(fromKeys(tidyKeys(k)), fromKeys(k), `tidyKeys keeps the minor units of ${k}`);
+  }
+  for (const [k, c] of [['1.5', 'KWD'], ['1.505', 'KWD'], ['1250', 'JPY']]) {
+    assert.equal(fromKeys(tidyKeys(k, c), c), fromKeys(k, c), `${k} ${c}`);
+  }
+  console.log('money: tidyKeys keeps the minor units and drops a ".00" nobody typed');
+}
 
 // Every currency is well formed: a three-letter code, a symbol, and digits
 // the ledger can divide by.

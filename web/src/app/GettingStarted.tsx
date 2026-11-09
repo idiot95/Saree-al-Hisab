@@ -59,8 +59,8 @@ export default function GettingStarted({ progress, budgetAskedAbove = false }: {
   const next = ask[0];
 
   return (
-    <Link href={next.href} transitionTypes={['nav-forward']}
-      className="press flex min-h-[62px] items-center gap-3 rounded-[18px] bg-card px-3.5 py-3 text-foreground">
+    <Link href={next.href}
+      className="press flex min-h-[62px] items-center gap-3 rounded-[20px] bg-card shadow-card px-3.5 py-3 text-foreground">
       {/* A ring rather than a bar: it takes a quarter of the width and reads as progress at a glance. */}
       <span className="relative size-9 flex-none">
         <svg width={36} height={36} viewBox="0 0 36 36" aria-hidden className="text-muted">
@@ -69,15 +69,15 @@ export default function GettingStarted({ progress, budgetAskedAbove = false }: {
             strokeLinecap="round" transform="rotate(-90 18 18)"
             strokeDasharray={`${(done / steps.length) * 94.2} 94.2`} />
         </svg>
-        <span className="absolute inset-0 grid place-items-center text-[10px] font-bold tabular-nums text-muted-foreground">
+        <span className="absolute inset-0 grid place-items-center text-caption font-bold tabular-nums text-muted-foreground">
           {done}/{steps.length}
         </span>
       </span>
 
       {/* The line wraps to a second rather than cutting off ("Setting u…" was the audit's §6.3). */}
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <span className="text-[15px] font-semibold">{next.title}</span>
-        <span className="line-clamp-2 text-xs text-muted-foreground">
+        <span className="text-body font-semibold">{next.title}</span>
+        <span className="line-clamp-2 text-footnote text-muted-foreground">
           {next.blurb} Setting up · {done} of {steps.length} done
         </span>
       </span>

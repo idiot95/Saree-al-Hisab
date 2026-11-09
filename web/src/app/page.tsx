@@ -17,6 +17,7 @@ import { Figure } from './Figure';
 import TabBar from './TabBar';
 import { TAB_BAR_SPACE } from './tabs';
 import Screen from './Screen';
+import Reveal from './Reveal';
 import SavedSnack from './SavedSnack';
 import { Icon } from './Icon';
 
@@ -61,7 +62,7 @@ async function HomeScreen({ saved }: { saved?: string }) {
     entriesFor(hh, month),
     claimsFor(hh),
     peopleFor(hh),
-    worthInput(hh, actor.currency, { refreshRates: false }),
+    worthInput(hh, actor.currency),
   ]));
   const { owed } = owedToYou(claims, people);
   const householdWorth = netWorth(worth.input, { kind: 'household' }).worth;
@@ -99,48 +100,49 @@ async function HomeScreen({ saved }: { saved?: string }) {
         {/* The household, the month large, and your initials at the far end — the door to household and settings. */}
         <header className="flex items-end gap-3 px-[var(--gutter)] pb-2 pt-4">
           <div className="min-w-0 flex-1">
-            <p className="truncate text-[13px] text-muted-foreground">{name}</p>
-            <h1 className="text-[32px] font-bold leading-tight tracking-tight">{monthName}</h1>
+            <p className="truncate text-subhead text-muted-foreground">{name}</p>
+            <h1 className="text-large-title font-bold leading-tight tracking-tight">{monthName}</h1>
           </div>
-          <Link href="/household" transitionTypes={['nav-forward']} aria-label="Household and settings"
-            className="press grid size-11 flex-none place-items-center rounded-full bg-accent text-[15px] font-semibold text-accent-foreground in-data-[platform=android]:size-12">
+          <Link href="/household" prefetch aria-label="Household and settings"
+            className="press relative grid size-10 flex-none place-items-center rounded-full bg-accent text-body font-semibold text-accent-foreground after:absolute after:-inset-0.5 after:content-[''] in-data-[platform=android]:after:-inset-1">
             {(actor.user_name || '?').slice(0, 2).toUpperCase()}
           </Link>
         </header>
 
         {/* A breathing gap, so the last card is not flush against the tab bar — and, while "Entry saved" floats
             above the bar, room enough that the last line can scroll out from under it. */}
-        <div className={`flex flex-col gap-4 px-[var(--gutter)] pt-2 ${savedId ? 'pb-20' : 'pb-6'}`}>
+        {/* Each card arrives in turn on a navigation here or a cold load, never on a redraw (Reveal). */}
+        <Reveal className={`flex flex-col gap-4 px-[var(--gutter)] pt-2 ${savedId ? 'pb-20' : 'pb-6'}`}>
           {budget > 0
             ? <LeftToSpend month={month} budget={budget} spent={spent} />
             : <NoBudgetYet spent={spent} entries={progress.entries} />}
 
           {/* Decisions waiting, and what comes round this week (or the bank messages, when nothing does). */}
           <div className="grid grid-cols-2 gap-3">
-            <Link href={reviewHref} transitionTypes={['nav-lateral']}
-              className={`press flex min-h-[96px] flex-col gap-1.5 rounded-[18px] p-3.5 ${review > 0
-                ? 'bg-attention-soft text-attention-soft-foreground' : 'bg-card'}`}>
+            <Link href={reviewHref} motion="fade"
+              className={`press flex min-h-[96px] flex-col gap-1.5 rounded-[20px] p-4 ${review > 0
+                ? 'bg-attention-soft text-attention-soft-foreground' : 'bg-card shadow-card'}`}>
               <Icon name="rule" size={22} className={review > 0 ? '' : 'text-primary'} />
-              <span className={`text-xs ${review > 0 ? '' : 'text-muted-foreground'}`}>To review</span>
-              <span className="text-lg font-semibold leading-tight">
+              <span className={`text-subhead ${review > 0 ? '' : 'text-muted-foreground'}`}>To review</span>
+              <span className="text-headline font-semibold leading-tight">
                 {review > 0 ? `${review} ${review === 1 ? 'decision' : 'decisions'}` : 'All clear'}
               </span>
             </Link>
             {fromSms ? (
-              <Link href="/entries?f=sms" transitionTypes={['nav-lateral']}
-                className="press flex min-h-[96px] flex-col gap-1.5 rounded-[18px] bg-card p-3.5">
+              <Link href="/entries?f=sms" motion="fade"
+                className="press flex min-h-[96px] flex-col gap-1.5 rounded-[20px] bg-card shadow-card p-4">
                 <Icon name="sms" size={22} className="text-primary" />
-                <span className="text-xs text-muted-foreground">From SMS</span>
-                <span className="text-lg font-semibold leading-tight">
+                <span className="text-subhead text-muted-foreground">From SMS</span>
+                <span className="text-headline font-semibold leading-tight">
                   {inbox.sms} {inbox.sms === 1 ? 'message' : 'messages'}
                 </span>
               </Link>
             ) : (
-              <Link href="/entries?f=upcoming" transitionTypes={['nav-lateral']}
-                className="press flex min-h-[96px] flex-col gap-1.5 rounded-[18px] bg-card p-3.5">
+              <Link href="/entries?f=upcoming" motion="fade"
+                className="press flex min-h-[96px] flex-col gap-1.5 rounded-[20px] bg-card shadow-card p-4">
                 <Icon name="event_upcoming" size={22} className="text-primary" />
-                <span className="text-xs text-muted-foreground">Due this week</span>
-                <span className="text-lg font-semibold leading-tight tabular-nums">
+                <span className="text-subhead text-muted-foreground">Due this week</span>
+                <span className="text-headline font-semibold leading-tight tabular-nums">
                   {dueSoon.length ? <Figure minor={dueSoonTotal} /> : 'Nothing'}
                 </span>
               </Link>
@@ -148,22 +150,22 @@ async function HomeScreen({ saved }: { saved?: string }) {
           </div>
 
           {/* The household's net worth, dark, into Wealth. */}
-          <Link href="/worth" transitionTypes={['nav-lateral']}
-            className="press flex min-h-[68px] items-center gap-3 rounded-[18px] bg-hero px-4 py-3.5 text-hero-foreground">
-            <Icon name="trending_up" size={22} className="text-hero-4" />
+          <Link href="/worth" motion="fade"
+            className="press flex min-h-[68px] items-center gap-3 rounded-[20px] bg-hero px-4 py-3.5 text-hero-foreground">
+            <span className="grid size-10 flex-none place-items-center"><Icon name="trending_up" size={22} className="text-hero-4" /></span>
             <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-              <span className="text-xs text-hero-muted">Household net worth</span>
-              <Figure minor={householdWorth} className="text-lg font-semibold leading-tight tabular-nums" />
+              <span className="text-subhead text-hero-muted">Household net worth</span>
+              <Figure minor={householdWorth} className="text-headline font-semibold leading-tight tabular-nums" />
             </span>
             <Icon name="chevron_right" size={22} className="text-hero-muted" />
           </Link>
 
           {owed > 0 && (
-            <Link href="/people" transitionTypes={['nav-lateral']}
-              className="press flex min-h-14 items-center gap-3 rounded-[18px] bg-card px-4">
-              <Icon name="group" size={20} className="text-primary" />
-              <span className="flex-1 text-sm text-muted-foreground">Owed to you</span>
-              <Figure minor={owed} className="text-base font-semibold tabular-nums" />
+            <Link href="/people" motion="fade" prefetch
+              className="press flex min-h-14 items-center gap-3 rounded-[20px] bg-card shadow-card px-4">
+              <span className="grid size-10 flex-none place-items-center"><Icon name="group" size={22} className="text-primary" /></span>
+              <span className="flex-1 text-subhead text-muted-foreground">Owed to you</span>
+              <Figure minor={owed} className="text-headline font-semibold tabular-nums" />
               <Icon name="chevron_right" size={20} className="text-muted-foreground" />
             </Link>
           )}
@@ -171,19 +173,19 @@ async function HomeScreen({ saved }: { saved?: string }) {
           {dueNow.length > 0 && (
             <section aria-label="Due today" className="flex flex-col gap-1">
               <div className="flex items-baseline justify-between gap-3 px-0.5">
-                <h2 className="py-1 text-[13px] font-semibold text-muted-foreground">
+                <h2 className="py-1 text-subhead font-semibold text-muted-foreground">
                   {dueNow.some((d) => d.daysAway < 0) ? 'Due now' : 'Due today'} · paid, or moved?
                 </h2>
-                <Link href="/entries?f=upcoming" transitionTypes={['nav-lateral']} className="-my-3 flex min-h-11 flex-none items-center px-1 text-sm font-medium text-primary">See all</Link>
+                <Link href="/entries?f=upcoming" motion="fade" className="-my-3 flex min-h-11 flex-none items-center px-1 text-subhead font-semibold text-primary">See all</Link>
               </div>
-              <div className="overflow-hidden rounded-[18px] bg-card px-[var(--pad)]">
+              <div className="overflow-hidden rounded-[20px] bg-card shadow-card px-[var(--pad)]">
                 {dueNow.map((d) => {
                   const s = byId.get(d.scheduleId)!;
                   return (
                     <DueRow key={`${d.scheduleId}:${d.dueOn}`}
                       scheduleId={d.scheduleId} name={s.name} kind={s.kind} dueOn={d.dueOn}
                       on={d.on} movedFrom={d.movedFrom} daysAway={d.daysAway}
-                      amount={Number(s.amount ?? 0)} category={s.category} icon={s.icon}
+                      amount={Number(s.amount ?? 0)} category={s.category} icon={s.icon} tint={s.tint}
                       rule={ruleOf(s)?.rule} cal={ruleOf(s)?.cal} today={todayIso} />
                   );
                 })}
@@ -196,17 +198,17 @@ async function HomeScreen({ saved }: { saved?: string }) {
           {latest.length > 0 && (
             <section aria-label={todays.length ? 'Today' : 'Latest'} className="flex flex-col gap-1">
               <div className="flex items-baseline justify-between px-0.5">
-                <h2 className="py-1 text-[13px] font-semibold text-muted-foreground">{todays.length ? 'Today' : 'Latest'}</h2>
-                <Link href="/entries" transitionTypes={['nav-lateral']} className="-my-3 flex min-h-11 items-center px-1 text-sm font-medium text-primary">See all</Link>
+                <h2 className="py-1 text-subhead font-semibold text-muted-foreground">{todays.length ? 'Today' : 'Latest'}</h2>
+                <Link href="/entries" motion="fade" className="-my-3 flex min-h-11 items-center px-1 text-subhead font-semibold text-primary">See all</Link>
               </div>
               <EntryList days={[{ on: todayIso, label: '', rows: latest.map(toRow) }]} canEdit={canAct} flat />
             </section>
           )}
 
-          <Link href="/guide" transitionTypes={['nav-forward']} className="flex min-h-11 items-center self-center px-2 text-sm text-muted-foreground underline-offset-4 hover:underline">
+          <Link href="/guide" className="flex min-h-11 items-center self-center px-2 text-subhead text-muted-foreground underline-offset-4 hover:underline">
             How the app works
           </Link>
-        </div>
+        </Reveal>
         {savedId && <SavedSnack key={savedId} id={savedId} />}
         <TabBar current="/" />
       </main>
@@ -218,14 +220,14 @@ async function HomeScreen({ saved }: { saved?: string }) {
    door to setting one. */
 function NoBudgetYet({ spent, entries }: { spent: number; entries: number }) {
   return (
-    <Link href="/budget" transitionTypes={['nav-forward']}
-      className="press flex min-h-[72px] items-center gap-3 rounded-[22px] bg-card p-[18px] text-card-foreground">
-      <span className="grid size-10 flex-none place-items-center rounded-xl bg-accent text-accent-foreground">
+    <Link href="/budget" prefetch
+      className="press flex min-h-[72px] items-center gap-3 rounded-[22px] bg-card shadow-card p-4 text-card-foreground">
+      <span className="grid size-10 flex-none place-items-center rounded-[12px] bg-accent text-accent-foreground">
         <Icon name="calendar_month" size={22} />
       </span>
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <span className="text-base font-semibold">Set this month’s budget</span>
-        <span className="text-xs text-muted-foreground">
+        <span className="text-headline font-semibold">Set this month’s budget</span>
+        <span className="text-footnote text-muted-foreground">
           {entries === 0
             ? 'Nothing recorded yet.'
             : <><Figure minor={spent} /> spent so far, across {entries} {entries === 1 ? 'entry' : 'entries'}.</>}

@@ -127,6 +127,8 @@ try {
   for (const want of ['₹450', 'Money out', 'HDFC Savings', 'from AD-HDFCBK']) assert.ok(text.includes(want), `row says ${want}: ${text}`);
   assert.match(text, /zomato/i);
   ok(`From SMS lists it: "${text.trim()}"`);
+  assert.equal(await section.locator('number-flow-react').count(), 0, 'draft rows are static text: no rolling figure in a list');
+  ok('the draft rows draw their amounts as static text (no rolling Figure)');
   const chip = page.getByRole('navigation', { name: 'Activity' }).getByRole('link', { name: /From SMS/ });
   assert.match(await chip.innerText(), /\d/);
   assert.equal(await chip.getAttribute('aria-current'), 'page');
@@ -139,7 +141,7 @@ try {
   await page.waitForFunction(() => /450/.test(document.querySelector('input[aria-label^="Amount in"]')?.value ?? ''));
   ok(`the amount is prefilled (${await amount.inputValue()})`);
   await page.getByText(/From a bank message · AD-HDFCBK/).first().waitFor();
-  assert.equal(await page.getByRole('tab', { name: 'Expense', selected: true }).count() > 0, true);
+  assert.equal(await page.getByRole('radiogroup', { name: 'Kind of entry' }).getByRole('radio', { name: 'Expense', checked: true }).count() > 0, true);
   ok('as an expense, marked "From a bank message"');
   await page.getByText('HDFC Savings').first().waitFor();
   ok('paid with HDFC Savings, the account ending 4471');
@@ -228,7 +230,7 @@ try {
   /* ── 6b. money in lands on the account itself ─────────────────────── */
   await page.goto(`${BASE}/add?draft=${credit.id}`);
   await page.getByLabel(/^Amount in/).first().waitFor();
-  assert.equal(await page.getByRole('tab', { name: 'Income', selected: true }).count() > 0, true);
+  assert.equal(await page.getByRole('radiogroup', { name: 'Kind of entry' }).getByRole('radio', { name: 'Income', checked: true }).count() > 0, true);
   await page.getByText('Came into').first().waitFor();
   const into = await page.getByText('Came into').first().locator('xpath=..').innerText();
   assert.match(into, /HDFC Savings/);

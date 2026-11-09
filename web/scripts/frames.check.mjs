@@ -1,8 +1,12 @@
 #!/usr/bin/env node
 /* The loading frames against the screens they stand in for: does the swap move anything?
 
-     node scripts/frames.check.mjs [--routes /,/people] [--shots dir] [--size 393x852] [--os ios|android]
-                                  [--theme light|dark] [--state file]
+     node scripts/frames.check.mjs [--routes /,/people] [--shots dir] [--size 393x852[,375x667…]]
+                                  [--os ios|android|all] [--theme light|dark|all] [--state file]
+
+   By default every route is measured at the three phone sizes the sweep covers first: 360×780, 375×667 and
+   393×852 (v3.1 P4; it was held at 393 only), on iOS in light. `--os all --theme all` adds Android and dark: twelve
+   passes. Comma lists work for all three.
 
    Env: FRAMES_BASE (default http://localhost:3000). Reads OWNER_DATABASE_URL from .env.local. --state is a
    signed-in Playwright storage state (default .sweep-state.json). It refuses any database host but localhost or
@@ -20,8 +24,15 @@
      · the first section heading's top — the first h2 below the header, or a frame's [data-frame=label] bar.
    A hero that runs past the fold on both frame and page has only its top compared (its height is the fold's), and
    the line says "hero height not compared, ran past fold". A delta over 4px fails the route.
+
+   A pushed screen whose title is a name (a person, a tab, an account, a holding) draws a ghost of one line: the
+   frame cannot know the name. When the name takes more lines on the page than the ghost did, everything under the
+   title is measured from the title's foot, not the top of the screen, and the line says so ("name N lines"): the
+   frame is answerable for what it can know. The title's top is still compared as it is.
    `[data-frame=skip-hero]` / `skip-label` on the frame's main marks a screen
-   whose real page has no such thing at all (it is reported, not compared).
+   whose real page has no such thing at all (it is reported, not compared). `hero-top` keeps the hero's top
+   compared but not its height: Upcoming's first card words its dues by today's date ("Due tomorrow" against
+   "Due Mon 9 Nov · in 2 days"), which the frame cannot know.
 
    With --routes, a route may name a link to follow instead of an address: `@/people>^/tab/` opens /people and
    takes the first link whose href matches ^/tab/. */
@@ -42,9 +53,10 @@ const argv = process.argv.slice(2);
 const arg = (k) => { const i = argv.indexOf(k); return i >= 0 ? argv[i + 1] : null; };
 const STATE = arg('--state') ?? path.join(ROOT, '.sweep-state.json');
 const SHOTS = arg('--shots');
-const [W, H] = (arg('--size') ?? '393x852').split('x').map(Number);
-const OS = arg('--os') ?? 'ios';
-const THEME = arg('--theme') ?? 'light';
+const list = (v, all) => (v === 'all' ? all : v.split(',').map((x) => x.trim()).filter(Boolean));
+const SIZES = list(arg('--size') ?? '360x780,375x667,393x852', ['360x780', '375x667', '393x852']).map((x) => x.split('x').map(Number));
+const OSES = list(arg('--os') ?? 'ios', ['ios', 'android']);
+const THEMES = list(arg('--theme') ?? 'light', ['light', 'dark']);
 const EMAIL = process.env.FRAMES_EMAIL || 'ammar@example.com';
 const TOLERANCE = 4;
 
@@ -68,14 +80,8 @@ const tables = (await sql`
   select tablename from pg_tables where schemaname = 'public' and tablename not like '\\_%'`)
   .map((r) => r.tablename).filter((t) => !LAYOUT_TABLES.has(t));
 
-const d = OS === 'ios' ? devices['iPhone 13'] : devices['Pixel 7'];
-const { defaultBrowserType, ...dev } = d; void defaultBrowserType;
 const browser = await chromium.launch();
-const ctx = await browser.newContext({
-  ...dev, viewport: { width: W, height: H }, screen: { width: W, height: H }, storageState: STATE,
-  colorScheme: THEME, serviceWorkers: 'block', reducedMotion: 'reduce',
-});
-const page = await ctx.newPage();
+let page, W, H, OS, THEME;
 
 /* Measured in the page: the same three things on the frame and on the screen. */
 function measure() {
@@ -84,7 +90,7 @@ function measure() {
   const header = main.querySelector('header');
   const below = header ? header.getBoundingClientRect().bottom - 1 : 0;
   /* Height as far as the screen shows it: a list that runs past the fold is measured to the fold. */
-  const box = (e) => { if (!e) return null; const b = e.getBoundingClientRect(); return { top: Math.round(b.top), h: Math.round(Math.min(b.bottom, innerHeight) - b.top), past: b.bottom > innerHeight }; };
+  const box = (e) => { if (!e) return null; const b = e.getBoundingClientRect(); return { top: Math.round(b.top), h: Math.round(Math.min(b.bottom, innerHeight) - b.top), full: Math.round(b.height), past: b.bottom > innerHeight }; };
   /* The bar: which slot is lit (text-primary), from the frame's still bar or the page's live one. */
   const bars = [...document.querySelectorAll('nav')].filter((n) => getComputedStyle(n).position === 'fixed' && n.getBoundingClientRect().bottom >= innerHeight - 1);
   const bar = bars.length ? bars[bars.length - 1] : null;
@@ -95,7 +101,10 @@ function measure() {
   const cardish = /(^|\s)bg-(card|hero|attention-soft)(\s|$)/;
   const hero = [...main.querySelectorAll('*')].find((e) => {
     if (header && header.contains(e)) return false;
-    if (e.closest('[class*="fixed"]') && e.closest('[class*="fixed"]') !== main) return false;
+    /* Not inside something fixed over the page (the tab bar, a drawer) — the tap's frame itself (PendingSkeleton's
+       [data-pending-frame], fixed over the screen it stands for) is the page being measured, not something on it. */
+    const fixedBox = e.closest('[class*="fixed"]:not([data-pending-frame])');
+    if (fixedBox && fixedBox !== main) return false;
     const c = typeof e.className === 'string' ? e.className : '';
     if (!cardish.test(c) || !/rounded/.test(c) || /rounded-full/.test(c)) return false;
     const b = e.getBoundingClientRect();
@@ -104,6 +113,9 @@ function measure() {
   const label = [...main.querySelectorAll('h2, [data-frame=label]')]
     .find((e) => !(header && header.contains(e)) && e.getBoundingClientRect().height > 0);
   return {
+    ghostTitle: !!(h1 && h1.matches('[data-frame=title]')), vh: innerHeight,
+    /* The title's line: the title and whatever sits on it (a menu, a pill), which is what moves what is under it. */
+    titleRow: box(h1 && h1.parentElement && getComputedStyle(h1.parentElement).display === 'flex' ? h1.parentElement : h1),
     busy: !!busy,
     skip: main.getAttribute('data-frame') ?? '',
     h1: box(h1), hero: box(hero), label: box(label), lit, noBudget, barH: bar ? Math.round(bar.getBoundingClientRect().height) : null,
@@ -184,61 +196,84 @@ async function frameByHold(route, shot) {
 
 const rows = [];
 let failed = 0;
-const fmt = (b) => (b ? `${b.top}+${b.h}` : '—');
-for (const raw of routes) {
-  let route;
-  try { route = await resolveRoute(raw); } catch (e) { console.log(`skip ${raw}: ${e.message}`); continue; }
-  const base = SHOTS ? path.join(SHOTS, `${OS}-${W}-${THEME}-${slug(raw.startsWith('@') ? route : raw)}`) : null;
-  let frame = await frameByLock(route, base && `${base}-frame.png`);
-  if (!frame) frame = await frameByHold(route, base && `${base}-frame.png`);
-  if (!frame) { failed++; console.log(`FAIL ${route}: no frame could be held`); continue; }
-  await page.goto(BASE + route);
-  await page.waitForFunction((b) => !document.querySelector(b), BUSY, { timeout: 15000 });
-  await page.waitForLoadState('networkidle').catch(() => {});
-  await page.evaluate(() => document.fonts.ready);
-  await page.waitForTimeout(250);
-  const real = await page.evaluate(measure);
-  if (base) await page.screenshot({ path: `${base}-page.png` });
+const passes = [];
+for (const [w, h] of SIZES) for (const os of OSES) for (const theme of THEMES) {
+  W = w; H = h; OS = os; THEME = theme;
+  const { defaultBrowserType, ...dev } = OS === 'ios' ? devices['iPhone 13'] : devices['Pixel 7']; void defaultBrowserType;
+  const ctx = await browser.newContext({
+    ...dev, viewport: { width: W, height: H }, screen: { width: W, height: H }, storageState: STATE,
+    colorScheme: THEME, serviceWorkers: 'block', reducedMotion: 'reduce',
+  });
+  page = await ctx.newPage();
+  const before = failed;
+  console.log(`\n# ${W}x${H} ${OS} ${THEME}`);
+  const fmt = (b) => (b ? `${b.top}+${b.h}` : '—');
+  for (const raw of routes) {
+    let route;
+    try { route = await resolveRoute(raw); } catch (e) { console.log(`skip ${raw}: ${e.message}`); continue; }
+    const base = SHOTS ? path.join(SHOTS, `${OS}-${W}-${THEME}-${slug(raw.startsWith('@') ? route : raw)}`) : null;
+    let frame = await frameByLock(route, base && `${base}-frame.png`);
+    if (!frame) frame = await frameByHold(route, base && `${base}-frame.png`);
+    if (!frame) { failed++; console.log(`FAIL ${route}: no frame could be held`); continue; }
+    await page.goto(BASE + route);
+    await page.waitForFunction((b) => !document.querySelector(b), BUSY, { timeout: 15000 });
+    await page.waitForLoadState('networkidle').catch(() => {});
+    await page.evaluate(() => document.fonts.ready);
+    await page.waitForTimeout(250);
+    const real = await page.evaluate(measure);
+    if (base) await page.screenshot({ path: `${base}-page.png` });
 
-  const problems = [];
-  const cmp = (what, a, b, field) => {
-    if (!a && !b) return;
-    if (!a || !b) { problems.push(`${what} ${a ? 'only on the frame' : 'missing from the frame'}`); return; }
-    const dlt = Math.abs(a[field] - b[field]);
-    if (dlt > TOLERANCE) problems.push(`${what} ${field} ${a[field]} vs ${b[field]} (Δ${dlt})`);
-  };
-  cmp('title', frame.h1, real.h1, 'top');
-  if (frame.held !== 'client' && (frame.lit !== real.lit || frame.barH !== real.barH)) problems.push(`tab bar lit ${frame.lit}/${real.lit}, height ${frame.barH}/${real.barH}`);
-  /* A hero that runs past the fold on both is clipped to the same height by construction: only its top is compared,
-     and the line says so. */
-  const pastFold = frame.hero?.past && real.hero?.past;
-  if (!frame.skip.includes('skip-hero')) { cmp('hero', frame.hero, real.hero, 'top'); if (!pastFold) cmp('hero', frame.hero, real.hero, 'h'); }
-  if (!frame.skip.includes('skip-label')) cmp('heading', frame.label, real.label, 'top');
-  const dd = (a, b, f) => (a && b ? a[f] - b[f] : null);
-  rows.push({ route: raw === route ? route : `${raw} → ${route}`, held: frame.held ?? 'server', frame, real,
-    dTitle: dd(frame.h1, real.h1, 'top'), dHero: dd(frame.hero, real.hero, 'top'), dHeroH: dd(frame.hero, real.hero, 'h'),
-    dLabel: dd(frame.label, real.label, 'top') });
-  const line = `bar ${frame.lit ?? '—'}/${real.lit ?? '—'}  title ${fmt(frame.h1)}/${fmt(real.h1)}  hero ${fmt(frame.hero)}/${fmt(real.hero)}  heading ${fmt(frame.label)}/${fmt(real.label)}`;
-  const tag = `${frame.held === 'client' ? ' [tap]' : ''}${frame.skip ? ` (${frame.skip})` : ''}${pastFold ? ' (hero height not compared, ran past fold)' : ''}`;
-  /* The frames for Home and Plan are the budgeted month's (Left to spend), the state a household lives in once it has
-     a budget. Measured against a month with none, the hero is a different card by design: reported, not failed.
-     (Run with --state for a household that has a budget to compare them; see the Task 29 report.) */
-  if (problems.length && real.noBudget && /^\/(budget)?$/.test(route)) {
-    const excused = problems.filter((p) => /^(hero|heading) /.test(p));
-    const rest = problems.filter((p) => !excused.includes(p));
-    if (rest.length === 0) {
-      console.log(`note ${route}  ${line}\n     no budget this month, so the page shows the smaller card; the frame is Left to spend's: ${excused.join('; ')}`);
-      continue;
+    const problems = [];
+    const cmp = (what, a, b, field) => {
+      if (!a && !b) return;
+      if (!a || !b) { problems.push(`${what} ${a ? 'only on the frame' : 'missing from the frame'}`); return; }
+      const dlt = Math.abs(a[field] - b[field]);
+      if (dlt > TOLERANCE) problems.push(`${what} ${field} ${a[field]} vs ${b[field]} (Δ${dlt})`);
+    };
+    cmp('title', frame.h1, real.h1, 'top');
+    /* A name the frame could not know: measure under the title from its foot (see the head of this file). */
+    const shift = frame.ghostTitle && frame.titleRow && real.titleRow && real.h1.full !== frame.h1.full ? real.titleRow.full - frame.titleRow.full : 0;
+    const lines = shift ? Math.round(real.h1.full / Math.max(1, frame.h1.full)) : 1;
+    if (shift) for (const k of ['hero', 'label']) {
+      const b = real[k];
+      if (!b) continue;
+      const top = b.top - shift;
+      real[k] = { ...b, top, h: Math.round(Math.min(b.full, real.vh - top)), past: top + b.full > real.vh };
     }
-    problems.splice(0, problems.length, ...rest, ...excused.map((p) => `(excused, no budget) ${p}`));
+    if (frame.held !== 'client' && (frame.lit !== real.lit || frame.barH !== real.barH)) problems.push(`tab bar lit ${frame.lit}/${real.lit}, height ${frame.barH}/${real.barH}`);
+    /* A hero that runs past the fold on both is clipped to the same height by construction: only its top is compared,
+       and the line says so. */
+    const pastFold = frame.hero?.past && real.hero?.past;
+    if (!frame.skip.includes('skip-hero')) { cmp('hero', frame.hero, real.hero, 'top'); if (!pastFold && !frame.skip.includes('hero-top')) cmp('hero', frame.hero, real.hero, 'h'); }
+    if (!frame.skip.includes('skip-label')) cmp('heading', frame.label, real.label, 'top');
+    const dd = (a, b, f) => (a && b ? a[f] - b[f] : null);
+    rows.push({ size: `${W}x${H}`, os: OS, theme: THEME, route: raw === route ? route : `${raw} → ${route}`, held: frame.held ?? 'server', frame, real,
+      dTitle: dd(frame.h1, real.h1, 'top'), dHero: dd(frame.hero, real.hero, 'top'), dHeroH: dd(frame.hero, real.hero, 'h'),
+      dLabel: dd(frame.label, real.label, 'top') });
+    const line = `bar ${frame.lit ?? '—'}/${real.lit ?? '—'}  title ${fmt(frame.h1)}/${fmt(real.h1)}  hero ${fmt(frame.hero)}/${fmt(real.hero)}  heading ${fmt(frame.label)}/${fmt(real.label)}`;
+    const tag = `${frame.held === 'client' ? ' [tap]' : ''}${frame.skip ? ` (${frame.skip})` : ''}${pastFold ? ' (hero height not compared, ran past fold)' : ''}${shift ? ` (name ${lines} lines on the page, 1 on the frame: measured under it, ${shift > 0 ? '+' : ''}${shift}px)` : ''}`;
+    /* The frames for Home and Plan are the budgeted month's (Left to spend), the state a household lives in once it has
+       a budget. Measured against a month with none, the hero is a different card by design: reported, not failed.
+       (Run with --state for a household that has a budget to compare them; see the Task 29 report.) */
+    if (problems.length && real.noBudget && /^\/(budget)?$/.test(route)) {
+      const excused = problems.filter((p) => /^(hero|heading) /.test(p));
+      const rest = problems.filter((p) => !excused.includes(p));
+      if (rest.length === 0) {
+        console.log(`note ${route}  ${line}\n     no budget this month, so the page shows the smaller card; the frame is Left to spend's: ${excused.join('; ')}`);
+        continue;
+      }
+      problems.splice(0, problems.length, ...rest, ...excused.map((p) => `(excused, no budget) ${p}`));
+    }
+    if (problems.length) { failed++; console.log(`FAIL ${route}${tag}  ${line}\n     ${problems.join('; ')}`); }
+    else console.log(`ok   ${route}${tag}  ${line}`);
   }
-  if (problems.length) { failed++; console.log(`FAIL ${route}${tag}  ${line}\n     ${problems.join('; ')}`); }
-  else console.log(`ok   ${route}${tag}  ${line}`);
+  passes.push(`${W}x${H} ${OS} ${THEME}: ${failed - before} failed`);
+  await ctx.close();
 }
 
 function slug(r) { return r.replace(/^\//, '').replace(/[^a-z0-9]+/gi, '-').replace(/-?[0-9a-f]{8}-[0-9a-f-]{27}/g, '-id').replace(/^-|-$/g, '') || 'home'; }
 
-console.log(`\n${rows.length} measured, ${failed} failed (frame/page, top+height, ${W}x${H} ${OS} ${THEME})`);
+console.log(`\n${passes.join('\n')}\n${rows.length} measured, ${failed} failed (frame/page, top+height)`);
 if (arg('--json')) fs.writeFileSync(arg('--json'), JSON.stringify(rows, null, 2));
 await browser.close();
 await sql.end();

@@ -4,10 +4,12 @@ import Link from '@/app/NavLink';
 import { useCallback, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { Icon } from '../Icon';
 import BottomDrawer from '../BottomDrawer';
-import HijriCalendar, { MONTHS, civil, hijriSpan, type DayMarks } from '../HijriCalendar';
+import HijriCalendar, { opensCalendar, useCalendarSoon } from '../LazyCalendar';
+import { MONTHS, civil, hijriSpan, type DayMarks } from '../calendar-dates';
 import { cn } from '@/lib/utils';
 import { haptic } from '../haptics';
 import DueRow from './DueRow';
+import { rowRule, rulePad } from '../form-bits';
 import { useMoney } from '@/app/currency';
 import { datesInMonth, describeRule, type Calendar as Cal } from '@/lib/recur';
 import { formatHijri, toHijri } from '@/lib/hijri';
@@ -50,6 +52,7 @@ export default function Calendar({ schedules, canWrite, today }: {
   schedules: CalSchedule[]; canWrite: boolean; today: string;
 }) {
   const { format } = useMoney();
+  useCalendarSoon();  // the folded month opens on a tap: parsed before it
   const [{ y, m }, setYm] = useState(() => { const c = civil(today); return { y: c.y, m: c.m }; });
   const [sel, setSel] = useState<string | null>(null);
   const close = useCallback(() => setSel(null), []);
@@ -126,19 +129,19 @@ export default function Calendar({ schedules, canWrite, today }: {
   }, [byDay]);
 
   return (
-    <section className="mx-[var(--gutter)] flex flex-col gap-2 rounded-[18px] bg-card px-[var(--pad)] py-1.5">
-      <button type="button" onClick={toggle} aria-expanded={open} aria-controls="cal-grid"
+    <section className="mx-[var(--gutter)] flex flex-col gap-2 rounded-[20px] bg-card shadow-card px-[var(--pad)] py-1.5">
+      <button type="button" {...opensCalendar} onClick={toggle} aria-expanded={open} aria-controls="cal-grid"
         className="flex min-h-15 w-full items-center gap-3 bg-transparent text-left text-foreground">
         <span className={cn('grid size-10 flex-none place-items-center rounded-full',
           overdue ? 'bg-destructive/12 text-destructive' : 'bg-muted text-primary')}>
           <Icon name="autodebit" size={19} />
         </span>
         <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-          <span className="text-base font-semibold">
+          <span className="text-headline font-semibold">
             {MONTHS[m - 1]} {y}
             <span className="font-normal text-muted-foreground"> · {hijriSpan(y, m)}</span>
           </span>
-          <span className={cn('text-sm', overdue ? 'text-destructive' : 'text-muted-foreground')}>
+          <span className={cn('text-body', overdue ? 'text-destructive' : 'text-muted-foreground')}>
             {overdue ? `${overdue} overdue · ` : ''}{summary}
           </span>
         </span>
@@ -163,19 +166,20 @@ export default function Calendar({ schedules, canWrite, today }: {
           }}
           onPointerCancel={() => { swipe.current = null; }}
           onClickCapture={(e) => { if (swiped.current) { e.stopPropagation(); e.preventDefault(); } }}>
-          <HijriCalendar month={new Date(y, m - 1, 1)} onMonthChange={(d) => setYm({ y: d.getFullYear(), m: d.getMonth() + 1 })}
+          {/* Drawn only while unfolded, so a folded month never loads the grid (LazyCalendar.tsx). */}
+          {open && <HijriCalendar month={new Date(y, m - 1, 1)} onMonthChange={(d) => setYm({ y: d.getFullYear(), m: d.getMonth() + 1 })}
             today={today} onPick={setSel} marksFor={marksFor}
-            className="-mx-[calc(var(--pad)-2px)] w-[calc(100%+2*var(--pad)-4px)]" />
+            className="-mx-[calc(var(--pad)-2px)] w-[calc(100%+2*var(--pad)-4px)]" />}
         </div>
 
         {!isNow && (
           <button type="button" onClick={() => { const c = civil(today); setYm({ y: c.y, m: c.m }); }}
-            className="mx-auto flex min-h-11 items-center rounded-full px-3 text-sm font-semibold text-primary">
+            className="mx-auto flex min-h-11 items-center rounded-full px-3 text-body font-semibold text-primary">
             Back to today
           </button>
         )}
 
-        <p className="mt-0.5 flex flex-wrap gap-x-3 gap-y-1 text-xs leading-snug text-muted-foreground">
+        <p className="mt-0.5 flex flex-wrap gap-x-3 gap-y-1 text-footnote leading-snug text-muted-foreground">
           <Key status="coming" kind="expense">goes out</Key>
           <Key status="coming" kind="income">comes in</Key>
           <Key status="overdue" kind="expense">overdue</Key>
@@ -188,16 +192,16 @@ export default function Calendar({ schedules, canWrite, today }: {
         {selCivil && sel && (
           <>
             <header className="flex flex-col gap-0.5 pt-0.5 pb-2">
-              <h3 className="text-lg font-semibold">
+              <h3 className="text-headline font-semibold">
                 {DAYS[new Date(selCivil.y, selCivil.m - 1, selCivil.d).getDay()]} {selCivil.d} {MONTHS[selCivil.m - 1]}
               </h3>
-              <span className="text-sm text-muted-foreground">
+              <span className="text-subhead text-muted-foreground">
                 {formatHijri(toHijri(selCivil))}{sel === today ? ' · today' : ''}
               </span>
             </header>
 
             {selected.length === 0 ? (
-              <p className="mb-3 text-sm leading-normal text-muted-foreground">Nothing is scheduled for this day.</p>
+              <p className="mb-3 text-subhead leading-normal text-muted-foreground">Nothing is scheduled for this day.</p>
             ) : selected.map((it) => {
               const daysAway = Math.round((Date.parse(it.on) - Date.parse(today)) / 86400000);
               const settled = it.status === 'paid' || it.status === 'skipped';
@@ -205,37 +209,37 @@ export default function Calendar({ schedules, canWrite, today }: {
                 return (
                   <DueRow key={`${it.s.id}:${it.dueOn}`} scheduleId={it.s.id} name={it.s.name} kind={it.s.kind}
                     dueOn={it.dueOn} on={it.on} movedFrom={it.movedFrom} daysAway={daysAway}
-                    amount={it.s.amount} category={it.s.category} icon={it.s.icon}
+                    amount={it.s.amount} category={it.s.category} icon={it.s.icon} tint={it.s.tint}
                     rule={it.s.rule} cal={it.s.cal} today={today} canRecord={daysAway <= 14} />
                 );
               }
               const income = it.s.kind === 'income';
               return (
-                <div key={`${it.s.id}:${it.dueOn}`} className="flex min-h-16 items-center gap-3 border-b border-border py-2.5">
-                  <span className={cn('grid size-10 flex-none place-items-center rounded-full',
+                <div key={`${it.s.id}:${it.dueOn}`} className={`relative flex min-h-16 items-center gap-3 py-2.5 ${rowRule} ${rulePad} last:after:hidden`}>
+                  <span className={cn('grid size-10 flex-none place-items-center rounded-[12px]',
                     settled ? 'bg-muted text-muted-foreground' : 'bg-attention-soft text-attention-soft-foreground')}>
                     <Icon name={it.s.icon ?? 'autodebit'} size={19} />
                   </span>
                   <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-                    <span className="text-base font-semibold [overflow-wrap:anywhere]">{it.s.name}</span>
-                    <span className="text-sm text-muted-foreground">
+                    <span className="text-body font-medium [overflow-wrap:anywhere]">{it.s.name}</span>
+                    <span className="text-footnote text-muted-foreground">
                       {cap(describeRule(it.s.rule, it.s.cal))}
                       {it.movedFrom && ` · moved from the ${civil(it.movedFrom).d}${suffix(civil(it.movedFrom).d)}`}
                     </span>
-                    <span className={cn('flex flex-wrap items-center gap-1.5 text-sm',
+                    <span className={cn('flex flex-wrap items-center gap-1.5 text-body',
                       it.status === 'paid' ? 'text-money-in' : it.status === 'overdue' ? 'text-destructive' : 'text-muted-foreground')}>
                       <Icon name={it.status === 'paid' ? 'check' : it.status === 'skipped' ? 'skip' : 'autodebit'} size={14} />
                       {it.status === 'paid' ? (income ? 'Came in' : 'Paid') : it.status === 'skipped' ? 'Skipped'
                         : it.status === 'overdue' ? 'Overdue' : it.status === 'today' ? 'Due today' : 'Coming'}
                       {it.status === 'paid' && it.txn && (
-                        <Link href={`/entries/${it.txn}?from=${encodeURIComponent('/entries?f=upcoming')}`} transitionTypes={['nav-forward']}
+                        <Link href={`/entries/${it.txn}?from=${encodeURIComponent('/entries?f=upcoming')}`}
                           className="ml-1.5 inline-flex min-h-11 items-center font-semibold text-primary">
                           See the entry
                         </Link>
                       )}
                     </span>
                   </span>
-                  <span className={cn('flex-none text-lg font-semibold tabular-nums', income ? 'text-money-in' : 'text-money-out', settled && 'opacity-70')}>
+                  <span className={cn('flex-none text-headline font-semibold tabular-nums', income ? 'text-money-in' : 'text-money-out', settled && 'opacity-70')}>
                     {income ? '+' : ''}{format(it.s.amount)}
                   </span>
                 </div>

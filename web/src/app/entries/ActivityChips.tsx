@@ -3,6 +3,8 @@
 import Link from '@/app/NavLink';
 import { useState } from 'react';
 import { haptic } from '../haptics';
+import { cn } from '@/lib/utils';
+import { ACTIVITY_CHIPS, Words, badgeRoom, chip, chipOff, chipOn, chipRow, countBadge } from '../form-bits';
 
 export type ActivityFilter = 'all' | 'review' | 'upcoming' | 'sms';
 
@@ -21,12 +23,9 @@ export default function ActivityChips({ current, review, sms, month }: {
   const [seen, setSeen] = useState(current);
   if (seen !== current) { setSeen(current); setPicked(null); }
   const lit = picked ?? current;
-  const chips: { key: ActivityFilter; label: string; count?: number }[] = [
-    { key: 'all', label: 'All' },
-    { key: 'review', label: 'To review', count: review },
-    { key: 'upcoming', label: 'Upcoming' },
-    { key: 'sms', label: 'From SMS', count: sms },
-  ];
+  const chips: { key: ActivityFilter; label: string; short?: string; wide?: boolean; count?: number }[] = ACTIVITY_CHIPS.map((c) => ({
+    ...c, count: c.key === 'review' ? review : c.key === 'sms' ? sms : undefined,
+  }));
   const hrefOf = (key: ActivityFilter) => {
     const q = new URLSearchParams();
     if (key !== 'all') q.set('f', key);
@@ -36,24 +35,24 @@ export default function ActivityChips({ current, review, sms, month }: {
   };
   return (
     /* The row wraps, never scrolls sideways: what is offered can be counted. */
-    <nav aria-label="Activity" className="flex flex-wrap gap-1.5">
+    <nav aria-label="Activity" className={chipRow}>
       {chips.map((c) => {
         const on = c.key === lit;
         return (
-          <Link key={c.key} href={hrefOf(c.key)} replace data-replace transitionTypes={['nav-lateral']}
+          <Link key={c.key} href={hrefOf(c.key)} replace data-replace motion="fade"
             aria-current={c.key === current ? 'page' : undefined}
             onClick={(e) => {
               if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
               if (c.key !== lit) haptic('select');
               setPicked(c.key);
             }}
-            className={`press flex min-h-11 min-w-11 flex-none items-center justify-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 text-sm in-data-[platform=android]:min-h-12 transition-colors ${on
-              ? 'border-primary bg-primary font-semibold text-primary-foreground'
-              : 'border-border bg-card font-medium text-foreground'}`}>
-            {c.label}
+            aria-label={c.count ? `${c.label} ${c.count}` : c.label}
+            /* A chip that can carry a count keeps the badge's room when it has none (form-bits badgeRoom). */
+            className={cn(chip, on ? chipOn : chipOff, c.count === 0 && badgeRoom)}>
+            <Words label={c.label} short={c.short} wide={c.wide} />
             {!!c.count && (
-              <span className={`grid min-w-5 place-items-center rounded-full px-1.5 text-[11px] font-bold leading-5 tabular-nums ${on
-                ? 'bg-primary-foreground text-primary' : 'bg-attention-soft text-attention-soft-foreground'}`}>
+              <span className={`${countBadge} ${on
+                ? 'bg-primary-foreground/90 text-primary' : 'bg-attention-soft text-attention-soft-foreground'}`}>
                 {c.count}
               </span>
             )}

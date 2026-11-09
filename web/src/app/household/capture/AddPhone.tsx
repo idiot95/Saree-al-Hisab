@@ -24,16 +24,16 @@ export default function AddPhone({ endpoint }: { endpoint: string }) {
     <div className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-4">
       <form noValidate onSubmit={keepFields(act)} className="flex flex-col gap-3">
         <label className="flex flex-col gap-1.5">
-          <span className="text-sm font-semibold">Which phone is this?</span>
+          <span className="text-body font-semibold">Which phone is this?</span>
           <input name="label" required maxLength={40} autoComplete="off" placeholder="For example: Ammar’s iPhone"
             className="min-h-12 w-full rounded-xl border border-border bg-background px-3.5 text-[length:var(--field)] text-foreground" />
         </label>
         <button type="submit" disabled={pending}
-          className="press flex min-h-12 items-center justify-center gap-2 rounded-xl bg-primary text-base font-semibold text-primary-foreground disabled:opacity-60">
+          className="press flex min-h-12 items-center justify-center gap-2 rounded-xl bg-primary text-headline font-semibold text-primary-foreground disabled:bg-muted disabled:text-muted-foreground">
           <Icon name="add" size={20} /> {pending ? 'Adding…' : 'Add a phone'}
         </button>
         {state && !state.ok && (
-          <p role="alert" className="flex items-start gap-1.5 rounded-xl bg-destructive/10 px-3 py-2.5 text-sm text-destructive">
+          <p role="alert" className="flex items-start gap-1.5 rounded-xl bg-destructive/10 px-3 py-2.5 text-body text-destructive">
             <Icon name="error" size={18} />{state.error}
           </p>
         )}
@@ -41,10 +41,10 @@ export default function AddPhone({ endpoint }: { endpoint: string }) {
 
       {shown && (
         <section aria-label={`Key for ${shown.label}`} className="flex flex-col gap-3 border-t border-border pt-4">
-          <p className="flex items-center gap-2 text-sm font-semibold">
+          <p className="flex items-center gap-2 text-body font-semibold">
             <Icon name="check_circle" size={18} className="text-money-in" /> {shown.label} added
           </p>
-          <p className="flex items-start gap-2 rounded-xl bg-attention-soft px-3 py-2.5 text-sm leading-relaxed text-attention-soft-foreground">
+          <p className="flex items-start gap-2 rounded-xl bg-attention-soft px-3 py-2.5 text-body leading-relaxed text-attention-soft-foreground">
             <Icon name="warning" size={18} />
             <span><b className="font-semibold">Anyone with this can add drafts to your books. It won’t be shown again.</b> Paste it
               into the phone now, then leave this screen.</span>

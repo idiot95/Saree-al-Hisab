@@ -1,5 +1,6 @@
 import Link from '@/app/NavLink';
 import { billsDue, duplicatesFor, schedulesFor } from '@/db/queries';
+import { liRule, rowRule, rulePad, ruleSwipe } from '../form-bits';
 import { withHousehold } from '@/db/client';
 import { outstandingDues } from '@/lib/recur';
 import { format } from '@/lib/money';
@@ -30,23 +31,27 @@ export async function loadReview(hh: string, canWrite: boolean, sms: number) {
       {bills.length > 0 && (
         <Section title="Card bills"
           foot="Swipe a bill to pay it: a transfer from the bank to the card. It is a move, not spending; the purchases were counted on the days they happened.">
-          <div className="overflow-hidden rounded-[18px] bg-card px-[var(--pad)]">
+          <div className="overflow-hidden rounded-[20px] bg-card shadow-card px-[var(--pad)]">
             {bills.map((b, i) => {
-              const soon = b.days_away <= 5;
+              /* Red is for a bill already late; one due within five days is attention, the blush (ux-audit O20).
+                 Both say so with an icon and the words. */
+              const overdue = b.days_away < 0;
+              const soon = !overdue && b.days_away <= 5;
               return (
                 <Swipeable key={`${b.account_id}:${String(b.due_on)}`} actions={canWrite ? [
                   { label: 'Pay', icon: 'move', tone: 'primary',
                     href: `/add?kind=transfer&to=${b.account_id}&amount=${Number(b.outstanding)}` },
                 ] : []}>
-                  <div className={`flex min-h-[72px] items-center gap-3 py-2.5 ${i === bills.length - 1 ? '' : 'border-b border-border'}`}>
-                    <span className={`grid size-10 flex-none place-items-center rounded-xl ${soon
+                  <div className={`relative flex min-h-[72px] items-center gap-3 py-2.5 ${i === bills.length - 1 ? '' : `${rowRule} ${canWrite ? ruleSwipe : rulePad}`}`}>
+                    <span className={`grid size-10 flex-none place-items-center rounded-[12px] ${overdue
                       ? 'bg-destructive/10 text-destructive' : 'bg-attention-soft text-attention-soft-foreground'}`}>
                       <Icon name="card" size={20} />
                     </span>
                     <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-                      <span className="text-[15px] font-medium [overflow-wrap:anywhere]">{b.account}{b.last4 && ` · ${b.last4}`}</span>
-                      <span className={`flex items-center gap-1 text-xs ${soon ? 'text-destructive' : 'text-muted-foreground'}`}>
-                        {soon && <Icon name="schedule" size={14} />}
+                      <span className="text-body font-medium [overflow-wrap:anywhere]">{b.account}{b.last4 && ` · ${b.last4}`}</span>
+                      <span className={`flex items-center gap-1 text-footnote ${overdue ? 'text-destructive'
+                        : soon ? 'text-attention-soft-foreground' : 'text-muted-foreground'}`}>
+                        {overdue ? <Icon name="warning" size={14} /> : soon && <Icon name="schedule" size={14} />}
                         <span className="[overflow-wrap:anywhere]">
                           {b.days_away < 0 ? `Overdue by ${-b.days_away} ${-b.days_away === 1 ? 'day' : 'days'}`
                             : b.days_away === 0 ? 'Due today'
@@ -55,7 +60,7 @@ export async function loadReview(hh: string, canWrite: boolean, sms: number) {
                         </span>
                       </span>
                     </span>
-                    <span className="flex-none text-[15px] font-semibold tabular-nums">{format(Number(b.outstanding))}</span>
+                    <span className="flex-none text-body font-semibold tabular-nums">{format(Number(b.outstanding))}</span>
                   </div>
                 </Swipeable>
               );
@@ -92,7 +97,7 @@ export async function loadReview(hh: string, canWrite: boolean, sms: number) {
       )}
 
       {(sms > 0 || dues.length > 0) && (
-        <div className="mx-[var(--gutter)] overflow-hidden rounded-[18px] bg-card">
+        <div className="mx-[var(--gutter)] overflow-hidden rounded-[20px] bg-card shadow-card">
           {sms > 0 && (
             <Pointer href="/entries?f=sms" icon="sms"
               strong={`${sms} bank ${sms === 1 ? 'message' : 'messages'}`} rest="under From SMS" />
@@ -110,10 +115,10 @@ export async function loadReview(hh: string, canWrite: boolean, sms: number) {
 
 function Pointer({ href, icon, strong, rest }: { href: string; icon: string; strong: string; rest: string }) {
   return (
-    <Link href={href} replace data-replace transitionTypes={['nav-lateral']}
-      className="press flex min-h-14 items-center gap-3 border-b border-border px-3.5 last:border-b-0">
+    <Link href={href} replace data-replace motion="fade"
+      className={`press flex min-h-14 items-center gap-3 px-3.5 ${liRule} [--rule-x:48px]`}>
       <Icon name={icon} size={22} className="text-primary" />
-      <span className="flex-1 text-sm"><b className="font-semibold">{strong}</b>
+      <span className="flex-1 text-body"><b className="font-semibold">{strong}</b>
         <span className="text-muted-foreground"> · {rest}</span></span>
       <Icon name="chevron_right" size={18} className="text-muted-foreground" />
     </Link>

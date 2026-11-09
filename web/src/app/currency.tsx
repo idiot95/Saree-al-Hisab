@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useMemo, type ReactNode } from 'react';
-import { digitsOf, format, fromKeys, keysDisplay, settleKeys, symbolOf, toKeys, typed } from '@/lib/money';
+import { digitsOf, format, fromKeys, keysDisplay, settleKeys, symbolOf, tidyKeys, toKeys, typed } from '@/lib/money';
 
 /* The household's currency, for client components.
 
@@ -34,5 +34,6 @@ export function useMoney() {
     toKeys: (minor: number) => toKeys(minor, currency),
     typed: (raw: string) => typed(raw, currency),
     settle: (keys: string) => settleKeys(keys, currency),
+    tidy: (keys: string) => tidyKeys(keys, currency),
   }), [currency]);
 }

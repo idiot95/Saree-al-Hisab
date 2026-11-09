@@ -48,8 +48,9 @@
   --chart-4: #B5651D;
   --chart-5: #7A5C99;
 
-  /* The net-worth card: plum in both themes, deeper in the dark one (the dark primary is a pale
-     pink, which would make a pale card). Its four class colours are drawn on it, never on paper. */
+  /* The net-worth card: plum in both themes (the dark primary is a pale pink, which would make a pale card). In the
+     dark one it is lifted to #3F2139 (v3.1 P3, ux-audit O7) so it stands off the near-black ground at 1.35:1
+     instead of vanishing into it. Its four class colours are drawn on it, never on paper. */
   --hero: #3A1D36;
   --hero-foreground: #FFFFFF;
   --hero-muted: #D9C3D5;
@@ -57,6 +58,10 @@
   --hero-2: #9CC9E8;              /* pots in other currencies */
   --hero-3: #E8C77A;              /* gold & silver */
   --hero-4: #F2B49C;              /* owed to you */
+
+  /* A card's edge on the ground (ux-audit O7): card on ground is 1.08:1, so a card is lifted by a hairline and a
+     shadow a pixel deep rather than by its colour alone. Dark lights the edge instead, where a shadow cannot show. */
+  --card-shadow: 0 1px 2px rgb(30 22 29 / .06), 0 0 0 1px rgb(30 22 29 / .035);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -75,7 +80,8 @@
     --chart-3: #7FB2CC; --chart-4: #E39A5B; --chart-5: #B79BD6;
     --attention-soft: #3A241A; --attention-soft-foreground: #F2C9B6;
     --money-in: #A3E6BB; --money-out: var(--foreground);
-    --hero: #2D1729; --hero-foreground: #F0E7EE; --hero-muted: #CDB5C9;
+    --hero: #3F2139; --hero-foreground: #F0E7EE; --hero-muted: #CDB5C9;
+    --card-shadow: 0 0 0 1px rgb(240 231 238 / .06);
   }
 }
 :root[data-theme="dark"] {
@@ -93,7 +99,8 @@
   --chart-3: #7FB2CC; --chart-4: #E39A5B; --chart-5: #B79BD6;
   --attention-soft: #3A241A; --attention-soft-foreground: #F2C9B6;
   --money-in: #A3E6BB; --money-out: var(--foreground);
-  --hero: #2D1729; --hero-foreground: #F0E7EE; --hero-muted: #CDB5C9;
+  --hero: #3F2139; --hero-foreground: #F0E7EE; --hero-muted: #CDB5C9;
+  --card-shadow: 0 0 0 1px rgb(240 231 238 / .06);
 }
 
 @theme inline {
@@ -133,6 +140,7 @@
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
+  --shadow-card: var(--card-shadow);
   --color-hero: var(--hero);
   --color-hero-foreground: var(--hero-foreground);
   --color-hero-muted: var(--hero-muted);
@@ -141,3 +149,74 @@
   --color-hero-3: var(--hero-3);
   --color-hero-4: var(--hero-4);
 }
+
+/* Motion: one set of durations and curves for the whole app (v3.1 P2). The rule is "move on the tap, not on the
+   commit": nothing that stands between a tap and its content runs longer than --dur-4, and nothing holds content
+   back to finish. Reduced motion shortens all of it to nothing (globals.css, the last rule).
+     --dur-press   a press under the finger (in is instant; this is the way back out)
+     --dur-1       fades, colour, small state; a frame dissolving into the screen it stood for
+     --dur-2       tab changes, chips, crossfades
+     --dur-3       push and pop, a sheet coming up
+     --dur-4       the ceiling for anything a person waits through
+     --dur-flourish  decoration after arrival only (a tab icon's pop, a check drawing itself)
+     --dur-roll    a Figure's digits rolling after a change (NumberFlow reads it through motion.ts)
+     --stagger     between one section of a screen and the next as it arrives (Reveal.tsx: --dur-2 each, at most three
+                   steps, so the whole reveal ends by --dur-4)
+   Drawers keep vaul's own timing for drags and closing (components/ui/drawer.tsx). */
+:root {
+  --dur-press: 90ms;
+  --dur-1: 120ms;
+  --dur-2: 180ms;
+  --dur-3: 240ms;
+  --dur-4: 300ms;
+  --dur-flourish: 420ms;
+  --dur-roll: 600ms;
+  --stagger: 40ms;
+}
+/* The curves, as Tailwind easings (ease-out, ease-in, ease-press, ease-ios, ease-spring). ease-out is for anything
+   arriving, ease-in for anything leaving (at about two thirds of the arrival's time); ease-ios is UIKit's curve, kept
+   for drags and follow-through; ease-spring overshoots a touch, for the small things that should feel alive. The
+   default transition is --dur-1 on ease-out, so a bare `transition-colors` is already on the system. */
+@theme {
+  --ease-out: cubic-bezier(.22, 1, .36, 1);
+  --ease-in: cubic-bezier(.4, 0, 1, 1);
+  --ease-in-out: cubic-bezier(.65, 0, .35, 1);
+  --ease-press: cubic-bezier(.2, 0, 0, 1);
+  --ease-ios: cubic-bezier(.32, .72, 0, 1);
+  --ease-spring: linear(0, .18 6%, .62 17%, .92 27%, 1.06 37%, 1.09 45%, 1.05 58%, .99 73%, 1);
+  --default-transition-duration: var(--dur-1);
+  --default-transition-timing-function: var(--ease-out);
+}
+
+/* Type: one scale for the whole app (v3.1 P3, ux-audit O6). Classes name roles, not pixels, and nothing is under 11:
+     text-caption      11  a tab's label, a tag in capitals, a count badge
+     text-footnote     12  small print under a line, a status pill
+     text-subhead      13  secondary lines, section labels, chips
+     text-body         15  the body: rows, buttons in a list, paragraphs
+     text-headline     17  a form's buttons, a row that leads its card
+     text-title        20  a section title (Trends)
+     text-title-2      28  a second figure on a hero, a pushed screen's name over its figure
+     text-large-title  34  every screen's title, and a pushed screen's hero figure
+     text-display      40  a tab's hero figure (Left to spend, Net worth, Owed to you)
+     text-amount       52  Add's amount only, stepping down to text-amount-2 (42), 34 and 28 as it grows
+   A field is never under 16px (iOS zooms the page into a smaller one), so inputs keep text-base / --field.
+   `static`, so every size is a CSS variable whether or not a class uses it: inline styles read var(--text-*). */
+@theme static {
+  --text-caption: 11px;       --text-caption--line-height: 14px;
+  --text-footnote: 12px;      --text-footnote--line-height: 16px;
+  --text-subhead: 13px;       --text-subhead--line-height: 18px;
+  --text-body: 15px;          --text-body--line-height: 20px;
+  --text-headline: 17px;      --text-headline--line-height: 22px;
+  --text-title: 20px;         --text-title--line-height: 26px;
+  --text-title-2: 28px;       --text-title-2--line-height: 34px;
+  --text-large-title: 34px;   --text-large-title--line-height: 40px;
+  --text-display: 40px;       --text-display--line-height: 44px;
+  --text-amount: 52px;        --text-amount--line-height: 60px;
+  --text-amount-2: 42px;      --text-amount-2--line-height: 50px;
+}
+
+/* The tab bar's height above the safe area (v3.1 P3, ux-audit O8): 64px on iOS (UIKit's bar is 49pt, and a 48px Add
+   tile needs the rest), 80 on Android (Material 3's navigation bar). Read by the bar (TabItem BAR_CLASS), the room
+   every screen leaves for it (tabs.ts TAB_BAR_SPACE) and the snack that floats above it. */
+:root { --tab-bar: 64px; }
+:root[data-platform="android"] { --tab-bar: 80px; }

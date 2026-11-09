@@ -7,6 +7,7 @@ import { Field } from '../worth/fields';
 import { keepFields } from '../form-hooks';
 import { Icon } from '../Icon';
 import { haptic } from '../haptics';
+import { headerPill } from '../form-bits';
 import BottomDrawer from '../BottomDrawer';
 import { createTab } from './actions';
 import NewPeople from './NewPeople';
@@ -28,7 +29,7 @@ export default function NewTab() {
   return (
     <>
       <button type="button" onClick={() => { haptic('select'); setOpen(true); }}
-        className="press flex min-h-11 flex-none items-center gap-1.5 rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground in-data-[platform=android]:min-h-12">
+        className={`${headerPill} bg-primary text-primary-foreground`}>
         <Icon name="add" size={18} />
         New tab
       </button>
@@ -39,9 +40,9 @@ export default function NewTab() {
             placeholder="Goa weekend, Office petrol…" autoComplete="off" />
 
           <div role="group" aria-label="Who owes on it" className="flex flex-col gap-2">
-            <span className="text-sm font-medium text-muted-foreground">Who owes on it · optional</span>
+            <span className="text-subhead font-medium text-muted-foreground">Who owes on it · optional</span>
             <NewPeople />
-            <p className="text-xs leading-snug text-muted-foreground">
+            <p className="text-footnote leading-snug text-muted-foreground">
               A cost on this tab splits equally between the people on it. Leave it empty and the
               tab still counts in what you are owed.
             </p>
@@ -49,10 +50,10 @@ export default function NewTab() {
 
           {state && !state.ok && <Problem>{state.error}</Problem>}
           <div className="flex gap-2">
-            <Button type="button" variant="secondary" onClick={close} className="h-12 rounded-xl px-4 text-base font-semibold">
+            <Button type="button" variant="secondary" onClick={close} className="h-12 rounded-xl px-4 text-headline font-semibold">
               Cancel
             </Button>
-            <Button type="submit" disabled={pending} className="h-12 flex-1 rounded-xl text-base font-semibold">
+            <Button type="submit" disabled={pending} className="h-12 flex-1 rounded-xl text-headline font-semibold">
               <Icon name="folder" size={18} />
               {pending ? 'Opening…' : 'Open the tab'}
             </Button>

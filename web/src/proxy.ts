@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { auth } from '@/auth';
+import { proxyAuth } from '@/auth.config';
 import { clearOtherFlowCookies } from '@/lib/flow-cookies';
 
 /* Two jobs, and one chore.
@@ -12,9 +12,14 @@ import { clearOtherFlowCookies } from '@/lib/flow-cookies';
    2. An optimistic redirect for a visitor with no session cookie, so they do
       not see a flash of the app before being sent to /signin. Next's own
       guidance is explicit that Proxy is NOT an authorisation boundary — the
-      real check runs in the page and in every Server Action, where the cookie
-      is verified, dated against the account's session epoch, and the role is
-      read from the database.
+      real check runs in the page, in every Server Action and in every route
+      handler that reads the actor (contextFor, through src/db/queries.ts),
+      where the cookie is dated against the account's session epoch and the
+      role is read from the database. Here the cookie is only decrypted and
+      verified (proxyAuth, src/auth.config.ts): a forged or expired one is
+      redirected, a revoked one passes and is refused by the page. The proxy
+      asks the database nothing — in production it runs at the edge region,
+      a round trip (or a new TLS connection) away from Singapore.
 
    The chore: /signin?error= drops the Google flow cookies (see below).
 
@@ -61,7 +66,7 @@ export default async function proxy(req: NextRequest) {
 
   const { pathname } = req.nextUrl;
   if (!NO_REDIRECT.test(pathname)) {
-    const session = await auth();
+    const session = await proxyAuth();
     if (!session?.user) {
       const to = req.nextUrl.clone();
       to.pathname = '/signin';
@@ -96,9 +101,11 @@ export const config = {
        /signin where a woff2 was expected is a silently missing typeface —
        which is how the Arabic line came back in a fallback face the first
        time this shipped.
+       `icons/`, `brands/` and `fonts/` carry their slash too (P5 fix round 1), so a page that merely starts with
+       the word — a future /brands-guide — still gets the proxy and its CSP.
        `api/capture/` (with its slash, so /api/captureX is still covered) is the SMS endpoint a phone posts to with a bearer token:
        no session to redirect for, JSON rather than a page so no CSP or nonce,
        and nothing here may set a cookie on it. */
-    '/((?!_next/static|_next/image|icons|brands|fonts|manifest.webmanifest|favicon.ico|sw.js|api/capture/).*)',
+    '/((?!_next/static|_next/image|icons/|brands/|fonts/|manifest.webmanifest|favicon.ico|sw.js|api/capture/).*)',
   ],
 };

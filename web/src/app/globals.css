@@ -10,10 +10,7 @@
 /* Composition, not palette: the curves, the legacy contrast pairs, the card face. The generated tokens file is
    not touched; these live here. */
 :root {
-  /* UIKit's navigation and sheet curve, and a spring that overshoots a touch
-     for the small things that should feel alive — a tab icon, a check. */
-  --ease-ios: cubic-bezier(.32, .72, 0, 1);
-  --ease-spring: linear(0, .18 6%, .62 17%, .92 27%, 1.06 37%, 1.09 45%, 1.05 58%, .99 73%, 1);
+  /* The curves and durations moved to ql.css (the motion tokens, v3.1 P2). */
   /* The ends of the old filled-button ramps, kept only because scripts/contrast.test.mjs still measures them. */
   --c-primary-lo: #35705F;
   --c-primary-hi: #2A5C4E;
@@ -112,18 +109,10 @@
 
 @layer base {
   /* ── the type scale ──────────────────────────────────────────────────────
-     Every size is fluid between a 360px phone and a 480px one, so a small
-     handset gets readable text and a large one gets air, without a breakpoint
-     deciding it. The ratio is ~1.2, tight enough that steps stay
-     distinguishable at these sizes.
-
+     The sizes are the role tokens in ql.css (text-caption … text-amount, v3.1 P3); the body reads at text-body.
      Line height falls as size rises, which is how type actually works: 1.5 is
      right for a 13px note and far too loose on a 32px balance.             */
   :root {
-    --step--2: clamp(0.688rem, 0.66rem + 0.12vw, 0.75rem);   /* 11–12  labels  */
-    --step--1: clamp(0.781rem, 0.75rem + 0.16vw, 0.875rem);  /* 12.5–14 meta   */
-    --step-0:  clamp(0.875rem, 0.84rem + 0.18vw, 0.969rem);  /* 14–15.5 body   */
-
     --lh-tight: 1.1;
     --lh-snug: 1.3;
     --lh-normal: 1.5;
@@ -149,7 +138,7 @@
   --pad: 16px;
 
   /* What you type into. See the field rule below the resets. */
-  --field: max(16px, var(--step-0));
+  --field: 16px;
   }
 
   html {
@@ -163,14 +152,14 @@
     color: var(--foreground);
     font-family: var(--font-ui-loaded), var(--font-ui);
     font-optical-sizing: auto;
-    font-size: var(--step-0);
+    font-size: var(--text-body);
     line-height: var(--lh-snug);
     /* Tabular figures are the DEFAULT, not an opt-in.
        Forty-three figures were being drawn with proportional digits because
        each one had to remember to ask. In a ledger the column not lining up is
        the failure, so the default is the safe one and prose pays a hair of
-       extra digit width for it. The slashed zero comes along: 0 against O at
-       12px is worth more than the purity. */
+       extra digit width for it. (`zero` is asked for, but Google's Inter has
+       no slashed zero, so it draws the plain one; P5 review M6.) */
     font-variant-numeric: tabular-nums slashed-zero lining-nums;
     font-feature-settings: "tnum" 1, "zero" 1, "lnum" 1;
     -webkit-font-smoothing: antialiased;
@@ -191,8 +180,7 @@
   /* iOS Safari zooms the whole page in when a field smaller than 16px takes
      focus, and does not zoom it back out when the field is left — so every
      screen with a form on it ended a size too big, and stayed that way until
-     somebody pinched. The scale puts body text at 14–15px on a phone, which
-     is under the line. So a field is never under 16px, whatever the scale
+     somebody pinched. The body is 15px, which is under the line. So a field is never under 16px, whatever the scale
      says: this rule for fields that inherit, and `--field` for the ones
      that name a size inline. Buttons do not trigger it and keep the scale;
      the amount fields set a larger size of their own. Fixing the cause is
@@ -206,114 +194,13 @@
 
 
   /* ── Motion ────────────────────────────────────────────────────────────
-     Route changes are animated with the browser's View Transitions API, so
-     the work is done by the compositor on snapshots the browser already
-     took. No animation library, no JS measuring positions on every frame,
-     and nothing to run on the main thread while a screen is arriving. */
+     Navigation moves on the tap, not on the commit (v3.1 P2). The browser's view transitions held a screen's
+     content back until their animation ended, so they are gone: the destination's frame comes up at the tap
+     (PendingSkeleton) and the screen takes its place the moment it arrives. The durations and curves are the
+     tokens in ql.css; the frame's motion is Tailwind on PendingSkeleton itself. */
 
-  /* The overlay swallows taps for as long as it is up. On a bank of tiles
-     people tap in quick succession, a quarter of a second of dead screen is
-     felt as the app being slow, so let clicks through to the live page. */
-  ::view-transition { pointer-events: none; }
-
-  /* The bar is the one fixed point on the screen. If it slid with the
-     content there would be nothing left to be oriented BY. */
-  ::view-transition-group(tab-bar) { animation: none; z-index: 100; }
-  ::view-transition-old(tab-bar)   { display: none; }
-  ::view-transition-new(tab-bar)   { animation: none; }
-
-  /* The way an iPhone moves between screens.
-
-     Going deeper is a PUSH: the new screen slides in from the right edge,
-     over the old one, which drifts a quarter of the way left and dims as it
-     goes under — the parallax that says "this is on top of that". Coming back
-     is a POP, the same move undone: the screen on top slides off to the right
-     and the one beneath is uncovered where it was left. The groups are
-     stacked in capture order, so the arriving screen is always the top layer;
-     on a pop it is clipped to exactly the part the departing screen has
-     uncovered, which keeps the departing screen visually on top without
-     needing to reorder anything.
-
-     The curve is UIKit's own navigation curve, fast off the mark and a long
-     soft landing, and the length is iOS's — anything much shorter reads as a
-     web page, much longer as a slow app. */
-  ::view-transition-old(root), ::view-transition-new(root) { animation: none; }
-
-  ::view-transition-new(.nav-forward) {
-    animation: 480ms var(--ease-ios) both vt-push-in;
-    box-shadow: -10px 0 28px rgba(15, 30, 40, .16);
-  }
-  ::view-transition-old(.nav-forward) {
-    animation: 480ms var(--ease-ios) both vt-push-under;
-  }
-  ::view-transition-old(.nav-back) {
-    animation: 440ms var(--ease-ios) both vt-pop-out;
-  }
-  ::view-transition-new(.nav-back) {
-    animation: 440ms var(--ease-ios) both vt-pop-uncover;
-  }
-  @keyframes vt-push-in    { from { translate: 100% 0 } to { translate: 0 0 } }
-  @keyframes vt-push-under { from { translate: 0 0; filter: brightness(1) } to { translate: -26% 0; filter: brightness(.88) } }
-  @keyframes vt-pop-out    { from { translate: 0 0 } to { translate: 100% 0 } }
-  /* The uncovered screen's right edge always sits at the departing screen's
-     left edge: moving from -26% to 0 while its clip opens from 74% to 0 keeps
-     the two in lock-step under the same curve. */
-  @keyframes vt-pop-uncover {
-    from { translate: -26% 0; clip-path: inset(0 74% 0 0); filter: brightness(.88) }
-    to   { translate: 0 0;    clip-path: inset(0 0 0 0);   filter: brightness(1) }
-  }
-
-  /* Between tabs: the same depth, so no push — the content glides a short way
-     in the direction of the tab that was chosen and fades through, the way a
-     segmented control changes pages. Right-hand tab, content moves left. The
-     bar itself never moves. */
-  ::view-transition-old(.nav-tab-right) { animation: 160ms ease-in both vt-fade reverse, 320ms var(--ease-ios) both vt-nudge-left; }
-  ::view-transition-new(.nav-tab-right) { animation: 240ms ease-out 70ms both vt-fade, 360ms var(--ease-ios) both vt-from-right; }
-  ::view-transition-old(.nav-tab-left)  { animation: 160ms ease-in both vt-fade reverse, 320ms var(--ease-ios) both vt-nudge-right; }
-  ::view-transition-new(.nav-tab-left)  { animation: 240ms ease-out 70ms both vt-fade, 360ms var(--ease-ios) both vt-from-left; }
-  @keyframes vt-nudge-left  { to   { translate: -36px 0 } }
-  @keyframes vt-nudge-right { to   { translate: 36px 0 } }
-  @keyframes vt-from-right  { from { translate: 36px 0 } }
-  @keyframes vt-from-left   { from { translate: -36px 0 } }
-
-  /* Sideways at the same depth without a direction (a tile to Budget): a
-     short lift and a fade, the smallest movement that still registers. */
-  ::view-transition-old(.nav-lateral) {
-    animation: 120ms ease-in both vt-fade reverse, 220ms ease-in both vt-lift reverse;
-  }
-  ::view-transition-new(.nav-lateral) {
-    animation: 200ms ease-out 100ms both vt-fade, 300ms var(--ease-ios) both vt-lift;
-  }
-
-  @keyframes vt-lift  { from { translate: 0 7px } to { translate: 0 } }
-  @keyframes vt-fade  { from { opacity: 0 } to { opacity: 1 } }
-
-  /* Movement across the viewport is the commonest trigger for motion
-     sickness, and this app is used by whoever is in the household — not
-     only by people who tolerate it. The setting is honoured completely:
-     content still swaps, it just stops travelling to get there. */
-  @media (prefers-reduced-motion: reduce) {
-    ::view-transition-group(*),
-    ::view-transition-old(*),
-    ::view-transition-new(*) {
-      animation-duration: 1ms !important;
-      animation-delay: 0ms !important;
-    }
-  }
-
-  /* The shimmer on a loading block. Deliberately slow and low-contrast: a
-     placeholder that flashes is more distracting than the wait it covers. */
-  .shim {
-    background: linear-gradient(90deg, var(--muted) 25%, var(--background) 37%, var(--muted) 63%);
-    background-size: 400% 100%;
-    animation: shim 1.4s ease-in-out infinite;
-  }
-  @keyframes shim { from { background-position: 100% 50% } to { background-position: 0 50% } }
-
-
-  @media (prefers-reduced-motion: reduce) {
-    .shim { animation: none; background: var(--muted); }
-  }
+  /* The shimmer's travel (Skeleton.tsx Shimmer): one band, left to right, from wholly off the left edge to wholly past the right. */
+  @keyframes shim { from { mask-position: -130vw 0 } to { mask-position: 100vw 0 } }
 
   /* Quiet Ledger draws its surfaces with Tailwind (bg-card, border-border); the old .hero, .card and .quiet faces are gone. */
 
@@ -322,11 +209,20 @@
      purpose: a press that lingers reads as lag. Only the release animates,
      so the press itself is instant. */
   .press, button:not(:disabled) {
-    transition: transform .14s cubic-bezier(.2,.8,.2,1);
+    transition: transform var(--dur-press) var(--ease-press);
   }
-  .press:active, button:not(:disabled):active {
+  /* [data-pressed] is set by NavLink on pointerdown, because a phone paints :active on touch only around the
+     release; with it the press is drawn within a frame of the finger landing, and a scroll that takes over drops it. */
+  .press:active, .press[data-pressed], button:not(:disabled):active {
     transform: scale(.972);
-    transition-duration: .05s;
+    transition-duration: 0s;
+  }
+
+  /* A same-screen change on its way (the month pill, a chip; pending.ts): what is below the header dims, after a
+     beat so a change already on the phone does not flicker, and comes back the moment the new state lands. */
+  html[data-pending-same] main > :not(header, nav) {
+    opacity: .55;
+    transition: opacity var(--dur-1) var(--ease-out) 60ms;
   }
 
   /* The undo bar rises from the bottom edge — from where the tab bar is,
@@ -335,17 +231,17 @@
 }
 @layer components {
 
-  .snack { animation: snack-in .22s cubic-bezier(.2,.8,.2,1); }
+  .snack { animation: snack-in var(--dur-3) var(--ease-out); }
   @keyframes snack-in { from { opacity: 0; translate: 0 14px } to { opacity: 1; translate: 0 } }
 
   /* A tab's icon gives a small bounce when its screen arrives — the same
      acknowledgement an iPhone tab bar gives — and only on the live bar, never
      the still copy a loading skeleton draws. */
-  .tab-here { animation: tab-pop .5s var(--ease-spring) both; transform-origin: 50% 60%; }
+  .tab-here { animation: tab-pop var(--dur-flourish) var(--ease-spring) both; transform-origin: 50% 60%; }
   @keyframes tab-pop { 0% { scale: .72 } 100% { scale: 1 } }
 
   /* The check on a success line draws itself in. */
-  .check-draw path { stroke-dasharray: 24; stroke-dashoffset: 24; animation: check-draw .42s var(--ease-ios) .08s forwards; }
+  .check-draw path { stroke-dasharray: 24; stroke-dashoffset: 24; animation: check-draw var(--dur-flourish) var(--ease-ios) 80ms forwards; }
   @keyframes check-draw { to { stroke-dashoffset: 0 } }
 
   /* Focus has to be visible for anyone on a keyboard, and must not be a ring

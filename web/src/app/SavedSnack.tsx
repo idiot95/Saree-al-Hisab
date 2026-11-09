@@ -76,7 +76,7 @@ export default function SavedSnack({ id }: { id: string }) {
         editing.current = true;
         markHandled(id);
         startPending(`/entries/${id}`);
-        router.push(`/entries/${id}?from=/`, { transitionTypes: ['nav-forward'] });
+        router.push(`/entries/${id}?from=/`);
       },
     },
   }), [state, closed, id, router]);
